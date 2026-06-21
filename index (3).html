@@ -1,0 +1,726 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Mi Cartera">
+<meta name="theme-color" content="#0a0a0a">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>Mi Cartera</title>
+<style>
+:root{--bg:#0a0a0a;--bg2:#141414;--bg3:#1c1c1c;--border:rgba(255,255,255,0.07);--border2:rgba(255,255,255,0.13);--text:#f0f0f0;--muted:#777;--green:#34d399;--red:#f87171;--purple:#a78bfa;--gold:#fbbf24;--blue:#60a5fa;--r:16px;--rs:10px}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;padding-bottom:calc(80px + env(safe-area-inset-bottom))}
+.safe-top{padding-top:max(env(safe-area-inset-top),20px)}
+nav{position:sticky;top:0;z-index:100;background:rgba(10,10,10,0.92);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-bottom:0.5px solid var(--border);padding:0 20px;display:flex;align-items:center;justify-content:space-between;height:54px}
+.logo{font-size:17px;font-weight:600;letter-spacing:-0.3px}.logo span{color:var(--purple)}
+.refresh-btn{background:var(--bg3);border:0.5px solid var(--border2);border-radius:20px;padding:6px 14px;color:var(--muted);font-size:13px;cursor:pointer;display:flex;align-items:center;gap:6px}
+.refresh-btn:active{transform:scale(0.97)}
+.spin{display:inline-block}.spinning{animation:spin 0.8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.tabs{display:flex;border-bottom:0.5px solid var(--border);background:var(--bg);position:sticky;top:54px;z-index:99;overflow-x:auto}
+.tabs::-webkit-scrollbar{display:none}
+.tab{flex:0 0 auto;padding:12px 16px;font-size:13px;color:var(--muted);text-align:center;cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap}
+.tab.active{color:var(--purple);border-bottom-color:var(--purple)}
+.page{display:none;padding:20px;max-width:430px;margin:0 auto}.page.active{display:block}
+.total-section{margin-bottom:24px;padding-top:6px}
+.total-label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:5px}
+.total-amount{font-size:40px;font-weight:700;letter-spacing:-1.5px;line-height:1}
+.total-sub{font-size:12px;color:var(--muted);margin-top:6px}
+.cards{display:flex;flex-direction:column;gap:10px;margin-bottom:24px}
+.card{background:var(--bg2);border:0.5px solid var(--border);border-radius:var(--r);padding:16px;cursor:pointer}
+.card:active{transform:scale(0.99)}
+.card-header{display:flex;align-items:center;justify-content:space-between}
+.card-left{display:flex;align-items:center;gap:11px}
+.card-icon{width:38px;height:38px;border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:19px}
+.icon-nu{background:rgba(124,58,237,0.15)}
+.icon-nu2{background:rgba(96,165,250,0.12)}
+.icon-gbm{background:rgba(52,211,153,0.12)}
+.icon-cash{background:rgba(251,191,36,0.12)}
+.card-name{font-size:15px;font-weight:500}
+.card-sub{font-size:12px;color:var(--muted);margin-top:1px}
+.card-right{text-align:right}
+.card-amount{font-size:17px;font-weight:600}
+.card-change{font-size:12px;margin-top:2px}
+.pos{color:var(--green)}.neg{color:var(--red)}.neu{color:var(--muted)}
+.card-detail{display:none;margin-top:12px;padding-top:12px;border-top:0.5px solid var(--border);flex-direction:column;gap:7px}
+.card-detail.open{display:flex}
+.detail-row{display:flex;justify-content:space-between;align-items:center}
+.detail-label{font-size:13px;color:var(--muted)}
+.detail-val{font-size:13px}
+.section-title{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:10px}
+.panel{background:var(--bg2);border:0.5px solid var(--border);border-radius:var(--r);padding:16px;margin-bottom:10px}
+.panel-title{font-size:14px;font-weight:500;margin-bottom:12px}
+.field{margin-bottom:10px}
+.field label{font-size:12px;color:var(--muted);display:block;margin-bottom:4px}
+.field input,.field select{width:100%;background:var(--bg3);border:0.5px solid var(--border2);border-radius:var(--rs);padding:11px 14px;color:var(--text);font-size:15px;outline:none;-webkit-appearance:none;appearance:none}
+.field input:focus{border-color:var(--purple)}
+.field select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23777' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;padding-right:32px}
+.btn{width:100%;padding:13px;background:var(--bg3);border:0.5px solid var(--border2);border-radius:var(--rs);color:var(--text);font-size:15px;font-weight:500;cursor:pointer;margin-top:4px}
+.btn:active{transform:scale(0.99)}
+.btn-purple{background:rgba(124,58,237,0.18);border-color:var(--purple);color:var(--purple)}
+.btn-green{background:rgba(52,211,153,0.12);border-color:var(--green);color:var(--green)}
+.type-toggle{display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap}
+.type-opt{flex:1;min-width:calc(33% - 4px);padding:8px 4px;background:var(--bg3);border:0.5px solid var(--border);border-radius:var(--rs);color:var(--muted);font-size:12px;cursor:pointer;text-align:center}
+.type-opt.active{background:rgba(124,58,237,0.15);border-color:var(--purple);color:var(--purple)}
+.item-row{display:flex;justify-content:space-between;align-items:center;padding:11px 0;border-bottom:0.5px solid var(--border)}
+.item-row:last-child{border-bottom:none}
+.item-cat{font-size:13px;font-weight:500}
+.item-meta{font-size:12px;color:var(--muted);margin-top:2px}
+.item-amt-neg{font-size:14px;font-weight:600;color:var(--red)}
+.item-amt-pos{font-size:14px;font-weight:600;color:var(--green)}
+.empty-state{font-size:13px;color:var(--muted);text-align:center;padding:20px 0}
+.resumen-bar{margin-bottom:12px}
+.bar-header{display:flex;justify-content:space-between;margin-bottom:4px}
+.bar-label{font-size:13px;color:var(--text)}
+.bar-amt{font-size:13px;font-weight:500}
+.bar-track{height:4px;background:var(--bg3);border-radius:2px;overflow:hidden}
+.bar-fill{height:100%;background:var(--purple);border-radius:2px}
+.bar-fill-green{background:var(--green)}
+.month-selector{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.month-nav{background:none;border:0.5px solid var(--border2);border-radius:8px;color:var(--muted);font-size:18px;padding:4px 12px;cursor:pointer}
+.month-label{font-size:15px;font-weight:500}
+.deuda-person{background:var(--bg2);border:0.5px solid var(--border);border-radius:var(--r);padding:16px;margin-bottom:10px}
+.deuda-header{display:flex;justify-content:space-between;align-items:center;cursor:pointer}
+.deuda-name{font-size:16px;font-weight:600}
+.deuda-total{font-size:17px;font-weight:700}
+.deuda-sub{font-size:12px;color:var(--muted);margin-top:2px}
+.deuda-detail{display:none;margin-top:12px;padding-top:12px;border-top:0.5px solid var(--border)}
+.deuda-detail.open{display:block}
+.grand-total-deuda{background:var(--bg2);border:0.5px solid var(--border2);border-radius:var(--r);padding:16px;margin-bottom:20px;text-align:center}
+.grand-total-deuda .label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:6px}
+.grand-total-deuda .amount{font-size:32px;font-weight:700}
+.toast{position:fixed;bottom:calc(24px + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%) translateY(80px);background:var(--bg3);border:0.5px solid var(--border2);border-radius:20px;padding:10px 20px;font-size:14px;color:var(--text);transition:transform 0.3s ease;white-space:nowrap;z-index:999}
+.toast.show{transform:translateX(-50%) translateY(0)}
+.status{font-size:12px;color:var(--muted);text-align:center;margin-top:16px;padding-bottom:20px}
+.mt{margin-top:16px}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.summary-box{background:var(--bg2);border:0.5px solid var(--border);border-radius:var(--rs);padding:12px;text-align:center}
+.summary-box .s-label{font-size:11px;color:var(--muted);margin-bottom:4px}
+.summary-box .s-amt{font-size:18px;font-weight:700}
+</style>
+</head>
+<body>
+<div class="safe-top"></div>
+<nav>
+  <div class="logo">mi <span>cartera</span></div>
+  <button class="refresh-btn" onclick="fetchAll()"><span class="spin" id="spin-icon">&#8635;</span> actualizar</button>
+</nav>
+<div class="tabs">
+  <div class="tab active" onclick="showPage('inicio')">inicio</div>
+  <div class="tab" onclick="showPage('gastos')">gastos</div>
+  <div class="tab" onclick="showPage('ingresos')">ingresos</div>
+  <div class="tab" onclick="showPage('deudas')">deudas</div>
+  <div class="tab" onclick="showPage('resumen')">resumen</div>
+</div>
+
+<!-- INICIO -->
+<div class="page active" id="page-inicio">
+  <div class="total-section">
+    <div class="total-label">patrimonio total</div>
+    <div class="total-amount" id="total-display">$—</div>
+    <div class="total-sub" id="last-update">—</div>
+  </div>
+  <div class="cards">
+    <div class="card">
+      <div class="card-header">
+        <div class="card-left"><div class="card-icon icon-nu">&#128156;</div>
+          <div><div class="card-name">NU cajita 1</div><div class="card-sub">+$9.03 por dia</div></div>
+        </div>
+        <div class="card-right"><div class="card-amount" id="nu-cajita1-display">$—</div><div class="card-change pos">+$9.03 / dia</div></div>
+      </div>
+    </div>
+    <div class="card" onclick="toggleDetail('nu2-detail')">
+      <div class="card-header">
+        <div class="card-left"><div class="card-icon icon-nu2">&#128153;</div>
+          <div><div class="card-name">NU cajita 2</div><div class="card-sub">6% anual</div></div>
+        </div>
+        <div class="card-right"><div class="card-amount" id="nu-cajita2-display">$—</div><div class="card-change pos" id="nu2-rend">—</div></div>
+      </div>
+      <div class="card-detail" id="nu2-detail">
+        <div class="detail-row"><span class="detail-label">saldo base</span><span class="detail-val" id="nu2-base-val">$—</span></div>
+        <div class="detail-row"><span class="detail-label">rendimiento acumulado</span><span class="detail-val pos" id="nu2-rend-val">$—</span></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header">
+        <div class="card-left"><div class="card-icon icon-nu">&#127974;</div>
+          <div><div class="card-name">NU saldo</div><div class="card-sub">disponible</div></div>
+        </div>
+        <div class="card-right"><div class="card-amount" id="nu-saldo-display">$—</div></div>
+      </div>
+    </div>
+    <div class="card" onclick="toggleDetail('gbm-detail')">
+      <div class="card-header">
+        <div class="card-left"><div class="card-icon icon-gbm">&#128200;</div>
+          <div><div class="card-name">GBM</div><div class="card-sub" id="gbm-sub">IVVPESO · 45 titulos</div></div>
+        </div>
+        <div class="card-right"><div class="card-amount" id="gbm-total">$—</div><div class="card-change neu" id="gbm-var">—</div></div>
+      </div>
+      <div class="card-detail" id="gbm-detail">
+        <div class="detail-row"><span class="detail-label">precio IVVPESO</span><span class="detail-val" id="gbm-precio-val">$—</span></div>
+        <div class="detail-row"><span class="detail-label">45 titulos</span><span class="detail-val" id="gbm-ivv-val">$—</span></div>
+        <div class="detail-row"><span class="detail-label">reporto LF</span><span class="detail-val">$99.74</span></div>
+        <div class="detail-row"><span class="detail-label">efectivo GBM</span><span class="detail-val">$46.16</span></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header">
+        <div class="card-left"><div class="card-icon icon-cash">&#128181;</div>
+          <div><div class="card-name">efectivo</div><div class="card-sub">pesos en mano</div></div>
+        </div>
+        <div class="card-right"><div class="card-amount" id="cash-display">$—</div></div>
+      </div>
+    </div>
+  </div>
+  <div class="section-title">actualizar saldos</div>
+  <div class="panel">
+    <div class="field"><label>cajita NU 1 (lo que muestra NU hoy)</label><input type="number" id="input-cajita1" placeholder="ej. 25000" step="0.01" inputmode="decimal"></div>
+    <div class="field"><label>cajita NU 2 — saldo base</label><input type="number" id="input-cajita2-base" placeholder="ej. 5000" step="0.01" inputmode="decimal"></div>
+    <div class="field"><label>cajita NU 2 — fecha inicio (YYYY-MM-DD)</label><input type="text" id="input-cajita2-fecha" placeholder="ej. 2026-06-20"></div>
+    <div class="field"><label>NU saldo disponible</label><input type="number" id="input-nu-saldo" placeholder="ej. 360.59" step="0.01" inputmode="decimal"></div>
+    <div class="field"><label>efectivo en pesos</label><input type="number" id="input-efectivo" placeholder="ej. 2200" step="1" inputmode="decimal"></div>
+    <button class="btn btn-purple" onclick="guardarManuales()">guardar</button>
+  </div>
+  <div class="status" id="status-inicio">—</div>
+</div>
+
+<!-- GASTOS -->
+<div class="page" id="page-gastos">
+  <div class="mt">
+    <div class="section-title">registrar gasto</div>
+    <div class="panel">
+      <div class="field"><label>categoria</label>
+        <select id="gasto-cat">
+          <option value="Comida">Comida</option>
+          <option value="Transporte">Transporte</option>
+          <option value="Salidas">Salidas</option>
+          <option value="Zoe">Zoe</option>
+          <option value="Ropa">Ropa</option>
+          <option value="Salud">Salud</option>
+          <option value="Suscripciones">Suscripciones</option>
+          <option value="Educacion">Educacion</option>
+          <option value="Casa">Casa</option>
+          <option value="Entretenimiento">Entretenimiento</option>
+          <option value="Viajes">Viajes</option>
+          <option value="Regalos">Regalos</option>
+          <option value="Otros">Otros</option>
+        </select>
+      </div>
+      <div class="field"><label>monto</label><input type="number" id="gasto-monto" placeholder="ej. 150" step="1" inputmode="decimal"></div>
+      <div class="field"><label>nota (opcional)</label><input type="text" id="gasto-nota" placeholder="ej. taqueria los compadres"></div>
+      <div class="field"><label>pagado con</label>
+        <div class="type-toggle" id="gasto-fuente-toggle">
+          <div class="type-opt active" onclick="setFuente('efectivo')">efectivo</div>
+          <div class="type-opt" onclick="setFuente('nu')">NU saldo</div>
+          <div class="type-opt" onclick="setFuente('gbm')">GBM</div>
+        </div>
+      </div>
+      <button class="btn btn-purple" onclick="registrarGasto()">registrar gasto</button>
+    </div>
+    <div class="section-title">historial</div>
+    <div class="panel" id="historial-container"><div class="empty-state">sin gastos registrados</div></div>
+  </div>
+</div>
+
+<!-- INGRESOS -->
+<div class="page" id="page-ingresos">
+  <div class="mt">
+    <div class="section-title">registrar ingreso</div>
+    <div class="panel">
+      <div class="field"><label>categoria</label>
+        <select id="ingreso-cat">
+          <option value="Trabajo">Trabajo</option>
+          <option value="Quini">Quini</option>
+          <option value="Maicitos">Maicitos</option>
+          <option value="Brownies">Brownies</option>
+          <option value="Regalos">Regalos</option>
+          <option value="Deudas cobradas">Deudas cobradas</option>
+          <option value="Inversiones">Inversiones</option>
+          <option value="Otros">Otros</option>
+        </select>
+      </div>
+      <div class="field"><label>monto</label><input type="number" id="ingreso-monto" placeholder="ej. 5000" step="1" inputmode="decimal"></div>
+      <div class="field"><label>nota (opcional)</label><input type="text" id="ingreso-nota" placeholder="ej. pago proyecto automatizacion"></div>
+      <div class="field"><label>entra a</label>
+        <div class="type-toggle" id="ingreso-destino-toggle">
+          <div class="type-opt active" onclick="setDestinoIngreso('efectivo')">efectivo</div>
+          <div class="type-opt" onclick="setDestinoIngreso('nu')">NU saldo</div>
+          <div class="type-opt" onclick="setDestinoIngreso('gbm')">GBM</div>
+        </div>
+      </div>
+      <button class="btn btn-green" onclick="registrarIngreso()">registrar ingreso</button>
+    </div>
+    <div class="section-title">historial</div>
+    <div class="panel" id="ingresos-historial"><div class="empty-state">sin ingresos registrados</div></div>
+  </div>
+</div>
+
+<!-- DEUDAS -->
+<div class="page" id="page-deudas">
+  <div class="mt">
+    <div class="grand-total-deuda">
+      <div class="label">balance total deudas</div>
+      <div class="amount" id="deuda-grand-total">$—</div>
+      <div style="font-size:12px;color:var(--muted);margin-top:4px" id="deuda-grand-sub">—</div>
+    </div>
+    <div id="personas-container"></div>
+    <div class="section-title">registrar movimiento</div>
+    <div class="panel">
+      <div class="field"><label>persona</label>
+        <select id="deuda-persona">
+          <option value="Papa">Papa</option>
+          <option value="Elita">Elita</option>
+          <option value="Mama">Mama</option>
+        </select>
+      </div>
+      <div class="field"><label>subcategoria</label>
+        <select id="deuda-subcat">
+          <option value="Prestamo">Prestamo</option>
+          <option value="Comidas">Comidas</option>
+          <option value="Escuela">Escuela</option>
+          <option value="Gas">Gas</option>
+          <option value="Salud">Salud</option>
+          <option value="Eventos">Eventos</option>
+          <option value="Pago recibido">Pago recibido</option>
+          <option value="Otros">Otros</option>
+        </select>
+      </div>
+      <div class="field"><label>tipo</label>
+        <div class="type-toggle">
+          <div class="type-opt active" id="tipo-cargo" onclick="setTipoDeuda('cargo')">me deben (+)</div>
+          <div class="type-opt" id="tipo-pago" onclick="setTipoDeuda('pago')">pagaron (-)</div>
+          <div class="type-opt" id="tipo-debo" onclick="setTipoDeuda('debo')">yo debo (-)</div>
+        </div>
+      </div>
+      <div class="field"><label>monto</label><input type="number" id="deuda-monto" placeholder="ej. 500" step="0.01" inputmode="decimal"></div>
+      <div class="field"><label>nota (opcional)</label><input type="text" id="deuda-nota" placeholder="ej. licencia, medicina..."></div>
+      <button class="btn btn-purple" onclick="registrarDeuda()">registrar</button>
+    </div>
+  </div>
+</div>
+
+<!-- RESUMEN -->
+<div class="page" id="page-resumen">
+  <div class="mt">
+    <div class="month-selector">
+      <button class="month-nav" onclick="cambiarMes(-1)">&#8249;</button>
+      <div class="month-label" id="mes-label">—</div>
+      <button class="month-nav" onclick="cambiarMes(1)">&#8250;</button>
+    </div>
+    <div class="row2" style="margin-bottom:16px">
+      <div class="summary-box"><div class="s-label">ingresos</div><div class="s-amt pos" id="res-ingresos">$—</div></div>
+      <div class="summary-box"><div class="s-label">gastos</div><div class="s-amt neg" id="res-gastos">$—</div></div>
+    </div>
+    <div class="summary-box" style="margin-bottom:20px">
+      <div class="s-label">balance del mes</div>
+      <div class="s-amt" id="res-balance" style="font-size:24px">$—</div>
+    </div>
+    <div class="section-title">gastos por categoria</div>
+    <div class="panel" id="resumen-cats"></div>
+    <div class="section-title mt">ingresos por categoria</div>
+    <div class="panel" id="resumen-ingresos-cats"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ── HELPER FUNCTIONS (must be first) ──────────────────────────
+function ls(k) { return localStorage.getItem(k); }
+function lss(k, v) { localStorage.setItem(k, String(v)); }
+function fmt(n) {
+  if (n === null || n === undefined || isNaN(n)) return '$—';
+  return '$' + Number(n).toLocaleString('es-MX', {minimumFractionDigits:2, maximumFractionDigits:2});
+}
+function toast(msg) {
+  var el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  setTimeout(function(){ el.classList.remove('show'); }, 2200);
+}
+function toggleDetail(id) { document.getElementById(id).classList.toggle('open'); }
+
+// ── CONSTANTS ─────────────────────────────────────────────────
+var TITULOS = 45, REPORTO = 99.74, EFEC_GBM = 46.16;
+var MESES = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+
+// ── DEFAULT DEBT DATA ──────────────────────────────────────────
+var PERSONAS_DEFAULT = {
+  Papa: { nombre: 'Papa', saldo: 40973.31, movimientos: [
+    {subcat:'Gas',monto:1400,tipo:'pago',nota:'gas - el pago',fecha:'2026-06-10T00:00:00.000Z'},
+    {subcat:'Prestamo',monto:5000,tipo:'cargo',nota:'junio 2026',fecha:'2026-06-01T00:00:00.000Z'},
+    {subcat:'Pago recibido',monto:1000,tipo:'pago',nota:'aporte',fecha:'2026-05-28T00:00:00.000Z'},
+    {subcat:'Otros',monto:700,tipo:'cargo',nota:'traje',fecha:'2026-05-25T00:00:00.000Z'},
+    {subcat:'Gas',monto:1300,tipo:'pago',nota:'gas - el pago',fecha:'2026-05-20T00:00:00.000Z'},
+    {subcat:'Gas',monto:1200,tipo:'pago',nota:'gas - el pago',fecha:'2026-05-10T00:00:00.000Z'},
+    {subcat:'Prestamo',monto:5000,tipo:'cargo',nota:'mayo 2026',fecha:'2026-05-01T00:00:00.000Z'},
+    {subcat:'Gas',monto:1354.93,tipo:'pago',nota:'gasolina - el pago',fecha:'2026-04-25T00:00:00.000Z'},
+    {subcat:'Gas',monto:1100.76,tipo:'pago',nota:'gasolina - el pago',fecha:'2026-04-15T00:00:00.000Z'},
+    {subcat:'Otros',monto:100,tipo:'cargo',nota:'apuesta dominadas',fecha:'2026-04-10T00:00:00.000Z'},
+    {subcat:'Otros',monto:100,tipo:'pago',nota:'Texas - el pago',fecha:'2026-04-05T00:00:00.000Z'},
+    {subcat:'Prestamo',monto:5000,tipo:'cargo',nota:'abril 2026',fecha:'2026-04-01T00:00:00.000Z'},
+    {subcat:'Gas',monto:1318,tipo:'pago',nota:'gas - el pago',fecha:'2026-03-15T00:00:00.000Z'},
+    {subcat:'Prestamo',monto:5000,tipo:'cargo',nota:'marzo 2026',fecha:'2026-03-01T00:00:00.000Z'},
+    {subcat:'Gas',monto:1137,tipo:'pago',nota:'gas - el pago',fecha:'2026-03-01T00:00:00.000Z'},
+    {subcat:'Otros',monto:500,tipo:'cargo',nota:'brownies',fecha:'2026-02-20T00:00:00.000Z'},
+    {subcat:'Eventos',monto:200,tipo:'cargo',nota:'boletos',fecha:'2026-02-15T00:00:00.000Z'},
+    {subcat:'Gas',monto:1000,tipo:'pago',nota:'gas - el pago',fecha:'2026-02-10T00:00:00.000Z'},
+    {subcat:'Prestamo',monto:5000,tipo:'cargo',nota:'febrero 2026',fecha:'2026-02-01T00:00:00.000Z'},
+    {subcat:'Gas',monto:1284,tipo:'pago',nota:'gas - el pago',fecha:'2026-01-10T00:00:00.000Z'},
+    {subcat:'Prestamo',monto:5000,tipo:'cargo',nota:'enero 2026',fecha:'2026-01-01T00:00:00.000Z'},
+    {subcat:'Regalos',monto:1600,tipo:'pago',nota:'regalo Zoe - el pago',fecha:'2025-12-22T00:00:00.000Z'},
+    {subcat:'Regalos',monto:1800,tipo:'pago',nota:'regalo Zoe - el pago',fecha:'2025-12-20T00:00:00.000Z'},
+    {subcat:'Comidas',monto:699,tipo:'cargo',nota:'pinas',fecha:'2025-12-15T00:00:00.000Z'},
+    {subcat:'Gas',monto:1338,tipo:'pago',nota:'gas - el pago',fecha:'2025-12-10T00:00:00.000Z'},
+    {subcat:'Prestamo',monto:5000,tipo:'cargo',nota:'diciembre 2025',fecha:'2025-12-01T00:00:00.000Z'},
+    {subcat:'Gas',monto:1237,tipo:'pago',nota:'gas - el pago',fecha:'2025-11-15T00:00:00.000Z'},
+    {subcat:'Eventos',monto:460,tipo:'cargo',nota:'torneo basket',fecha:'2025-11-10T00:00:00.000Z'},
+    {subcat:'Eventos',monto:430,tipo:'cargo',nota:'torneo atlixco',fecha:'2025-11-05T00:00:00.000Z'},
+    {subcat:'Prestamo',monto:5000,tipo:'cargo',nota:'noviembre 2025',fecha:'2025-11-01T00:00:00.000Z'},
+    {subcat:'Gas',monto:1334,tipo:'pago',nota:'gas - el pago',fecha:'2025-10-20T00:00:00.000Z'},
+    {subcat:'Gas',monto:1292,tipo:'pago',nota:'gas - el pago',fecha:'2025-10-10T00:00:00.000Z'},
+    {subcat:'Eventos',monto:300,tipo:'cargo',nota:'torneo elite',fecha:'2025-10-05T00:00:00.000Z'},
+    {subcat:'Prestamo',monto:5000,tipo:'cargo',nota:'octubre 2025',fecha:'2025-10-01T00:00:00.000Z'},
+    {subcat:'Otros',monto:690,tipo:'cargo',nota:'licencia',fecha:'2025-10-01T00:00:00.000Z'},
+    {subcat:'Pago recibido',monto:1000,tipo:'pago',nota:'pago',fecha:'2025-09-28T00:00:00.000Z'},
+    {subcat:'Gas',monto:1285,tipo:'pago',nota:'gas - el pago',fecha:'2025-09-25T00:00:00.000Z'},
+    {subcat:'Eventos',monto:500,tipo:'pago',nota:'antro - el pago',fecha:'2025-09-20T00:00:00.000Z'},
+    {subcat:'Gas',monto:500,tipo:'pago',nota:'gas - el pago',fecha:'2025-09-15T00:00:00.000Z'},
+    {subcat:'Pago recibido',monto:1000,tipo:'pago',nota:'pago efectivo',fecha:'2025-09-10T00:00:00.000Z'},
+    {subcat:'Prestamo',monto:5000,tipo:'cargo',nota:'septiembre 2025',fecha:'2025-09-01T00:00:00.000Z'},
+    {subcat:'Pago recibido',monto:2000,tipo:'pago',nota:'pago',fecha:'2025-08-25T00:00:00.000Z'},
+    {subcat:'Pago recibido',monto:10000,tipo:'pago',nota:'pago 24/08/25',fecha:'2025-08-24T00:00:00.000Z'},
+    {subcat:'Prestamo',monto:5000,tipo:'cargo',nota:'agosto 2025',fecha:'2025-08-01T00:00:00.000Z'},
+    {subcat:'Salud',monto:443,tipo:'cargo',nota:'medicina',fecha:'2025-07-10T00:00:00.000Z'},
+    {subcat:'Prestamo',monto:4500,tipo:'cargo',nota:'julio 2025',fecha:'2025-07-01T00:00:00.000Z'},
+    {subcat:'Pago recibido',monto:2000,tipo:'pago',nota:'pagado en junio',fecha:'2025-06-20T00:00:00.000Z'},
+    {subcat:'Pago recibido',monto:2000,tipo:'pago',nota:'pagado en junio',fecha:'2025-06-10T00:00:00.000Z'},
+    {subcat:'Prestamo',monto:4500,tipo:'cargo',nota:'junio 2025',fecha:'2025-06-01T00:00:00.000Z'},
+    {subcat:'Comidas',monto:100,tipo:'cargo',nota:'chispas de chocolate',fecha:'2025-05-15T00:00:00.000Z'},
+    {subcat:'Pago recibido',monto:3500,tipo:'pago',nota:'pagado en mayo',fecha:'2025-05-10T00:00:00.000Z'},
+    {subcat:'Prestamo',monto:4500,tipo:'cargo',nota:'mayo 2025',fecha:'2025-05-01T00:00:00.000Z'},
+    {subcat:'Prestamo',monto:4500,tipo:'cargo',nota:'abril 2025',fecha:'2025-04-01T00:00:00.000Z'},
+    {subcat:'Otros',monto:100,tipo:'cargo',nota:'casetas San Rafa',fecha:'2025-03-20T00:00:00.000Z'},
+    {subcat:'Pago recibido',monto:4500,tipo:'pago',nota:'pagado para etiquetas',fecha:'2025-03-15T00:00:00.000Z'},
+    {subcat:'Prestamo',monto:4500,tipo:'cargo',nota:'marzo 2025',fecha:'2025-03-01T00:00:00.000Z'},
+    {subcat:'Prestamo',monto:4500,tipo:'cargo',nota:'febrero 2025',fecha:'2025-02-01T00:00:00.000Z'},
+    {subcat:'Pago recibido',monto:2000,tipo:'pago',nota:'pago',fecha:'2025-01-25T00:00:00.000Z'},
+    {subcat:'Otros',monto:500,tipo:'cargo',nota:'CDMX',fecha:'2025-01-20T00:00:00.000Z'},
+    {subcat:'Pago recibido',monto:50,tipo:'pago',nota:'cambio doctor',fecha:'2025-01-15T00:00:00.000Z'},
+    {subcat:'Otros',monto:270,tipo:'cargo',nota:'ceramica',fecha:'2025-01-10T00:00:00.000Z'},
+    {subcat:'Otros',monto:535,tipo:'cargo',nota:'licencia',fecha:'2025-01-05T00:00:00.000Z'},
+    {subcat:'Prestamo',monto:3500,tipo:'cargo',nota:'enero 2025',fecha:'2025-01-01T00:00:00.000Z'}
+  ]},
+  Elita: { nombre: 'Elita', saldo: 144, movimientos: [
+    {subcat:'Pago recibido',monto:1398,tipo:'pago',nota:'aerie',fecha:'2025-06-05T00:00:00.000Z'},
+    {subcat:'Pago recibido',monto:708,tipo:'pago',nota:'boletos',fecha:'2025-06-01T00:00:00.000Z'},
+    {subcat:'Pago recibido',monto:1000,tipo:'pago',nota:'pago 25/05',fecha:'2025-05-25T00:00:00.000Z'},
+    {subcat:'Salud',monto:400,tipo:'cargo',nota:'psicologa',fecha:'2025-02-01T00:00:00.000Z'},
+    {subcat:'Otros',monto:2850,tipo:'cargo',nota:'corbata',fecha:'2025-01-01T00:00:00.000Z'}
+  ]},
+  Mama: { nombre: 'Mama', saldo: 0, movimientos: [] }
+};
+
+// ── STATE ──────────────────────────────────────────────────────
+var state = {
+  nuCajita1: parseFloat(ls('nuCajita1') || '25000'),
+  nuCajita1LastUpdate: ls('nuCajita1LastUpdate') || new Date().toISOString().split('T')[0],
+  nuCajita2Base: parseFloat(ls('nuCajita2Base') || '0'),
+  nuCajita2Fecha: ls('nuCajita2Fecha') || '',
+  nuSaldo: parseFloat(ls('nuSaldo') || '523.58'),
+  efectivo: parseFloat(ls('efectivo') || '2200'),
+  ivvPrecio: parseFloat(ls('ivvPrecio') || '154'),
+  ivvVar: (ls('ivvVar') !== null && ls('ivvVar') !== '') ? parseFloat(ls('ivvVar')) : null,
+  fuenteGasto: 'efectivo',
+  destinoIngreso: 'efectivo',
+  tipoDeuda: 'cargo',
+  mesOffset: 0,
+  personas: JSON.parse(ls('personas') || JSON.stringify(PERSONAS_DEFAULT))
+};
+
+// ── NAVIGATION ────────────────────────────────────────────────
+function showPage(p) {
+  document.querySelectorAll('.page').forEach(function(el){ el.classList.remove('active'); });
+  document.querySelectorAll('.tab').forEach(function(el){ el.classList.remove('active'); });
+  document.getElementById('page-' + p).classList.add('active');
+  var tabs = ['inicio','gastos','ingresos','deudas','resumen'];
+  document.querySelectorAll('.tab')[tabs.indexOf(p)].classList.add('active');
+  if (p === 'resumen') renderResumen();
+  if (p === 'gastos') renderHistorialGastos();
+  if (p === 'ingresos') renderHistorialIngresos();
+  if (p === 'deudas') renderDeudas();
+}
+
+function setFuente(f) {
+  state.fuenteGasto = f;
+  document.querySelectorAll('#gasto-fuente-toggle .type-opt').forEach(function(el, i){
+    el.classList.toggle('active', ['efectivo','nu','gbm'][i] === f);
+  });
+}
+function setDestinoIngreso(f) {
+  state.destinoIngreso = f;
+  document.querySelectorAll('#ingreso-destino-toggle .type-opt').forEach(function(el, i){
+    el.classList.toggle('active', ['efectivo','nu','gbm'][i] === f);
+  });
+}
+function setTipoDeuda(t) {
+  state.tipoDeuda = t;
+  ['cargo','pago','debo'].forEach(function(id){
+    document.getElementById('tipo-' + id).classList.toggle('active', id === t);
+  });
+}
+
+// ── CALCULATIONS ──────────────────────────────────────────────
+function calcNu1() {
+  var base = state.nuCajita1;
+  var lastDate = new Date(state.nuCajita1LastUpdate);
+  var today = new Date();
+  today.setHours(0,0,0,0); lastDate.setHours(0,0,0,0);
+  var dias = Math.max(0, Math.round((today - lastDate) / (1000*60*60*24)));
+  return { saldo: base + dias * 9.03, dias: dias };
+}
+function calcNu2() {
+  if (!state.nuCajita2Base || !state.nuCajita2Fecha) return { saldo: state.nuCajita2Base || 0, rend: 0 };
+  var start = new Date(state.nuCajita2Fecha);
+  var dias = Math.max(0, (Date.now() - start) / (1000*60*60*24));
+  var tasaDia = Math.pow(1.06, 1/365) - 1;
+  var saldo = state.nuCajita2Base * Math.pow(1 + tasaDia, dias);
+  return { saldo: saldo, rend: saldo - state.nuCajita2Base };
+}
+
+// ── RENDER ────────────────────────────────────────────────────
+function render() {
+  var nu1 = calcNu1();
+  document.getElementById('nu-cajita1-display').textContent = fmt(nu1.saldo);
+
+  var nu2 = calcNu2();
+  document.getElementById('nu-cajita2-display').textContent = fmt(nu2.saldo);
+  document.getElementById('nu2-rend').textContent = nu2.rend > 0 ? '+' + fmt(nu2.rend) : '$0.00';
+  document.getElementById('nu2-base-val').textContent = fmt(state.nuCajita2Base);
+  document.getElementById('nu2-rend-val').textContent = '+' + fmt(nu2.rend);
+  document.getElementById('nu-saldo-display').textContent = fmt(state.nuSaldo);
+  document.getElementById('cash-display').textContent = fmt(state.efectivo);
+
+  var gbmIVV = state.ivvPrecio * TITULOS;
+  var gbmTotal = gbmIVV + REPORTO + EFEC_GBM;
+  document.getElementById('gbm-total').textContent = fmt(gbmTotal);
+  document.getElementById('gbm-ivv-val').textContent = fmt(gbmIVV);
+  document.getElementById('gbm-precio-val').textContent = fmt(state.ivvPrecio);
+  document.getElementById('gbm-sub').textContent = 'IVVPESO · $' + state.ivvPrecio.toFixed(2) + ' /titulo';
+  if (state.ivvVar !== null) {
+    var varEl = document.getElementById('gbm-var');
+    var sign = state.ivvVar >= 0 ? '+' : '';
+    varEl.textContent = sign + state.ivvVar.toFixed(2) + '% hoy';
+    varEl.className = 'card-change ' + (state.ivvVar >= 0 ? 'pos' : 'neg');
+  }
+
+  var total = nu1.saldo + nu2.saldo + state.nuSaldo + gbmTotal + state.efectivo;
+  document.getElementById('total-display').textContent = fmt(total);
+  var now = new Date();
+  document.getElementById('last-update').textContent = 'actualizado ' +
+    now.toLocaleDateString('es-MX', {day:'numeric', month:'short'}) + ' · ' +
+    now.toLocaleTimeString('es-MX', {hour:'2-digit', minute:'2-digit'});
+}
+
+function guardarManuales() {
+  var c1 = parseFloat(document.getElementById('input-cajita1').value);
+  var c2b = parseFloat(document.getElementById('input-cajita2-base').value);
+  var c2f = document.getElementById('input-cajita2-fecha').value.trim();
+  var ns = parseFloat(document.getElementById('input-nu-saldo').value);
+  var ef = parseFloat(document.getElementById('input-efectivo').value);
+  if (!isNaN(c1)) { state.nuCajita1 = c1; state.nuCajita1LastUpdate = new Date().toISOString().split('T')[0]; lss('nuCajita1', c1); lss('nuCajita1LastUpdate', state.nuCajita1LastUpdate); }
+  if (!isNaN(c2b)) { state.nuCajita2Base = c2b; lss('nuCajita2Base', c2b); }
+  if (c2f) { state.nuCajita2Fecha = c2f; lss('nuCajita2Fecha', c2f); }
+  if (!isNaN(ns)) { state.nuSaldo = ns; lss('nuSaldo', ns); }
+  if (!isNaN(ef)) { state.efectivo = ef; lss('efectivo', ef); }
+  ['input-cajita1','input-cajita2-base','input-cajita2-fecha','input-nu-saldo','input-efectivo'].forEach(function(id){ document.getElementById(id).value = ''; });
+  render(); toast('guardado');
+}
+
+// ── GASTOS ────────────────────────────────────────────────────
+function getGastos() { return JSON.parse(ls('gastos') || '[]'); }
+function saveGastos(g) { lss('gastos', JSON.stringify(g)); }
+
+function registrarGasto() {
+  var cat = document.getElementById('gasto-cat').value;
+  var monto = parseFloat(document.getElementById('gasto-monto').value);
+  var nota = document.getElementById('gasto-nota').value.trim();
+  if (isNaN(monto) || monto <= 0) { toast('ingresa un monto valido'); return; }
+  if (state.fuenteGasto === 'efectivo') { state.efectivo = Math.max(0, state.efectivo - monto); lss('efectivo', state.efectivo); }
+  else if (state.fuenteGasto === 'nu') { state.nuSaldo = Math.max(0, state.nuSaldo - monto); lss('nuSaldo', state.nuSaldo); }
+  var g = getGastos();
+  g.unshift({ cat: cat, monto: monto, nota: nota, fuente: state.fuenteGasto, fecha: new Date().toISOString() });
+  saveGastos(g);
+  document.getElementById('gasto-monto').value = '';
+  document.getElementById('gasto-nota').value = '';
+  render(); renderHistorialGastos(); toast('-' + fmt(monto) + ' registrado');
+}
+
+function renderHistorialGastos() {
+  var g = getGastos();
+  var c = document.getElementById('historial-container');
+  if (!g.length) { c.innerHTML = '<div class="empty-state">sin gastos registrados</div>'; return; }
+  c.innerHTML = g.slice(0, 50).map(function(item) {
+    var d = new Date(item.fecha);
+    var fecha = d.toLocaleDateString('es-MX', {day:'numeric', month:'short'});
+    return '<div class="item-row"><div><div class="item-cat">' + item.cat + '</div><div class="item-meta">' + (item.nota || '') + ' · ' + fecha + ' · ' + item.fuente + '</div></div><div class="item-amt-neg">-' + fmt(item.monto) + '</div></div>';
+  }).join('');
+}
+
+// ── INGRESOS ──────────────────────────────────────────────────
+function getIngresos() { return JSON.parse(ls('ingresos') || '[]'); }
+function saveIngresos(g) { lss('ingresos', JSON.stringify(g)); }
+
+function registrarIngreso() {
+  var cat = document.getElementById('ingreso-cat').value;
+  var monto = parseFloat(document.getElementById('ingreso-monto').value);
+  var nota = document.getElementById('ingreso-nota').value.trim();
+  if (isNaN(monto) || monto <= 0) { toast('ingresa un monto valido'); return; }
+  if (state.destinoIngreso === 'efectivo') { state.efectivo += monto; lss('efectivo', state.efectivo); }
+  else if (state.destinoIngreso === 'nu') { state.nuSaldo += monto; lss('nuSaldo', state.nuSaldo); }
+  var g = getIngresos();
+  g.unshift({ cat: cat, monto: monto, nota: nota, destino: state.destinoIngreso, fecha: new Date().toISOString() });
+  saveIngresos(g);
+  document.getElementById('ingreso-monto').value = '';
+  document.getElementById('ingreso-nota').value = '';
+  render(); renderHistorialIngresos(); toast('+' + fmt(monto) + ' ingresado');
+}
+
+function renderHistorialIngresos() {
+  var g = getIngresos();
+  var c = document.getElementById('ingresos-historial');
+  if (!g.length) { c.innerHTML = '<div class="empty-state">sin ingresos registrados</div>'; return; }
+  c.innerHTML = g.slice(0, 50).map(function(item) {
+    var d = new Date(item.fecha);
+    var fecha = d.toLocaleDateString('es-MX', {day:'numeric', month:'short'});
+    return '<div class="item-row"><div><div class="item-cat">' + item.cat + '</div><div class="item-meta">' + (item.nota || '') + ' · ' + fecha + ' · ' + item.destino + '</div></div><div class="item-amt-pos">+' + fmt(item.monto) + '</div></div>';
+  }).join('');
+}
+
+// ── DEUDAS ────────────────────────────────────────────────────
+function registrarDeuda() {
+  var persona = document.getElementById('deuda-persona').value;
+  var subcat = document.getElementById('deuda-subcat').value;
+  var monto = parseFloat(document.getElementById('deuda-monto').value);
+  var nota = document.getElementById('deuda-nota').value.trim();
+  if (isNaN(monto) || monto <= 0) { toast('ingresa un monto valido'); return; }
+  var delta = state.tipoDeuda === 'cargo' ? monto : -monto;
+  state.personas[persona].saldo += delta;
+  state.personas[persona].movimientos.unshift({ subcat: subcat, monto: monto, tipo: state.tipoDeuda, nota: nota, fecha: new Date().toISOString() });
+  lss('personas', JSON.stringify(state.personas));
+  document.getElementById('deuda-monto').value = '';
+  document.getElementById('deuda-nota').value = '';
+  renderDeudas(); toast('movimiento registrado');
+}
+
+function renderDeudas() {
+  var personas = state.personas;
+  var grandTotal = 0;
+  Object.values(personas).forEach(function(p){ grandTotal += p.saldo; });
+  var gtEl = document.getElementById('deuda-grand-total');
+  gtEl.textContent = fmt(Math.abs(grandTotal));
+  gtEl.className = 'amount ' + (grandTotal >= 0 ? 'pos' : 'neg');
+  document.getElementById('deuda-grand-sub').textContent = grandTotal >= 0 ? 'te deben en total' : 'debes en total';
+
+  var c = document.getElementById('personas-container');
+  c.innerHTML = Object.entries(personas).map(function(entry) {
+    var key = entry[0], p = entry[1];
+    var isPos = p.saldo >= 0;
+    var movs = p.movimientos.map(function(m) {
+      var d = new Date(m.fecha);
+      var fecha = d.toLocaleDateString('es-MX', {day:'numeric', month:'short', year:'numeric'});
+      var isNeg = m.tipo !== 'cargo';
+      return '<div class="item-row"><div><div class="item-cat">' + m.subcat + '</div><div class="item-meta">' + (m.nota || '') + ' · ' + fecha + '</div></div><div class="' + (isNeg ? 'item-amt-neg' : 'item-amt-pos') + '">' + (isNeg ? '-' : '+') + fmt(m.monto) + '</div></div>';
+    }).join('');
+    return '<div class="deuda-person"><div class="deuda-header" onclick="toggleDeuda(\'d-' + key + '\')"><div><div class="deuda-name">' + p.nombre + '</div><div class="deuda-sub">' + (isPos ? 'te debe' : 'le debes') + '</div></div><div class="deuda-total ' + (isPos ? 'pos' : 'neg') + '">' + fmt(Math.abs(p.saldo)) + '</div></div><div class="deuda-detail" id="d-' + key + '">' + (movs || '<div class="empty-state" style="padding:12px 0">sin movimientos</div>') + '</div></div>';
+  }).join('');
+}
+
+function toggleDeuda(id) { document.getElementById(id).classList.toggle('open'); }
+
+// ── RESUMEN ───────────────────────────────────────────────────
+function renderResumen() {
+  var now = new Date();
+  var target = new Date(now.getFullYear(), now.getMonth() + state.mesOffset, 1);
+  document.getElementById('mes-label').textContent = MESES[target.getMonth()] + ' ' + target.getFullYear();
+
+  var gastos = getGastos().filter(function(i){ var d = new Date(i.fecha); return d.getMonth() === target.getMonth() && d.getFullYear() === target.getFullYear(); });
+  var ingresos = getIngresos().filter(function(i){ var d = new Date(i.fecha); return d.getMonth() === target.getMonth() && d.getFullYear() === target.getFullYear(); });
+  var totalG = gastos.reduce(function(s,i){ return s + i.monto; }, 0);
+  var totalI = ingresos.reduce(function(s,i){ return s + i.monto; }, 0);
+  var balance = totalI - totalG;
+
+  document.getElementById('res-gastos').textContent = fmt(totalG);
+  document.getElementById('res-ingresos').textContent = fmt(totalI);
+  var balEl = document.getElementById('res-balance');
+  balEl.textContent = (balance >= 0 ? '+' : '') + fmt(Math.abs(balance));
+  balEl.className = 's-amt ' + (balance >= 0 ? 'pos' : 'neg');
+
+  var byCat = {};
+  gastos.forEach(function(i){ byCat[i.cat] = (byCat[i.cat] || 0) + i.monto; });
+  var sortedG = Object.entries(byCat).sort(function(a,b){ return b[1]-a[1]; });
+  var maxG = sortedG[0] ? sortedG[0][1] : 1;
+  document.getElementById('resumen-cats').innerHTML = sortedG.length ? sortedG.map(function(e){ return '<div class="resumen-bar"><div class="bar-header"><span class="bar-label">' + e[0] + '</span><span class="bar-amt neg">' + fmt(e[1]) + '</span></div><div class="bar-track"><div class="bar-fill" style="width:' + (e[1]/maxG*100).toFixed(1) + '%"></div></div></div>'; }).join('') : '<div class="empty-state">sin gastos este mes</div>';
+
+  var byIng = {};
+  ingresos.forEach(function(i){ byIng[i.cat] = (byIng[i.cat] || 0) + i.monto; });
+  var sortedI = Object.entries(byIng).sort(function(a,b){ return b[1]-a[1]; });
+  var maxI = sortedI[0] ? sortedI[0][1] : 1;
+  document.getElementById('resumen-ingresos-cats').innerHTML = sortedI.length ? sortedI.map(function(e){ return '<div class="resumen-bar"><div class="bar-header"><span class="bar-label">' + e[0] + '</span><span class="bar-amt pos">' + fmt(e[1]) + '</span></div><div class="bar-track"><div class="bar-fill bar-fill-green" style="width:' + (e[1]/maxI*100).toFixed(1) + '%"></div></div></div>'; }).join('') : '<div class="empty-state">sin ingresos este mes</div>';
+}
+
+function cambiarMes(d) { state.mesOffset += d; renderResumen(); }
+
+// ── GBM FETCH ─────────────────────────────────────────────────
+async function fetchIVVPESO() {
+  var yahooURL = 'https://query1.finance.yahoo.com/v8/finance/chart/IVVPESO.MX?interval=1d&range=2d';
+  var proxies = [
+    function(u){ return 'https://api.allorigins.win/get?url=' + encodeURIComponent(u); },
+    function(u){ return 'https://corsproxy.io/?' + encodeURIComponent(u); }
+  ];
+  for (var i = 0; i < proxies.length; i++) {
+    try {
+      var r = await fetch(proxies[i](yahooURL));
+      var outer = await r.json();
+      var raw = typeof outer.contents === 'string' ? outer.contents : JSON.stringify(outer);
+      var d = JSON.parse(raw);
+      var closes = d.chart.result[0].indicators.quote[0].close.filter(function(x){ return x !== null; });
+      state.ivvPrecio = closes[closes.length - 1];
+      state.ivvVar = closes.length >= 2 ? ((closes[closes.length-1] - closes[closes.length-2]) / closes[closes.length-2]) * 100 : null;
+      lss('ivvPrecio', state.ivvPrecio); lss('ivvVar', state.ivvVar || '');
+      return true;
+    } catch(e) {}
+  }
+  try {
+    var r2 = await fetch(yahooURL);
+    var d2 = await r2.json();
+    var closes2 = d2.chart.result[0].indicators.quote[0].close.filter(function(x){ return x !== null; });
+    state.ivvPrecio = closes2[closes2.length - 1];
+    state.ivvVar = closes2.length >= 2 ? ((closes2[closes2.length-1] - closes2[closes2.length-2]) / closes2[closes2.length-2]) * 100 : null;
+    lss('ivvPrecio', state.ivvPrecio); lss('ivvVar', state.ivvVar || '');
+    return true;
+  } catch(e) {}
+  return false;
+}
+
+async function fetchAll() {
+  var icon = document.getElementById('spin-icon');
+  icon.classList.add('spinning');
+  document.getElementById('status-inicio').textContent = 'actualizando IVVPESO...';
+  var ok = await fetchIVVPESO();
+  icon.classList.remove('spinning');
+  document.getElementById('status-inicio').textContent = ok ? 'precio en vivo · IVVPESO' : 'usando ultimo precio guardado · IVVPESO';
+  render();
+}
+
+// ── INIT ──────────────────────────────────────────────────────
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(function(){});
+render();
+fetchAll();
+</script>
+</body>
+</html>
