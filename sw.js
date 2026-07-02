@@ -1,4 +1,4 @@
-const CACHE = 'cartera-v1';
+const CACHE = 'cartera-v2';
 const ASSETS = ['/', '/index.html', '/manifest.json'];
 
 self.addEventListener('install', e => {
@@ -14,8 +14,22 @@ self.addEventListener('activate', e => {
 });
 
 self.addEventListener('fetch', e => {
-  if (e.request.url.includes('yahoo.com')) return;
-  e.respondWith(
-    caches.match(e.request).then(cached => cached || fetch(e.request).catch(() => caches.match('/index.html')))
-  );
+  const req = e.request;
+  if (req.url.includes('yahoo.com') || req.url.includes('allorigins') || req.url.includes('corsproxy')) return;
+
+  // Para el HTML de la app: network-first (siempre busca la version fresca; usa cache solo si no hay internet)
+  const isHTML = req.mode === 'navigate' || req.destination === 'document' || req.url.endsWith('/index.html') || req.url.endsWith('/');
+  if (isHTML) {
+    e.respondWith(
+      fetch(req).then(res => {
+        const copy = res.clone();
+        caches.open(CACHE).then(c => c.put('/index.html', copy));
+        return res;
+      }).catch(() => caches.match('/index.html'))
+    );
+    return;
+  }
+
+  // Resto de assets: cache-first
+  e.respondWith(caches.match(req).then(cached => cached || fetch(req)));
 });
