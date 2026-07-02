@@ -143,6 +143,17 @@ nav{position:sticky;top:0;z-index:100;background:rgba(10,10,10,0.92);backdrop-fi
 .toast.show{transform:translateX(-50%) translateY(0)}
 .status{font-size:12px;color:var(--muted);text-align:center;margin-top:16px;padding-bottom:20px}
 .mt{margin-top:16px}
+
+/* CHARTS */
+.chart-head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px}
+.chart-val{font-size:18px;font-weight:700}
+.chart-delta{font-size:12px;font-weight:500}
+.chart-dates{display:flex;justify-content:space-between;font-size:10px;color:var(--muted);margin-top:4px}
+table.mini{width:100%;border-collapse:collapse;font-size:12px}
+table.mini th{color:var(--muted);font-weight:500;text-align:right;padding:6px 0;border-bottom:0.5px solid var(--border);font-size:11px;text-transform:lowercase}
+table.mini td{padding:7px 0;border-bottom:0.5px solid var(--border);text-align:right}
+table.mini tr:last-child td{border-bottom:none}
+table.mini th:first-child,table.mini td:first-child{text-align:left}
 </style>
 </head>
 <body>
@@ -241,8 +252,8 @@ nav{position:sticky;top:0;z-index:100;background:rgba(10,10,10,0.92);backdrop-fi
       <div class="card-detail" id="gbm-detail">
         <div class="detail-row"><span class="detail-label">precio IVVPESO</span><span class="detail-val" id="gbm-precio-val">$—</span></div>
         <div class="detail-row"><span class="detail-label">45 titulos</span><span class="detail-val" id="gbm-ivv-val">$—</span></div>
-        <div class="detail-row"><span class="detail-label">reporto LF</span><span class="detail-val">$99.74</span></div>
-        <div class="detail-row"><span class="detail-label">efectivo GBM</span><span class="detail-val">$46.16</span></div>
+        <div class="detail-row"><span class="detail-label">reporto LF</span><span class="detail-val" id="gbm-reporto-val">$—</span></div>
+        <div class="detail-row"><span class="detail-label">efectivo GBM</span><span class="detail-val" id="gbm-efec-val">$—</span></div>
       </div>
     </div>
     <div class="card">
@@ -262,8 +273,42 @@ nav{position:sticky;top:0;z-index:100;background:rgba(10,10,10,0.92);backdrop-fi
     <div class="field"><label>cajita NU 2 — fecha inicio (YYYY-MM-DD)</label><input type="text" id="input-cajita2-fecha" placeholder="ej. 2026-06-20"></div>
     <div class="field"><label>NU saldo disponible</label><input type="number" id="input-nu-saldo" placeholder="ej. 360.59" step="0.01" inputmode="decimal"></div>
     <div class="field"><label>efectivo en pesos</label><input type="number" id="input-efectivo" placeholder="ej. 2200" step="1" inputmode="decimal"></div>
+    <div class="row2" style="gap:8px">
+      <div class="field"><label>efectivo GBM</label><input type="number" id="input-gbm-efec" placeholder="ej. 46.16" step="0.01" inputmode="decimal"></div>
+      <div class="field"><label>reporto LF</label><input type="number" id="input-reporto" placeholder="ej. 99.74" step="0.01" inputmode="decimal"></div>
+    </div>
     <button class="btn btn-purple" onclick="guardarManuales()">guardar</button>
   </div>
+
+  <div class="section-title">transferir entre cuentas</div>
+  <div class="panel">
+    <div class="row2" style="gap:8px">
+      <div class="field"><label>desde</label>
+        <select id="transfer-origen">
+          <option value="efectivo">efectivo</option>
+          <option value="nu">NU saldo</option>
+          <option value="cajita1">NU cajita 1</option>
+          <option value="cajita2">NU cajita 2</option>
+          <option value="gbm">GBM efectivo</option>
+        </select>
+      </div>
+      <div class="field"><label>hacia</label>
+        <select id="transfer-destino">
+          <option value="nu">NU saldo</option>
+          <option value="efectivo">efectivo</option>
+          <option value="cajita1">NU cajita 1</option>
+          <option value="cajita2">NU cajita 2</option>
+          <option value="gbm">GBM efectivo</option>
+          <option value="tarjeta">tarjeta NU (pago)</option>
+        </select>
+      </div>
+    </div>
+    <div class="field"><label>monto</label><input type="number" id="transfer-monto" placeholder="ej. 4000" step="0.01" inputmode="decimal"></div>
+    <div class="field"><label>nota (opcional)</label><input type="text" id="transfer-nota" placeholder="ej. deposito en cajero"></div>
+    <button class="btn btn-purple" onclick="registrarTransferencia()">transferir</button>
+  </div>
+  <div class="section-title">ultimas transferencias</div>
+  <div class="panel" id="transfer-historial"><div class="empty-state">sin transferencias</div></div>
 
   <div class="section-title">tarjeta NU</div>
   <div class="panel">
@@ -385,10 +430,18 @@ nav{position:sticky;top:0;z-index:100;background:rgba(10,10,10,0.92);backdrop-fi
       <div class="s-label">balance del mes</div>
       <div class="s-amt" id="res-balance" style="font-size:24px">$—</div>
     </div>
-    <div class="section-title">gastos por categoria</div>
+    <div class="section-title">rendimientos del mes</div>
+    <div class="panel" id="res-rendimientos"></div>
+    <div class="section-title mt">gastos por categoria</div>
     <div class="panel" id="resumen-cats"></div>
     <div class="section-title mt">ingresos por categoria</div>
     <div class="panel" id="resumen-ingresos-cats"></div>
+    <div class="section-title mt">GBM · valor de tus 45 titulos</div>
+    <div class="panel" id="gbm-chart"></div>
+    <div class="section-title mt">GBM · cierre por mes</div>
+    <div class="panel" id="gbm-tabla"></div>
+    <div class="section-title mt">patrimonio total</div>
+    <div class="panel" id="patrimonio-chart"></div>
   </div>
 </div>
 
@@ -412,7 +465,8 @@ const db = getFirestore(app);
 const auth = getAuth(app);
 
 const ALLOWED_EMAIL = 'rl7103405@gmail.com';
-const TITULOS = 45, REPORTO = 99.74, EFEC_GBM = 46.16;
+const TITULOS = 45;
+const CUENTAS = {efectivo:'efectivo', nu:'NU saldo', cajita1:'NU cajita 1', cajita2:'NU cajita 2', gbm:'GBM efectivo', tarjeta:'tarjeta NU'};
 const MESES = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
 
 function fmt(n) {
@@ -461,6 +515,7 @@ onAuthStateChanged(auth, async user => {
     document.getElementById('loading-overlay').classList.add('hidden');
     render();
     renderHistorialGastos();
+    renderTransferencias();
     fetchAll();
   } else {
     document.getElementById('login-screen').classList.remove('hidden');
@@ -550,12 +605,13 @@ let state = {
   nuCajita1:25000, nuCajita1LastUpdate:new Date().toISOString().split('T')[0],
   nuCajita2Base:0, nuCajita2Fecha:'',
   nuSaldo:523.58, efectivo:2200,
+  reporto:99.74, efectivoGBM:46.16,
   tarjetaDeuda:2001, tarjetaMovimientos:[],
-  ivvPrecio:154, ivvVar:null,
+  ivvPrecio:154, ivvVar:null, ivvHistory:[],
   fuenteGasto:'efectivo', destinoIngreso:'efectivo', tipoDeuda:'cargo',
   mesOffset:0,
   personas:JSON.parse(JSON.stringify(PERSONAS_DEFAULT)),
-  gastos:[], ingresos:[]
+  gastos:[], ingresos:[], transferencias:[], snapshots:[]
 };
 
 // ── FIREBASE ──────────────────────────────────────────────────
@@ -571,10 +627,14 @@ async function loadFromFirebase() {
     else await setDoc(doc(db,'cartera','personas'), {data:state.personas});
     const tDoc = await getDoc(doc(db,'cartera','tarjeta'));
     if (tDoc.exists()) { state.tarjetaDeuda = tDoc.data().deuda; state.tarjetaMovimientos = tDoc.data().movimientos || []; }
+    const hDoc = await getDoc(doc(db,'cartera','historial'));
+    if (hDoc.exists()) state.snapshots = hDoc.data().snapshots || [];
     const gSnap = await getDocs(query(collection(db,'gastos'), orderBy('fecha','desc')));
     state.gastos = gSnap.docs.map(d => d.data());
     const iSnap = await getDocs(query(collection(db,'ingresos'), orderBy('fecha','desc')));
     state.ingresos = iSnap.docs.map(d => d.data());
+    const trSnap = await getDocs(query(collection(db,'transferencias'), orderBy('fecha','desc')));
+    state.transferencias = trSnap.docs.map(d => d.data());
     setSyncDot('ok');
   } catch(e) { console.error(e); setSyncDot('err'); }
 }
@@ -585,7 +645,8 @@ async function saveSaldos() {
       nuCajita1:state.nuCajita1, nuCajita1LastUpdate:state.nuCajita1LastUpdate,
       nuCajita2Base:state.nuCajita2Base, nuCajita2Fecha:state.nuCajita2Fecha,
       nuSaldo:state.nuSaldo, efectivo:state.efectivo,
-      ivvPrecio:state.ivvPrecio, ivvVar:state.ivvVar
+      reporto:state.reporto, efectivoGBM:state.efectivoGBM,
+      ivvPrecio:state.ivvPrecio, ivvVar:state.ivvVar, ivvHistory:state.ivvHistory
     });
     setSyncDot('ok');
   } catch(e) { setSyncDot('err'); }
@@ -613,17 +674,21 @@ window.setDestinoIngreso = f => { state.destinoIngreso=f; document.querySelector
 window.setTipoDeuda = t => { state.tipoDeuda=t; ['cargo','pago','debo'].forEach(id=>document.getElementById('tipo-'+id).classList.toggle('active',id===t)); };
 
 // ── CALCS ─────────────────────────────────────────────────────
+function parseFechaLocal(f) { return new Date(f+'T00:00:00'); } // evita que YYYY-MM-DD se lea como UTC
 function calcNu1() {
-  const last=new Date(state.nuCajita1LastUpdate), today=new Date();
-  today.setHours(0,0,0,0); last.setHours(0,0,0,0);
+  const last=parseFechaLocal(state.nuCajita1LastUpdate), today=new Date();
+  today.setHours(0,0,0,0);
   const dias=Math.max(0,Math.round((today-last)/86400000));
   return {saldo:state.nuCajita1+dias*9.03};
 }
+function calcNu2At(ms) {
+  if(!state.nuCajita2Base||!state.nuCajita2Fecha) return state.nuCajita2Base||0;
+  const dias=Math.max(0,(ms-parseFechaLocal(state.nuCajita2Fecha).getTime())/86400000);
+  return state.nuCajita2Base*Math.pow(1+(Math.pow(1.06,1/365)-1),dias);
+}
 function calcNu2() {
-  if(!state.nuCajita2Base||!state.nuCajita2Fecha) return {saldo:state.nuCajita2Base||0,rend:0};
-  const dias=Math.max(0,(Date.now()-new Date(state.nuCajita2Fecha))/86400000);
-  const saldo=state.nuCajita2Base*Math.pow(1+(Math.pow(1.06,1/365)-1),dias);
-  return {saldo, rend:saldo-state.nuCajita2Base};
+  const saldo=calcNu2At(Date.now());
+  return {saldo, rend:saldo-(state.nuCajita2Base||0)};
 }
 function diasParaCorte() {
   const now=new Date();
@@ -656,10 +721,12 @@ function render() {
     document.getElementById('tarjeta-ultimo').textContent=(ult.tipo==='cargo'?'+':'-')+fmt(ult.monto)+' · '+new Date(ult.fecha).toLocaleDateString('es-MX',{day:'numeric',month:'short'});
   }
 
-  const gbmIVV=state.ivvPrecio*TITULOS, gbmTotal=gbmIVV+REPORTO+EFEC_GBM;
+  const gbmIVV=state.ivvPrecio*TITULOS, gbmTotal=gbmIVV+state.reporto+state.efectivoGBM;
   document.getElementById('gbm-total').textContent=fmt(gbmTotal);
   document.getElementById('gbm-ivv-val').textContent=fmt(gbmIVV);
   document.getElementById('gbm-precio-val').textContent=fmt(state.ivvPrecio);
+  document.getElementById('gbm-reporto-val').textContent=fmt(state.reporto);
+  document.getElementById('gbm-efec-val').textContent=fmt(state.efectivoGBM);
   document.getElementById('gbm-sub').textContent='IVVPESO · $'+state.ivvPrecio.toFixed(2)+' /titulo';
   if(state.ivvVar!==null){
     const varEl=document.getElementById('gbm-var');
@@ -670,6 +737,21 @@ function render() {
   document.getElementById('total-display').textContent=fmt(total);
   const now=new Date();
   document.getElementById('last-update').textContent='actualizado '+now.toLocaleDateString('es-MX',{day:'numeric',month:'short'})+' · '+now.toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'});
+  maybeSnapshot(total,gbmTotal);
+}
+
+// guarda un snapshot diario del patrimonio para las graficas (1 por dia, solo si cambio)
+function maybeSnapshot(total,gbm) {
+  if(!auth.currentUser) return;
+  const hoy=new Date().toISOString().split('T')[0];
+  const t=+total.toFixed(2), g=+gbm.toFixed(2);
+  const ex=state.snapshots.find(s=>s.f===hoy);
+  if(ex && Math.abs(ex.total-t)<0.01 && Math.abs(ex.gbm-g)<0.01) return;
+  state.snapshots=state.snapshots.filter(s=>s.f!==hoy);
+  state.snapshots.push({f:hoy,total:t,gbm:g});
+  state.snapshots.sort((a,b)=>a.f.localeCompare(b.f));
+  if(state.snapshots.length>730) state.snapshots=state.snapshots.slice(-730);
+  setDoc(doc(db,'cartera','historial'),{snapshots:state.snapshots}).catch(()=>{});
 }
 
 window.guardarManuales = async function() {
@@ -678,12 +760,16 @@ window.guardarManuales = async function() {
   const c2f=document.getElementById('input-cajita2-fecha').value.trim();
   const ns=parseFloat(document.getElementById('input-nu-saldo').value);
   const ef=parseFloat(document.getElementById('input-efectivo').value);
+  const ge=parseFloat(document.getElementById('input-gbm-efec').value);
+  const rp=parseFloat(document.getElementById('input-reporto').value);
   if(!isNaN(c1)){state.nuCajita1=c1;state.nuCajita1LastUpdate=new Date().toISOString().split('T')[0];}
   if(!isNaN(c2b)) state.nuCajita2Base=c2b;
   if(c2f) state.nuCajita2Fecha=c2f;
   if(!isNaN(ns)) state.nuSaldo=ns;
   if(!isNaN(ef)) state.efectivo=ef;
-  ['input-cajita1','input-cajita2-base','input-cajita2-fecha','input-nu-saldo','input-efectivo'].forEach(id=>document.getElementById(id).value='');
+  if(!isNaN(ge)) state.efectivoGBM=ge;
+  if(!isNaN(rp)) state.reporto=rp;
+  ['input-cajita1','input-cajita2-base','input-cajita2-fecha','input-nu-saldo','input-efectivo','input-gbm-efec','input-reporto'].forEach(id=>document.getElementById(id).value='');
   await saveSaldos(); render(); showToast('guardado y sincronizado');
 };
 
@@ -700,6 +786,59 @@ window.registrarTarjeta = async function(tipo) {
   await saveTarjeta(); render();
   showToast(tipo==='cargo'?'+'+fmt(monto)+' a la tarjeta':'pago de '+fmt(monto)+' registrado');
 };
+
+// ── TRANSFERENCIAS ────────────────────────────────────────────
+function getSaldoCuenta(c) {
+  if(c==='efectivo') return state.efectivo;
+  if(c==='nu') return state.nuSaldo;
+  if(c==='cajita1') return calcNu1().saldo;
+  if(c==='cajita2') return calcNu2().saldo;
+  if(c==='gbm') return state.efectivoGBM;
+  return 0;
+}
+function aplicarDelta(c,d) {
+  const hoy=new Date().toISOString().split('T')[0];
+  if(c==='efectivo') state.efectivo+=d;
+  else if(c==='nu') state.nuSaldo+=d;
+  else if(c==='cajita1'){ state.nuCajita1=calcNu1().saldo+d; state.nuCajita1LastUpdate=hoy; }
+  else if(c==='cajita2'){ state.nuCajita2Base=calcNu2().saldo+d; state.nuCajita2Fecha=hoy; }
+  else if(c==='gbm') state.efectivoGBM+=d;
+}
+window.registrarTransferencia = async function() {
+  const origen=document.getElementById('transfer-origen').value;
+  const destino=document.getElementById('transfer-destino').value;
+  const monto=parseFloat(document.getElementById('transfer-monto').value);
+  const nota=document.getElementById('transfer-nota').value.trim();
+  if(isNaN(monto)||monto<=0){showToast('ingresa un monto valido');return;}
+  if(origen===destino){showToast('elige cuentas distintas');return;}
+  if(monto>getSaldoCuenta(origen)+0.01){showToast('saldo insuficiente en '+CUENTAS[origen]);return;}
+  aplicarDelta(origen,-monto);
+  if(destino==='tarjeta'){
+    state.tarjetaDeuda=Math.max(0,state.tarjetaDeuda-monto);
+    state.tarjetaMovimientos.unshift({tipo:'pago',monto,nota:nota||('pago desde '+CUENTAS[origen]),fecha:new Date().toISOString()});
+  } else {
+    aplicarDelta(destino,monto);
+  }
+  const tr={origen,destino,monto,nota,fecha:new Date().toISOString()};
+  state.transferencias.unshift(tr);
+  document.getElementById('transfer-monto').value='';document.getElementById('transfer-nota').value='';
+  try{
+    await addDoc(collection(db,'transferencias'),tr);
+    await saveSaldos();
+    if(destino==='tarjeta') await saveTarjeta();
+    setSyncDot('ok');
+  }catch(e){setSyncDot('err');}
+  render();renderTransferencias();
+  showToast(fmt(monto)+' · '+CUENTAS[origen]+' → '+CUENTAS[destino]);
+};
+function renderTransferencias() {
+  const c=document.getElementById('transfer-historial');
+  if(!state.transferencias.length){c.innerHTML='<div class="empty-state">sin transferencias</div>';return;}
+  c.innerHTML=state.transferencias.slice(0,20).map(t=>{
+    const fecha=new Date(t.fecha).toLocaleDateString('es-MX',{day:'numeric',month:'short'});
+    return`<div class="item-row"><div><div class="item-cat">${CUENTAS[t.origen]||t.origen} → ${CUENTAS[t.destino]||t.destino}</div><div class="item-meta">${t.nota||''} · ${fecha}</div></div><div style="font-size:14px;font-weight:600;color:var(--purple)">${fmt(t.monto)}</div></div>`;
+  }).join('');
+}
 
 // ── GASTOS ────────────────────────────────────────────────────
 window.registrarGasto = async function() {
@@ -734,6 +873,7 @@ window.registrarIngreso = async function() {
   if(isNaN(monto)||monto<=0){showToast('ingresa un monto valido');return;}
   if(state.destinoIngreso==='efectivo') state.efectivo+=monto;
   else if(state.destinoIngreso==='nu') state.nuSaldo+=monto;
+  else if(state.destinoIngreso==='gbm') state.efectivoGBM+=monto;
   const ingreso={cat,monto,nota,destino:state.destinoIngreso,fecha:new Date().toISOString()};
   state.ingresos.unshift(ingreso);
   document.getElementById('ingreso-monto').value='';document.getElementById('ingreso-nota').value='';
@@ -782,6 +922,26 @@ function renderDeudas() {
 }
 window.toggleDeuda=id=>document.getElementById(id).classList.toggle('open');
 
+// ── GRAFICAS ──────────────────────────────────────────────────
+function chartBlock(data,color) {
+  // data: [{x:ms, y:num}] ordenado ascendente
+  if(data.length<2) return '<div class="empty-state">aun no hay suficientes datos — se ira construyendo con el tiempo</div>';
+  const w=360,h=110,pad=6;
+  const ys=data.map(p=>p.y);
+  const minY=Math.min(...ys),maxY=Math.max(...ys),spanY=(maxY-minY)||1;
+  const minX=data[0].x,maxX=data[data.length-1].x,spanX=(maxX-minX)||1;
+  const pts=data.map(p=>((pad+(p.x-minX)/spanX*(w-2*pad)).toFixed(1))+','+((h-pad-(p.y-minY)/spanY*(h-2*pad)).toFixed(1))).join(' ');
+  const first=data[0].y,last=data[data.length-1].y;
+  const delta=last-first,pct=first?(delta/first*100):0,up=delta>=0;
+  const fd=ms=>new Date(ms).toLocaleDateString('es-MX',{day:'numeric',month:'short'});
+  return `<div class="chart-head"><div class="chart-val">${fmt(last)}</div><div class="chart-delta ${up?'pos':'neg'}">${up?'+':'−'}${fmt(Math.abs(delta))} · ${up?'+':''}${pct.toFixed(2)}%</div></div>
+<svg viewBox="0 0 ${w} ${h}" style="width:100%;height:auto;display:block">
+<polygon points="${pad},${h-pad} ${pts} ${w-pad},${h-pad}" fill="${color}" opacity="0.08"/>
+<polyline points="${pts}" fill="none" stroke="${color}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+</svg>
+<div class="chart-dates"><span>${fd(minX)}</span><span>${fd(maxX)}</span></div>`;
+}
+
 // ── RESUMEN ───────────────────────────────────────────────────
 function renderResumen() {
   const now=new Date(), target=new Date(now.getFullYear(),now.getMonth()+state.mesOffset,1);
@@ -800,20 +960,62 @@ function renderResumen() {
   const byIng={}; ingresos.forEach(i=>byIng[i.cat]=(byIng[i.cat]||0)+i.monto);
   const sortedI=Object.entries(byIng).sort((a,b)=>b[1]-a[1]); const maxI=sortedI[0]?sortedI[0][1]:1;
   document.getElementById('resumen-ingresos-cats').innerHTML=sortedI.length?sortedI.map(([cat,amt])=>`<div class="resumen-bar"><div class="bar-header"><span class="bar-label">${cat}</span><span class="bar-amt pos">${fmt(amt)}</span></div><div class="bar-track"><div class="bar-fill bar-fill-green" style="width:${(amt/maxI*100).toFixed(1)}%"></div></div></div>`).join(''):'<div class="empty-state">sin ingresos este mes</div>';
+
+  renderRendimientos(target, balance);
+  renderGBMResumen();
+}
+
+function renderRendimientos(target, balance) {
+  const mStart=new Date(target.getFullYear(),target.getMonth(),1);
+  const mEnd=new Date(Math.min(Date.now(), new Date(target.getFullYear(),target.getMonth()+1,1).getTime()));
+  const diasMes=Math.max(0,(mEnd-mStart)/86400000);
+  const rend1=9.03*diasMes;
+  const rend2=Math.max(0,calcNu2At(mEnd.getTime())-calcNu2At(mStart.getTime()));
+  const enMes=(state.ivvHistory||[]).filter(p=>{const d=parseFechaLocal(p.t);return d.getMonth()===target.getMonth()&&d.getFullYear()===target.getFullYear();});
+  const rendG=enMes.length>=2?(enMes[enMes.length-1].c-enMes[0].c)*TITULOS:null;
+  const rendTotal=rend1+rend2+(rendG||0);
+  const real=balance+rendTotal;
+  const sgn=(v,cls)=>`<span class="${v>=0?'item-amt-pos':'item-amt-neg'}"${cls?' style="font-size:15px"':''}>${v>=0?'+':'−'}${fmt(Math.abs(v))}</span>`;
+  document.getElementById('res-rendimientos').innerHTML=
+    `<div class="item-row"><div><div class="item-cat">NU cajita 1</div><div class="item-meta">$9.03 por dia</div></div>${sgn(rend1)}</div>`+
+    `<div class="item-row"><div><div class="item-cat">NU cajita 2</div><div class="item-meta">6% anual compuesto</div></div>${sgn(rend2)}</div>`+
+    `<div class="item-row"><div><div class="item-cat">GBM · IVVPESO</div><div class="item-meta">${rendG===null?'sin datos de este mes':'variacion de tus 45 titulos'}</div></div>${rendG===null?'<span class="item-meta">—</span>':sgn(rendG)}</div>`+
+    `<div class="item-row"><div class="item-cat" style="font-weight:600">total rendimientos</div>${sgn(rendTotal,1)}</div>`+
+    `<div class="item-row"><div><div class="item-cat" style="font-weight:600">balance real del mes</div><div class="item-meta">ingresos − gastos + rendimientos</div></div>${sgn(real,1)}</div>`;
+}
+
+function renderGBMResumen() {
+  const hist=state.ivvHistory||[];
+  document.getElementById('gbm-chart').innerHTML=chartBlock(hist.map(p=>({x:parseFechaLocal(p.t).getTime(),y:p.c*TITULOS})),'#34d399');
+  const byM={}; hist.forEach(p=>{byM[p.t.slice(0,7)]=p.c;});
+  const mks=Object.keys(byM).sort();
+  document.getElementById('gbm-tabla').innerHTML=mks.length?
+    `<table class="mini"><tr><th>mes</th><th>precio cierre</th><th>valor 45 tit.</th><th>Δ</th></tr>`+mks.map((k,i)=>{
+      const [y,m]=k.split('-'); const c=byM[k]; const prev=i>0?byM[mks[i-1]]:null;
+      const d=prev?((c-prev)/prev*100):null;
+      return`<tr><td>${MESES[+m-1].slice(0,3)} ${y.slice(2)}</td><td>${fmt(c)}</td><td>${fmt(c*TITULOS)}</td><td class="${d===null?'':(d>=0?'pos':'neg')}">${d===null?'—':(d>=0?'+':'')+d.toFixed(2)+'%'}</td></tr>`;
+    }).join('')+`</table>`
+    :'<div class="empty-state">sin datos — pulsa actualizar en el inicio</div>';
+  document.getElementById('patrimonio-chart').innerHTML=chartBlock((state.snapshots||[]).map(s=>({x:parseFechaLocal(s.f).getTime(),y:s.total})),'#a78bfa');
 }
 window.cambiarMes=d=>{state.mesOffset+=d;renderResumen();};
 
 // ── GBM ───────────────────────────────────────────────────────
 async function fetchIVVPESO() {
-  const url='https://query1.finance.yahoo.com/v8/finance/chart/IVVPESO.MX?interval=1d&range=2d';
+  const url='https://query1.finance.yahoo.com/v8/finance/chart/IVVPESO.MX?interval=1d&range=6mo';
   const proxies=[u=>`https://api.allorigins.win/get?url=${encodeURIComponent(u)}`,u=>`https://corsproxy.io/?${encodeURIComponent(u)}`];
   for(const proxy of proxies){
     try{
       const r=await fetch(proxy(url)); const outer=await r.json();
       const raw=typeof outer.contents==='string'?outer.contents:JSON.stringify(outer);
-      const d=JSON.parse(raw); const closes=d.chart.result[0].indicators.quote[0].close.filter(x=>x!==null);
-      state.ivvPrecio=closes[closes.length-1];
-      state.ivvVar=closes.length>=2?((closes[closes.length-1]-closes[closes.length-2])/closes[closes.length-2])*100:null;
+      const d=JSON.parse(raw); const res=d.chart.result[0];
+      const ts=res.timestamp||[], closes=res.indicators.quote[0].close||[];
+      const hist=[];
+      for(let i=0;i<ts.length;i++){ if(closes[i]!=null) hist.push({t:new Date(ts[i]*1000).toISOString().split('T')[0], c:+closes[i].toFixed(2)}); }
+      if(!hist.length) continue;
+      state.ivvHistory=hist;
+      state.ivvPrecio=hist[hist.length-1].c;
+      state.ivvVar=hist.length>=2?((hist[hist.length-1].c-hist[hist.length-2].c)/hist[hist.length-2].c)*100:null;
       await saveSaldos(); return true;
     }catch(e){}
   }
@@ -826,6 +1028,7 @@ window.fetchAll = async function() {
   const ok=await fetchIVVPESO(); icon.classList.remove('spinning');
   document.getElementById('status-inicio').textContent=ok?'precio en vivo · IVVPESO':'usando ultimo precio guardado';
   render();
+  if(document.getElementById('page-resumen').classList.contains('active')) renderResumen();
 };
 
 if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(()=>{});
