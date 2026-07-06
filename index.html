@@ -351,12 +351,7 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
     <div class="section-title">registrar gasto</div>
     <div class="panel">
       <div class="field"><label>categoria</label>
-        <select id="gasto-cat">
-          <option>Comida</option><option>Transporte</option><option>Salidas</option>
-          <option>Zoe</option><option>Ropa</option><option>Salud</option>
-          <option>Suscripciones</option><option>Educacion</option><option>Casa</option>
-          <option>Entretenimiento</option><option>Viajes</option><option>Regalos</option><option>Otros</option>
-        </select>
+        <select id="gasto-cat" onchange="handleCatChange('gasto',this)"></select>
       </div>
       <div class="field"><label>monto</label><input type="number" id="gasto-monto" placeholder="ej. 150" step="1" inputmode="decimal"></div>
       <div class="field"><label>nota (opcional)</label><input type="text" id="gasto-nota" placeholder="ej. taqueria"></div>
@@ -380,11 +375,7 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
     <div class="section-title">registrar ingreso</div>
     <div class="panel">
       <div class="field"><label>categoria</label>
-        <select id="ingreso-cat">
-          <option>Trabajo</option><option>Quini</option><option>Maicitos</option>
-          <option>Brownies</option><option>Regalos</option><option>Deudas cobradas</option>
-          <option>Inversiones</option><option>Otros</option>
-        </select>
+        <select id="ingreso-cat" onchange="handleCatChange('ingreso',this)"></select>
       </div>
       <div class="field"><label>monto</label><input type="number" id="ingreso-monto" placeholder="ej. 5000" step="1" inputmode="decimal"></div>
       <div class="field"><label>nota (opcional)</label><input type="text" id="ingreso-nota" placeholder="ej. pago proyecto"></div>
@@ -500,6 +491,8 @@ const auth = getAuth(app);
 const ALLOWED_EMAIL = 'rl7103405@gmail.com';
 const TITULOS = 45;
 const CUENTAS = {efectivo:'efectivo', nu:'NU saldo', cajita1:'NU cajita 1', cajita2:'NU cajita 2', gbm:'GBM efectivo', tarjeta:'tarjeta NU'};
+const CATS_GASTO_DEFAULT = ['Comida','Transporte','Salidas','Zoe','Ropa','Salud','Suscripciones','Educacion','Casa','Entretenimiento','Viajes','Regalos','Otros'];
+const CATS_INGRESO_DEFAULT = ['Trabajo','Quini','Maicitos','Brownies','Regalos','Deudas cobradas','Inversiones','Otros'];
 const MESES = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
 
 function fmt(n) {
@@ -546,6 +539,8 @@ onAuthStateChanged(auth, async user => {
     document.getElementById('loading-overlay').classList.remove('hidden');
     await loadFromFirebase();
     document.getElementById('loading-overlay').classList.add('hidden');
+    renderCatSelect('gasto-cat', state.catsGasto);
+    renderCatSelect('ingreso-cat', state.catsIngreso);
     render();
     renderHistorialGastos();
     renderTransferencias();
@@ -643,6 +638,7 @@ let state = {
   ivvPrecio:154, ivvVar:null, ivvHistory:[],
   fuenteGasto:'efectivo', destinoIngreso:'efectivo', tipoDeuda:'cargo',
   mesOffset:0, resPeriodo:'mes',
+  catsGasto:[...CATS_GASTO_DEFAULT], catsIngreso:[...CATS_INGRESO_DEFAULT],
   personas:JSON.parse(JSON.stringify(PERSONAS_DEFAULT)),
   gastos:[], ingresos:[], transferencias:[], snapshots:[]
 };
@@ -662,6 +658,12 @@ async function loadFromFirebase() {
     if (tDoc.exists()) { state.tarjetaDeuda = tDoc.data().deuda; state.tarjetaMovimientos = tDoc.data().movimientos || []; }
     const hDoc = await getDoc(doc(db,'cartera','historial'));
     if (hDoc.exists()) state.snapshots = hDoc.data().snapshots || [];
+    const cDoc = await getDoc(doc(db,'cartera','categorias'));
+    if (cDoc.exists()) {
+      const cd = cDoc.data();
+      if (Array.isArray(cd.catsGasto) && cd.catsGasto.length) state.catsGasto = cd.catsGasto;
+      if (Array.isArray(cd.catsIngreso) && cd.catsIngreso.length) state.catsIngreso = cd.catsIngreso;
+    }
     const gSnap = await getDocs(query(collection(db,'gastos'), orderBy('fecha','desc')));
     state.gastos = gSnap.docs.map(d => ({id:d.id, ...d.data()}));
     const iSnap = await getDocs(query(collection(db,'ingresos'), orderBy('fecha','desc')));
@@ -690,6 +692,30 @@ async function savePersonas() {
 async function saveTarjeta() {
   try { await setDoc(doc(db,'cartera','tarjeta'),{deuda:state.tarjetaDeuda, movimientos:state.tarjetaMovimientos}); setSyncDot('ok'); } catch(e) { setSyncDot('err'); }
 }
+async function saveCategorias() {
+  try { await setDoc(doc(db,'cartera','categorias'),{catsGasto:state.catsGasto, catsIngreso:state.catsIngreso}); setSyncDot('ok'); } catch(e) { setSyncDot('err'); }
+}
+
+// ── CATEGORIAS PERSONALIZADAS ─────────────────────────────────
+function renderCatSelect(selectId, cats) {
+  const sel=document.getElementById(selectId);
+  const prev=sel.value;
+  sel.innerHTML=cats.map(c=>`<option value="${c}">${c}</option>`).join('')+'<option value="__nueva__">+ agregar categoria...</option>';
+  if(cats.includes(prev)) sel.value=prev;
+}
+window.handleCatChange = async function(tipo, sel) {
+  if(sel.value!=='__nueva__') return;
+  const nombre=(prompt('Nombre de la nueva categoria:')||'').trim();
+  const arr = tipo==='gasto' ? state.catsGasto : state.catsIngreso;
+  if(!nombre){ sel.value=arr[0]||''; return; }
+  const existe=arr.find(c=>c.toLowerCase()===nombre.toLowerCase());
+  if(existe){ renderCatSelect(sel.id, arr); sel.value=existe; return; }
+  arr.push(nombre);
+  await saveCategorias();
+  renderCatSelect(sel.id, arr);
+  sel.value=nombre;
+  showToast('categoria "'+nombre+'" agregada');
+};
 
 // ── NAVIGATION ────────────────────────────────────────────────
 window.showPage = function(p) {
