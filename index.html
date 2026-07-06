@@ -154,6 +154,19 @@ table.mini th{color:var(--muted);font-weight:500;text-align:right;padding:6px 0;
 table.mini td{padding:7px 0;border-bottom:0.5px solid var(--border);text-align:right}
 table.mini tr:last-child td{border-bottom:none}
 table.mini th:first-child,table.mini td:first-child{text-align:left}
+
+/* PIE */
+.pie-wrap{display:flex;gap:16px;align-items:center}
+.pie-svg{width:120px;flex:0 0 120px;height:auto}
+.pie-legend{flex:1;display:flex;flex-direction:column;gap:6px;min-width:0}
+.pie-leg{display:flex;align-items:center;gap:7px;font-size:12px}
+.pie-dot{width:9px;height:9px;border-radius:3px;flex:0 0 9px}
+.pie-cat{flex:1;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pie-pct{color:var(--muted)}
+.pie-amt{font-weight:600}
+#res-periodo-toggle .type-opt{min-width:calc(25% - 5px)}
+.del-btn{background:none;border:none;color:var(--muted);font-size:17px;padding:4px 0 4px 12px;cursor:pointer;line-height:1}
+.del-btn:active{color:var(--red)}
 </style>
 </head>
 <body>
@@ -312,8 +325,18 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
 
   <div class="section-title">tarjeta NU</div>
   <div class="panel">
-    <div class="field"><label>cargo a la tarjeta</label><input type="number" id="tarjeta-cargo-monto" placeholder="ej. 350" step="0.01" inputmode="decimal"></div>
+    <div class="field"><label>monto</label><input type="number" id="tarjeta-cargo-monto" placeholder="ej. 350" step="0.01" inputmode="decimal"></div>
     <div class="field"><label>nota</label><input type="text" id="tarjeta-cargo-nota" placeholder="ej. spotify, gasolina..."></div>
+    <div class="field"><label>si pagas, el dinero sale de</label>
+      <select id="tarjeta-pago-fuente">
+        <option value="nu">NU saldo</option>
+        <option value="efectivo">efectivo</option>
+        <option value="cajita1">NU cajita 1</option>
+        <option value="cajita2">NU cajita 2</option>
+        <option value="gbm">GBM efectivo</option>
+        <option value="externo">otro (no descontar de mis cuentas)</option>
+      </select>
+    </div>
     <div class="row2" style="gap:8px">
       <button class="btn btn-red" onclick="registrarTarjeta('cargo')" style="margin-top:0">+ cargo</button>
       <button class="btn btn-green" onclick="registrarTarjeta('pago')" style="margin-top:0">- pague</button>
@@ -417,6 +440,12 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
 <!-- RESUMEN -->
 <div class="page" id="page-resumen">
   <div class="mt">
+    <div class="type-toggle" id="res-periodo-toggle">
+      <div class="type-opt" onclick="setResPeriodo('dia')">dia</div>
+      <div class="type-opt" onclick="setResPeriodo('semana')">semana</div>
+      <div class="type-opt active" onclick="setResPeriodo('mes')">mes</div>
+      <div class="type-opt" onclick="setResPeriodo('ano')">a&ntilde;o</div>
+    </div>
     <div class="month-selector">
       <button class="month-nav" onclick="cambiarMes(-1)">&#8249;</button>
       <div class="month-label" id="mes-label">—</div>
@@ -427,10 +456,14 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
       <div class="summary-box"><div class="s-label">gastos</div><div class="s-amt neg" id="res-gastos">$—</div></div>
     </div>
     <div class="summary-box" style="margin-bottom:20px">
-      <div class="s-label">balance del mes</div>
+      <div class="s-label">balance del periodo</div>
       <div class="s-amt" id="res-balance" style="font-size:24px">$—</div>
     </div>
-    <div class="section-title">rendimientos del mes</div>
+    <div class="section-title">a donde se va tu dinero</div>
+    <div class="panel" id="res-pie"></div>
+    <div class="section-title mt">de donde viene tu dinero</div>
+    <div class="panel" id="res-pie-ingresos"></div>
+    <div class="section-title mt">rendimientos del periodo</div>
     <div class="panel" id="res-rendimientos"></div>
     <div class="section-title mt">gastos por categoria</div>
     <div class="panel" id="resumen-cats"></div>
@@ -449,7 +482,7 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
 
 <script type="module">
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
-import { getFirestore, doc, getDoc, setDoc, collection, addDoc, getDocs, query, orderBy } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+import { getFirestore, doc, getDoc, setDoc, collection, addDoc, deleteDoc, getDocs, query, orderBy } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
 import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, createUserWithEmailAndPassword } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
 
 const firebaseConfig = {
@@ -609,7 +642,7 @@ let state = {
   tarjetaDeuda:2001, tarjetaMovimientos:[],
   ivvPrecio:154, ivvVar:null, ivvHistory:[],
   fuenteGasto:'efectivo', destinoIngreso:'efectivo', tipoDeuda:'cargo',
-  mesOffset:0,
+  mesOffset:0, resPeriodo:'mes',
   personas:JSON.parse(JSON.stringify(PERSONAS_DEFAULT)),
   gastos:[], ingresos:[], transferencias:[], snapshots:[]
 };
@@ -630,11 +663,11 @@ async function loadFromFirebase() {
     const hDoc = await getDoc(doc(db,'cartera','historial'));
     if (hDoc.exists()) state.snapshots = hDoc.data().snapshots || [];
     const gSnap = await getDocs(query(collection(db,'gastos'), orderBy('fecha','desc')));
-    state.gastos = gSnap.docs.map(d => d.data());
+    state.gastos = gSnap.docs.map(d => ({id:d.id, ...d.data()}));
     const iSnap = await getDocs(query(collection(db,'ingresos'), orderBy('fecha','desc')));
-    state.ingresos = iSnap.docs.map(d => d.data());
+    state.ingresos = iSnap.docs.map(d => ({id:d.id, ...d.data()}));
     const trSnap = await getDocs(query(collection(db,'transferencias'), orderBy('fecha','desc')));
-    state.transferencias = trSnap.docs.map(d => d.data());
+    state.transferencias = trSnap.docs.map(d => ({id:d.id, ...d.data()}));
     setSyncDot('ok');
   } catch(e) { console.error(e); setSyncDot('err'); }
 }
@@ -778,8 +811,21 @@ window.registrarTarjeta = async function(tipo) {
   const monto=parseFloat(document.getElementById('tarjeta-cargo-monto').value);
   const nota=document.getElementById('tarjeta-cargo-nota').value.trim();
   if(isNaN(monto)||monto<=0){showToast('ingresa un monto valido');return;}
-  if(tipo==='cargo') state.tarjetaDeuda+=monto;
-  else state.tarjetaDeuda=Math.max(0,state.tarjetaDeuda-monto);
+  if(tipo==='cargo') {
+    state.tarjetaDeuda+=monto;
+  } else {
+    // el pago sale de una cuenta: se descuenta y queda registrado como transferencia
+    const fuente=document.getElementById('tarjeta-pago-fuente').value;
+    if(fuente!=='externo'){
+      if(monto>getSaldoCuenta(fuente)+0.01){showToast('saldo insuficiente en '+CUENTAS[fuente]);return;}
+      aplicarDelta(fuente,-monto);
+      const tr={origen:fuente,destino:'tarjeta',monto,nota:nota||'pago tarjeta NU',fecha:new Date().toISOString()};
+      state.transferencias.unshift(tr);
+      try{const ref=await addDoc(collection(db,'transferencias'),tr);tr.id=ref.id;await saveSaldos();}catch(e){setSyncDot('err');}
+      renderTransferencias();
+    }
+    state.tarjetaDeuda=Math.max(0,state.tarjetaDeuda-monto);
+  }
   state.tarjetaMovimientos.unshift({tipo,monto,nota,fecha:new Date().toISOString()});
   document.getElementById('tarjeta-cargo-monto').value='';
   document.getElementById('tarjeta-cargo-nota').value='';
@@ -823,7 +869,8 @@ window.registrarTransferencia = async function() {
   state.transferencias.unshift(tr);
   document.getElementById('transfer-monto').value='';document.getElementById('transfer-nota').value='';
   try{
-    await addDoc(collection(db,'transferencias'),tr);
+    const ref=await addDoc(collection(db,'transferencias'),tr);
+    tr.id=ref.id;
     await saveSaldos();
     if(destino==='tarjeta') await saveTarjeta();
     setSyncDot('ok');
@@ -831,12 +878,24 @@ window.registrarTransferencia = async function() {
   render();renderTransferencias();
   showToast(fmt(monto)+' · '+CUENTAS[origen]+' → '+CUENTAS[destino]);
 };
+window.eliminarTransferencia = async function(id) {
+  const idx=state.transferencias.findIndex(t=>t.id===id); if(idx<0)return;
+  const t=state.transferencias[idx];
+  if(t.destino==='tarjeta'){showToast('los pagos a tarjeta no se pueden deshacer aqui');return;}
+  if(!confirm('¿Deshacer transferencia de '+fmt(t.monto)+' ('+(CUENTAS[t.origen]||t.origen)+' → '+(CUENTAS[t.destino]||t.destino)+')? El dinero regresa a su cuenta original'))return;
+  aplicarDelta(t.destino,-t.monto);
+  aplicarDelta(t.origen,t.monto);
+  state.transferencias.splice(idx,1);
+  try{await deleteDoc(doc(db,'transferencias',id));await saveSaldos();setSyncDot('ok');}catch(e){setSyncDot('err');}
+  render();renderTransferencias();showToast('transferencia deshecha');
+};
 function renderTransferencias() {
   const c=document.getElementById('transfer-historial');
   if(!state.transferencias.length){c.innerHTML='<div class="empty-state">sin transferencias</div>';return;}
   c.innerHTML=state.transferencias.slice(0,20).map(t=>{
     const fecha=new Date(t.fecha).toLocaleDateString('es-MX',{day:'numeric',month:'short'});
-    return`<div class="item-row"><div><div class="item-cat">${CUENTAS[t.origen]||t.origen} → ${CUENTAS[t.destino]||t.destino}</div><div class="item-meta">${t.nota||''} · ${fecha}</div></div><div style="font-size:14px;font-weight:600;color:var(--purple)">${fmt(t.monto)}</div></div>`;
+    const del=(t.id&&t.destino!=='tarjeta')?`<button class="del-btn" onclick="eliminarTransferencia('${t.id}')">&times;</button>`:'';
+    return`<div class="item-row"><div><div class="item-cat">${CUENTAS[t.origen]||t.origen} → ${CUENTAS[t.destino]||t.destino}</div><div class="item-meta">${t.nota||''} · ${fecha}</div></div><div style="display:flex;align-items:center"><div style="font-size:14px;font-weight:600;color:var(--purple)">${fmt(t.monto)}</div>${del}</div></div>`;
   }).join('');
 }
 
@@ -852,8 +911,20 @@ window.registrarGasto = async function() {
   const gasto={cat,monto,nota,fuente:state.fuenteGasto,fecha:new Date().toISOString()};
   state.gastos.unshift(gasto);
   document.getElementById('gasto-monto').value='';document.getElementById('gasto-nota').value='';
-  try{await addDoc(collection(db,'gastos'),gasto);await saveSaldos();setSyncDot('ok');}catch(e){setSyncDot('err');}
+  try{const ref=await addDoc(collection(db,'gastos'),gasto);gasto.id=ref.id;await saveSaldos();setSyncDot('ok');}catch(e){setSyncDot('err');}
   render();renderHistorialGastos();showToast('-'+fmt(monto)+' registrado');
+};
+
+window.eliminarGasto = async function(id) {
+  const idx=state.gastos.findIndex(g=>g.id===id); if(idx<0)return;
+  const g=state.gastos[idx];
+  if(!confirm('¿Eliminar gasto de '+fmt(g.monto)+' en '+g.cat+'? El dinero se devuelve a '+(g.fuente==='tarjeta'?'la tarjeta':CUENTAS[g.fuente]||g.fuente)))return;
+  if(g.fuente==='efectivo') state.efectivo+=g.monto;
+  else if(g.fuente==='nu') state.nuSaldo+=g.monto;
+  else if(g.fuente==='tarjeta'){state.tarjetaDeuda=Math.max(0,state.tarjetaDeuda-g.monto);await saveTarjeta();}
+  state.gastos.splice(idx,1);
+  try{await deleteDoc(doc(db,'gastos',id));await saveSaldos();setSyncDot('ok');}catch(e){setSyncDot('err');}
+  render();renderHistorialGastos();showToast('gasto eliminado');
 };
 
 function renderHistorialGastos() {
@@ -861,7 +932,8 @@ function renderHistorialGastos() {
   if(!state.gastos.length){c.innerHTML='<div class="empty-state">sin gastos registrados</div>';return;}
   c.innerHTML=state.gastos.slice(0,50).map(item=>{
     const fecha=new Date(item.fecha).toLocaleDateString('es-MX',{day:'numeric',month:'short'});
-    return`<div class="item-row"><div><div class="item-cat">${item.cat}</div><div class="item-meta">${item.nota||''} · ${fecha} · ${item.fuente}</div></div><div class="item-amt-neg">-${fmt(item.monto)}</div></div>`;
+    const del=item.id?`<button class="del-btn" onclick="eliminarGasto('${item.id}')">&times;</button>`:'';
+    return`<div class="item-row"><div><div class="item-cat">${item.cat}</div><div class="item-meta">${item.nota||''} · ${fecha} · ${item.fuente}</div></div><div style="display:flex;align-items:center"><div class="item-amt-neg">-${fmt(item.monto)}</div>${del}</div></div>`;
   }).join('');
 }
 
@@ -877,8 +949,20 @@ window.registrarIngreso = async function() {
   const ingreso={cat,monto,nota,destino:state.destinoIngreso,fecha:new Date().toISOString()};
   state.ingresos.unshift(ingreso);
   document.getElementById('ingreso-monto').value='';document.getElementById('ingreso-nota').value='';
-  try{await addDoc(collection(db,'ingresos'),ingreso);await saveSaldos();setSyncDot('ok');}catch(e){setSyncDot('err');}
+  try{const ref=await addDoc(collection(db,'ingresos'),ingreso);ingreso.id=ref.id;await saveSaldos();setSyncDot('ok');}catch(e){setSyncDot('err');}
   render();renderHistorialIngresos();showToast('+'+fmt(monto)+' ingresado');
+};
+
+window.eliminarIngreso = async function(id) {
+  const idx=state.ingresos.findIndex(g=>g.id===id); if(idx<0)return;
+  const g=state.ingresos[idx];
+  if(!confirm('¿Eliminar ingreso de '+fmt(g.monto)+' ('+g.cat+')? Se resta de '+(CUENTAS[g.destino]||g.destino)))return;
+  if(g.destino==='efectivo') state.efectivo=Math.max(0,state.efectivo-g.monto);
+  else if(g.destino==='nu') state.nuSaldo=Math.max(0,state.nuSaldo-g.monto);
+  else if(g.destino==='gbm') state.efectivoGBM=Math.max(0,state.efectivoGBM-g.monto);
+  state.ingresos.splice(idx,1);
+  try{await deleteDoc(doc(db,'ingresos',id));await saveSaldos();setSyncDot('ok');}catch(e){setSyncDot('err');}
+  render();renderHistorialIngresos();showToast('ingreso eliminado');
 };
 
 function renderHistorialIngresos() {
@@ -886,7 +970,8 @@ function renderHistorialIngresos() {
   if(!state.ingresos.length){c.innerHTML='<div class="empty-state">sin ingresos registrados</div>';return;}
   c.innerHTML=state.ingresos.slice(0,50).map(item=>{
     const fecha=new Date(item.fecha).toLocaleDateString('es-MX',{day:'numeric',month:'short'});
-    return`<div class="item-row"><div><div class="item-cat">${item.cat}</div><div class="item-meta">${item.nota||''} · ${fecha} · ${item.destino}</div></div><div class="item-amt-pos">+${fmt(item.monto)}</div></div>`;
+    const del=item.id?`<button class="del-btn" onclick="eliminarIngreso('${item.id}')">&times;</button>`:'';
+    return`<div class="item-row"><div><div class="item-cat">${item.cat}</div><div class="item-meta">${item.nota||''} · ${fecha} · ${item.destino}</div></div><div style="display:flex;align-items:center"><div class="item-amt-pos">+${fmt(item.monto)}</div>${del}</div></div>`;
   }).join('');
 }
 
@@ -943,11 +1028,59 @@ function chartBlock(data,color) {
 }
 
 // ── RESUMEN ───────────────────────────────────────────────────
+const PIE_COLORS=['#a78bfa','#34d399','#f87171','#fbbf24','#60a5fa','#f472b6','#4ade80','#fb923c','#22d3ee','#c084fc','#facc15','#94a3b8','#fda4af'];
+function pieChart(entries) {
+  // entries: [[categoria, monto], ...] ordenado desc
+  const total=entries.reduce((s,e)=>s+e[1],0);
+  if(!total) return '<div class="empty-state">sin datos en este periodo</div>';
+  const cx=60,cy=60,r=52,ir=30; let a0=-Math.PI/2; let paths='';
+  entries.forEach((e,i)=>{
+    const frac=e[1]/total, color=PIE_COLORS[i%PIE_COLORS.length];
+    if(frac>=0.999){ paths+=`<circle cx="${cx}" cy="${cy}" r="${(r+ir)/2}" fill="none" stroke="${color}" stroke-width="${r-ir}"/>`; a0+=frac*2*Math.PI; return; }
+    const a1=a0+frac*2*Math.PI, large=(a1-a0)>Math.PI?1:0;
+    const x0=cx+r*Math.cos(a0),y0=cy+r*Math.sin(a0),x1=cx+r*Math.cos(a1),y1=cy+r*Math.sin(a1);
+    const xi1=cx+ir*Math.cos(a1),yi1=cy+ir*Math.sin(a1),xi0=cx+ir*Math.cos(a0),yi0=cy+ir*Math.sin(a0);
+    paths+=`<path d="M${x0.toFixed(1)},${y0.toFixed(1)} A${r},${r} 0 ${large} 1 ${x1.toFixed(1)},${y1.toFixed(1)} L${xi1.toFixed(1)},${yi1.toFixed(1)} A${ir},${ir} 0 ${large} 0 ${xi0.toFixed(1)},${yi0.toFixed(1)} Z" fill="${color}"/>`;
+    a0=a1;
+  });
+  const legend=entries.map((e,i)=>`<div class="pie-leg"><span class="pie-dot" style="background:${PIE_COLORS[i%PIE_COLORS.length]}"></span><span class="pie-cat">${e[0]}</span><span class="pie-pct">${(e[1]/total*100).toFixed(1)}%</span><span class="pie-amt">${fmt(e[1])}</span></div>`).join('');
+  return `<div class="pie-wrap"><svg viewBox="0 0 120 120" class="pie-svg">${paths}</svg><div class="pie-legend">${legend}</div></div>`;
+}
+
+function rangoResumen() {
+  const now=new Date(), o=state.mesOffset;
+  let start,end,label;
+  if(state.resPeriodo==='dia'){
+    start=new Date(now.getFullYear(),now.getMonth(),now.getDate()+o);
+    end=new Date(now.getFullYear(),now.getMonth(),now.getDate()+o+1);
+    label=o===0?'hoy':start.toLocaleDateString('es-MX',{weekday:'short',day:'numeric',month:'short'});
+  } else if(state.resPeriodo==='semana'){
+    const lunes=now.getDate()-((now.getDay()+6)%7);
+    start=new Date(now.getFullYear(),now.getMonth(),lunes+o*7);
+    end=new Date(start.getFullYear(),start.getMonth(),start.getDate()+7);
+    const fin=new Date(end.getTime()-86400000);
+    label=start.toLocaleDateString('es-MX',{day:'numeric',month:'short'})+' – '+fin.toLocaleDateString('es-MX',{day:'numeric',month:'short'});
+  } else if(state.resPeriodo==='ano'){
+    start=new Date(now.getFullYear()+o,0,1); end=new Date(now.getFullYear()+o+1,0,1);
+    label=String(now.getFullYear()+o);
+  } else {
+    start=new Date(now.getFullYear(),now.getMonth()+o,1); end=new Date(now.getFullYear(),now.getMonth()+o+1,1);
+    label=MESES[start.getMonth()]+' '+start.getFullYear();
+  }
+  return {start,end,label};
+}
+window.setResPeriodo = p => {
+  state.resPeriodo=p; state.mesOffset=0;
+  document.querySelectorAll('#res-periodo-toggle .type-opt').forEach((el,i)=>el.classList.toggle('active',['dia','semana','mes','ano'][i]===p));
+  renderResumen();
+};
+
 function renderResumen() {
-  const now=new Date(), target=new Date(now.getFullYear(),now.getMonth()+state.mesOffset,1);
-  document.getElementById('mes-label').textContent=MESES[target.getMonth()]+' '+target.getFullYear();
-  const gastos=state.gastos.filter(i=>{const d=new Date(i.fecha);return d.getMonth()===target.getMonth()&&d.getFullYear()===target.getFullYear();});
-  const ingresos=state.ingresos.filter(i=>{const d=new Date(i.fecha);return d.getMonth()===target.getMonth()&&d.getFullYear()===target.getFullYear();});
+  const {start,end,label}=rangoResumen();
+  document.getElementById('mes-label').textContent=label;
+  const enRango=i=>{const d=new Date(i.fecha);return d>=start&&d<end;};
+  const gastos=state.gastos.filter(enRango);
+  const ingresos=state.ingresos.filter(enRango);
   const totalG=gastos.reduce((s,i)=>s+i.monto,0), totalI=ingresos.reduce((s,i)=>s+i.monto,0);
   const balance=totalI-totalG;
   document.getElementById('res-gastos').textContent=fmt(totalG);
@@ -956,32 +1089,34 @@ function renderResumen() {
   balEl.textContent=(balance>=0?'+':'')+fmt(Math.abs(balance)); balEl.className='s-amt '+(balance>=0?'pos':'neg');
   const byCat={}; gastos.forEach(i=>byCat[i.cat]=(byCat[i.cat]||0)+i.monto);
   const sortedG=Object.entries(byCat).sort((a,b)=>b[1]-a[1]); const maxG=sortedG[0]?sortedG[0][1]:1;
-  document.getElementById('resumen-cats').innerHTML=sortedG.length?sortedG.map(([cat,amt])=>`<div class="resumen-bar"><div class="bar-header"><span class="bar-label">${cat}</span><span class="bar-amt neg">${fmt(amt)}</span></div><div class="bar-track"><div class="bar-fill" style="width:${(amt/maxG*100).toFixed(1)}%"></div></div></div>`).join(''):'<div class="empty-state">sin gastos este mes</div>';
+  document.getElementById('res-pie').innerHTML=pieChart(sortedG);
+  document.getElementById('resumen-cats').innerHTML=sortedG.length?sortedG.map(([cat,amt])=>`<div class="resumen-bar"><div class="bar-header"><span class="bar-label">${cat}</span><span class="bar-amt neg">${fmt(amt)}</span></div><div class="bar-track"><div class="bar-fill" style="width:${(amt/maxG*100).toFixed(1)}%"></div></div></div>`).join(''):'<div class="empty-state">sin gastos en este periodo</div>';
   const byIng={}; ingresos.forEach(i=>byIng[i.cat]=(byIng[i.cat]||0)+i.monto);
   const sortedI=Object.entries(byIng).sort((a,b)=>b[1]-a[1]); const maxI=sortedI[0]?sortedI[0][1]:1;
-  document.getElementById('resumen-ingresos-cats').innerHTML=sortedI.length?sortedI.map(([cat,amt])=>`<div class="resumen-bar"><div class="bar-header"><span class="bar-label">${cat}</span><span class="bar-amt pos">${fmt(amt)}</span></div><div class="bar-track"><div class="bar-fill bar-fill-green" style="width:${(amt/maxI*100).toFixed(1)}%"></div></div></div>`).join(''):'<div class="empty-state">sin ingresos este mes</div>';
+  document.getElementById('res-pie-ingresos').innerHTML=pieChart(sortedI);
+  document.getElementById('resumen-ingresos-cats').innerHTML=sortedI.length?sortedI.map(([cat,amt])=>`<div class="resumen-bar"><div class="bar-header"><span class="bar-label">${cat}</span><span class="bar-amt pos">${fmt(amt)}</span></div><div class="bar-track"><div class="bar-fill bar-fill-green" style="width:${(amt/maxI*100).toFixed(1)}%"></div></div></div>`).join(''):'<div class="empty-state">sin ingresos en este periodo</div>';
 
-  renderRendimientos(target, balance);
+  renderRendimientos(start, end, balance);
   renderGBMResumen();
 }
 
-function renderRendimientos(target, balance) {
-  const mStart=new Date(target.getFullYear(),target.getMonth(),1);
-  const mEnd=new Date(Math.min(Date.now(), new Date(target.getFullYear(),target.getMonth()+1,1).getTime()));
-  const diasMes=Math.max(0,(mEnd-mStart)/86400000);
-  const rend1=9.03*diasMes;
-  const rend2=Math.max(0,calcNu2At(mEnd.getTime())-calcNu2At(mStart.getTime()));
-  const enMes=(state.ivvHistory||[]).filter(p=>{const d=parseFechaLocal(p.t);return d.getMonth()===target.getMonth()&&d.getFullYear()===target.getFullYear();});
-  const rendG=enMes.length>=2?(enMes[enMes.length-1].c-enMes[0].c)*TITULOS:null;
+function renderRendimientos(start, end, balance) {
+  // rango efectivo: no calcular rendimientos a futuro
+  const endC=new Date(Math.min(Date.now(), end.getTime()));
+  const dias=Math.max(0,(endC-start)/86400000);
+  const rend1=9.03*dias;
+  const rend2=dias>0?Math.max(0,calcNu2At(endC.getTime())-calcNu2At(start.getTime())):0;
+  const enRango=(state.ivvHistory||[]).filter(p=>{const d=parseFechaLocal(p.t);return d>=start&&d<end;});
+  const rendG=enRango.length>=2?(enRango[enRango.length-1].c-enRango[0].c)*TITULOS:null;
   const rendTotal=rend1+rend2+(rendG||0);
   const real=balance+rendTotal;
   const sgn=(v,cls)=>`<span class="${v>=0?'item-amt-pos':'item-amt-neg'}"${cls?' style="font-size:15px"':''}>${v>=0?'+':'−'}${fmt(Math.abs(v))}</span>`;
   document.getElementById('res-rendimientos').innerHTML=
     `<div class="item-row"><div><div class="item-cat">NU cajita 1</div><div class="item-meta">$9.03 por dia</div></div>${sgn(rend1)}</div>`+
     `<div class="item-row"><div><div class="item-cat">NU cajita 2</div><div class="item-meta">6% anual compuesto</div></div>${sgn(rend2)}</div>`+
-    `<div class="item-row"><div><div class="item-cat">GBM · IVVPESO</div><div class="item-meta">${rendG===null?'sin datos de este mes':'variacion de tus 45 titulos'}</div></div>${rendG===null?'<span class="item-meta">—</span>':sgn(rendG)}</div>`+
+    `<div class="item-row"><div><div class="item-cat">GBM · IVVPESO</div><div class="item-meta">${rendG===null?'sin datos de este periodo':'variacion de tus 45 titulos'}</div></div>${rendG===null?'<span class="item-meta">—</span>':sgn(rendG)}</div>`+
     `<div class="item-row"><div class="item-cat" style="font-weight:600">total rendimientos</div>${sgn(rendTotal,1)}</div>`+
-    `<div class="item-row"><div><div class="item-cat" style="font-weight:600">balance real del mes</div><div class="item-meta">ingresos − gastos + rendimientos</div></div>${sgn(real,1)}</div>`;
+    `<div class="item-row"><div><div class="item-cat" style="font-weight:600">balance real del periodo</div><div class="item-meta">ingresos − gastos + rendimientos</div></div>${sgn(real,1)}</div>`;
 }
 
 function renderGBMResumen() {
