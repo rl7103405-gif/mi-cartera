@@ -214,18 +214,22 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
     <div class="total-sub" id="last-update">—</div>
   </div>
   <div class="cards">
-    <div class="card">
+    <div class="card" onclick="toggleDetail('nu1-detail')">
       <div class="card-header">
         <div class="card-left"><div class="card-icon icon-nu">&#128156;</div>
-          <div><div class="card-name">NU cajita 1</div><div class="card-sub">+$9.03 por dia</div></div>
+          <div><div class="card-name">NU cajita 1</div><div class="card-sub" id="nu1-sub">—</div></div>
         </div>
-        <div class="card-right"><div class="card-amount" id="nu-cajita1-display">$—</div><div class="card-change pos">+$9.03 / dia</div></div>
+        <div class="card-right"><div class="card-amount" id="nu-cajita1-display">$—</div><div class="card-change pos" id="nu1-rend">—</div></div>
+      </div>
+      <div class="card-detail" id="nu1-detail">
+        <div class="detail-row"><span class="detail-label">saldo base</span><span class="detail-val" id="nu1-base-val">$—</span></div>
+        <div class="detail-row"><span class="detail-label">rendimiento acumulado</span><span class="detail-val pos" id="nu1-rend-val">$—</span></div>
       </div>
     </div>
     <div class="card" onclick="toggleDetail('nu2-detail')">
       <div class="card-header">
         <div class="card-left"><div class="card-icon icon-nu2">&#128153;</div>
-          <div><div class="card-name">NU cajita 2</div><div class="card-sub">6% anual</div></div>
+          <div><div class="card-name">NU cajita 2</div><div class="card-sub" id="nu2-sub">—</div></div>
         </div>
         <div class="card-right"><div class="card-amount" id="nu-cajita2-display">$—</div><div class="card-change pos" id="nu2-rend">—</div></div>
       </div>
@@ -281,9 +285,16 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
 
   <div class="section-title">actualizar saldos</div>
   <div class="panel">
-    <div class="field"><label>cajita NU 1 (lo que muestra NU hoy)</label><input type="number" id="input-cajita1" placeholder="ej. 25000" step="0.01" inputmode="decimal"></div>
-    <div class="field"><label>cajita NU 2 — saldo base</label><input type="number" id="input-cajita2-base" placeholder="ej. 5000" step="0.01" inputmode="decimal"></div>
-    <div class="field"><label>cajita NU 2 — fecha inicio (YYYY-MM-DD)</label><input type="text" id="input-cajita2-fecha" placeholder="ej. 2026-06-20"></div>
+    <div class="field"><label>cajita NU 1 — saldo base (lo que muestra NU hoy)</label><input type="number" id="input-cajita1-base" placeholder="ej. 25072.31" step="0.01" inputmode="decimal"></div>
+    <div class="row2" style="gap:8px">
+      <div class="field"><label>cajita NU 1 — fecha base (YYYY-MM-DD)</label><input type="text" id="input-cajita1-fecha" placeholder="ej. 2026-07-09"></div>
+      <div class="field"><label>cajita NU 1 — tasa anual %</label><input type="number" id="input-cajita1-tasa" placeholder="ej. 13" step="0.01" inputmode="decimal"></div>
+    </div>
+    <div class="field"><label>cajita NU 2 — saldo base</label><input type="number" id="input-cajita2-base" placeholder="ej. 2000" step="0.01" inputmode="decimal"></div>
+    <div class="row2" style="gap:8px">
+      <div class="field"><label>cajita NU 2 — fecha base (YYYY-MM-DD)</label><input type="text" id="input-cajita2-fecha" placeholder="ej. 2026-07-09"></div>
+      <div class="field"><label>cajita NU 2 — tasa anual %</label><input type="number" id="input-cajita2-tasa" placeholder="ej. 6.5" step="0.01" inputmode="decimal"></div>
+    </div>
     <div class="field"><label>NU saldo disponible</label><input type="number" id="input-nu-saldo" placeholder="ej. 360.59" step="0.01" inputmode="decimal"></div>
     <div class="field"><label>efectivo en pesos</label><input type="number" id="input-efectivo" placeholder="ej. 2200" step="1" inputmode="decimal"></div>
     <div class="row2" style="gap:8px">
@@ -630,8 +641,8 @@ const PERSONAS_DEFAULT = {
 
 // ── STATE ─────────────────────────────────────────────────────
 let state = {
-  nuCajita1:25000, nuCajita1LastUpdate:new Date().toISOString().split('T')[0],
-  nuCajita2Base:0, nuCajita2Fecha:'',
+  nuCajita1Base:25000, nuCajita1Fecha:new Date().toISOString().split('T')[0], nuCajita1Tasa:13,
+  nuCajita2Base:0, nuCajita2Fecha:'', nuCajita2Tasa:6.5,
   nuSaldo:523.58, efectivo:2200,
   reporto:99.74, efectivoGBM:46.16,
   tarjetaDeuda:2001, tarjetaMovimientos:[],
@@ -677,8 +688,8 @@ async function loadFromFirebase() {
 async function saveSaldos() {
   try {
     await setDoc(doc(db,'cartera','saldos'), {
-      nuCajita1:state.nuCajita1, nuCajita1LastUpdate:state.nuCajita1LastUpdate,
-      nuCajita2Base:state.nuCajita2Base, nuCajita2Fecha:state.nuCajita2Fecha,
+      nuCajita1Base:state.nuCajita1Base, nuCajita1Fecha:state.nuCajita1Fecha, nuCajita1Tasa:state.nuCajita1Tasa,
+      nuCajita2Base:state.nuCajita2Base, nuCajita2Fecha:state.nuCajita2Fecha, nuCajita2Tasa:state.nuCajita2Tasa,
       nuSaldo:state.nuSaldo, efectivo:state.efectivo,
       reporto:state.reporto, efectivoGBM:state.efectivoGBM,
       ivvPrecio:state.ivvPrecio, ivvVar:state.ivvVar, ivvHistory:state.ivvHistory
@@ -734,17 +745,18 @@ window.setTipoDeuda = t => { state.tipoDeuda=t; ['cargo','pago','debo'].forEach(
 
 // ── CALCS ─────────────────────────────────────────────────────
 function parseFechaLocal(f) { return new Date(f+'T00:00:00'); } // evita que YYYY-MM-DD se lea como UTC
+function calcCompoundAt(base, fechaStr, tasaPct, ms) {
+  if(!base||!fechaStr) return base||0;
+  const dias=Math.max(0,(ms-parseFechaLocal(fechaStr).getTime())/86400000);
+  const dailyRate=Math.pow(1+(tasaPct||0)/100,1/365)-1;
+  return base*Math.pow(1+dailyRate,dias);
+}
+function calcNu1At(ms) { return calcCompoundAt(state.nuCajita1Base, state.nuCajita1Fecha, state.nuCajita1Tasa, ms); }
 function calcNu1() {
-  const last=parseFechaLocal(state.nuCajita1LastUpdate), today=new Date();
-  today.setHours(0,0,0,0);
-  const dias=Math.max(0,Math.round((today-last)/86400000));
-  return {saldo:state.nuCajita1+dias*9.03};
+  const saldo=calcNu1At(Date.now());
+  return {saldo, rend:saldo-(state.nuCajita1Base||0)};
 }
-function calcNu2At(ms) {
-  if(!state.nuCajita2Base||!state.nuCajita2Fecha) return state.nuCajita2Base||0;
-  const dias=Math.max(0,(ms-parseFechaLocal(state.nuCajita2Fecha).getTime())/86400000);
-  return state.nuCajita2Base*Math.pow(1+(Math.pow(1.06,1/365)-1),dias);
-}
+function calcNu2At(ms) { return calcCompoundAt(state.nuCajita2Base, state.nuCajita2Fecha, state.nuCajita2Tasa, ms); }
 function calcNu2() {
   const saldo=calcNu2At(Date.now());
   return {saldo, rend:saldo-(state.nuCajita2Base||0)};
@@ -760,8 +772,13 @@ function diasParaCorte() {
 function render() {
   const nu1=calcNu1();
   document.getElementById('nu-cajita1-display').textContent=fmt(nu1.saldo);
+  document.getElementById('nu1-sub').textContent=(state.nuCajita1Tasa||0)+'% anual';
+  document.getElementById('nu1-rend').textContent=nu1.rend>0?'+'+fmt(nu1.rend):'$0.00';
+  document.getElementById('nu1-base-val').textContent=fmt(state.nuCajita1Base);
+  document.getElementById('nu1-rend-val').textContent='+'+fmt(nu1.rend);
   const nu2=calcNu2();
   document.getElementById('nu-cajita2-display').textContent=fmt(nu2.saldo);
+  document.getElementById('nu2-sub').textContent=(state.nuCajita2Tasa||0)+'% anual';
   document.getElementById('nu2-rend').textContent=nu2.rend>0?'+'+fmt(nu2.rend):'$0.00';
   document.getElementById('nu2-base-val').textContent=fmt(state.nuCajita2Base);
   document.getElementById('nu2-rend-val').textContent='+'+fmt(nu2.rend);
@@ -814,21 +831,27 @@ function maybeSnapshot(total,gbm) {
 }
 
 window.guardarManuales = async function() {
-  const c1=parseFloat(document.getElementById('input-cajita1').value);
+  const c1b=parseFloat(document.getElementById('input-cajita1-base').value);
+  const c1f=document.getElementById('input-cajita1-fecha').value.trim();
+  const c1t=parseFloat(document.getElementById('input-cajita1-tasa').value);
   const c2b=parseFloat(document.getElementById('input-cajita2-base').value);
   const c2f=document.getElementById('input-cajita2-fecha').value.trim();
+  const c2t=parseFloat(document.getElementById('input-cajita2-tasa').value);
   const ns=parseFloat(document.getElementById('input-nu-saldo').value);
   const ef=parseFloat(document.getElementById('input-efectivo').value);
   const ge=parseFloat(document.getElementById('input-gbm-efec').value);
   const rp=parseFloat(document.getElementById('input-reporto').value);
-  if(!isNaN(c1)){state.nuCajita1=c1;state.nuCajita1LastUpdate=new Date().toISOString().split('T')[0];}
+  if(!isNaN(c1b)) state.nuCajita1Base=c1b;
+  if(c1f) state.nuCajita1Fecha=c1f;
+  if(!isNaN(c1t)) state.nuCajita1Tasa=c1t;
   if(!isNaN(c2b)) state.nuCajita2Base=c2b;
   if(c2f) state.nuCajita2Fecha=c2f;
+  if(!isNaN(c2t)) state.nuCajita2Tasa=c2t;
   if(!isNaN(ns)) state.nuSaldo=ns;
   if(!isNaN(ef)) state.efectivo=ef;
   if(!isNaN(ge)) state.efectivoGBM=ge;
   if(!isNaN(rp)) state.reporto=rp;
-  ['input-cajita1','input-cajita2-base','input-cajita2-fecha','input-nu-saldo','input-efectivo','input-gbm-efec','input-reporto'].forEach(id=>document.getElementById(id).value='');
+  ['input-cajita1-base','input-cajita1-fecha','input-cajita1-tasa','input-cajita2-base','input-cajita2-fecha','input-cajita2-tasa','input-nu-saldo','input-efectivo','input-gbm-efec','input-reporto'].forEach(id=>document.getElementById(id).value='');
   await saveSaldos(); render(); showToast('guardado y sincronizado');
 };
 
@@ -872,7 +895,7 @@ function aplicarDelta(c,d) {
   const hoy=new Date().toISOString().split('T')[0];
   if(c==='efectivo') state.efectivo+=d;
   else if(c==='nu') state.nuSaldo+=d;
-  else if(c==='cajita1'){ state.nuCajita1=calcNu1().saldo+d; state.nuCajita1LastUpdate=hoy; }
+  else if(c==='cajita1'){ state.nuCajita1Base=calcNu1().saldo+d; state.nuCajita1Fecha=hoy; }
   else if(c==='cajita2'){ state.nuCajita2Base=calcNu2().saldo+d; state.nuCajita2Fecha=hoy; }
   else if(c==='gbm') state.efectivoGBM+=d;
 }
@@ -1130,7 +1153,7 @@ function renderRendimientos(start, end, balance) {
   // rango efectivo: no calcular rendimientos a futuro
   const endC=new Date(Math.min(Date.now(), end.getTime()));
   const dias=Math.max(0,(endC-start)/86400000);
-  const rend1=9.03*dias;
+  const rend1=dias>0?Math.max(0,calcNu1At(endC.getTime())-calcNu1At(start.getTime())):0;
   const rend2=dias>0?Math.max(0,calcNu2At(endC.getTime())-calcNu2At(start.getTime())):0;
   const enRango=(state.ivvHistory||[]).filter(p=>{const d=parseFechaLocal(p.t);return d>=start&&d<end;});
   const rendG=enRango.length>=2?(enRango[enRango.length-1].c-enRango[0].c)*TITULOS:null;
@@ -1138,8 +1161,8 @@ function renderRendimientos(start, end, balance) {
   const real=balance+rendTotal;
   const sgn=(v,cls)=>`<span class="${v>=0?'item-amt-pos':'item-amt-neg'}"${cls?' style="font-size:15px"':''}>${v>=0?'+':'−'}${fmt(Math.abs(v))}</span>`;
   document.getElementById('res-rendimientos').innerHTML=
-    `<div class="item-row"><div><div class="item-cat">NU cajita 1</div><div class="item-meta">$9.03 por dia</div></div>${sgn(rend1)}</div>`+
-    `<div class="item-row"><div><div class="item-cat">NU cajita 2</div><div class="item-meta">6% anual compuesto</div></div>${sgn(rend2)}</div>`+
+    `<div class="item-row"><div><div class="item-cat">NU cajita 1</div><div class="item-meta">${(state.nuCajita1Tasa||0)}% anual compuesto</div></div>${sgn(rend1)}</div>`+
+    `<div class="item-row"><div><div class="item-cat">NU cajita 2</div><div class="item-meta">${(state.nuCajita2Tasa||0)}% anual compuesto</div></div>${sgn(rend2)}</div>`+
     `<div class="item-row"><div><div class="item-cat">GBM · IVVPESO</div><div class="item-meta">${rendG===null?'sin datos de este periodo':'variacion de tus 45 titulos'}</div></div>${rendG===null?'<span class="item-meta">—</span>':sgn(rendG)}</div>`+
     `<div class="item-row"><div class="item-cat" style="font-weight:600">total rendimientos</div>${sgn(rendTotal,1)}</div>`+
     `<div class="item-row"><div><div class="item-cat" style="font-weight:600">balance real del periodo</div><div class="item-meta">ingresos − gastos + rendimientos</div></div>${sgn(real,1)}</div>`;
