@@ -149,6 +149,14 @@ nav{position:sticky;top:0;z-index:100;background:rgba(10,10,10,0.92);backdrop-fi
 .chart-val{font-size:18px;font-weight:700}
 .chart-delta{font-size:12px;font-weight:500}
 .chart-dates{display:flex;justify-content:space-between;font-size:10px;color:var(--muted);margin-top:4px}
+.chart-ranges{display:flex;gap:5px;margin-bottom:10px}
+.chart-range-btn{flex:1;padding:7px 0;background:var(--bg3);border:0.5px solid var(--border);border-radius:8px;color:var(--muted);font-size:11px;cursor:pointer;text-align:center;font-family:inherit}
+.chart-range-btn.active{background:rgba(124,58,237,0.15);border-color:var(--purple);color:var(--purple)}
+.chart-range-btn:disabled{opacity:0.3;cursor:default}
+.chart-wrap{position:relative}
+.chart-wrap svg{touch-action:pan-y}
+.chart-tip{position:absolute;top:4px;pointer-events:none;background:var(--bg3);border:0.5px solid var(--border2);border-radius:8px;padding:5px 10px;font-size:11px;color:var(--muted);display:none;z-index:5;white-space:nowrap;text-align:center}
+.chart-tip .tip-val{font-size:13px;font-weight:700;color:var(--text)}
 table.mini{width:100%;border-collapse:collapse;font-size:12px}
 table.mini th{color:var(--muted);font-weight:500;text-align:right;padding:6px 0;border-bottom:0.5px solid var(--border);font-size:11px;text-transform:lowercase}
 table.mini td{padding:7px 0;border-bottom:0.5px solid var(--border);text-align:right}
@@ -211,6 +219,7 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
   <div class="total-section">
     <div class="total-label">patrimonio total</div>
     <div class="total-amount" id="total-display">$—</div>
+    <div class="total-sub" id="neto-display">—</div>
     <div class="total-sub" id="last-update">—</div>
   </div>
   <div class="cards">
@@ -301,7 +310,7 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
       <div class="field"><label>efectivo GBM</label><input type="number" id="input-gbm-efec" placeholder="ej. 46.16" step="0.01" inputmode="decimal"></div>
       <div class="field"><label>reporto LF</label><input type="number" id="input-reporto" placeholder="ej. 99.74" step="0.01" inputmode="decimal"></div>
     </div>
-    <button class="btn btn-purple" onclick="guardarManuales()">guardar</button>
+    <button class="btn btn-purple" id="manuales-btn" onclick="guardarManuales()">guardar</button>
   </div>
 
   <div class="section-title">transferir entre cuentas</div>
@@ -329,7 +338,7 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
     </div>
     <div class="field"><label>monto</label><input type="number" id="transfer-monto" placeholder="ej. 4000" step="0.01" inputmode="decimal"></div>
     <div class="field"><label>nota (opcional)</label><input type="text" id="transfer-nota" placeholder="ej. deposito en cajero"></div>
-    <button class="btn btn-purple" onclick="registrarTransferencia()">transferir</button>
+    <button class="btn btn-purple" id="transfer-btn" onclick="registrarTransferencia()">transferir</button>
   </div>
   <div class="section-title">ultimas transferencias</div>
   <div class="panel" id="transfer-historial"><div class="empty-state">sin transferencias</div></div>
@@ -349,8 +358,8 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
       </select>
     </div>
     <div class="row2" style="gap:8px">
-      <button class="btn btn-red" onclick="registrarTarjeta('cargo')" style="margin-top:0">+ cargo</button>
-      <button class="btn btn-green" onclick="registrarTarjeta('pago')" style="margin-top:0">- pague</button>
+      <button class="btn btn-red" id="tarjeta-cargo-btn" onclick="registrarTarjeta('cargo')" style="margin-top:0">+ cargo</button>
+      <button class="btn btn-green" id="tarjeta-pago-btn" onclick="registrarTarjeta('pago')" style="margin-top:0">- pague</button>
     </div>
   </div>
   <div class="status" id="status-inicio">—</div>
@@ -373,7 +382,7 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
           <div class="type-opt" onclick="setFuente('tarjeta')">tarjeta NU</div>
         </div>
       </div>
-      <button class="btn btn-purple" onclick="registrarGasto()">registrar gasto</button>
+      <button class="btn btn-purple" id="gasto-btn" onclick="registrarGasto()">registrar gasto</button>
     </div>
     <div class="section-title">historial</div>
     <div class="panel" id="historial-container"><div class="empty-state">sin gastos registrados</div></div>
@@ -397,7 +406,7 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
           <div class="type-opt" onclick="setDestinoIngreso('gbm')">GBM</div>
         </div>
       </div>
-      <button class="btn btn-green" onclick="registrarIngreso()">registrar ingreso</button>
+      <button class="btn btn-green" id="ingreso-btn" onclick="registrarIngreso()">registrar ingreso</button>
     </div>
     <div class="section-title">historial</div>
     <div class="panel" id="ingresos-historial"><div class="empty-state">sin ingresos registrados</div></div>
@@ -428,13 +437,24 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
       <div class="field"><label>tipo</label>
         <div class="type-toggle">
           <div class="type-opt active" id="tipo-cargo" onclick="setTipoDeuda('cargo')">me deben (+)</div>
-          <div class="type-opt" id="tipo-pago" onclick="setTipoDeuda('pago')">pagaron (-)</div>
+          <div class="type-opt" id="tipo-pago" onclick="setTipoDeuda('pago')">me pagaron (-)</div>
           <div class="type-opt" id="tipo-debo" onclick="setTipoDeuda('debo')">yo debo (-)</div>
+          <div class="type-opt" id="tipo-pague" onclick="setTipoDeuda('pague')">pague deuda (+)</div>
         </div>
+      </div>
+      <div class="field"><label>cuenta (de donde sale / a donde entra el dinero)</label>
+        <select id="deuda-cuenta">
+          <option value="externo">externo · no toca mis cuentas</option>
+          <option value="efectivo">efectivo</option>
+          <option value="nu">NU saldo</option>
+          <option value="cajita1">NU cajita 1</option>
+          <option value="cajita2">NU cajita 2</option>
+          <option value="gbm">GBM efectivo</option>
+        </select>
       </div>
       <div class="field"><label>monto</label><input type="number" id="deuda-monto" placeholder="ej. 500" step="0.01" inputmode="decimal"></div>
       <div class="field"><label>nota (opcional)</label><input type="text" id="deuda-nota" placeholder="ej. licencia, medicina..."></div>
-      <button class="btn btn-purple" onclick="registrarDeuda()">registrar</button>
+      <button class="btn btn-purple" id="deuda-btn" onclick="registrarDeuda()">registrar</button>
     </div>
   </div>
 </div>
@@ -475,7 +495,7 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
     <div class="panel" id="gbm-chart"></div>
     <div class="section-title mt">GBM · cierre por mes</div>
     <div class="panel" id="gbm-tabla"></div>
-    <div class="section-title mt">patrimonio total</div>
+    <div class="section-title mt">activos totales · evolucion</div>
     <div class="panel" id="patrimonio-chart"></div>
   </div>
 </div>
@@ -484,8 +504,8 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
 
 <script type="module">
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
-import { getFirestore, doc, getDoc, setDoc, collection, addDoc, deleteDoc, getDocs, query, orderBy } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
-import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, createUserWithEmailAndPassword } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
+import { getFirestore, doc, getDoc, setDoc, collection, getDocs, query, orderBy, writeBatch } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
 
 const firebaseConfig = {
   apiKey: "AIzaSyAe5O2FiGD3dHK7F9fc485BjaaiN99Zzd4",
@@ -510,11 +530,17 @@ function fmt(n) {
   if (n === null || n === undefined || isNaN(n)) return '$—';
   return '$' + Number(n).toLocaleString('es-MX', {minimumFractionDigits:2, maximumFractionDigits:2});
 }
+function hoyLocal() {
+  // fecha local YYYY-MM-DD (NO usar toISOString: de noche en Mexico da la fecha de manana en UTC)
+  const d = new Date();
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+}
 function showToast(msg) {
   const el = document.getElementById('toast');
   el.textContent = msg; el.classList.add('show');
   setTimeout(() => el.classList.remove('show'), 2200);
 }
+function escapeHtml(s) { return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 function toggleDetail(id) { document.getElementById(id).classList.toggle('open'); }
 window.toggleDetail = toggleDetail;
 function setSyncDot(s) { document.getElementById('sync-dot').className = 'sync-dot ' + (s === 'ok' ? 'ok' : s === 'err' ? 'err' : ''); }
@@ -529,11 +555,7 @@ window.doLogin = async function() {
   try {
     await signInWithEmailAndPassword(auth, email, pass);
   } catch(e) {
-    if (e.code === 'auth/user-not-found') {
-      try { await createUserWithEmailAndPassword(auth, email, pass); } catch(e2) { errEl.textContent = 'error al crear cuenta'; }
-    } else {
-      errEl.textContent = 'correo o contrasena incorrectos';
-    }
+    errEl.textContent = 'correo o contrasena incorrectos';
   }
 };
 
@@ -548,7 +570,14 @@ onAuthStateChanged(auth, async user => {
   if (user && user.email === ALLOWED_EMAIL) {
     document.getElementById('login-screen').classList.add('hidden');
     document.getElementById('loading-overlay').classList.remove('hidden');
-    await loadFromFirebase();
+    const ok = await loadFromFirebase();
+    if (!ok) {
+      // no se pudo cargar de Firebase: NO seguir con datos DEFAULT en memoria
+      // (se sobreescribirian los datos reales en la siguiente escritura). Se bloquea la app.
+      document.querySelector('.loading-text').textContent = 'error al cargar tus datos — recarga la pagina';
+      showToast('ERROR al cargar datos de Firebase');
+      return;
+    }
     document.getElementById('loading-overlay').classList.add('hidden');
     renderCatSelect('gasto-cat', state.catsGasto);
     renderCatSelect('ingreso-cat', state.catsIngreso);
@@ -559,6 +588,7 @@ onAuthStateChanged(auth, async user => {
   } else {
     document.getElementById('login-screen').classList.remove('hidden');
     document.getElementById('loading-overlay').classList.add('hidden');
+    if (user) signOut(auth);
   }
 });
 
@@ -641,7 +671,7 @@ const PERSONAS_DEFAULT = {
 
 // ── STATE ─────────────────────────────────────────────────────
 let state = {
-  nuCajita1Base:25000, nuCajita1Fecha:new Date().toISOString().split('T')[0], nuCajita1Tasa:13,
+  nuCajita1Base:25000, nuCajita1Fecha:hoyLocal(), nuCajita1Tasa:13,
   nuCajita2Base:0, nuCajita2Fecha:'', nuCajita2Tasa:6.5,
   nuSaldo:523.58, efectivo:2200,
   reporto:99.74, efectivoGBM:46.16,
@@ -655,20 +685,30 @@ let state = {
 };
 
 // ── FIREBASE ──────────────────────────────────────────────────
+let datosCargados = false; // true solo cuando loadFromFirebase termina con exito (evita sobreescribir datos reales con defaults)
 async function loadFromFirebase() {
   try {
     const sDoc = await getDoc(doc(db,'cartera','saldos'));
     if (sDoc.exists()) {
       const d = sDoc.data();
+      const prevIvvPrecio = state.ivvPrecio;
       Object.keys(d).forEach(k => { if (k in state) state[k] = d[k]; });
+      if (!Number.isFinite(state.ivvPrecio)) state.ivvPrecio = prevIvvPrecio;
+      if (!Array.isArray(state.ivvHistory)) state.ivvHistory = [];
     }
     const pDoc = await getDoc(doc(db,'cartera','personas'));
-    if (pDoc.exists()) state.personas = pDoc.data().data;
+    if (pDoc.exists()) {
+      state.personas = pDoc.data().data || state.personas;
+      Object.values(state.personas).forEach(p => {
+        if (!Array.isArray(p.movimientos)) p.movimientos = [];
+        if (!Number.isFinite(p.saldo)) p.saldo = 0;
+      });
+    }
     else await setDoc(doc(db,'cartera','personas'), {data:state.personas});
     const tDoc = await getDoc(doc(db,'cartera','tarjeta'));
-    if (tDoc.exists()) { state.tarjetaDeuda = tDoc.data().deuda; state.tarjetaMovimientos = tDoc.data().movimientos || []; }
+    if (tDoc.exists()) { state.tarjetaDeuda = tDoc.data().deuda; state.tarjetaMovimientos = Array.isArray(tDoc.data().movimientos) ? tDoc.data().movimientos : []; }
     const hDoc = await getDoc(doc(db,'cartera','historial'));
-    if (hDoc.exists()) state.snapshots = hDoc.data().snapshots || [];
+    if (hDoc.exists()) state.snapshots = Array.isArray(hDoc.data().snapshots) ? hDoc.data().snapshots : [];
     const cDoc = await getDoc(doc(db,'cartera','categorias'));
     if (cDoc.exists()) {
       const cd = cDoc.data();
@@ -682,36 +722,45 @@ async function loadFromFirebase() {
     const trSnap = await getDocs(query(collection(db,'transferencias'), orderBy('fecha','desc')));
     state.transferencias = trSnap.docs.map(d => ({id:d.id, ...d.data()}));
     setSyncDot('ok');
-  } catch(e) { console.error(e); setSyncDot('err'); }
+    datosCargados = true;
+    return true;
+  } catch(e) { console.error(e); setSyncDot('err'); return false; }
 }
 
+function saldosPayload() {
+  return {
+    nuCajita1Base:state.nuCajita1Base, nuCajita1Fecha:state.nuCajita1Fecha, nuCajita1Tasa:state.nuCajita1Tasa,
+    nuCajita2Base:state.nuCajita2Base, nuCajita2Fecha:state.nuCajita2Fecha, nuCajita2Tasa:state.nuCajita2Tasa,
+    nuSaldo:state.nuSaldo, efectivo:state.efectivo,
+    reporto:state.reporto, efectivoGBM:state.efectivoGBM,
+    ivvPrecio:state.ivvPrecio, ivvVar:state.ivvVar, ivvHistory:state.ivvHistory
+  };
+}
 async function saveSaldos() {
+  if (!datosCargados) throw new Error('datos no cargados');
   try {
-    await setDoc(doc(db,'cartera','saldos'), {
-      nuCajita1Base:state.nuCajita1Base, nuCajita1Fecha:state.nuCajita1Fecha, nuCajita1Tasa:state.nuCajita1Tasa,
-      nuCajita2Base:state.nuCajita2Base, nuCajita2Fecha:state.nuCajita2Fecha, nuCajita2Tasa:state.nuCajita2Tasa,
-      nuSaldo:state.nuSaldo, efectivo:state.efectivo,
-      reporto:state.reporto, efectivoGBM:state.efectivoGBM,
-      ivvPrecio:state.ivvPrecio, ivvVar:state.ivvVar, ivvHistory:state.ivvHistory
-    });
+    await setDoc(doc(db,'cartera','saldos'), saldosPayload());
     setSyncDot('ok');
-  } catch(e) { setSyncDot('err'); }
+  } catch(e) { setSyncDot('err'); throw e; }
 }
 async function savePersonas() {
-  try { await setDoc(doc(db,'cartera','personas'),{data:state.personas}); setSyncDot('ok'); } catch(e) { setSyncDot('err'); }
+  if (!datosCargados) throw new Error('datos no cargados');
+  try { await setDoc(doc(db,'cartera','personas'),{data:state.personas}); setSyncDot('ok'); } catch(e) { setSyncDot('err'); throw e; }
 }
 async function saveTarjeta() {
-  try { await setDoc(doc(db,'cartera','tarjeta'),{deuda:state.tarjetaDeuda, movimientos:state.tarjetaMovimientos}); setSyncDot('ok'); } catch(e) { setSyncDot('err'); }
+  if (!datosCargados) throw new Error('datos no cargados');
+  try { await setDoc(doc(db,'cartera','tarjeta'),{deuda:state.tarjetaDeuda, movimientos:state.tarjetaMovimientos}); setSyncDot('ok'); } catch(e) { setSyncDot('err'); throw e; }
 }
 async function saveCategorias() {
-  try { await setDoc(doc(db,'cartera','categorias'),{catsGasto:state.catsGasto, catsIngreso:state.catsIngreso}); setSyncDot('ok'); } catch(e) { setSyncDot('err'); }
+  if (!datosCargados) throw new Error('datos no cargados');
+  try { await setDoc(doc(db,'cartera','categorias'),{catsGasto:state.catsGasto, catsIngreso:state.catsIngreso}); setSyncDot('ok'); } catch(e) { setSyncDot('err'); throw e; }
 }
 
 // ── CATEGORIAS PERSONALIZADAS ─────────────────────────────────
 function renderCatSelect(selectId, cats) {
   const sel=document.getElementById(selectId);
   const prev=sel.value;
-  sel.innerHTML=cats.map(c=>`<option value="${c}">${c}</option>`).join('')+'<option value="__nueva__">+ agregar categoria...</option>';
+  sel.innerHTML=cats.map(c=>`<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join('')+'<option value="__nueva__">+ agregar categoria...</option>';
   if(cats.includes(prev)) sel.value=prev;
 }
 window.handleCatChange = async function(tipo, sel) {
@@ -722,10 +771,18 @@ window.handleCatChange = async function(tipo, sel) {
   const existe=arr.find(c=>c.toLowerCase()===nombre.toLowerCase());
   if(existe){ renderCatSelect(sel.id, arr); sel.value=existe; return; }
   arr.push(nombre);
-  await saveCategorias();
-  renderCatSelect(sel.id, arr);
-  sel.value=nombre;
-  showToast('categoria "'+nombre+'" agregada');
+  try{
+    await saveCategorias();
+    renderCatSelect(sel.id, arr);
+    sel.value=nombre;
+    showToast('categoria "'+nombre+'" agregada');
+  }catch(e){
+    arr.pop();
+    renderCatSelect(sel.id, arr);
+    sel.value=arr[0]||'';
+    console.error('handleCatChange',e);
+    showToast('ERROR: no se guardo la categoria, revisa tu conexion');
+  }
 };
 
 // ── NAVIGATION ────────────────────────────────────────────────
@@ -741,7 +798,7 @@ window.showPage = function(p) {
 };
 window.setFuente = f => { state.fuenteGasto=f; document.querySelectorAll('#gasto-fuente-toggle .type-opt').forEach((el,i)=>el.classList.toggle('active',['efectivo','nu','tarjeta'][i]===f)); };
 window.setDestinoIngreso = f => { state.destinoIngreso=f; document.querySelectorAll('#ingreso-destino-toggle .type-opt').forEach((el,i)=>el.classList.toggle('active',['efectivo','nu','gbm'][i]===f)); };
-window.setTipoDeuda = t => { state.tipoDeuda=t; ['cargo','pago','debo'].forEach(id=>document.getElementById('tipo-'+id).classList.toggle('active',id===t)); };
+window.setTipoDeuda = t => { state.tipoDeuda=t; ['cargo','pago','debo','pague'].forEach(id=>document.getElementById('tipo-'+id).classList.toggle('active',id===t)); };
 
 // ── CALCS ─────────────────────────────────────────────────────
 function parseFechaLocal(f) { return new Date(f+'T00:00:00'); } // evita que YYYY-MM-DD se lea como UTC
@@ -811,6 +868,10 @@ function render() {
   }
   const total=nu1.saldo+nu2.saldo+state.nuSaldo+gbmTotal+state.efectivo;
   document.getElementById('total-display').textContent=fmt(total);
+  // neto = activos + lo que me deben (o menos lo que debo) - deuda de tarjeta
+  const saldoDeudas=Object.values(state.personas||{}).reduce((s,p)=>s+(p.saldo||0),0);
+  const neto=total+saldoDeudas-(state.tarjetaDeuda||0);
+  document.getElementById('neto-display').textContent='patrimonio neto (con deudas y tarjeta): '+fmt(neto);
   const now=new Date();
   document.getElementById('last-update').textContent='actualizado '+now.toLocaleDateString('es-MX',{day:'numeric',month:'short'})+' · '+now.toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'});
   maybeSnapshot(total,gbmTotal);
@@ -818,68 +879,141 @@ function render() {
 
 // guarda un snapshot diario del patrimonio para las graficas (1 por dia, solo si cambio)
 function maybeSnapshot(total,gbm) {
+  if(!datosCargados) return;
   if(!auth.currentUser) return;
-  const hoy=new Date().toISOString().split('T')[0];
+  const hoy=hoyLocal();
   const t=+total.toFixed(2), g=+gbm.toFixed(2);
   const ex=state.snapshots.find(s=>s.f===hoy);
   if(ex && Math.abs(ex.total-t)<0.01 && Math.abs(ex.gbm-g)<0.01) return;
+  const prevSnap=ex; // respaldo del snapshot de hoy (si existia) para revertir si falla el guardado
   state.snapshots=state.snapshots.filter(s=>s.f!==hoy);
   state.snapshots.push({f:hoy,total:t,gbm:g});
   state.snapshots.sort((a,b)=>a.f.localeCompare(b.f));
   if(state.snapshots.length>730) state.snapshots=state.snapshots.slice(-730);
-  setDoc(doc(db,'cartera','historial'),{snapshots:state.snapshots}).catch(()=>{});
+  setDoc(doc(db,'cartera','historial'),{snapshots:state.snapshots}).catch(()=>{
+    state.snapshots=state.snapshots.filter(s=>s.f!==hoy);
+    if(prevSnap){ state.snapshots.push(prevSnap); state.snapshots.sort((a,b)=>a.f.localeCompare(b.f)); }
+  });
 }
 
 window.guardarManuales = async function() {
-  const c1b=parseFloat(document.getElementById('input-cajita1-base').value);
-  const c1f=document.getElementById('input-cajita1-fecha').value.trim();
-  const c1t=parseFloat(document.getElementById('input-cajita1-tasa').value);
-  const c2b=parseFloat(document.getElementById('input-cajita2-base').value);
-  const c2f=document.getElementById('input-cajita2-fecha').value.trim();
-  const c2t=parseFloat(document.getElementById('input-cajita2-tasa').value);
-  const ns=parseFloat(document.getElementById('input-nu-saldo').value);
-  const ef=parseFloat(document.getElementById('input-efectivo').value);
-  const ge=parseFloat(document.getElementById('input-gbm-efec').value);
-  const rp=parseFloat(document.getElementById('input-reporto').value);
-  if(!isNaN(c1b)) state.nuCajita1Base=c1b;
-  if(c1f) state.nuCajita1Fecha=c1f;
-  if(!isNaN(c1t)) state.nuCajita1Tasa=c1t;
-  if(!isNaN(c2b)) state.nuCajita2Base=c2b;
-  if(c2f) state.nuCajita2Fecha=c2f;
-  if(!isNaN(c2t)) state.nuCajita2Tasa=c2t;
-  if(!isNaN(ns)) state.nuSaldo=ns;
-  if(!isNaN(ef)) state.efectivo=ef;
-  if(!isNaN(ge)) state.efectivoGBM=ge;
-  if(!isNaN(rp)) state.reporto=rp;
-  ['input-cajita1-base','input-cajita1-fecha','input-cajita1-tasa','input-cajita2-base','input-cajita2-fecha','input-cajita2-tasa','input-nu-saldo','input-efectivo','input-gbm-efec','input-reporto'].forEach(id=>document.getElementById(id).value='');
-  await saveSaldos(); render(); showToast('guardado y sincronizado');
+  const ids={c1b:'input-cajita1-base',c1f:'input-cajita1-fecha',c1t:'input-cajita1-tasa',
+    c2b:'input-cajita2-base',c2f:'input-cajita2-fecha',c2t:'input-cajita2-tasa',
+    ns:'input-nu-saldo',ef:'input-efectivo',ge:'input-gbm-efec',rp:'input-reporto'};
+  const labels={c1b:'cajita 1 - saldo base',c1f:'cajita 1 - fecha base',c1t:'cajita 1 - tasa',
+    c2b:'cajita 2 - saldo base',c2f:'cajita 2 - fecha base',c2t:'cajita 2 - tasa',
+    ns:'NU saldo',ef:'efectivo',ge:'efectivo GBM',rp:'reporto LF'};
+  const raw={}; Object.keys(ids).forEach(k=>raw[k]=document.getElementById(ids[k]).value.trim());
+  const vals={};
+  for(const k of ['c1b','c2b','ns','ef','ge','rp']) {
+    if(raw[k]===''){ vals[k]=null; continue; }
+    const n=parseFloat(raw[k]);
+    if(!Number.isFinite(n)){ showToast('monto invalido en '+labels[k]); return; }
+    vals[k]=n;
+  }
+  for(const k of ['c1t','c2t']) {
+    if(raw[k]===''){ vals[k]=null; continue; }
+    const n=parseFloat(raw[k]);
+    if(!Number.isFinite(n)||n<=-100){ showToast('tasa invalida en '+labels[k]); return; }
+    vals[k]=n;
+  }
+  for(const k of ['c1f','c2f']) {
+    if(raw[k]===''){ vals[k]=null; continue; }
+    if(!/^\d{4}-\d{2}-\d{2}$/.test(raw[k])){ showToast('fecha invalida en '+labels[k]); return; }
+    const d=parseFechaLocal(raw[k]);
+    if(isNaN(d.getTime())){ showToast('fecha invalida en '+labels[k]); return; }
+    const [ay,am,ad]=raw[k].split('-').map(Number);
+    if(d.getFullYear()!==ay||d.getMonth()+1!==am||d.getDate()!==ad){ showToast('fecha invalida en '+labels[k]); return; }
+    vals[k]=raw[k];
+  }
+  const btn=document.getElementById('manuales-btn');
+  // respaldo para revertir el estado optimista si falla la escritura
+  const prev={c1b:state.nuCajita1Base,c1f:state.nuCajita1Fecha,c1t:state.nuCajita1Tasa,
+    c2b:state.nuCajita2Base,c2f:state.nuCajita2Fecha,c2t:state.nuCajita2Tasa,
+    ns:state.nuSaldo,ef:state.efectivo,ge:state.efectivoGBM,rp:state.reporto};
+  if(vals.c1b!==null) state.nuCajita1Base=vals.c1b;
+  if(vals.c1f!==null) state.nuCajita1Fecha=vals.c1f;
+  if(vals.c1t!==null) state.nuCajita1Tasa=vals.c1t;
+  if(vals.c2b!==null) state.nuCajita2Base=vals.c2b;
+  if(vals.c2f!==null) state.nuCajita2Fecha=vals.c2f;
+  if(vals.c2t!==null) state.nuCajita2Tasa=vals.c2t;
+  if(vals.ns!==null) state.nuSaldo=vals.ns;
+  if(vals.ef!==null) state.efectivo=vals.ef;
+  if(vals.ge!==null) state.efectivoGBM=vals.ge;
+  if(vals.rp!==null) state.reporto=vals.rp;
+  btn.disabled=true;
+  try {
+    await saveSaldos();
+    Object.values(ids).forEach(id=>document.getElementById(id).value='');
+    render();
+    showToast('guardado y sincronizado');
+  } catch(e) {
+    state.nuCajita1Base=prev.c1b;state.nuCajita1Fecha=prev.c1f;state.nuCajita1Tasa=prev.c1t;
+    state.nuCajita2Base=prev.c2b;state.nuCajita2Fecha=prev.c2f;state.nuCajita2Tasa=prev.c2t;
+    state.nuSaldo=prev.ns;state.efectivo=prev.ef;state.efectivoGBM=prev.ge;state.reporto=prev.rp;
+    setSyncDot('err');
+    console.error('guardarManuales',e);
+    showToast('ERROR: no se guardo, revisa tu conexion');
+  } finally {
+    btn.disabled=false;
+  }
 };
 
 // ── TARJETA ───────────────────────────────────────────────────
 window.registrarTarjeta = async function(tipo) {
+  const btnCargo=document.getElementById('tarjeta-cargo-btn'), btnPago=document.getElementById('tarjeta-pago-btn');
   const monto=parseFloat(document.getElementById('tarjeta-cargo-monto').value);
   const nota=document.getElementById('tarjeta-cargo-nota').value.trim();
-  if(isNaN(monto)||monto<=0){showToast('ingresa un monto valido');return;}
+  if(!Number.isFinite(monto)||monto<=0){showToast('ingresa un monto valido');return;}
+  let fuente=null;
+  if(tipo==='pago') {
+    fuente=document.getElementById('tarjeta-pago-fuente').value;
+    if(monto>state.tarjetaDeuda+0.01){showToast('el pago excede la deuda de la tarjeta');return;}
+    if(fuente!=='externo'&&monto>getSaldoCuenta(fuente)+0.01){showToast('saldo insuficiente en '+CUENTAS[fuente]);return;}
+  }
+  // respaldo para revertir el estado optimista si falla la escritura
+  const prev={efectivo:state.efectivo,nuSaldo:state.nuSaldo,efectivoGBM:state.efectivoGBM,
+    c1b:state.nuCajita1Base,c1f:state.nuCajita1Fecha,c2b:state.nuCajita2Base,c2f:state.nuCajita2Fecha,
+    tarjetaDeuda:state.tarjetaDeuda};
+  let tr=null;
   if(tipo==='cargo') {
     state.tarjetaDeuda+=monto;
   } else {
     // el pago sale de una cuenta: se descuenta y queda registrado como transferencia
-    const fuente=document.getElementById('tarjeta-pago-fuente').value;
     if(fuente!=='externo'){
-      if(monto>getSaldoCuenta(fuente)+0.01){showToast('saldo insuficiente en '+CUENTAS[fuente]);return;}
       aplicarDelta(fuente,-monto);
-      const tr={origen:fuente,destino:'tarjeta',monto,nota:nota||'pago tarjeta NU',fecha:new Date().toISOString()};
+      tr={origen:fuente,destino:'tarjeta',monto,nota:nota||'pago tarjeta NU',fecha:new Date().toISOString()};
       state.transferencias.unshift(tr);
-      try{const ref=await addDoc(collection(db,'transferencias'),tr);tr.id=ref.id;await saveSaldos();}catch(e){setSyncDot('err');}
-      renderTransferencias();
     }
-    state.tarjetaDeuda=Math.max(0,state.tarjetaDeuda-monto);
+    state.tarjetaDeuda-=monto; // ya se valido arriba que no excede la deuda
   }
   state.tarjetaMovimientos.unshift({tipo,monto,nota,fecha:new Date().toISOString()});
-  document.getElementById('tarjeta-cargo-monto').value='';
-  document.getElementById('tarjeta-cargo-nota').value='';
-  await saveTarjeta(); render();
-  showToast(tipo==='cargo'?'+'+fmt(monto)+' a la tarjeta':'pago de '+fmt(monto)+' registrado');
+  btnCargo.disabled=true;btnPago.disabled=true;
+  try{
+    // batch atomico: transferencia (si aplica), saldos y tarjeta se guardan juntos o ninguno
+    const batch=writeBatch(db);
+    let ref=null;
+    if(tr){ ref=doc(collection(db,'transferencias')); batch.set(ref,tr); }
+    batch.set(doc(db,'cartera','saldos'),saldosPayload());
+    batch.set(doc(db,'cartera','tarjeta'),{deuda:state.tarjetaDeuda,movimientos:state.tarjetaMovimientos});
+    await batch.commit();
+    if(tr) tr.id=ref.id;
+    setSyncDot('ok');
+    document.getElementById('tarjeta-cargo-monto').value='';
+    document.getElementById('tarjeta-cargo-nota').value='';
+    render();renderTransferencias();
+    showToast(tipo==='cargo'?'+'+fmt(monto)+' a la tarjeta':'pago de '+fmt(monto)+' registrado');
+  }catch(e){
+    state.efectivo=prev.efectivo;state.nuSaldo=prev.nuSaldo;state.efectivoGBM=prev.efectivoGBM;
+    state.nuCajita1Base=prev.c1b;state.nuCajita1Fecha=prev.c1f;
+    state.nuCajita2Base=prev.c2b;state.nuCajita2Fecha=prev.c2f;
+    state.tarjetaDeuda=prev.tarjetaDeuda;
+    state.tarjetaMovimientos.shift();
+    if(tr) state.transferencias.splice(state.transferencias.indexOf(tr),1);
+    setSyncDot('err');
+    console.error('registrarTarjeta',e);
+    showToast('ERROR: no se guardo, revisa tu conexion');
+  }finally{btnCargo.disabled=false;btnPago.disabled=false;}
 };
 
 // ── TRANSFERENCIAS ────────────────────────────────────────────
@@ -892,7 +1026,7 @@ function getSaldoCuenta(c) {
   return 0;
 }
 function aplicarDelta(c,d) {
-  const hoy=new Date().toISOString().split('T')[0];
+  const hoy=hoyLocal();
   if(c==='efectivo') state.efectivo+=d;
   else if(c==='nu') state.nuSaldo+=d;
   else if(c==='cajita1'){ state.nuCajita1Base=calcNu1().saldo+d; state.nuCajita1Fecha=hoy; }
@@ -900,43 +1034,83 @@ function aplicarDelta(c,d) {
   else if(c==='gbm') state.efectivoGBM+=d;
 }
 window.registrarTransferencia = async function() {
+  const btn=document.getElementById('transfer-btn');
   const origen=document.getElementById('transfer-origen').value;
   const destino=document.getElementById('transfer-destino').value;
   const monto=parseFloat(document.getElementById('transfer-monto').value);
   const nota=document.getElementById('transfer-nota').value.trim();
-  if(isNaN(monto)||monto<=0){showToast('ingresa un monto valido');return;}
+  if(!Number.isFinite(monto)||monto<=0){showToast('ingresa un monto valido');return;}
+  if(!(origen in CUENTAS)||!(destino in CUENTAS)){showToast('cuenta no valida');return;}
   if(origen===destino){showToast('elige cuentas distintas');return;}
   if(monto>getSaldoCuenta(origen)+0.01){showToast('saldo insuficiente en '+CUENTAS[origen]);return;}
+  if(destino==='tarjeta'&&monto>state.tarjetaDeuda+0.01){showToast('el pago excede la deuda de la tarjeta');return;}
+  // respaldo para revertir el estado optimista si falla la escritura
+  const prev={efectivo:state.efectivo,nuSaldo:state.nuSaldo,efectivoGBM:state.efectivoGBM,
+    c1b:state.nuCajita1Base,c1f:state.nuCajita1Fecha,c2b:state.nuCajita2Base,c2f:state.nuCajita2Fecha,
+    tarjetaDeuda:state.tarjetaDeuda};
   aplicarDelta(origen,-monto);
   if(destino==='tarjeta'){
-    state.tarjetaDeuda=Math.max(0,state.tarjetaDeuda-monto);
+    state.tarjetaDeuda-=monto; // ya validado arriba que no excede
     state.tarjetaMovimientos.unshift({tipo:'pago',monto,nota:nota||('pago desde '+CUENTAS[origen]),fecha:new Date().toISOString()});
   } else {
     aplicarDelta(destino,monto);
   }
   const tr={origen,destino,monto,nota,fecha:new Date().toISOString()};
   state.transferencias.unshift(tr);
-  document.getElementById('transfer-monto').value='';document.getElementById('transfer-nota').value='';
+  btn.disabled=true;
   try{
-    const ref=await addDoc(collection(db,'transferencias'),tr);
+    const ref=doc(collection(db,'transferencias'));
+    const batch=writeBatch(db);
+    batch.set(ref,tr);
+    batch.set(doc(db,'cartera','saldos'),saldosPayload());
+    if(destino==='tarjeta') batch.set(doc(db,'cartera','tarjeta'),{deuda:state.tarjetaDeuda,movimientos:state.tarjetaMovimientos});
+    await batch.commit();
     tr.id=ref.id;
-    await saveSaldos();
-    if(destino==='tarjeta') await saveTarjeta();
     setSyncDot('ok');
-  }catch(e){setSyncDot('err');}
-  render();renderTransferencias();
-  showToast(fmt(monto)+' · '+CUENTAS[origen]+' → '+CUENTAS[destino]);
+    document.getElementById('transfer-monto').value='';document.getElementById('transfer-nota').value='';
+    render();renderTransferencias();
+    showToast(fmt(monto)+' · '+CUENTAS[origen]+' → '+CUENTAS[destino]);
+  }catch(e){
+    state.efectivo=prev.efectivo;state.nuSaldo=prev.nuSaldo;state.efectivoGBM=prev.efectivoGBM;
+    state.nuCajita1Base=prev.c1b;state.nuCajita1Fecha=prev.c1f;
+    state.nuCajita2Base=prev.c2b;state.nuCajita2Fecha=prev.c2f;
+    state.tarjetaDeuda=prev.tarjetaDeuda;
+    if(destino==='tarjeta') state.tarjetaMovimientos.shift();
+    state.transferencias.splice(state.transferencias.indexOf(tr),1);
+    setSyncDot('err');
+    console.error('registrarTransferencia',e);
+    showToast('ERROR: no se guardo, revisa tu conexion');
+  }finally{btn.disabled=false;}
 };
 window.eliminarTransferencia = async function(id) {
   const idx=state.transferencias.findIndex(t=>t.id===id); if(idx<0)return;
   const t=state.transferencias[idx];
   if(t.destino==='tarjeta'){showToast('los pagos a tarjeta no se pueden deshacer aqui');return;}
   if(!confirm('¿Deshacer transferencia de '+fmt(t.monto)+' ('+(CUENTAS[t.origen]||t.origen)+' → '+(CUENTAS[t.destino]||t.destino)+')? El dinero regresa a su cuenta original'))return;
+  if(getSaldoCuenta(t.destino)<t.monto-0.01){showToast('no se puede deshacer: ya no hay saldo suficiente en la cuenta destino');return;}
+  // respaldo para revertir el estado optimista si falla la escritura
+  const prev={efectivo:state.efectivo,nuSaldo:state.nuSaldo,efectivoGBM:state.efectivoGBM,
+    c1b:state.nuCajita1Base,c1f:state.nuCajita1Fecha,c2b:state.nuCajita2Base,c2f:state.nuCajita2Fecha};
   aplicarDelta(t.destino,-t.monto);
   aplicarDelta(t.origen,t.monto);
   state.transferencias.splice(idx,1);
-  try{await deleteDoc(doc(db,'transferencias',id));await saveSaldos();setSyncDot('ok');}catch(e){setSyncDot('err');}
-  render();renderTransferencias();showToast('transferencia deshecha');
+  try{
+    const batch=writeBatch(db);
+    batch.delete(doc(db,'transferencias',id));
+    batch.set(doc(db,'cartera','saldos'),saldosPayload());
+    await batch.commit();
+    setSyncDot('ok');
+    render();renderTransferencias();
+    showToast('transferencia deshecha');
+  }catch(e){
+    state.efectivo=prev.efectivo;state.nuSaldo=prev.nuSaldo;state.efectivoGBM=prev.efectivoGBM;
+    state.nuCajita1Base=prev.c1b;state.nuCajita1Fecha=prev.c1f;
+    state.nuCajita2Base=prev.c2b;state.nuCajita2Fecha=prev.c2f;
+    state.transferencias.splice(idx,0,t);
+    setSyncDot('err');
+    console.error('eliminarTransferencia',e);
+    showToast('ERROR: no se guardo, revisa tu conexion');
+  }
 };
 function renderTransferencias() {
   const c=document.getElementById('transfer-historial');
@@ -944,36 +1118,76 @@ function renderTransferencias() {
   c.innerHTML=state.transferencias.slice(0,20).map(t=>{
     const fecha=new Date(t.fecha).toLocaleDateString('es-MX',{day:'numeric',month:'short'});
     const del=(t.id&&t.destino!=='tarjeta')?`<button class="del-btn" onclick="eliminarTransferencia('${t.id}')">&times;</button>`:'';
-    return`<div class="item-row"><div><div class="item-cat">${CUENTAS[t.origen]||t.origen} → ${CUENTAS[t.destino]||t.destino}</div><div class="item-meta">${t.nota||''} · ${fecha}</div></div><div style="display:flex;align-items:center"><div style="font-size:14px;font-weight:600;color:var(--purple)">${fmt(t.monto)}</div>${del}</div></div>`;
+    return`<div class="item-row"><div><div class="item-cat">${CUENTAS[t.origen]||t.origen} → ${CUENTAS[t.destino]||t.destino}</div><div class="item-meta">${escapeHtml(t.nota||'')} · ${fecha}</div></div><div style="display:flex;align-items:center"><div style="font-size:14px;font-weight:600;color:var(--purple)">${fmt(t.monto)}</div>${del}</div></div>`;
   }).join('');
 }
 
 // ── GASTOS ────────────────────────────────────────────────────
 window.registrarGasto = async function() {
+  const btn=document.getElementById('gasto-btn');
   const cat=document.getElementById('gasto-cat').value;
   const monto=parseFloat(document.getElementById('gasto-monto').value);
   const nota=document.getElementById('gasto-nota').value.trim();
-  if(isNaN(monto)||monto<=0){showToast('ingresa un monto valido');return;}
-  if(state.fuenteGasto==='efectivo') state.efectivo=Math.max(0,state.efectivo-monto);
-  else if(state.fuenteGasto==='nu') state.nuSaldo=Math.max(0,state.nuSaldo-monto);
-  else if(state.fuenteGasto==='tarjeta'){state.tarjetaDeuda+=monto;await saveTarjeta();}
-  const gasto={cat,monto,nota,fuente:state.fuenteGasto,fecha:new Date().toISOString()};
+  const fuente=state.fuenteGasto;
+  if(!Number.isFinite(monto)||monto<=0){showToast('ingresa un monto valido');return;}
+  if(!['efectivo','nu','tarjeta'].includes(fuente)){showToast('fuente no valida');return;}
+  // respaldo para revertir el estado optimista si falla la escritura
+  const prev={efectivo:state.efectivo,nuSaldo:state.nuSaldo,tarjetaDeuda:state.tarjetaDeuda};
+  let quedoNegativo=false;
+  if(fuente==='efectivo'){ state.efectivo-=monto; if(state.efectivo<0) quedoNegativo=true; }
+  else if(fuente==='nu'){ state.nuSaldo-=monto; if(state.nuSaldo<0) quedoNegativo=true; }
+  else if(fuente==='tarjeta') state.tarjetaDeuda+=monto;
+  const gasto={cat,monto,nota,fuente,fecha:new Date().toISOString()};
   state.gastos.unshift(gasto);
-  document.getElementById('gasto-monto').value='';document.getElementById('gasto-nota').value='';
-  try{const ref=await addDoc(collection(db,'gastos'),gasto);gasto.id=ref.id;await saveSaldos();setSyncDot('ok');}catch(e){setSyncDot('err');}
-  render();renderHistorialGastos();showToast('-'+fmt(monto)+' registrado');
+  btn.disabled=true;
+  try{
+    // batch atomico: gasto, saldos y tarjeta (si aplica) se guardan juntos o ninguno
+    const ref=doc(collection(db,'gastos'));
+    const batch=writeBatch(db);
+    batch.set(ref,gasto);
+    batch.set(doc(db,'cartera','saldos'),saldosPayload());
+    if(fuente==='tarjeta') batch.set(doc(db,'cartera','tarjeta'),{deuda:state.tarjetaDeuda,movimientos:state.tarjetaMovimientos});
+    await batch.commit();
+    gasto.id=ref.id;
+    setSyncDot('ok');
+    document.getElementById('gasto-monto').value='';document.getElementById('gasto-nota').value='';
+    render();renderHistorialGastos();
+    showToast(quedoNegativo?('-'+fmt(monto)+' registrado · ojo: SALDO quedo negativo'):('-'+fmt(monto)+' registrado'));
+  }catch(e){
+    state.efectivo=prev.efectivo;state.nuSaldo=prev.nuSaldo;state.tarjetaDeuda=prev.tarjetaDeuda;
+    state.gastos.splice(state.gastos.indexOf(gasto),1);
+    setSyncDot('err');
+    console.error('registrarGasto',e);
+    showToast('ERROR: no se guardo, revisa tu conexion');
+  }finally{btn.disabled=false;}
 };
 
 window.eliminarGasto = async function(id) {
   const idx=state.gastos.findIndex(g=>g.id===id); if(idx<0)return;
   const g=state.gastos[idx];
   if(!confirm('¿Eliminar gasto de '+fmt(g.monto)+' en '+g.cat+'? El dinero se devuelve a '+(g.fuente==='tarjeta'?'la tarjeta':CUENTAS[g.fuente]||g.fuente)))return;
+  // respaldo para revertir el estado optimista si falla la escritura
+  const prev={efectivo:state.efectivo,nuSaldo:state.nuSaldo,tarjetaDeuda:state.tarjetaDeuda};
   if(g.fuente==='efectivo') state.efectivo+=g.monto;
   else if(g.fuente==='nu') state.nuSaldo+=g.monto;
-  else if(g.fuente==='tarjeta'){state.tarjetaDeuda=Math.max(0,state.tarjetaDeuda-g.monto);await saveTarjeta();}
+  else if(g.fuente==='tarjeta') state.tarjetaDeuda=Math.max(0,state.tarjetaDeuda-g.monto);
   state.gastos.splice(idx,1);
-  try{await deleteDoc(doc(db,'gastos',id));await saveSaldos();setSyncDot('ok');}catch(e){setSyncDot('err');}
-  render();renderHistorialGastos();showToast('gasto eliminado');
+  try{
+    const batch=writeBatch(db);
+    batch.delete(doc(db,'gastos',id));
+    batch.set(doc(db,'cartera','saldos'),saldosPayload());
+    if(g.fuente==='tarjeta') batch.set(doc(db,'cartera','tarjeta'),{deuda:state.tarjetaDeuda,movimientos:state.tarjetaMovimientos});
+    await batch.commit();
+    setSyncDot('ok');
+    render();renderHistorialGastos();
+    showToast('gasto eliminado');
+  }catch(e){
+    state.efectivo=prev.efectivo;state.nuSaldo=prev.nuSaldo;state.tarjetaDeuda=prev.tarjetaDeuda;
+    state.gastos.splice(idx,0,g);
+    setSyncDot('err');
+    console.error('eliminarGasto',e);
+    showToast('ERROR: no se guardo, revisa tu conexion');
+  }
 };
 
 function renderHistorialGastos() {
@@ -982,36 +1196,73 @@ function renderHistorialGastos() {
   c.innerHTML=state.gastos.slice(0,50).map(item=>{
     const fecha=new Date(item.fecha).toLocaleDateString('es-MX',{day:'numeric',month:'short'});
     const del=item.id?`<button class="del-btn" onclick="eliminarGasto('${item.id}')">&times;</button>`:'';
-    return`<div class="item-row"><div><div class="item-cat">${item.cat}</div><div class="item-meta">${item.nota||''} · ${fecha} · ${item.fuente}</div></div><div style="display:flex;align-items:center"><div class="item-amt-neg">-${fmt(item.monto)}</div>${del}</div></div>`;
+    return`<div class="item-row"><div><div class="item-cat">${escapeHtml(item.cat)}</div><div class="item-meta">${escapeHtml(item.nota||'')} · ${fecha} · ${item.fuente}</div></div><div style="display:flex;align-items:center"><div class="item-amt-neg">-${fmt(item.monto)}</div>${del}</div></div>`;
   }).join('');
 }
 
 // ── INGRESOS ──────────────────────────────────────────────────
 window.registrarIngreso = async function() {
+  const btn=document.getElementById('ingreso-btn');
   const cat=document.getElementById('ingreso-cat').value;
   const monto=parseFloat(document.getElementById('ingreso-monto').value);
   const nota=document.getElementById('ingreso-nota').value.trim();
-  if(isNaN(monto)||monto<=0){showToast('ingresa un monto valido');return;}
-  if(state.destinoIngreso==='efectivo') state.efectivo+=monto;
-  else if(state.destinoIngreso==='nu') state.nuSaldo+=monto;
-  else if(state.destinoIngreso==='gbm') state.efectivoGBM+=monto;
-  const ingreso={cat,monto,nota,destino:state.destinoIngreso,fecha:new Date().toISOString()};
+  const destino=state.destinoIngreso;
+  if(!Number.isFinite(monto)||monto<=0){showToast('ingresa un monto valido');return;}
+  if(!['efectivo','nu','gbm'].includes(destino)){showToast('destino no valido');return;}
+  // respaldo para revertir el estado optimista si falla la escritura
+  const prev={efectivo:state.efectivo,nuSaldo:state.nuSaldo,efectivoGBM:state.efectivoGBM};
+  if(destino==='efectivo') state.efectivo+=monto;
+  else if(destino==='nu') state.nuSaldo+=monto;
+  else if(destino==='gbm') state.efectivoGBM+=monto;
+  const ingreso={cat,monto,nota,destino,fecha:new Date().toISOString()};
   state.ingresos.unshift(ingreso);
-  document.getElementById('ingreso-monto').value='';document.getElementById('ingreso-nota').value='';
-  try{const ref=await addDoc(collection(db,'ingresos'),ingreso);ingreso.id=ref.id;await saveSaldos();setSyncDot('ok');}catch(e){setSyncDot('err');}
-  render();renderHistorialIngresos();showToast('+'+fmt(monto)+' ingresado');
+  btn.disabled=true;
+  try{
+    const ref=doc(collection(db,'ingresos'));
+    const batch=writeBatch(db);
+    batch.set(ref,ingreso);
+    batch.set(doc(db,'cartera','saldos'),saldosPayload());
+    await batch.commit();
+    ingreso.id=ref.id;
+    setSyncDot('ok');
+    document.getElementById('ingreso-monto').value='';document.getElementById('ingreso-nota').value='';
+    render();renderHistorialIngresos();
+    showToast('+'+fmt(monto)+' ingresado');
+  }catch(e){
+    state.efectivo=prev.efectivo;state.nuSaldo=prev.nuSaldo;state.efectivoGBM=prev.efectivoGBM;
+    state.ingresos.splice(state.ingresos.indexOf(ingreso),1);
+    setSyncDot('err');
+    console.error('registrarIngreso',e);
+    showToast('ERROR: no se guardo, revisa tu conexion');
+  }finally{btn.disabled=false;}
 };
 
 window.eliminarIngreso = async function(id) {
   const idx=state.ingresos.findIndex(g=>g.id===id); if(idx<0)return;
   const g=state.ingresos[idx];
   if(!confirm('¿Eliminar ingreso de '+fmt(g.monto)+' ('+g.cat+')? Se resta de '+(CUENTAS[g.destino]||g.destino)))return;
-  if(g.destino==='efectivo') state.efectivo=Math.max(0,state.efectivo-g.monto);
-  else if(g.destino==='nu') state.nuSaldo=Math.max(0,state.nuSaldo-g.monto);
-  else if(g.destino==='gbm') state.efectivoGBM=Math.max(0,state.efectivoGBM-g.monto);
+  // respaldo para revertir el estado optimista si falla la escritura
+  const prev={efectivo:state.efectivo,nuSaldo:state.nuSaldo,efectivoGBM:state.efectivoGBM};
+  let quedoNegativo=false;
+  if(g.destino==='efectivo'){ state.efectivo-=g.monto; if(state.efectivo<0) quedoNegativo=true; }
+  else if(g.destino==='nu'){ state.nuSaldo-=g.monto; if(state.nuSaldo<0) quedoNegativo=true; }
+  else if(g.destino==='gbm'){ state.efectivoGBM-=g.monto; if(state.efectivoGBM<0) quedoNegativo=true; }
   state.ingresos.splice(idx,1);
-  try{await deleteDoc(doc(db,'ingresos',id));await saveSaldos();setSyncDot('ok');}catch(e){setSyncDot('err');}
-  render();renderHistorialIngresos();showToast('ingreso eliminado');
+  try{
+    const batch=writeBatch(db);
+    batch.delete(doc(db,'ingresos',id));
+    batch.set(doc(db,'cartera','saldos'),saldosPayload());
+    await batch.commit();
+    setSyncDot('ok');
+    render();renderHistorialIngresos();
+    showToast(quedoNegativo?'ingreso eliminado · ojo: SALDO quedo negativo':'ingreso eliminado');
+  }catch(e){
+    state.efectivo=prev.efectivo;state.nuSaldo=prev.nuSaldo;state.efectivoGBM=prev.efectivoGBM;
+    state.ingresos.splice(idx,0,g);
+    setSyncDot('err');
+    console.error('eliminarIngreso',e);
+    showToast('ERROR: no se guardo, revisa tu conexion');
+  }
 };
 
 function renderHistorialIngresos() {
@@ -1020,22 +1271,64 @@ function renderHistorialIngresos() {
   c.innerHTML=state.ingresos.slice(0,50).map(item=>{
     const fecha=new Date(item.fecha).toLocaleDateString('es-MX',{day:'numeric',month:'short'});
     const del=item.id?`<button class="del-btn" onclick="eliminarIngreso('${item.id}')">&times;</button>`:'';
-    return`<div class="item-row"><div><div class="item-cat">${item.cat}</div><div class="item-meta">${item.nota||''} · ${fecha} · ${item.destino}</div></div><div style="display:flex;align-items:center"><div class="item-amt-pos">+${fmt(item.monto)}</div>${del}</div></div>`;
+    return`<div class="item-row"><div><div class="item-cat">${escapeHtml(item.cat)}</div><div class="item-meta">${escapeHtml(item.nota||'')} · ${fecha} · ${item.destino}</div></div><div style="display:flex;align-items:center"><div class="item-amt-pos">+${fmt(item.monto)}</div>${del}</div></div>`;
   }).join('');
 }
 
 // ── DEUDAS ────────────────────────────────────────────────────
+// efecto de cada tipo: deuda = saldo de la persona, cuenta = mi cuenta elegida
+// cargo (me deben +): preste dinero, SALE de mi cuenta
+// pago (me pagaron -): ENTRA a mi cuenta
+// debo (yo debo -): me prestaron, ENTRA a mi cuenta
+// pague (pague deuda +): pago lo que debo, SALE de mi cuenta
+const DEUDA_TIPOS={cargo:{deuda:1,cuenta:-1},pago:{deuda:-1,cuenta:1},debo:{deuda:-1,cuenta:1},pague:{deuda:1,cuenta:-1}};
+const DEUDA_CUENTAS=['externo','efectivo','nu','cajita1','cajita2','gbm'];
 window.registrarDeuda = async function() {
+  const btn=document.getElementById('deuda-btn');
   const persona=document.getElementById('deuda-persona').value;
   const subcat=document.getElementById('deuda-subcat').value;
   const monto=parseFloat(document.getElementById('deuda-monto').value);
   const nota=document.getElementById('deuda-nota').value.trim();
-  if(isNaN(monto)||monto<=0){showToast('ingresa un monto valido');return;}
-  const delta=state.tipoDeuda==='cargo'?monto:-monto;
-  state.personas[persona].saldo+=delta;
-  state.personas[persona].movimientos.unshift({subcat,monto,tipo:state.tipoDeuda,nota,fecha:new Date().toISOString()});
-  document.getElementById('deuda-monto').value='';document.getElementById('deuda-nota').value='';
-  await savePersonas();renderDeudas();showToast('movimiento registrado');
+  const cuenta=document.getElementById('deuda-cuenta').value;
+  const tipo=state.tipoDeuda;
+  if(!state.personas[persona]){showToast('persona no valida');return;}
+  if(!DEUDA_TIPOS[tipo]){showToast('tipo no valido');return;}
+  if(!DEUDA_CUENTAS.includes(cuenta)){showToast('cuenta no valida');return;}
+  if(!Number.isFinite(monto)||monto<=0){showToast('ingresa un monto valido');return;}
+  const ef=DEUDA_TIPOS[tipo];
+  if(cuenta!=='externo'&&ef.cuenta<0&&monto>getSaldoCuenta(cuenta)+0.01){showToast('saldo insuficiente en '+CUENTAS[cuenta]);return;}
+  // respaldo para revertir el estado optimista si falla la escritura
+  const prev={saldo:state.personas[persona].saldo,
+    efectivo:state.efectivo,nuSaldo:state.nuSaldo,efectivoGBM:state.efectivoGBM,
+    c1b:state.nuCajita1Base,c1f:state.nuCajita1Fecha,c2b:state.nuCajita2Base,c2f:state.nuCajita2Fecha};
+  state.personas[persona].saldo+=ef.deuda*monto;
+  const mov={id:(crypto.randomUUID?crypto.randomUUID():String(Date.now())+Math.random().toString(36).slice(2)),
+    subcat,monto,tipo,nota,cuenta,v:2,fecha:new Date().toISOString()};
+  state.personas[persona].movimientos.unshift(mov);
+  if(cuenta!=='externo') aplicarDelta(cuenta,ef.cuenta*monto);
+  btn.disabled=true;
+  try{
+    // batch atomico: personas y saldos se guardan juntos o ninguno
+    const batch=writeBatch(db);
+    batch.set(doc(db,'cartera','personas'),{data:state.personas});
+    if(cuenta!=='externo') batch.set(doc(db,'cartera','saldos'),saldosPayload());
+    await batch.commit();
+    setSyncDot('ok');
+    document.getElementById('deuda-monto').value='';document.getElementById('deuda-nota').value='';
+    renderDeudas();
+    render(); // el saldo de la persona afecta el patrimonio neto aunque la cuenta sea externo
+    showToast('movimiento registrado');
+  }catch(e){
+    state.personas[persona].saldo=prev.saldo;
+    state.personas[persona].movimientos=state.personas[persona].movimientos.filter(m=>m.id!==mov.id);
+    state.efectivo=prev.efectivo;state.nuSaldo=prev.nuSaldo;state.efectivoGBM=prev.efectivoGBM;
+    state.nuCajita1Base=prev.c1b;state.nuCajita1Fecha=prev.c1f;
+    state.nuCajita2Base=prev.c2b;state.nuCajita2Fecha=prev.c2f;
+    setSyncDot('err');
+    console.error('registrarDeuda',e);
+    renderDeudas();
+    showToast('ERROR: no se guardo, revisa tu conexion');
+  }finally{btn.disabled=false;}
 };
 
 function renderDeudas() {
@@ -1048,8 +1341,13 @@ function renderDeudas() {
     const isPos=p.saldo>=0;
     const movs=p.movimientos.map(m=>{
       const fecha=new Date(m.fecha).toLocaleDateString('es-MX',{day:'numeric',month:'short',year:'numeric'});
-      const isNeg=m.tipo!=='cargo';
-      return`<div class="item-row"><div><div class="item-cat">${m.subcat}</div><div class="item-meta">${m.nota||''} · ${fecha}</div></div><div class="${isNeg?'item-amt-neg':'item-amt-pos'}">${isNeg?'-':'+'}${fmt(m.monto)}</div></div>`;
+      const isNeg=(DEUDA_TIPOS[m.tipo]||{deuda:-1}).deuda<0;
+      // movimientos nuevos traen cuenta; los viejos no la tienen (dato legado, se distingue de 'externo')
+      let cuentaTxt='';
+      if(m.cuenta==='externo') cuentaTxt='externo';
+      else if(m.cuenta) cuentaTxt=((DEUDA_TIPOS[m.tipo]||{}).cuenta<0?'salio de ':'entro a ')+(CUENTAS[m.cuenta]||m.cuenta);
+      const meta=[escapeHtml(m.nota||''),fecha,cuentaTxt].filter(Boolean).join(' · ');
+      return`<div class="item-row"><div><div class="item-cat">${escapeHtml(m.subcat)}</div><div class="item-meta">${meta}</div></div><div class="${isNeg?'item-amt-neg':'item-amt-pos'}">${isNeg?'-':'+'}${fmt(m.monto)}</div></div>`;
     }).join('');
     return`<div class="deuda-person"><div class="deuda-header" onclick="toggleDeuda('d-${key}')"><div><div class="deuda-name">${p.nombre}</div><div class="deuda-sub">${isPos?'te debe':'le debes'}</div></div><div class="deuda-total ${isPos?'pos':'neg'}">${fmt(Math.abs(p.saldo))}</div></div><div class="deuda-detail" id="d-${key}">${movs||'<div class="empty-state" style="padding:12px 0">sin movimientos</div>'}</div></div>`;
   }).join('');
@@ -1057,23 +1355,111 @@ function renderDeudas() {
 window.toggleDeuda=id=>document.getElementById(id).classList.toggle('open');
 
 // ── GRAFICAS ──────────────────────────────────────────────────
-function chartBlock(data,color) {
-  // data: [{x:ms, y:num}] ordenado ascendente
-  if(data.length<2) return '<div class="empty-state">aun no hay suficientes datos — se ira construyendo con el tiempo</div>';
-  const w=360,h=110,pad=6;
-  const ys=data.map(p=>p.y);
-  const minY=Math.min(...ys),maxY=Math.max(...ys),spanY=(maxY-minY)||1;
-  const minX=data[0].x,maxX=data[data.length-1].x,spanX=(maxX-minX)||1;
-  const pts=data.map(p=>((pad+(p.x-minX)/spanX*(w-2*pad)).toFixed(1))+','+((h-pad-(p.y-minY)/spanY*(h-2*pad)).toFixed(1))).join(' ');
-  const first=data[0].y,last=data[data.length-1].y;
-  const delta=last-first,pct=first?(delta/first*100):0,up=delta>=0;
-  const fd=ms=>new Date(ms).toLocaleDateString('es-MX',{day:'numeric',month:'short'});
-  return `<div class="chart-head"><div class="chart-val">${fmt(last)}</div><div class="chart-delta ${up?'pos':'neg'}">${up?'+':'−'}${fmt(Math.abs(delta))} · ${up?'+':''}${pct.toFixed(2)}%</div></div>
-<svg viewBox="0 0 ${w} ${h}" style="width:100%;height:auto;display:block">
+const CHART_W=360,CHART_H=110,CHART_PAD=6;
+const CHART_RANGOS=[{k:'1s',dias:7},{k:'1m',dias:30},{k:'3m',dias:91},{k:'6m',dias:182},{k:'1a',dias:365},{k:'todo',dias:null}];
+const chartRangoSel={'gbm-chart':'todo','patrimonio-chart':'todo'};
+const CHART_DATA={}; // datos visibles por grafica, se refresca en cada render
+
+function normalizarSerie(data) {
+  const fin=data.filter(p=>Number.isFinite(p.x)&&Number.isFinite(p.y));
+  fin.sort((a,b)=>a.x-b.x);
+  const out=[];
+  fin.forEach(p=>{ if(out.length&&out[out.length-1].x===p.x) out[out.length-1]=p; else out.push(p); });
+  return out;
+}
+
+function chartBlock(chartId,data,color,deltaLabel) {
+  const serie=normalizarSerie(data);
+  const maxXAll=serie.length?serie[serie.length-1].x:0;
+  let rango=chartRangoSel[chartId]||'todo';
+  // un rango solo tiene sentido si hay datos anteriores a su inicio; si no, se deshabilita
+  const cobertura=r=>r.dias===null?serie.length>=2:(serie.length>=2&&serie[0].x<=maxXAll-r.dias*86400000);
+  const rDef=CHART_RANGOS.find(r=>r.k===rango);
+  if(rDef&&!cobertura(rDef)){rango='todo';chartRangoSel[chartId]='todo';}
+  const toolbar='<div class="chart-ranges">'+CHART_RANGOS.map(r=>
+    `<button class="chart-range-btn${r.k===rango?' active':''}"${cobertura(r)?'':' disabled'} aria-pressed="${r.k===rango}" onclick="setChartRango('${chartId}','${r.k}')">${r.k}</button>`
+  ).join('')+'</div>';
+  let vis=serie;
+  const rSel=CHART_RANGOS.find(r=>r.k===rango);
+  if(rSel&&rSel.dias!==null&&serie.length){
+    const cutoff=maxXAll-rSel.dias*86400000;
+    const base=serie.filter(p=>p.x<=cutoff).pop(); // punto base: ultimo dato en o antes del inicio del rango
+    vis=base?[base,...serie.filter(p=>p.x>cutoff)]:serie.filter(p=>p.x>cutoff);
+  }
+  if(vis.length<2){
+    delete CHART_DATA[chartId];
+    return toolbar+'<div class="empty-state">aun no hay suficientes datos — se ira construyendo con el tiempo</div>';
+  }
+  const w=CHART_W,h=CHART_H,pad=CHART_PAD;
+  const ys=vis.map(p=>p.y);
+  let minY=Math.min(...ys),maxY=Math.max(...ys);
+  if(maxY===minY){minY-=1;maxY+=1;} // serie plana: centrar la linea en vez de pegarla al borde inferior
+  const spanY=maxY-minY;
+  const minX=vis[0].x,maxX=vis[vis.length-1].x,spanX=(maxX-minX)||1;
+  CHART_DATA[chartId]={data:vis,minX,maxX,minY,maxY,spanX,spanY};
+  const px=p=>pad+(p.x-minX)/spanX*(w-2*pad), py=p=>h-pad-(p.y-minY)/spanY*(h-2*pad);
+  const pts=vis.map(p=>px(p).toFixed(1)+','+py(p).toFixed(1)).join(' ');
+  const first=vis[0].y,last=vis[vis.length-1].y;
+  const delta=last-first,up=delta>=0;
+  const pctTxt=first?((up?'+':'')+(delta/first*100).toFixed(2)+'%'):'—';
+  const fd=ms=>new Date(ms).toLocaleDateString('es-MX',{day:'numeric',month:'short',year:'2-digit'});
+  return `${toolbar}<div class="chart-head"><div class="chart-val">${fmt(last)}</div><div class="chart-delta ${up?'pos':'neg'}">${deltaLabel?deltaLabel+' ':''}${up?'+':'−'}${fmt(Math.abs(delta))} · ${pctTxt}</div></div>
+<div class="chart-wrap"><svg viewBox="0 0 ${w} ${h}" style="width:100%;height:auto;display:block">
 <polygon points="${pad},${h-pad} ${pts} ${w-pad},${h-pad}" fill="${color}" opacity="0.08"/>
 <polyline points="${pts}" fill="none" stroke="${color}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
-</svg>
+<line class="tip-line" x1="0" x2="0" y1="${pad}" y2="${h-pad}" stroke="rgba(255,255,255,0.3)" stroke-width="1" visibility="hidden"/>
+<circle class="tip-dot" r="3.5" fill="${color}" stroke="#0a0a0a" stroke-width="1.5" visibility="hidden"/>
+</svg><div class="chart-tip"></div></div>
 <div class="chart-dates"><span>${fd(minX)}</span><span>${fd(maxX)}</span></div>`;
+}
+
+window.setChartRango=(chartId,r)=>{ chartRangoSel[chartId]=r; renderChart(chartId); };
+
+function renderChart(chartId) {
+  if(chartId==='gbm-chart')
+    document.getElementById('gbm-chart').innerHTML=chartBlock('gbm-chart',(state.ivvHistory||[]).map(p=>({x:parseFechaLocal(p.t).getTime(),y:p.c*TITULOS})),'#34d399');
+  else
+    document.getElementById('patrimonio-chart').innerHTML=chartBlock('patrimonio-chart',(state.snapshots||[]).map(s=>({x:parseFechaLocal(s.f).getTime(),y:s.total})),'#a78bfa','cambio');
+}
+
+// interaccion: cursor/tap sobre la grafica muestra fecha y valor del punto mas cercano
+function initChartInteraccion(contId) {
+  const cont=document.getElementById(contId);
+  if(!cont) return;
+  const mover=ev=>{
+    const svg=cont.querySelector('.chart-wrap svg');
+    const entry=CHART_DATA[contId];
+    if(!svg||!entry) return;
+    const ctm=svg.getScreenCTM(); if(!ctm) return;
+    const pt=svg.createSVGPoint(); pt.x=ev.clientX; pt.y=ev.clientY;
+    const loc=pt.matrixTransform(ctm.inverse());
+    const dataX=entry.minX+(loc.x-CHART_PAD)/(CHART_W-2*CHART_PAD)*entry.spanX;
+    let best=entry.data[0],bd=Infinity;
+    entry.data.forEach(p=>{const d=Math.abs(p.x-dataX);if(d<bd){bd=d;best=p;}});
+    const cx=CHART_PAD+(best.x-entry.minX)/entry.spanX*(CHART_W-2*CHART_PAD);
+    const cy=CHART_H-CHART_PAD-(best.y-entry.minY)/entry.spanY*(CHART_H-2*CHART_PAD);
+    const line=svg.querySelector('.tip-line'),dot=svg.querySelector('.tip-dot');
+    line.setAttribute('x1',cx);line.setAttribute('x2',cx);line.setAttribute('visibility','visible');
+    dot.setAttribute('cx',cx);dot.setAttribute('cy',cy);dot.setAttribute('visibility','visible');
+    const tip=cont.querySelector('.chart-tip');
+    tip.innerHTML=new Date(best.x).toLocaleDateString('es-MX',{day:'numeric',month:'short',year:'numeric'})+'<div class="tip-val">'+fmt(best.y)+'</div>';
+    tip.style.display='block';
+    const rect=svg.getBoundingClientRect();
+    const lx=Math.max(0,Math.min(rect.width-tip.offsetWidth,cx/CHART_W*rect.width-tip.offsetWidth/2));
+    tip.style.left=lx+'px';
+  };
+  const ocultar=()=>{
+    const svg=cont.querySelector('.chart-wrap svg');
+    if(svg){const l=svg.querySelector('.tip-line'),d=svg.querySelector('.tip-dot');if(l)l.setAttribute('visibility','hidden');if(d)d.setAttribute('visibility','hidden');}
+    const tip=cont.querySelector('.chart-tip'); if(tip)tip.style.display='none';
+  };
+  cont.addEventListener('pointerdown',ev=>{ if(!ev.target.closest('.chart-range-btn')&&ev.target.closest('.chart-wrap')) mover(ev); });
+  cont.addEventListener('pointermove',ev=>{
+    if(!ev.target.closest('.chart-wrap')){ ocultar(); return; }
+    if(ev.pointerType==='mouse'||ev.buttons) mover(ev);
+  });
+  cont.addEventListener('pointerleave',ev=>{ if(ev.pointerType==='mouse') ocultar(); });
+  document.addEventListener('pointerdown',ev=>{ if(!cont.contains(ev.target)) ocultar(); });
 }
 
 // ── RESUMEN ───────────────────────────────────────────────────
@@ -1092,7 +1478,7 @@ function pieChart(entries) {
     paths+=`<path d="M${x0.toFixed(1)},${y0.toFixed(1)} A${r},${r} 0 ${large} 1 ${x1.toFixed(1)},${y1.toFixed(1)} L${xi1.toFixed(1)},${yi1.toFixed(1)} A${ir},${ir} 0 ${large} 0 ${xi0.toFixed(1)},${yi0.toFixed(1)} Z" fill="${color}"/>`;
     a0=a1;
   });
-  const legend=entries.map((e,i)=>`<div class="pie-leg"><span class="pie-dot" style="background:${PIE_COLORS[i%PIE_COLORS.length]}"></span><span class="pie-cat">${e[0]}</span><span class="pie-pct">${(e[1]/total*100).toFixed(1)}%</span><span class="pie-amt">${fmt(e[1])}</span></div>`).join('');
+  const legend=entries.map((e,i)=>`<div class="pie-leg"><span class="pie-dot" style="background:${PIE_COLORS[i%PIE_COLORS.length]}"></span><span class="pie-cat">${escapeHtml(e[0])}</span><span class="pie-pct">${(e[1]/total*100).toFixed(1)}%</span><span class="pie-amt">${fmt(e[1])}</span></div>`).join('');
   return `<div class="pie-wrap"><svg viewBox="0 0 120 120" class="pie-svg">${paths}</svg><div class="pie-legend">${legend}</div></div>`;
 }
 
@@ -1139,11 +1525,11 @@ function renderResumen() {
   const byCat={}; gastos.forEach(i=>byCat[i.cat]=(byCat[i.cat]||0)+i.monto);
   const sortedG=Object.entries(byCat).sort((a,b)=>b[1]-a[1]); const maxG=sortedG[0]?sortedG[0][1]:1;
   document.getElementById('res-pie').innerHTML=pieChart(sortedG);
-  document.getElementById('resumen-cats').innerHTML=sortedG.length?sortedG.map(([cat,amt])=>`<div class="resumen-bar"><div class="bar-header"><span class="bar-label">${cat}</span><span class="bar-amt neg">${fmt(amt)}</span></div><div class="bar-track"><div class="bar-fill" style="width:${(amt/maxG*100).toFixed(1)}%"></div></div></div>`).join(''):'<div class="empty-state">sin gastos en este periodo</div>';
+  document.getElementById('resumen-cats').innerHTML=sortedG.length?sortedG.map(([cat,amt])=>`<div class="resumen-bar"><div class="bar-header"><span class="bar-label">${escapeHtml(cat)}</span><span class="bar-amt neg">${fmt(amt)}</span></div><div class="bar-track"><div class="bar-fill" style="width:${(amt/maxG*100).toFixed(1)}%"></div></div></div>`).join(''):'<div class="empty-state">sin gastos en este periodo</div>';
   const byIng={}; ingresos.forEach(i=>byIng[i.cat]=(byIng[i.cat]||0)+i.monto);
   const sortedI=Object.entries(byIng).sort((a,b)=>b[1]-a[1]); const maxI=sortedI[0]?sortedI[0][1]:1;
   document.getElementById('res-pie-ingresos').innerHTML=pieChart(sortedI);
-  document.getElementById('resumen-ingresos-cats').innerHTML=sortedI.length?sortedI.map(([cat,amt])=>`<div class="resumen-bar"><div class="bar-header"><span class="bar-label">${cat}</span><span class="bar-amt pos">${fmt(amt)}</span></div><div class="bar-track"><div class="bar-fill bar-fill-green" style="width:${(amt/maxI*100).toFixed(1)}%"></div></div></div>`).join(''):'<div class="empty-state">sin ingresos en este periodo</div>';
+  document.getElementById('resumen-ingresos-cats').innerHTML=sortedI.length?sortedI.map(([cat,amt])=>`<div class="resumen-bar"><div class="bar-header"><span class="bar-label">${escapeHtml(cat)}</span><span class="bar-amt pos">${fmt(amt)}</span></div><div class="bar-track"><div class="bar-fill bar-fill-green" style="width:${(amt/maxI*100).toFixed(1)}%"></div></div></div>`).join(''):'<div class="empty-state">sin ingresos en este periodo</div>';
 
   renderRendimientos(start, end, balance);
   renderGBMResumen();
@@ -1153,16 +1539,30 @@ function renderRendimientos(start, end, balance) {
   // rango efectivo: no calcular rendimientos a futuro
   const endC=new Date(Math.min(Date.now(), end.getTime()));
   const dias=Math.max(0,(endC-start)/86400000);
-  const rend1=dias>0?Math.max(0,calcNu1At(endC.getTime())-calcNu1At(start.getTime())):0;
-  const rend2=dias>0?Math.max(0,calcNu2At(endC.getTime())-calcNu2At(start.getTime())):0;
-  const enRango=(state.ivvHistory||[]).filter(p=>{const d=parseFechaLocal(p.t);return d>=start&&d<end;});
-  const rendG=enRango.length>=2?(enRango[enRango.length-1].c-enRango[0].c)*TITULOS:null;
+  // si el periodo termina antes de la fecha base de la cajita, no hay rendimiento que calcular (no "sin datos" con +$0.00)
+  const c1FechaValida=state.nuCajita1Fecha&&!isNaN(parseFechaLocal(state.nuCajita1Fecha).getTime());
+  const c2FechaValida=state.nuCajita2Fecha&&!isNaN(parseFechaLocal(state.nuCajita2Fecha).getTime());
+  const sinDatosC1=c1FechaValida&&endC.getTime()<=parseFechaLocal(state.nuCajita1Fecha).getTime();
+  const sinDatosC2=c2FechaValida&&endC.getTime()<=parseFechaLocal(state.nuCajita2Fecha).getTime();
+  const rend1=(!sinDatosC1&&dias>0)?Math.max(0,calcNu1At(endC.getTime())-calcNu1At(start.getTime())):0;
+  const rend2=(!sinDatosC2&&dias>0)?Math.max(0,calcNu2At(endC.getTime())-calcNu2At(start.getTime())):0;
+  // GBM: base = ultimo cierre <= inicio del periodo, fin = ultimo cierre < fin del periodo
+  // (asi si el periodo dura un solo dia igual se ve la variacion de ese dia, no queda "sin datos")
+  const hist=(state.ivvHistory||[]).slice().sort((a,b)=>a.t.localeCompare(b.t));
+  const baseP=hist.filter(p=>parseFechaLocal(p.t)<=start).pop();
+  const finP=hist.filter(p=>parseFechaLocal(p.t)<end).pop();
+  const rendG=(baseP&&finP&&finP.t>baseP.t)?(finP.c-baseP.c)*TITULOS:null;
   const rendTotal=rend1+rend2+(rendG||0);
   const real=balance+rendTotal;
   const sgn=(v,cls)=>`<span class="${v>=0?'item-amt-pos':'item-amt-neg'}"${cls?' style="font-size:15px"':''}>${v>=0?'+':'−'}${fmt(Math.abs(v))}</span>`;
+  const rowC1=sinDatosC1
+    ?`<div class="item-row"><div><div class="item-cat">NU cajita 1</div><div class="item-meta">sin datos anteriores a la fecha base</div></div><span class="item-meta">—</span></div>`
+    :`<div class="item-row"><div><div class="item-cat">NU cajita 1</div><div class="item-meta">${(state.nuCajita1Tasa||0)}% anual compuesto</div></div>${sgn(rend1)}</div>`;
+  const rowC2=sinDatosC2
+    ?`<div class="item-row"><div><div class="item-cat">NU cajita 2</div><div class="item-meta">sin datos anteriores a la fecha base</div></div><span class="item-meta">—</span></div>`
+    :`<div class="item-row"><div><div class="item-cat">NU cajita 2</div><div class="item-meta">${(state.nuCajita2Tasa||0)}% anual compuesto</div></div>${sgn(rend2)}</div>`;
   document.getElementById('res-rendimientos').innerHTML=
-    `<div class="item-row"><div><div class="item-cat">NU cajita 1</div><div class="item-meta">${(state.nuCajita1Tasa||0)}% anual compuesto</div></div>${sgn(rend1)}</div>`+
-    `<div class="item-row"><div><div class="item-cat">NU cajita 2</div><div class="item-meta">${(state.nuCajita2Tasa||0)}% anual compuesto</div></div>${sgn(rend2)}</div>`+
+    rowC1+rowC2+
     `<div class="item-row"><div><div class="item-cat">GBM · IVVPESO</div><div class="item-meta">${rendG===null?'sin datos de este periodo':'variacion de tus 45 titulos'}</div></div>${rendG===null?'<span class="item-meta">—</span>':sgn(rendG)}</div>`+
     `<div class="item-row"><div class="item-cat" style="font-weight:600">total rendimientos</div>${sgn(rendTotal,1)}</div>`+
     `<div class="item-row"><div><div class="item-cat" style="font-weight:600">balance real del periodo</div><div class="item-meta">ingresos − gastos + rendimientos</div></div>${sgn(real,1)}</div>`;
@@ -1170,7 +1570,7 @@ function renderRendimientos(start, end, balance) {
 
 function renderGBMResumen() {
   const hist=state.ivvHistory||[];
-  document.getElementById('gbm-chart').innerHTML=chartBlock(hist.map(p=>({x:parseFechaLocal(p.t).getTime(),y:p.c*TITULOS})),'#34d399');
+  renderChart('gbm-chart');
   const byM={}; hist.forEach(p=>{byM[p.t.slice(0,7)]=p.c;});
   const mks=Object.keys(byM).sort();
   document.getElementById('gbm-tabla').innerHTML=mks.length?
@@ -1180,7 +1580,7 @@ function renderGBMResumen() {
       return`<tr><td>${MESES[+m-1].slice(0,3)} ${y.slice(2)}</td><td>${fmt(c)}</td><td>${fmt(c*TITULOS)}</td><td class="${d===null?'':(d>=0?'pos':'neg')}">${d===null?'—':(d>=0?'+':'')+d.toFixed(2)+'%'}</td></tr>`;
     }).join('')+`</table>`
     :'<div class="empty-state">sin datos — pulsa actualizar en el inicio</div>';
-  document.getElementById('patrimonio-chart').innerHTML=chartBlock((state.snapshots||[]).map(s=>({x:parseFechaLocal(s.f).getTime(),y:s.total})),'#a78bfa');
+  renderChart('patrimonio-chart');
 }
 window.cambiarMes=d=>{state.mesOffset+=d;renderResumen();};
 
@@ -1190,7 +1590,7 @@ async function fetchIVVPESO() {
   const proxies=[u=>`https://api.allorigins.win/get?url=${encodeURIComponent(u)}`,u=>`https://corsproxy.io/?${encodeURIComponent(u)}`];
   for(const proxy of proxies){
     try{
-      const r=await fetch(proxy(url)); const outer=await r.json();
+      const r=await fetch(proxy(url),{signal:AbortSignal.timeout(15000)}); const outer=await r.json();
       const raw=typeof outer.contents==='string'?outer.contents:JSON.stringify(outer);
       const d=JSON.parse(raw); const res=d.chart.result[0];
       const ts=res.timestamp||[], closes=res.indicators.quote[0].close||[];
@@ -1201,7 +1601,7 @@ async function fetchIVVPESO() {
       state.ivvPrecio=hist[hist.length-1].c;
       state.ivvVar=hist.length>=2?((hist[hist.length-1].c-hist[hist.length-2].c)/hist[hist.length-2].c)*100:null;
       await saveSaldos(); return true;
-    }catch(e){}
+    }catch(e){ console.error('fetchIVVPESO',e); }
   }
   return false;
 }
@@ -1214,6 +1614,9 @@ window.fetchAll = async function() {
   render();
   if(document.getElementById('page-resumen').classList.contains('active')) renderResumen();
 };
+
+initChartInteraccion('gbm-chart');
+initChartInteraccion('patrimonio-chart');
 
 if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(()=>{});
 </script>
