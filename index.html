@@ -425,7 +425,7 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
     <div class="section-title">registrar movimiento</div>
     <div class="panel">
       <div class="field"><label>persona</label>
-        <select id="deuda-persona"><option value="Papa">Papa</option><option value="Elita">Elita</option><option value="Mama">Mama</option></select>
+        <select id="deuda-persona" onchange="handlePersonaChange(this)"></select>
       </div>
       <div class="field"><label>subcategoria</label>
         <select id="deuda-subcat">
@@ -581,6 +581,7 @@ onAuthStateChanged(auth, async user => {
     document.getElementById('loading-overlay').classList.add('hidden');
     renderCatSelect('gasto-cat', state.catsGasto);
     renderCatSelect('ingreso-cat', state.catsIngreso);
+    renderPersonaSelect();
     render();
     renderHistorialGastos();
     renderTransferencias();
@@ -929,8 +930,16 @@ window.guardarManuales = async function() {
     if(isNaN(d.getTime())){ showToast('fecha invalida en '+labels[k]); return; }
     const [ay,am,ad]=raw[k].split('-').map(Number);
     if(d.getFullYear()!==ay||d.getMonth()+1!==am||d.getDate()!==ad){ showToast('fecha invalida en '+labels[k]); return; }
+    if(raw[k]>hoyLocal()){ showToast('la fecha no puede ser futura en '+labels[k]); return; }
     vals[k]=raw[k];
   }
+  // fecha sin base reancla la base vieja e inventa/borra rendimiento: se rechaza
+  if(vals.c1f!==null&&vals.c1b===null){ showToast('captura tambien el saldo base de cajita 1'); return; }
+  if(vals.c2f!==null&&vals.c2b===null){ showToast('captura tambien el saldo base de cajita 2'); return; }
+  // base sin fecha: la base capturada es el saldo observado HOY; sin esto la fecha
+  // queda vacia (la cajita nunca crece) o vieja (genera de golpe interes ya contado)
+  if(vals.c1b!==null&&vals.c1f===null) vals.c1f=hoyLocal();
+  if(vals.c2b!==null&&vals.c2f===null) vals.c2f=hoyLocal();
   const btn=document.getElementById('manuales-btn');
   // respaldo para revertir el estado optimista si falla la escritura
   const prev={c1b:state.nuCajita1Base,c1f:state.nuCajita1Fecha,c1t:state.nuCajita1Tasa,
@@ -1281,6 +1290,39 @@ function renderHistorialIngresos() {
 }
 
 // ── DEUDAS ────────────────────────────────────────────────────
+// ultima persona valida seleccionada: al elegir '+ agregar...' el select ya vale
+// __nueva__, asi que sin esto un prompt cancelado regresaria a la primera de la lista
+let personaSelPrev='';
+function renderPersonaSelect() {
+  const sel=document.getElementById('deuda-persona');
+  const prev=Object.hasOwn(state.personas,sel.value)?sel.value:personaSelPrev;
+  sel.innerHTML=Object.entries(state.personas).map(([k,p])=>`<option value="${escapeHtml(k)}">${escapeHtml(p.nombre)}</option>`).join('')+'<option value="__nueva__">+ agregar persona...</option>';
+  if(Object.hasOwn(state.personas,prev)){ sel.value=prev; personaSelPrev=prev; }
+}
+window.handlePersonaChange = async function(sel) {
+  if(sel.value!=='__nueva__'){ if(Object.hasOwn(state.personas,sel.value)) personaSelPrev=sel.value; return; }
+  const nombre=(prompt('Nombre de la nueva persona:')||'').trim().slice(0,30);
+  if(!nombre){ renderPersonaSelect(); return; }
+  // la key se usa en ids del DOM y en onclick: solo letras/numeros, sin acentos
+  const key=nombre.normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^a-zA-Z0-9]/g,'');
+  if(!key){ showToast('usa un nombre con letras o numeros'); renderPersonaSelect(); return; }
+  // colision sin distinguir mayusculas: "papa" y "Papá" son la misma persona
+  const existente=Object.keys(state.personas).find(k=>k.toLowerCase()===key.toLowerCase());
+  if(existente){ renderPersonaSelect(); sel.value=existente; personaSelPrev=existente; showToast('esa persona ya existe'); return; }
+  state.personas[key]={nombre,saldo:0,movimientos:[]};
+  sel.disabled=true;
+  try{
+    await savePersonas();
+    renderPersonaSelect(); sel.value=key; personaSelPrev=key;
+    renderDeudas();
+    showToast('persona "'+nombre+'" agregada');
+  }catch(e){
+    delete state.personas[key];
+    setSyncDot('err');console.error('handlePersonaChange',e);
+    renderPersonaSelect();
+    showToast('ERROR: no se guardo, revisa tu conexion');
+  }finally{sel.disabled=false;}
+};
 // efecto de cada tipo: deuda = saldo de la persona, cuenta = mi cuenta elegida
 // cargo (me deben +): preste dinero, SALE de mi cuenta
 // pago (me pagaron -): ENTRA a mi cuenta
@@ -1356,7 +1398,7 @@ function renderDeudas() {
       const del=(m.id&&m.v===2)?`<button class="del-btn" onclick="eliminarDeuda('${key}','${m.id}')">&times;</button>`:'';
       return`<div class="item-row"><div><div class="item-cat">${escapeHtml(m.subcat)}</div><div class="item-meta">${meta}</div></div><div style="display:flex;align-items:center"><div class="${isNeg?'item-amt-neg':'item-amt-pos'}">${isNeg?'-':'+'}${fmt(m.monto)}</div>${del}</div></div>`;
     }).join('');
-    return`<div class="deuda-person"><div class="deuda-header" onclick="toggleDeuda('d-${key}')"><div><div class="deuda-name">${p.nombre}</div><div class="deuda-sub">${isPos?'te debe':'le debes'}</div></div><div class="deuda-total ${isPos?'pos':'neg'}">${fmt(Math.abs(p.saldo))}</div></div><div class="deuda-detail" id="d-${key}">${movs||'<div class="empty-state" style="padding:12px 0">sin movimientos</div>'}</div></div>`;
+    return`<div class="deuda-person"><div class="deuda-header" onclick="toggleDeuda('d-${key}')"><div><div class="deuda-name">${escapeHtml(p.nombre)}</div><div class="deuda-sub">${isPos?'te debe':'le debes'}</div></div><div class="deuda-total ${isPos?'pos':'neg'}">${fmt(Math.abs(p.saldo))}</div></div><div class="deuda-detail" id="d-${key}">${movs||'<div class="empty-state" style="padding:12px 0">sin movimientos</div>'}</div></div>`;
   }).join('');
 }
 window.toggleDeuda=id=>document.getElementById(id).classList.toggle('open');
