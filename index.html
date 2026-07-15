@@ -804,8 +804,13 @@ window.setTipoDeuda = t => { state.tipoDeuda=t; ['cargo','pago','debo','pague'].
 function parseFechaLocal(f) { return new Date(f+'T00:00:00'); } // evita que YYYY-MM-DD se lea como UTC
 function calcCompoundAt(base, fechaStr, tasaPct, ms) {
   if(!base||!fechaStr) return base||0;
-  const dias=Math.max(0,(ms-parseFechaLocal(fechaStr).getTime())/86400000);
-  const dailyRate=Math.pow(1+(tasaPct||0)/100,1/365)-1;
+  // dias calendario COMPLETOS: Nu abona una vez al dia; con dias fraccionarios
+  // la app inventaria rendimiento parcial el mismo dia de actualizar el saldo
+  const dias=Math.max(0,Math.floor((ms-parseFechaLocal(fechaStr).getTime())/86400000));
+  // tasa nominal anual / 365 compuesta diario sobre el saldo acumulado
+  // (modelo real de Nu: 13% nominal ~ 13.88% GAT efectiva; antes se usaba la
+  // efectiva repartida, que daba ~$0.54/dia menos con $25k al 13%)
+  const dailyRate=(tasaPct||0)/100/365;
   return base*Math.pow(1+dailyRate,dias);
 }
 function calcNu1At(ms) { return calcCompoundAt(state.nuCajita1Base, state.nuCajita1Fecha, state.nuCajita1Tasa, ms); }
@@ -1347,12 +1352,58 @@ function renderDeudas() {
       if(m.cuenta==='externo') cuentaTxt='externo';
       else if(m.cuenta) cuentaTxt=((DEUDA_TIPOS[m.tipo]||{}).cuenta<0?'salio de ':'entro a ')+(CUENTAS[m.cuenta]||m.cuenta);
       const meta=[escapeHtml(m.nota||''),fecha,cuentaTxt].filter(Boolean).join(' · ');
-      return`<div class="item-row"><div><div class="item-cat">${escapeHtml(m.subcat)}</div><div class="item-meta">${meta}</div></div><div class="${isNeg?'item-amt-neg':'item-amt-pos'}">${isNeg?'-':'+'}${fmt(m.monto)}</div></div>`;
+      // solo los movimientos nuevos (v:2 con id y cuenta registrada) se pueden eliminar con reversion completa
+      const del=(m.id&&m.v===2)?`<button class="del-btn" onclick="eliminarDeuda('${key}','${m.id}')">&times;</button>`:'';
+      return`<div class="item-row"><div><div class="item-cat">${escapeHtml(m.subcat)}</div><div class="item-meta">${meta}</div></div><div style="display:flex;align-items:center"><div class="${isNeg?'item-amt-neg':'item-amt-pos'}">${isNeg?'-':'+'}${fmt(m.monto)}</div>${del}</div></div>`;
     }).join('');
     return`<div class="deuda-person"><div class="deuda-header" onclick="toggleDeuda('d-${key}')"><div><div class="deuda-name">${p.nombre}</div><div class="deuda-sub">${isPos?'te debe':'le debes'}</div></div><div class="deuda-total ${isPos?'pos':'neg'}">${fmt(Math.abs(p.saldo))}</div></div><div class="deuda-detail" id="d-${key}">${movs||'<div class="empty-state" style="padding:12px 0">sin movimientos</div>'}</div></div>`;
   }).join('');
 }
 window.toggleDeuda=id=>document.getElementById(id).classList.toggle('open');
+
+let borrandoDeuda=false;
+window.eliminarDeuda = async function(personaKey, movId) {
+  if(borrandoDeuda) return;
+  const p=state.personas[personaKey];
+  if(!p){showToast('persona no valida');return;}
+  const idx=p.movimientos.findIndex(m=>m.id===movId);
+  if(idx<0) return;
+  const m=p.movimientos[idx];
+  const ef=DEUDA_TIPOS[m.tipo];
+  if(!ef||m.v!==2){showToast('este movimiento no se puede eliminar');return;}
+  // un movimiento v:2 siempre trae cuenta valida; si no la trae, no se puede revertir con seguridad
+  const cuenta=m.cuenta;
+  if(!DEUDA_CUENTAS.includes(cuenta)){showToast('este movimiento no tiene cuenta valida, no se puede eliminar');return;}
+  if(!Number.isFinite(m.monto)||m.monto<=0){showToast('monto no valido');return;}
+  // al revertir, el dinero hace el movimiento contrario: si habia entrado, ahora sale
+  if(cuenta!=='externo'&&ef.cuenta>0&&m.monto>getSaldoCuenta(cuenta)+0.01){showToast('no se puede deshacer: saldo insuficiente en '+CUENTAS[cuenta]);return;}
+  if(!confirm('¿Eliminar movimiento de '+fmt(m.monto)+' ('+m.subcat+')? Se revierte el saldo de '+p.nombre+(cuenta!=='externo'?' y el dinero en '+CUENTAS[cuenta]:'')))return;
+  const prev={saldo:p.saldo,
+    efectivo:state.efectivo,nuSaldo:state.nuSaldo,efectivoGBM:state.efectivoGBM,
+    c1b:state.nuCajita1Base,c1f:state.nuCajita1Fecha,c2b:state.nuCajita2Base,c2f:state.nuCajita2Fecha};
+  p.saldo-=ef.deuda*m.monto;
+  p.movimientos.splice(idx,1);
+  if(cuenta!=='externo') aplicarDelta(cuenta,-ef.cuenta*m.monto);
+  borrandoDeuda=true;
+  try{
+    const batch=writeBatch(db);
+    batch.set(doc(db,'cartera','personas'),{data:state.personas});
+    if(cuenta!=='externo') batch.set(doc(db,'cartera','saldos'),saldosPayload());
+    await batch.commit();
+    setSyncDot('ok');
+    renderDeudas(); render();
+    showToast('movimiento eliminado');
+  }catch(e){
+    p.saldo=prev.saldo;
+    p.movimientos.splice(idx,0,m);
+    state.efectivo=prev.efectivo;state.nuSaldo=prev.nuSaldo;state.efectivoGBM=prev.efectivoGBM;
+    state.nuCajita1Base=prev.c1b;state.nuCajita1Fecha=prev.c1f;
+    state.nuCajita2Base=prev.c2b;state.nuCajita2Fecha=prev.c2f;
+    setSyncDot('err');console.error('eliminarDeuda',e);
+    renderDeudas();
+    showToast('ERROR: no se guardo, revisa tu conexion');
+  }finally{borrandoDeuda=false;}
+};
 
 // ── GRAFICAS ──────────────────────────────────────────────────
 const CHART_W=360,CHART_H=110,CHART_PAD=6;
