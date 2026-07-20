@@ -363,6 +363,7 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
     </div>
   </div>
   <div class="status" id="status-inicio">—</div>
+  <div class="status" style="margin-top:2px;padding-bottom:8px">version 2026-07-20.1</div>
 </div>
 
 <!-- GASTOS -->
@@ -692,10 +693,22 @@ async function loadFromFirebase() {
     const sDoc = await getDoc(doc(db,'cartera','saldos'));
     if (sDoc.exists()) {
       const d = sDoc.data();
-      const prevIvvPrecio = state.ivvPrecio;
+      // respaldo de todos los campos numericos/fecha antes de sobreescribir: si algo llega
+      // corrupto (no finito / no string) se restaura el valor previo en vez de romper la app
+      const prev = {ivvPrecio:state.ivvPrecio, nuCajita1Base:state.nuCajita1Base, nuCajita1Tasa:state.nuCajita1Tasa,
+        nuCajita2Base:state.nuCajita2Base, nuCajita2Tasa:state.nuCajita2Tasa, nuSaldo:state.nuSaldo,
+        efectivo:state.efectivo, reporto:state.reporto, efectivoGBM:state.efectivoGBM,
+        nuCajita1Fecha:state.nuCajita1Fecha, nuCajita2Fecha:state.nuCajita2Fecha};
       Object.keys(d).forEach(k => { if (k in state) state[k] = d[k]; });
-      if (!Number.isFinite(state.ivvPrecio)) state.ivvPrecio = prevIvvPrecio;
+      if (!Number.isFinite(state.ivvPrecio)) state.ivvPrecio = prev.ivvPrecio;
       if (!Array.isArray(state.ivvHistory)) state.ivvHistory = [];
+      ['nuCajita1Base','nuCajita1Tasa','nuCajita2Base','nuCajita2Tasa','nuSaldo','efectivo','reporto','efectivoGBM'].forEach(k => {
+        if (!Number.isFinite(state[k])) state[k] = prev[k];
+      });
+      ['nuCajita1Fecha','nuCajita2Fecha'].forEach(k => {
+        if (typeof state[k] !== 'string') state[k] = prev[k];
+      });
+      if (state.ivvVar!==null && !Number.isFinite(state.ivvVar)) state.ivvVar = null;
     }
     const pDoc = await getDoc(doc(db,'cartera','personas'));
     if (pDoc.exists()) {
@@ -707,7 +720,7 @@ async function loadFromFirebase() {
     }
     else await setDoc(doc(db,'cartera','personas'), {data:state.personas});
     const tDoc = await getDoc(doc(db,'cartera','tarjeta'));
-    if (tDoc.exists()) { state.tarjetaDeuda = tDoc.data().deuda; state.tarjetaMovimientos = Array.isArray(tDoc.data().movimientos) ? tDoc.data().movimientos : []; }
+    if (tDoc.exists()) { state.tarjetaDeuda = Number.isFinite(tDoc.data().deuda) ? tDoc.data().deuda : state.tarjetaDeuda; state.tarjetaMovimientos = Array.isArray(tDoc.data().movimientos) ? tDoc.data().movimientos : []; }
     const hDoc = await getDoc(doc(db,'cartera','historial'));
     if (hDoc.exists()) state.snapshots = Array.isArray(hDoc.data().snapshots) ? hDoc.data().snapshots : [];
     const cDoc = await getDoc(doc(db,'cartera','categorias'));
@@ -803,6 +816,14 @@ window.setTipoDeuda = t => { state.tipoDeuda=t; ['cargo','pago','debo','pague'].
 
 // ── CALCS ─────────────────────────────────────────────────────
 function parseFechaLocal(f) { return new Date(f+'T00:00:00'); } // evita que YYYY-MM-DD se lea como UTC
+// movimientos legados guardaron fecha como "YYYY-MM-DDT00:00:00(.000)?Z" (medianoche UTC);
+// new Date(...) normal los renderiza como el dia anterior en Mexico. Si coincide con ese
+// patron se formatea como fecha local en vez de UTC; si no, se usa new Date() como siempre.
+function fmtFechaMov(f, opts) {
+  const m = /^(\d{4}-\d{2}-\d{2})T00:00:00(\.000)?Z$/.exec(f);
+  const d = m ? parseFechaLocal(m[1]) : new Date(f);
+  return d.toLocaleDateString('es-MX', opts);
+}
 function calcCompoundAt(base, fechaStr, tasaPct, ms) {
   if(!base||!fechaStr) return base||0;
   // dias calendario COMPLETOS: Nu abona una vez al dia; con dias fraccionarios
@@ -849,7 +870,7 @@ function render() {
   document.getElementById('cash-display').textContent=fmt(state.efectivo);
 
   // Tarjeta
-  document.getElementById('tarjeta-display').textContent=fmt(state.tarjetaDeuda);
+  document.getElementById('tarjeta-display').textContent=state.tarjetaDeuda<0?('−'+fmt(Math.abs(state.tarjetaDeuda))):fmt(state.tarjetaDeuda);
   const dias=diasParaCorte();
   document.getElementById('tarjeta-dias').textContent=dias+' dias';
   document.getElementById('tarjeta-corte-sub').textContent='corte el 18 · '+dias+' dias restantes';
@@ -857,7 +878,7 @@ function render() {
   document.getElementById('corte-fill').style.width=pct.toFixed(1)+'%';
   if(state.tarjetaMovimientos.length>0) {
     const ult=state.tarjetaMovimientos[0];
-    document.getElementById('tarjeta-ultimo').textContent=(ult.tipo==='cargo'?'+':'-')+fmt(ult.monto)+' · '+new Date(ult.fecha).toLocaleDateString('es-MX',{day:'numeric',month:'short'});
+    document.getElementById('tarjeta-ultimo').textContent=(ult.tipo==='cargo'?'+':'-')+fmt(ult.monto)+' · '+fmtFechaMov(ult.fecha,{day:'numeric',month:'short'});
   }
 
   const gbmIVV=state.ivvPrecio*TITULOS, gbmTotal=gbmIVV+state.reporto+state.efectivoGBM;
@@ -884,9 +905,11 @@ function render() {
 }
 
 // guarda un snapshot diario del patrimonio para las graficas (1 por dia, solo si cambio)
+let snapshotEnVuelo=false; // evita escrituras concurrentes: si hay una en curso, el siguiente render() la reintenta
 function maybeSnapshot(total,gbm) {
   if(!datosCargados) return;
   if(!auth.currentUser) return;
+  if(snapshotEnVuelo) return;
   const hoy=hoyLocal();
   const t=+total.toFixed(2), g=+gbm.toFixed(2);
   const ex=state.snapshots.find(s=>s.f===hoy);
@@ -896,9 +919,13 @@ function maybeSnapshot(total,gbm) {
   state.snapshots.push({f:hoy,total:t,gbm:g});
   state.snapshots.sort((a,b)=>a.f.localeCompare(b.f));
   if(state.snapshots.length>730) state.snapshots=state.snapshots.slice(-730);
-  setDoc(doc(db,'cartera','historial'),{snapshots:state.snapshots}).catch(()=>{
+  snapshotEnVuelo=true;
+  setDoc(doc(db,'cartera','historial'),{snapshots:state.snapshots}).then(()=>{
+    snapshotEnVuelo=false;
+  }).catch(()=>{
     state.snapshots=state.snapshots.filter(s=>s.f!==hoy);
     if(prevSnap){ state.snapshots.push(prevSnap); state.snapshots.sort((a,b)=>a.f.localeCompare(b.f)); }
+    snapshotEnVuelo=false;
   });
 }
 
@@ -936,6 +963,11 @@ window.guardarManuales = async function() {
   // fecha sin base reancla la base vieja e inventa/borra rendimiento: se rechaza
   if(vals.c1f!==null&&vals.c1b===null){ showToast('captura tambien el saldo base de cajita 1'); return; }
   if(vals.c2f!==null&&vals.c2b===null){ showToast('captura tambien el saldo base de cajita 2'); return; }
+  // tasa nueva SIN saldo base: cristaliza el saldo actual (con la tasa vieja) como nueva base
+  // antes de aplicar la tasa nueva; si no, la tasa nueva se aplicaria retroactivamente
+  // a dias que ya generaron interes con la tasa anterior
+  if(vals.c1t!==null&&vals.c1b===null&&state.nuCajita1Base>0&&state.nuCajita1Fecha){ vals.c1b=calcNu1().saldo; vals.c1f=hoyLocal(); }
+  if(vals.c2t!==null&&vals.c2b===null&&state.nuCajita2Base>0&&state.nuCajita2Fecha){ vals.c2b=calcNu2().saldo; vals.c2f=hoyLocal(); }
   // base sin fecha: la base capturada es el saldo observado HOY; sin esto la fecha
   // queda vacia (la cajita nunca crece) o vieja (genera de golpe interes ya contado)
   if(vals.c1b!==null&&vals.c1f===null) vals.c1f=hoyLocal();
@@ -1100,7 +1132,9 @@ window.eliminarTransferencia = async function(id) {
   const idx=state.transferencias.findIndex(t=>t.id===id); if(idx<0)return;
   const t=state.transferencias[idx];
   if(t.destino==='tarjeta'){showToast('los pagos a tarjeta no se pueden deshacer aqui');return;}
-  if(!confirm('¿Deshacer transferencia de '+fmt(t.monto)+' ('+(CUENTAS[t.origen]||t.origen)+' → '+(CUENTAS[t.destino]||t.destino)+')? El dinero regresa a su cuenta original'))return;
+  // si la transferencia toca una cajita, el interes que ese dinero ya genero no se revierte al deshacer
+  const tocaCajitaTr=t.origen==='cajita1'||t.origen==='cajita2'||t.destino==='cajita1'||t.destino==='cajita2';
+  if(!confirm('¿Deshacer transferencia de '+fmt(t.monto)+' ('+(CUENTAS[t.origen]||t.origen)+' → '+(CUENTAS[t.destino]||t.destino)+')? El dinero regresa a su cuenta original'+(tocaCajitaTr?' (el rendimiento que ese dinero ya genero no se revierte)':'')))return;
   if(getSaldoCuenta(t.destino)<t.monto-0.01){showToast('no se puede deshacer: ya no hay saldo suficiente en la cuenta destino');return;}
   // respaldo para revertir el estado optimista si falla la escritura
   const prev={efectivo:state.efectivo,nuSaldo:state.nuSaldo,efectivoGBM:state.efectivoGBM,
@@ -1184,7 +1218,7 @@ window.eliminarGasto = async function(id) {
   const prev={efectivo:state.efectivo,nuSaldo:state.nuSaldo,tarjetaDeuda:state.tarjetaDeuda};
   if(g.fuente==='efectivo') state.efectivo+=g.monto;
   else if(g.fuente==='nu') state.nuSaldo+=g.monto;
-  else if(g.fuente==='tarjeta') state.tarjetaDeuda=Math.max(0,state.tarjetaDeuda-g.monto);
+  else if(g.fuente==='tarjeta') state.tarjetaDeuda-=g.monto;
   state.gastos.splice(idx,1);
   try{
     const batch=writeBatch(db);
@@ -1194,7 +1228,8 @@ window.eliminarGasto = async function(id) {
     await batch.commit();
     setSyncDot('ok');
     render();renderHistorialGastos();
-    showToast('gasto eliminado');
+    // no se recorta a 0: si el gasto eliminado deja la tarjeta con saldo a favor, se avisa en vez de ocultarlo
+    showToast((g.fuente==='tarjeta'&&state.tarjetaDeuda<0)?'gasto eliminado · ojo: la tarjeta quedo con saldo a favor':'gasto eliminado');
   }catch(e){
     state.efectivo=prev.efectivo;state.nuSaldo=prev.nuSaldo;state.tarjetaDeuda=prev.tarjetaDeuda;
     state.gastos.splice(idx,0,g);
@@ -1387,7 +1422,7 @@ function renderDeudas() {
   document.getElementById('personas-container').innerHTML=Object.entries(personas).map(([key,p])=>{
     const isPos=p.saldo>=0;
     const movs=p.movimientos.map(m=>{
-      const fecha=new Date(m.fecha).toLocaleDateString('es-MX',{day:'numeric',month:'short',year:'numeric'});
+      const fecha=fmtFechaMov(m.fecha,{day:'numeric',month:'short',year:'numeric'});
       const isNeg=(DEUDA_TIPOS[m.tipo]||{deuda:-1}).deuda<0;
       // movimientos nuevos traen cuenta; los viejos no la tienen (dato legado, se distingue de 'externo')
       let cuentaTxt='';
@@ -1419,7 +1454,9 @@ window.eliminarDeuda = async function(personaKey, movId) {
   if(!Number.isFinite(m.monto)||m.monto<=0){showToast('monto no valido');return;}
   // al revertir, el dinero hace el movimiento contrario: si habia entrado, ahora sale
   if(cuenta!=='externo'&&ef.cuenta>0&&m.monto>getSaldoCuenta(cuenta)+0.01){showToast('no se puede deshacer: saldo insuficiente en '+CUENTAS[cuenta]);return;}
-  if(!confirm('¿Eliminar movimiento de '+fmt(m.monto)+' ('+m.subcat+')? Se revierte el saldo de '+p.nombre+(cuenta!=='externo'?' y el dinero en '+CUENTAS[cuenta]:'')))return;
+  // si el movimiento toca una cajita, el interes que ese dinero ya genero no se revierte al eliminar
+  const tocaCajitaDeuda=cuenta==='cajita1'||cuenta==='cajita2';
+  if(!confirm('¿Eliminar movimiento de '+fmt(m.monto)+' ('+m.subcat+')? Se revierte el saldo de '+p.nombre+(cuenta!=='externo'?' y el dinero en '+CUENTAS[cuenta]:'')+(tocaCajitaDeuda?' (el rendimiento que ese dinero ya genero no se revierte)':'')))return;
   const prev={saldo:p.saldo,
     efectivo:state.efectivo,nuSaldo:state.nuSaldo,efectivoGBM:state.efectivoGBM,
     c1b:state.nuCajita1Base,c1f:state.nuCajita1Fecha,c2b:state.nuCajita2Base,c2f:state.nuCajita2Fecha};
@@ -1614,7 +1651,7 @@ function renderResumen() {
   document.getElementById('res-gastos').textContent=fmt(totalG);
   document.getElementById('res-ingresos').textContent=fmt(totalI);
   const balEl=document.getElementById('res-balance');
-  balEl.textContent=(balance>=0?'+':'')+fmt(Math.abs(balance)); balEl.className='s-amt '+(balance>=0?'pos':'neg');
+  balEl.textContent=(balance>=0?'+':'−')+fmt(Math.abs(balance)); balEl.className='s-amt '+(balance>=0?'pos':'neg');
   const byCat={}; gastos.forEach(i=>byCat[i.cat]=(byCat[i.cat]||0)+i.monto);
   const sortedG=Object.entries(byCat).sort((a,b)=>b[1]-a[1]); const maxG=sortedG[0]?sortedG[0][1]:1;
   document.getElementById('res-pie').innerHTML=pieChart(sortedG);
@@ -1639,10 +1676,15 @@ function renderRendimientos(start, end, balance) {
   const sinDatosC2=c2FechaValida&&endC.getTime()<=parseFechaLocal(state.nuCajita2Fecha).getTime();
   const rend1=(!sinDatosC1&&dias>0)?Math.max(0,calcNu1At(endC.getTime())-calcNu1At(start.getTime())):0;
   const rend2=(!sinDatosC2&&dias>0)?Math.max(0,calcNu2At(endC.getTime())-calcNu2At(start.getTime())):0;
-  // GBM: base = ultimo cierre <= inicio del periodo, fin = ultimo cierre < fin del periodo
-  // (asi si el periodo dura un solo dia igual se ve la variacion de ese dia, no queda "sin datos")
+  // si la fecha base de la cajita cae DENTRO del periodo, el rendimiento calculado
+  // solo cubre desde esa fecha, no el periodo completo: se etiqueta como parcial
+  const fd=d=>d.toLocaleDateString('es-MX',{day:'numeric',month:'short'});
+  const parcialC1=c1FechaValida&&!sinDatosC1&&start.getTime()<parseFechaLocal(state.nuCajita1Fecha).getTime()&&parseFechaLocal(state.nuCajita1Fecha).getTime()<endC.getTime();
+  const parcialC2=c2FechaValida&&!sinDatosC2&&start.getTime()<parseFechaLocal(state.nuCajita2Fecha).getTime()&&parseFechaLocal(state.nuCajita2Fecha).getTime()<endC.getTime();
+  // GBM: base = ultimo cierre ANTES del inicio del periodo (estrictamente <), fin = ultimo
+  // cierre < fin del periodo (asi un periodo de un solo dia muestra su variacion)
   const hist=(state.ivvHistory||[]).slice().sort((a,b)=>a.t.localeCompare(b.t));
-  const baseP=hist.filter(p=>parseFechaLocal(p.t)<=start).pop();
+  const baseP=hist.filter(p=>parseFechaLocal(p.t)<start).pop();
   const finP=hist.filter(p=>parseFechaLocal(p.t)<end).pop();
   const rendG=(baseP&&finP&&finP.t>baseP.t)?(finP.c-baseP.c)*TITULOS:null;
   const rendTotal=rend1+rend2+(rendG||0);
@@ -1650,10 +1692,10 @@ function renderRendimientos(start, end, balance) {
   const sgn=(v,cls)=>`<span class="${v>=0?'item-amt-pos':'item-amt-neg'}"${cls?' style="font-size:15px"':''}>${v>=0?'+':'−'}${fmt(Math.abs(v))}</span>`;
   const rowC1=sinDatosC1
     ?`<div class="item-row"><div><div class="item-cat">NU cajita 1</div><div class="item-meta">sin datos anteriores a la fecha base</div></div><span class="item-meta">—</span></div>`
-    :`<div class="item-row"><div><div class="item-cat">NU cajita 1</div><div class="item-meta">${(state.nuCajita1Tasa||0)}% anual compuesto</div></div>${sgn(rend1)}</div>`;
+    :`<div class="item-row"><div><div class="item-cat">NU cajita 1</div><div class="item-meta">${(state.nuCajita1Tasa||0)}% anual${parcialC1?' · desde el '+fd(parseFechaLocal(state.nuCajita1Fecha))+' (parcial)':' compuesto'}</div></div>${sgn(rend1)}</div>`;
   const rowC2=sinDatosC2
     ?`<div class="item-row"><div><div class="item-cat">NU cajita 2</div><div class="item-meta">sin datos anteriores a la fecha base</div></div><span class="item-meta">—</span></div>`
-    :`<div class="item-row"><div><div class="item-cat">NU cajita 2</div><div class="item-meta">${(state.nuCajita2Tasa||0)}% anual compuesto</div></div>${sgn(rend2)}</div>`;
+    :`<div class="item-row"><div><div class="item-cat">NU cajita 2</div><div class="item-meta">${(state.nuCajita2Tasa||0)}% anual${parcialC2?' · desde el '+fd(parseFechaLocal(state.nuCajita2Fecha))+' (parcial)':' compuesto'}</div></div>${sgn(rend2)}</div>`;
   document.getElementById('res-rendimientos').innerHTML=
     rowC1+rowC2+
     `<div class="item-row"><div><div class="item-cat">GBM · IVVPESO</div><div class="item-meta">${rendG===null?'sin datos de este periodo':'variacion de tus 45 titulos'}</div></div>${rendG===null?'<span class="item-meta">—</span>':sgn(rendG)}</div>`+
@@ -1681,6 +1723,9 @@ window.cambiarMes=d=>{state.mesOffset+=d;renderResumen();};
 async function fetchIVVPESO() {
   const url='https://query1.finance.yahoo.com/v8/finance/chart/IVVPESO.MX?interval=1d&range=6mo';
   const proxies=[u=>`https://api.allorigins.win/get?url=${encodeURIComponent(u)}`,u=>`https://corsproxy.io/?${encodeURIComponent(u)}`];
+  // respaldo: si el guardado falla en todos los proxies, se restaura el estado previo
+  // (evita dejar en memoria un precio "en vivo" que nunca se sincronizo con otros dispositivos)
+  const prevPrecio=state.ivvPrecio, prevVar=state.ivvVar, prevHistory=state.ivvHistory;
   for(const proxy of proxies){
     try{
       const r=await fetch(proxy(url),{signal:AbortSignal.timeout(15000)}); const outer=await r.json();
@@ -1693,19 +1738,40 @@ async function fetchIVVPESO() {
       state.ivvHistory=hist;
       state.ivvPrecio=hist[hist.length-1].c;
       state.ivvVar=hist.length>=2?((hist[hist.length-1].c-hist[hist.length-2].c)/hist[hist.length-2].c)*100:null;
-      await saveSaldos(); return true;
+      // solo se escribe el precio/variacion/historial IVV (merge), nunca el resto de saldosPayload():
+      // otro dispositivo pudo haber guardado saldos mas recientes que aqui no se cargaron
+      await setDoc(doc(db,'cartera','saldos'), {ivvPrecio:state.ivvPrecio, ivvVar:state.ivvVar, ivvHistory:state.ivvHistory}, {merge:true});
+      setSyncDot('ok');
+      return true;
     }catch(e){ console.error('fetchIVVPESO',e); }
   }
+  state.ivvPrecio=prevPrecio; state.ivvVar=prevVar; state.ivvHistory=prevHistory;
   return false;
 }
 
 window.fetchAll = async function() {
+  // guard de re-entrada: varios fetchAll concurrentes duplican peticiones y renders
+  const btn=document.querySelector('.refresh-btn');
+  if(btn&&btn.disabled) return;
+  if(btn) btn.disabled=true;
   const icon=document.getElementById('spin-icon'); icon.classList.add('spinning');
   document.getElementById('status-inicio').textContent='actualizando...';
-  const ok=await fetchIVVPESO(); icon.classList.remove('spinning');
-  document.getElementById('status-inicio').textContent=ok?'precio en vivo · IVVPESO':'usando ultimo precio guardado';
-  render();
-  if(document.getElementById('page-resumen').classList.contains('active')) renderResumen();
+  try{
+    // nota: no se recarga loadFromFirebase aqui — sobreescribiria el estado en memoria
+    // mientras el usuario registra algo (carrera); el merge:true de fetchIVVPESO ya evita
+    // pisar saldos de otros dispositivos
+    const ok=await fetchIVVPESO();
+    document.getElementById('status-inicio').textContent=ok?'precio en vivo · IVVPESO':'usando ultimo precio guardado';
+    render();
+    renderTransferencias();
+    if(document.getElementById('page-gastos').classList.contains('active')) renderHistorialGastos();
+    if(document.getElementById('page-ingresos').classList.contains('active')) renderHistorialIngresos();
+    if(document.getElementById('page-deudas').classList.contains('active')) renderDeudas();
+    if(document.getElementById('page-resumen').classList.contains('active')) renderResumen();
+  }finally{
+    icon.classList.remove('spinning');
+    if(btn) btn.disabled=false;
+  }
 };
 
 initChartInteraccion('gbm-chart');
