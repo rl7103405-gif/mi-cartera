@@ -275,18 +275,6 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
         <div class="detail-row"><span class="detail-label">rendimiento acumulado</span><span class="detail-val pos" id="nu1-rend-val">$—</span></div>
       </div>
     </div>
-    <div class="card" onclick="toggleDetail('nu2-detail')">
-      <div class="card-header">
-        <div class="card-left"><div class="card-icon icon-nu2">&#128153;</div>
-          <div><div class="card-name">NU cajita 2</div><div class="card-sub" id="nu2-sub">—</div></div>
-        </div>
-        <div class="card-right"><div class="card-amount" id="nu-cajita2-display">$—</div><div class="card-change pos" id="nu2-rend">—</div></div>
-      </div>
-      <div class="card-detail" id="nu2-detail">
-        <div class="detail-row"><span class="detail-label">saldo base</span><span class="detail-val" id="nu2-base-val">$—</span></div>
-        <div class="detail-row"><span class="detail-label">rendimiento acumulado</span><span class="detail-val pos" id="nu2-rend-val">$—</span></div>
-      </div>
-    </div>
     <div class="card">
       <div class="card-header">
         <div class="card-left"><div class="card-icon icon-nu">&#127974;</div>
@@ -374,11 +362,6 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
       <div class="field"><label>cajita NU 1 — fecha base (YYYY-MM-DD)</label><input type="text" id="input-cajita1-fecha" placeholder="ej. 2026-07-09"></div>
       <div class="field"><label>cajita NU 1 — tasa anual %</label><input type="number" id="input-cajita1-tasa" placeholder="ej. 13" step="0.01" inputmode="decimal"></div>
     </div>
-    <div class="field"><label>cajita NU 2 — saldo base</label><input type="number" id="input-cajita2-base" placeholder="ej. 2000" step="0.01" inputmode="decimal"></div>
-    <div class="row2" style="gap:8px">
-      <div class="field"><label>cajita NU 2 — fecha base (YYYY-MM-DD)</label><input type="text" id="input-cajita2-fecha" placeholder="ej. 2026-07-09"></div>
-      <div class="field"><label>cajita NU 2 — tasa anual %</label><input type="number" id="input-cajita2-tasa" placeholder="ej. 6.5" step="0.01" inputmode="decimal"></div>
-    </div>
     <div class="field"><label>NU saldo disponible</label><input type="number" id="input-nu-saldo" placeholder="ej. 360.59" step="0.01" inputmode="decimal"></div>
     <div class="field"><label>efectivo en pesos</label><input type="number" id="input-efectivo" placeholder="ej. 2200" step="1" inputmode="decimal"></div>
     <div class="row2" style="gap:8px">
@@ -405,7 +388,6 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
           <option value="efectivo">efectivo</option>
           <option value="nu">NU saldo</option>
           <option value="cajita1">NU cajita 1</option>
-          <option value="cajita2">NU cajita 2</option>
           <option value="gbm">GBM efectivo</option>
           <option value="revolut">Revolut MXN</option>
           <option value="revSavings">Revolut Savings</option>
@@ -416,7 +398,6 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
           <option value="nu">NU saldo</option>
           <option value="efectivo">efectivo</option>
           <option value="cajita1">NU cajita 1</option>
-          <option value="cajita2">NU cajita 2</option>
           <option value="gbm">GBM efectivo</option>
           <option value="revolut">Revolut MXN</option>
           <option value="revSavings">Revolut Savings</option>
@@ -442,7 +423,6 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
         <option value="nu">NU saldo</option>
         <option value="efectivo">efectivo</option>
         <option value="cajita1">NU cajita 1</option>
-        <option value="cajita2">NU cajita 2</option>
         <option value="gbm">GBM efectivo</option>
         <option value="revolut">Revolut MXN</option>
         <option value="revSavings">Revolut Savings</option>
@@ -457,7 +437,7 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
   </div>
   </div>
   <div class="status" id="status-inicio">—</div>
-  <div class="status" style="margin-top:2px;padding-bottom:8px">version 2026-07-23.1</div>
+  <div class="status" style="margin-top:2px;padding-bottom:8px">version 2026-07-23.2</div>
 </div>
 
 <!-- GASTOS -->
@@ -545,7 +525,6 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
           <option value="efectivo">efectivo</option>
           <option value="nu">NU saldo</option>
           <option value="cajita1">NU cajita 1</option>
-          <option value="cajita2">NU cajita 2</option>
           <option value="gbm">GBM efectivo</option>
           <option value="revolut">Revolut MXN</option>
           <option value="revSavings">Revolut Savings</option>
@@ -837,6 +816,7 @@ async function loadFromFirebase() {
     // cotizaciones viven en su propio doc (cartera/mercado) para que un guardado de
     // saldos nunca pise precios y viceversa; si aun no existe, quedan los legados de saldos
     const mDoc = await getDoc(doc(db,'cartera','mercado'));
+    const revSeedHecha = mDoc.exists() && mDoc.data().revSeedHecha === true;
     if (mDoc.exists()) {
       const m = mDoc.data();
       if (Number.isFinite(m.ivvPrecio)) state.ivvPrecio = m.ivvPrecio;
@@ -853,6 +833,17 @@ async function loadFromFirebase() {
       // (la proxima escritura de saldos ya no las incluye y se perderian si Yahoo falla)
       try { await setDoc(doc(db,'cartera','mercado'), {ivvPrecio:state.ivvPrecio, ivvVar:state.ivvVar, ivvHistory:state.ivvHistory}, {merge:true}); }
       catch(e) { console.error('migracion mercado',e); }
+    }
+    // siembra UNICA de los valores reales de Revolut de Roberto (jul 2026): solo corre si
+    // nunca se ha sembrado (marcador en cartera/mercado, que las versiones viejas de la app
+    // no reescriben) Y las cuentas Revolut siguen todas en cero (nunca capturadas a mano).
+    // revMXN incluye +86.42 del plan Premium PENDIENTE de registrarse como gasto
+    // (Suscripciones · Revolut): al registrarlo el saldo queda en los 9.26 reales
+    if (!revSeedHecha && state.revMXN===0 && state.revSavingsBase===0 && !state.revSavingsFecha && state.revNvdaShares===0) {
+      state.revMXN=95.68; state.revSavingsBase=2000.79; state.revSavingsFecha='2026-07-23';
+      state.revSavingsTasa=15; state.revNvdaShares=0.19;
+      try { await setDoc(doc(db,'cartera','mercado'), {revSeedHecha:true}, {merge:true}); }
+      catch(e) { console.error('seed revolut',e); }
     }
     const pDoc = await getDoc(doc(db,'cartera','personas'));
     if (pDoc.exists()) {
@@ -1013,12 +1004,6 @@ function render() {
   document.getElementById('nu1-rend').textContent=nu1.rend>0?'+'+fmt(nu1.rend):'$0.00';
   document.getElementById('nu1-base-val').textContent=fmt(state.nuCajita1Base);
   document.getElementById('nu1-rend-val').textContent='+'+fmt(nu1.rend);
-  const nu2=calcNu2();
-  document.getElementById('nu-cajita2-display').textContent=fmt(nu2.saldo);
-  document.getElementById('nu2-sub').textContent=(state.nuCajita2Tasa||0)+'% anual';
-  document.getElementById('nu2-rend').textContent=nu2.rend>0?'+'+fmt(nu2.rend):'$0.00';
-  document.getElementById('nu2-base-val').textContent=fmt(state.nuCajita2Base);
-  document.getElementById('nu2-rend-val').textContent='+'+fmt(nu2.rend);
   document.getElementById('nu-saldo-display').textContent=fmt(state.nuSaldo);
   document.getElementById('cash-display').textContent=fmt(state.efectivo);
 
@@ -1073,7 +1058,8 @@ function render() {
     varEl.textContent=(state.ivvVar>=0?'+':'')+state.ivvVar.toFixed(2)+'% hoy';
     varEl.className='card-change '+(state.ivvVar>=0?'pos':'neg');
   }
-  const total=nu1.saldo+nu2.saldo+state.nuSaldo+gbmTotal+state.efectivo+state.revMXN+rs.saldo+nvdaVal;
+  // cajita 2 de Nu retirada de la app (su dinero se movio a Revolut): ya no suma al total
+  const total=nu1.saldo+state.nuSaldo+gbmTotal+state.efectivo+state.revMXN+rs.saldo+nvdaVal;
   document.getElementById('total-display').textContent=fmt(total);
   // neto = activos + lo que me deben (o menos lo que debo) - deuda de tarjeta
   const saldoDeudas=Object.values(state.personas||{}).reduce((s,p)=>s+(p.saldo||0),0);
@@ -1111,31 +1097,29 @@ function maybeSnapshot(total,gbm) {
 
 window.guardarManuales = async function() {
   const ids={c1b:'input-cajita1-base',c1f:'input-cajita1-fecha',c1t:'input-cajita1-tasa',
-    c2b:'input-cajita2-base',c2f:'input-cajita2-fecha',c2t:'input-cajita2-tasa',
     ns:'input-nu-saldo',ef:'input-efectivo',ge:'input-gbm-efec',rp:'input-reporto',
     rvm:'input-rev-mxn',rsb:'input-rev-savings-base',rsf:'input-rev-savings-fecha',rst:'input-rev-savings-tasa',
     nvs:'input-nvda-shares'};
   const labels={c1b:'cajita 1 - saldo base',c1f:'cajita 1 - fecha base',c1t:'cajita 1 - tasa',
-    c2b:'cajita 2 - saldo base',c2f:'cajita 2 - fecha base',c2t:'cajita 2 - tasa',
     ns:'NU saldo',ef:'efectivo',ge:'efectivo GBM',rp:'reporto LF',
     rvm:'Revolut MXN',rsb:'Revolut Savings - saldo base',rsf:'Revolut Savings - fecha base',rst:'Revolut Savings - tasa',
     nvs:'acciones NVDA'};
   const raw={}; Object.keys(ids).forEach(k=>raw[k]=document.getElementById(ids[k]).value.trim());
   const vals={};
-  for(const k of ['c1b','c2b','ns','ef','ge','rp','rvm','rsb','nvs']) {
+  for(const k of ['c1b','ns','ef','ge','rp','rvm','rsb','nvs']) {
     if(raw[k]===''){ vals[k]=null; continue; }
     const n=parseFloat(raw[k]);
     if(!Number.isFinite(n)){ showToast('monto invalido en '+labels[k]); return; }
     vals[k]=n;
   }
   if(vals.nvs!==null&&vals.nvs<0){ showToast('las acciones NVDA no pueden ser negativas'); return; }
-  for(const k of ['c1t','c2t','rst']) {
+  for(const k of ['c1t','rst']) {
     if(raw[k]===''){ vals[k]=null; continue; }
     const n=parseFloat(raw[k]);
     if(!Number.isFinite(n)||n<=-100){ showToast('tasa invalida en '+labels[k]); return; }
     vals[k]=n;
   }
-  for(const k of ['c1f','c2f','rsf']) {
+  for(const k of ['c1f','rsf']) {
     if(raw[k]===''){ vals[k]=null; continue; }
     if(!/^\d{4}-\d{2}-\d{2}$/.test(raw[k])){ showToast('fecha invalida en '+labels[k]); return; }
     const d=parseFechaLocal(raw[k]);
@@ -1147,32 +1131,25 @@ window.guardarManuales = async function() {
   }
   // fecha sin base reancla la base vieja e inventa/borra rendimiento: se rechaza
   if(vals.c1f!==null&&vals.c1b===null){ showToast('captura tambien el saldo base de cajita 1'); return; }
-  if(vals.c2f!==null&&vals.c2b===null){ showToast('captura tambien el saldo base de cajita 2'); return; }
   if(vals.rsf!==null&&vals.rsb===null){ showToast('captura tambien el saldo base de Revolut Savings'); return; }
   // tasa nueva SIN saldo base: cristaliza el saldo actual (con la tasa vieja) como nueva base
   // antes de aplicar la tasa nueva; si no, la tasa nueva se aplicaria retroactivamente
   // a dias que ya generaron interes con la tasa anterior
   if(vals.c1t!==null&&vals.c1b===null&&state.nuCajita1Base>0&&state.nuCajita1Fecha){ vals.c1b=calcNu1().saldo; vals.c1f=hoyLocal(); }
-  if(vals.c2t!==null&&vals.c2b===null&&state.nuCajita2Base>0&&state.nuCajita2Fecha){ vals.c2b=calcNu2().saldo; vals.c2f=hoyLocal(); }
   if(vals.rst!==null&&vals.rsb===null&&state.revSavingsBase>0&&state.revSavingsFecha){ vals.rsb=calcRevSavings().saldo; vals.rsf=hoyLocal(); }
   // base sin fecha: la base capturada es el saldo observado HOY; sin esto la fecha
   // queda vacia (la cajita nunca crece) o vieja (genera de golpe interes ya contado)
   if(vals.c1b!==null&&vals.c1f===null) vals.c1f=hoyLocal();
-  if(vals.c2b!==null&&vals.c2f===null) vals.c2f=hoyLocal();
   if(vals.rsb!==null&&vals.rsf===null) vals.rsf=hoyLocal();
   const btn=document.getElementById('manuales-btn');
   // respaldo para revertir el estado optimista si falla la escritura
   const prev={c1b:state.nuCajita1Base,c1f:state.nuCajita1Fecha,c1t:state.nuCajita1Tasa,
-    c2b:state.nuCajita2Base,c2f:state.nuCajita2Fecha,c2t:state.nuCajita2Tasa,
     ns:state.nuSaldo,ef:state.efectivo,ge:state.efectivoGBM,rp:state.reporto,
     rvm:state.revMXN,rsb:state.revSavingsBase,rsf:state.revSavingsFecha,rst:state.revSavingsTasa,
     nvs:state.revNvdaShares};
   if(vals.c1b!==null) state.nuCajita1Base=vals.c1b;
   if(vals.c1f!==null) state.nuCajita1Fecha=vals.c1f;
   if(vals.c1t!==null) state.nuCajita1Tasa=vals.c1t;
-  if(vals.c2b!==null) state.nuCajita2Base=vals.c2b;
-  if(vals.c2f!==null) state.nuCajita2Fecha=vals.c2f;
-  if(vals.c2t!==null) state.nuCajita2Tasa=vals.c2t;
   if(vals.ns!==null) state.nuSaldo=vals.ns;
   if(vals.ef!==null) state.efectivo=vals.ef;
   if(vals.ge!==null) state.efectivoGBM=vals.ge;
@@ -1190,7 +1167,6 @@ window.guardarManuales = async function() {
     showToast('guardado y sincronizado');
   } catch(e) {
     state.nuCajita1Base=prev.c1b;state.nuCajita1Fecha=prev.c1f;state.nuCajita1Tasa=prev.c1t;
-    state.nuCajita2Base=prev.c2b;state.nuCajita2Fecha=prev.c2f;state.nuCajita2Tasa=prev.c2t;
     state.nuSaldo=prev.ns;state.efectivo=prev.ef;state.efectivoGBM=prev.ge;state.reporto=prev.rp;
     state.revMXN=prev.rvm;state.revSavingsBase=prev.rsb;state.revSavingsFecha=prev.rsf;state.revSavingsTasa=prev.rst;
     state.revNvdaShares=prev.nvs;
@@ -1908,19 +1884,15 @@ function renderRendimientos(start, end, balance) {
   const dias=Math.max(0,(endC-start)/86400000);
   // si el periodo termina antes de la fecha base de la cajita, no hay rendimiento que calcular (no "sin datos" con +$0.00)
   const c1FechaValida=state.nuCajita1Fecha&&!isNaN(parseFechaLocal(state.nuCajita1Fecha).getTime());
-  const c2FechaValida=state.nuCajita2Fecha&&!isNaN(parseFechaLocal(state.nuCajita2Fecha).getTime());
   const rsFechaValida=state.revSavingsFecha&&!isNaN(parseFechaLocal(state.revSavingsFecha).getTime());
   const sinDatosC1=c1FechaValida&&endC.getTime()<=parseFechaLocal(state.nuCajita1Fecha).getTime();
-  const sinDatosC2=c2FechaValida&&endC.getTime()<=parseFechaLocal(state.nuCajita2Fecha).getTime();
   const sinDatosRS=rsFechaValida&&endC.getTime()<=parseFechaLocal(state.revSavingsFecha).getTime();
   const rend1=(!sinDatosC1&&dias>0)?Math.max(0,calcNu1At(endC.getTime())-calcNu1At(start.getTime())):0;
-  const rend2=(!sinDatosC2&&dias>0)?Math.max(0,calcNu2At(endC.getTime())-calcNu2At(start.getTime())):0;
   const rendRS=(!sinDatosRS&&dias>0)?Math.max(0,calcRevSavingsAt(endC.getTime())-calcRevSavingsAt(start.getTime())):0;
   // si la fecha base de la cajita cae DENTRO del periodo, el rendimiento calculado
   // solo cubre desde esa fecha, no el periodo completo: se etiqueta como parcial
   const fd=d=>d.toLocaleDateString('es-MX',{day:'numeric',month:'short'});
   const parcialC1=c1FechaValida&&!sinDatosC1&&start.getTime()<parseFechaLocal(state.nuCajita1Fecha).getTime()&&parseFechaLocal(state.nuCajita1Fecha).getTime()<endC.getTime();
-  const parcialC2=c2FechaValida&&!sinDatosC2&&start.getTime()<parseFechaLocal(state.nuCajita2Fecha).getTime()&&parseFechaLocal(state.nuCajita2Fecha).getTime()<endC.getTime();
   const parcialRS=rsFechaValida&&!sinDatosRS&&start.getTime()<parseFechaLocal(state.revSavingsFecha).getTime()&&parseFechaLocal(state.revSavingsFecha).getTime()<endC.getTime();
   // GBM: base = ultimo cierre ANTES del inicio del periodo (estrictamente <), fin = ultimo
   // cierre < fin del periodo (asi un periodo de un solo dia muestra su variacion)
@@ -1928,20 +1900,17 @@ function renderRendimientos(start, end, balance) {
   const baseP=hist.filter(p=>parseFechaLocal(p.t)<start).pop();
   const finP=hist.filter(p=>parseFechaLocal(p.t)<end).pop();
   const rendG=(baseP&&finP&&finP.t>baseP.t)?(finP.c-baseP.c)*TITULOS:null;
-  const rendTotal=rend1+rend2+rendRS+(rendG||0);
+  const rendTotal=rend1+rendRS+(rendG||0);
   const real=balance+rendTotal;
   const sgn=(v,cls)=>`<span class="${v>=0?'item-amt-pos':'item-amt-neg'}"${cls?' style="font-size:15px"':''}>${v>=0?'+':'−'}${fmt(Math.abs(v))}</span>`;
   const rowC1=sinDatosC1
     ?`<div class="item-row"><div><div class="item-cat">NU cajita 1</div><div class="item-meta">sin datos anteriores a la fecha base</div></div><span class="item-meta">—</span></div>`
     :`<div class="item-row"><div><div class="item-cat">NU cajita 1</div><div class="item-meta">${(state.nuCajita1Tasa||0)}% anual${parcialC1?' · desde el '+fd(parseFechaLocal(state.nuCajita1Fecha))+' (parcial)':' compuesto'}</div></div>${sgn(rend1)}</div>`;
-  const rowC2=sinDatosC2
-    ?`<div class="item-row"><div><div class="item-cat">NU cajita 2</div><div class="item-meta">sin datos anteriores a la fecha base</div></div><span class="item-meta">—</span></div>`
-    :`<div class="item-row"><div><div class="item-cat">NU cajita 2</div><div class="item-meta">${(state.nuCajita2Tasa||0)}% anual${parcialC2?' · desde el '+fd(parseFechaLocal(state.nuCajita2Fecha))+' (parcial)':' compuesto'}</div></div>${sgn(rend2)}</div>`;
   const rowRS=sinDatosRS
     ?`<div class="item-row"><div><div class="item-cat">Revolut Savings</div><div class="item-meta">sin datos anteriores a la fecha base</div></div><span class="item-meta">—</span></div>`
     :`<div class="item-row"><div><div class="item-cat">Revolut Savings</div><div class="item-meta">${(state.revSavingsTasa||0)}% anual${parcialRS?' · desde el '+fd(parseFechaLocal(state.revSavingsFecha))+' (parcial)':' compuesto'}</div></div>${sgn(rendRS)}</div>`;
   document.getElementById('res-rendimientos').innerHTML=
-    rowC1+rowC2+rowRS+
+    rowC1+rowRS+
     `<div class="item-row"><div><div class="item-cat">GBM · IVVPESO</div><div class="item-meta">${rendG===null?'sin datos de este periodo':'variacion de tus 45 titulos'}</div></div>${rendG===null?'<span class="item-meta">—</span>':sgn(rendG)}</div>`+
     `<div class="item-row"><div class="item-cat" style="font-weight:600">total rendimientos</div>${sgn(rendTotal,1)}</div>`+
     `<div class="item-row"><div><div class="item-cat" style="font-weight:600">balance real del periodo</div><div class="item-meta">ingresos − gastos + rendimientos</div></div>${sgn(real,1)}</div>`;
