@@ -437,7 +437,7 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
   </div>
   </div>
   <div class="status" id="status-inicio">—</div>
-  <div class="status" style="margin-top:2px;padding-bottom:8px">version 2026-07-23.3</div>
+  <div class="status" style="margin-top:2px;padding-bottom:8px">version 2026-07-23.4</div>
 </div>
 
 <!-- GASTOS -->
@@ -816,8 +816,6 @@ async function loadFromFirebase() {
     // cotizaciones viven en su propio doc (cartera/mercado) para que un guardado de
     // saldos nunca pise precios y viceversa; si aun no existe, quedan los legados de saldos
     const mDoc = await getDoc(doc(db,'cartera','mercado'));
-    const revSeedHecha = mDoc.exists() && mDoc.data().revSeedHecha === true;
-    const nuSeedHecha = mDoc.exists() && mDoc.data().nuSeedHecha === true;
     if (mDoc.exists()) {
       const m = mDoc.data();
       if (Number.isFinite(m.ivvPrecio)) state.ivvPrecio = m.ivvPrecio;
@@ -835,24 +833,40 @@ async function loadFromFirebase() {
       try { await setDoc(doc(db,'cartera','mercado'), {ivvPrecio:state.ivvPrecio, ivvVar:state.ivvVar, ivvHistory:state.ivvHistory}, {merge:true}); }
       catch(e) { console.error('migracion mercado',e); }
     }
-    // siembra UNICA de los valores reales de Revolut de Roberto (jul 2026): solo corre si
-    // nunca se ha sembrado (marcador en cartera/mercado, que las versiones viejas de la app
-    // no reescriben) Y las cuentas Revolut siguen todas en cero (nunca capturadas a mano).
-    // revMXN incluye +86.42 del plan Premium PENDIENTE de registrarse como gasto
-    // (Suscripciones · Revolut): al registrarlo el saldo queda en los 9.26 reales
-    if (!revSeedHecha && state.revMXN===0 && state.revSavingsBase===0 && !state.revSavingsFecha && state.revNvdaShares===0) {
-      state.revMXN=95.68; state.revSavingsBase=2000.79; state.revSavingsFecha='2026-07-23';
-      state.revSavingsTasa=15; state.revNvdaShares=0.19;
-      try { await setDoc(doc(db,'cartera','mercado'), {revSeedHecha:true}, {merge:true}); }
-      catch(e) { console.error('seed revolut',e); }
-    }
-    // ajuste UNICO pedido por Roberto (23 jul 2026): su NU saldo real es 57.92 (el resto
-    // se movio a Revolut). Solo corre una vez (marcador) y solo si el valor guardado sigue
-    // siendo el viejo 2857.92 — si ya lo corrigio a mano, no se toca.
-    if (!nuSeedHecha && Math.abs(state.nuSaldo-2857.92)<0.01) {
-      state.nuSaldo=57.92;
-      try { await setDoc(doc(db,'cartera','mercado'), {nuSeedHecha:true}, {merge:true}); }
-      catch(e) { console.error('seed nu',e); }
+    // SIEMBRA UNICA jul-2026 (v2, atomica): datos reales de Roberto pedidos por el.
+    // Los marcadores viejos (revSeedHecha/nuSeedHecha) se ignoran a proposito: aquellas
+    // siembras solo cambiaban la memoria y podian quedar sin persistir; esta version
+    // persiste TODO en un solo batch (saldos + gasto Premium + marcador, o nada).
+    // Las guardas por VALOR evitan doble aplicacion en cualquier orden:
+    //  - Revolut solo se siembra si sigue todo en cero (nunca capturado/persistido)
+    //  - NU saldo solo se corrige si sigue en el viejo 2857.92
+    //  - el gasto Premium (86.42, cobrado 22 jul) solo se crea si revMXN esta en los
+    //    95.68 sembrados (que ya incluian ese cargo pendiente); deja la cuenta en 9.26
+    const seedV2Hecha = mDoc.exists() && mDoc.data().seedJul26V2 === true;
+    if (!seedV2Hecha) {
+      const prevSeed={nuSaldo:state.nuSaldo,revMXN:state.revMXN,rsb:state.revSavingsBase,
+        rsf:state.revSavingsFecha,rst:state.revSavingsTasa,nvs:state.revNvdaShares};
+      let cambio=false;
+      if (state.revMXN===0 && state.revSavingsBase===0 && !state.revSavingsFecha && state.revNvdaShares===0) {
+        state.revMXN=95.68; state.revSavingsBase=2000.79; state.revSavingsFecha='2026-07-23';
+        state.revSavingsTasa=15; state.revNvdaShares=0.19; cambio=true;
+      }
+      if (Math.abs(state.nuSaldo-2857.92)<0.01) { state.nuSaldo=57.92; cambio=true; }
+      const premiumPendiente=Math.abs(state.revMXN-95.68)<0.01;
+      if (premiumPendiente) { state.revMXN=9.26; cambio=true; }
+      try {
+        const batch=writeBatch(db);
+        if (premiumPendiente) batch.set(doc(collection(db,'gastos')),
+          {cat:'Suscripciones',monto:86.42,nota:'Revolut Premium',fuente:'revolut',fecha:'2026-07-22T19:35:00.000Z'});
+        if (cambio) batch.set(doc(db,'cartera','saldos'),saldosPayload());
+        batch.set(doc(db,'cartera','mercado'),{seedJul26V2:true},{merge:true});
+        await batch.commit();
+      } catch(e) {
+        state.nuSaldo=prevSeed.nuSaldo; state.revMXN=prevSeed.revMXN;
+        state.revSavingsBase=prevSeed.rsb; state.revSavingsFecha=prevSeed.rsf;
+        state.revSavingsTasa=prevSeed.rst; state.revNvdaShares=prevSeed.nvs;
+        console.error('seed jul26 v2',e); // sin marcador: se reintenta en la proxima carga
+      }
     }
     const pDoc = await getDoc(doc(db,'cartera','personas'));
     if (pDoc.exists()) {
