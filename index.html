@@ -4,14 +4,15 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Mi Cartera">
-<meta name="theme-color" content="#0a0a0a">
+<meta name="theme-color" content="#eef3f9">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-192.png">
 <title>Mi Cartera</title>
 <style>
-:root{--bg:#0a0a0a;--bg2:#141414;--bg3:#1c1c1c;--border:rgba(255,255,255,0.07);--border2:rgba(255,255,255,0.13);--text:#f0f0f0;--muted:#777;--green:#34d399;--red:#f87171;--purple:#a78bfa;--r:16px;--rs:10px}
+/* tema claro: azul primario, verde para positivos, fondo blanco-azulado */
+:root{--bg:#eef3f9;--bg2:#ffffff;--bg3:#eef2f7;--border:rgba(15,42,80,0.08);--border2:rgba(15,42,80,0.18);--text:#0f172a;--muted:#5b6b7f;--green:#047857;--red:#dc2626;--accent:#2563eb;--purple:var(--accent);--r:16px;--rs:10px;--sombra:0 1px 2px rgba(15,42,80,0.05),0 6px 18px rgba(15,42,80,0.05)}
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 body{font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;padding-bottom:calc(80px + env(safe-area-inset-bottom))}
 .safe-top{padding-top:max(env(safe-area-inset-top),20px)}
@@ -35,7 +36,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display',sans-serif;ba
 .loading-text{font-size:14px;color:var(--muted)}
 
 /* NAV */
-nav{position:sticky;top:0;z-index:100;background:rgba(10,10,10,0.92);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-bottom:0.5px solid var(--border);padding:0 20px;display:flex;align-items:center;justify-content:space-between;height:54px}
+nav{position:sticky;top:0;z-index:100;background:rgba(255,255,255,0.88);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-bottom:0.5px solid var(--border);padding:0 20px;display:flex;align-items:center;justify-content:space-between;height:54px}
 .logo{font-size:17px;font-weight:600;letter-spacing:-0.3px}.logo span{color:var(--purple)}
 .nav-right{display:flex;align-items:center;gap:8px}
 .sync-dot{width:8px;height:8px;border-radius:50%;background:var(--muted)}
@@ -61,14 +62,14 @@ nav{position:sticky;top:0;z-index:100;background:rgba(10,10,10,0.92);backdrop-fi
 
 /* CARDS */
 .cards{display:flex;flex-direction:column;gap:10px;margin-bottom:24px}
-.card{background:var(--bg2);border:0.5px solid var(--border);border-radius:var(--r);padding:16px;cursor:pointer}
+.card{background:var(--bg2);border:0.5px solid var(--border);border-radius:var(--r);padding:16px;cursor:pointer;box-shadow:var(--sombra)}
 .card:active{transform:scale(0.99)}
 .card-header{display:flex;align-items:center;justify-content:space-between}
 .card-left{display:flex;align-items:center;gap:11px}
 .card-icon{width:38px;height:38px;border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:19px}
-.icon-nu{background:rgba(124,58,237,0.15)}.icon-nu2{background:rgba(96,165,250,0.12)}
-.icon-gbm{background:rgba(52,211,153,0.12)}.icon-cash{background:rgba(251,191,36,0.12)}
-.icon-tarjeta{background:rgba(248,113,113,0.15)}
+.icon-nu{background:rgba(124,58,237,0.12)}.icon-nu2{background:rgba(96,165,250,0.14)}
+.icon-gbm{background:rgba(5,150,105,0.10)}.icon-cash{background:rgba(217,119,6,0.12)}
+.icon-tarjeta{background:rgba(220,38,38,0.10)}.icon-rev{background:rgba(37,99,235,0.10)}
 .card-name{font-size:15px;font-weight:500}
 .card-sub{font-size:12px;color:var(--muted);margin-top:1px}
 .card-right{text-align:right}
@@ -82,7 +83,7 @@ nav{position:sticky;top:0;z-index:100;background:rgba(10,10,10,0.92);backdrop-fi
 
 /* PANELS */
 .section-title{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:10px}
-.panel{background:var(--bg2);border:0.5px solid var(--border);border-radius:var(--r);padding:16px;margin-bottom:10px}
+.panel{background:var(--bg2);border:0.5px solid var(--border);border-radius:var(--r);padding:16px;margin-bottom:10px;box-shadow:var(--sombra)}
 .field{margin-bottom:10px}
 .field label{font-size:12px;color:var(--muted);display:block;margin-bottom:4px}
 .field input,.field select{width:100%;background:var(--bg3);border:0.5px solid var(--border2);border-radius:var(--rs);padding:11px 14px;color:var(--text);font-size:15px;outline:none;-webkit-appearance:none;appearance:none}
@@ -90,12 +91,12 @@ nav{position:sticky;top:0;z-index:100;background:rgba(10,10,10,0.92);backdrop-fi
 .field select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23777' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;padding-right:32px}
 .btn{width:100%;padding:13px;background:var(--bg3);border:0.5px solid var(--border2);border-radius:var(--rs);color:var(--text);font-size:15px;font-weight:500;cursor:pointer;margin-top:4px}
 .btn:active{transform:scale(0.99)}
-.btn-purple{background:rgba(124,58,237,0.18);border-color:var(--purple);color:var(--purple)}
-.btn-green{background:rgba(52,211,153,0.12);border-color:var(--green);color:var(--green)}
-.btn-red{background:rgba(248,113,113,0.12);border-color:var(--red);color:var(--red)}
+.btn-purple{background:rgba(37,99,235,0.08);border-color:var(--purple);color:var(--purple)}
+.btn-green{background:rgba(4,120,87,0.08);border-color:var(--green);color:var(--green)}
+.btn-red{background:rgba(220,38,38,0.06);border-color:var(--red);color:var(--red)}
 .type-toggle{display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap}
 .type-opt{flex:1;min-width:calc(33% - 4px);padding:8px 4px;background:var(--bg3);border:0.5px solid var(--border);border-radius:var(--rs);color:var(--muted);font-size:12px;cursor:pointer;text-align:center}
-.type-opt.active{background:rgba(124,58,237,0.15);border-color:var(--purple);color:var(--purple)}
+.type-opt.active{background:rgba(37,99,235,0.08);border-color:var(--purple);color:var(--purple)}
 
 /* ITEMS */
 .item-row{display:flex;justify-content:space-between;align-items:center;padding:11px 0;border-bottom:0.5px solid var(--border)}
@@ -115,24 +116,24 @@ nav{position:sticky;top:0;z-index:100;background:rgba(10,10,10,0.92);backdrop-fi
 .month-nav{background:none;border:0.5px solid var(--border2);border-radius:8px;color:var(--muted);font-size:18px;padding:4px 12px;cursor:pointer}
 .month-label{font-size:15px;font-weight:500}
 .row2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-.summary-box{background:var(--bg2);border:0.5px solid var(--border);border-radius:var(--rs);padding:12px;text-align:center}
+.summary-box{background:var(--bg2);border:0.5px solid var(--border);border-radius:var(--rs);padding:12px;text-align:center;box-shadow:var(--sombra)}
 .summary-box .s-label{font-size:11px;color:var(--muted);margin-bottom:4px}
 .summary-box .s-amt{font-size:18px;font-weight:700}
 
 /* DEUDAS */
-.deuda-person{background:var(--bg2);border:0.5px solid var(--border);border-radius:var(--r);padding:16px;margin-bottom:10px}
+.deuda-person{background:var(--bg2);border:0.5px solid var(--border);border-radius:var(--r);padding:16px;margin-bottom:10px;box-shadow:var(--sombra)}
 .deuda-header{display:flex;justify-content:space-between;align-items:center;cursor:pointer}
 .deuda-name{font-size:16px;font-weight:600}.deuda-total{font-size:17px;font-weight:700}
 .deuda-sub{font-size:12px;color:var(--muted);margin-top:2px}
 .deuda-detail{display:none;margin-top:12px;padding-top:12px;border-top:0.5px solid var(--border)}
 .deuda-detail.open{display:block}
-.grand-total-deuda{background:var(--bg2);border:0.5px solid var(--border2);border-radius:var(--r);padding:16px;margin-bottom:20px;text-align:center}
+.grand-total-deuda{background:var(--bg2);border:0.5px solid var(--border2);border-radius:var(--r);padding:16px;margin-bottom:20px;text-align:center;box-shadow:var(--sombra)}
 .grand-total-deuda .label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:6px}
 .grand-total-deuda .amount{font-size:32px;font-weight:700}
 
 /* TARJETA */
-.tarjeta-card{background:linear-gradient(135deg,#1a0a2e,#2d1458);border:0.5px solid rgba(167,139,250,0.3);border-radius:var(--r);padding:20px;margin-bottom:10px}
-.tarjeta-card .t-label{font-size:11px;color:rgba(167,139,250,0.7);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:4px}
+.tarjeta-card{background:linear-gradient(135deg,#0b2a6b,#2563eb);border:0.5px solid rgba(37,99,235,0.35);border-radius:var(--r);padding:20px;margin-bottom:10px;box-shadow:var(--sombra)}
+.tarjeta-card .t-label{font-size:11px;color:rgba(191,219,254,0.9);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:4px}
 .tarjeta-card .t-amount{font-size:34px;font-weight:700;color:#fff;letter-spacing:-1px}
 .tarjeta-card .t-sub{font-size:12px;color:rgba(255,255,255,0.5);margin-top:6px}
 .corte-bar{height:4px;background:rgba(255,255,255,0.1);border-radius:2px;margin-top:12px;overflow:hidden}
@@ -151,7 +152,7 @@ nav{position:sticky;top:0;z-index:100;background:rgba(10,10,10,0.92);backdrop-fi
 .chart-dates{display:flex;justify-content:space-between;font-size:10px;color:var(--muted);margin-top:4px}
 .chart-ranges{display:flex;gap:5px;margin-bottom:10px}
 .chart-range-btn{flex:1;padding:7px 0;background:var(--bg3);border:0.5px solid var(--border);border-radius:8px;color:var(--muted);font-size:11px;cursor:pointer;text-align:center;font-family:inherit}
-.chart-range-btn.active{background:rgba(124,58,237,0.15);border-color:var(--purple);color:var(--purple)}
+.chart-range-btn.active{background:rgba(37,99,235,0.08);border-color:var(--purple);color:var(--purple)}
 .chart-range-btn:disabled{opacity:0.3;cursor:default}
 .chart-wrap{position:relative}
 .chart-wrap svg{touch-action:pan-y}
@@ -175,7 +176,23 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
 #res-periodo-toggle .type-opt{min-width:calc(25% - 5px)}
 .del-btn{background:none;border:none;color:var(--muted);font-size:17px;padding:4px 0 4px 12px;cursor:pointer;line-height:1}
 .del-btn:active{color:var(--red)}
-</style>
+
+/* REGISTRO RAPIDO (solo movil) */
+#quick-register{margin-bottom:20px}
+
+/* ESCRITORIO: layout ancho tipo portafolio (inicio y resumen); formularios se mantienen angostos */
+@media(min-width:900px){
+  #quick-register{display:none}
+  .page{max-width:560px}
+  #page-inicio{max-width:1060px}
+  #page-resumen{max-width:1080px}
+  nav,.tabs{padding-left:32px;padding-right:32px}
+  .cards{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;align-items:start;margin-bottom:28px}
+  .tarjeta-card{grid-column:1/-1;margin-bottom:0}
+  .inicio-grid,.summary-grid{display:grid;grid-template-columns:1fr 1fr;gap:0 20px;align-items:start}
+  .sec{min-width:0}
+  .total-amount{font-size:46px}
+}
 </head>
 <body>
 
@@ -222,6 +239,28 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
     <div class="total-sub" id="neto-display">—</div>
     <div class="total-sub" id="last-update">—</div>
   </div>
+
+  <!-- REGISTRO RAPIDO (visible solo en movil) -->
+  <div id="quick-register">
+    <div class="section-title">registro rapido</div>
+    <div class="panel">
+      <div class="row2" style="gap:8px">
+        <div class="field"><label>tipo</label>
+          <select id="qr-tipo" onchange="renderQuickSelects()">
+            <option value="gasto">gasto</option>
+            <option value="ingreso">ingreso</option>
+          </select>
+        </div>
+        <div class="field"><label>monto</label><input type="number" id="qr-monto" placeholder="ej. 150" step="0.01" inputmode="decimal"></div>
+      </div>
+      <div class="row2" style="gap:8px">
+        <div class="field"><label>categoria</label><select id="qr-cat"></select></div>
+        <div class="field"><label id="qr-cuenta-label">pagado con</label><select id="qr-cuenta"></select></div>
+      </div>
+      <button class="btn btn-purple" id="qr-btn" onclick="registrarRapido()">registrar</button>
+    </div>
+  </div>
+
   <div class="cards">
     <div class="card" onclick="toggleDetail('nu1-detail')">
       <div class="card-header">
@@ -290,8 +329,43 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
         <div class="card-right"><div class="card-amount" id="cash-display">$—</div></div>
       </div>
     </div>
+
+    <!-- REVOLUT -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-left"><div class="card-icon icon-rev">&#127758;</div>
+          <div><div class="card-name">Revolut MXN</div><div class="card-sub">cuenta personal</div></div>
+        </div>
+        <div class="card-right"><div class="card-amount" id="rev-mxn-display">$—</div></div>
+      </div>
+    </div>
+    <div class="card" onclick="toggleDetail('rev-savings-detail')">
+      <div class="card-header">
+        <div class="card-left"><div class="card-icon icon-rev">&#129689;</div>
+          <div><div class="card-name">Revolut Savings</div><div class="card-sub" id="rev-savings-sub">—</div></div>
+        </div>
+        <div class="card-right"><div class="card-amount" id="rev-savings-display">$—</div><div class="card-change pos" id="rev-savings-rend">—</div></div>
+      </div>
+      <div class="card-detail" id="rev-savings-detail">
+        <div class="detail-row"><span class="detail-label">saldo base</span><span class="detail-val" id="rev-savings-base-val">$—</span></div>
+        <div class="detail-row"><span class="detail-label">rendimiento acumulado</span><span class="detail-val pos" id="rev-savings-rend-val">$—</span></div>
+      </div>
+    </div>
+    <div class="card" onclick="toggleDetail('rev-stocks-detail')">
+      <div class="card-header">
+        <div class="card-left"><div class="card-icon icon-rev">&#128202;</div>
+          <div><div class="card-name">Revolut Stocks</div><div class="card-sub" id="rev-stocks-sub">—</div></div>
+        </div>
+        <div class="card-right"><div class="card-amount" id="rev-stocks-display">$—</div><div class="card-change neu" id="rev-stocks-var">—</div></div>
+      </div>
+      <div class="card-detail" id="rev-stocks-detail">
+        <div class="detail-row"><span class="detail-label">precio del cierre</span><span class="detail-val" id="rev-stocks-fecha-val">—</span></div>
+      </div>
+    </div>
   </div>
 
+  <div class="inicio-grid">
+  <div class="sec">
   <div class="section-title">actualizar saldos</div>
   <div class="panel">
     <div class="field"><label>cajita NU 1 — saldo base (lo que muestra NU hoy)</label><input type="number" id="input-cajita1-base" placeholder="ej. 25072.31" step="0.01" inputmode="decimal"></div>
@@ -310,9 +384,18 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
       <div class="field"><label>efectivo GBM</label><input type="number" id="input-gbm-efec" placeholder="ej. 46.16" step="0.01" inputmode="decimal"></div>
       <div class="field"><label>reporto LF</label><input type="number" id="input-reporto" placeholder="ej. 99.74" step="0.01" inputmode="decimal"></div>
     </div>
+    <div class="field"><label>Revolut MXN (saldo de la cuenta)</label><input type="number" id="input-rev-mxn" placeholder="ej. 9.26" step="0.01" inputmode="decimal"></div>
+    <div class="field"><label>Revolut Savings — saldo base (lo que muestra Revolut hoy)</label><input type="number" id="input-rev-savings-base" placeholder="ej. 2000.79" step="0.01" inputmode="decimal"></div>
+    <div class="row2" style="gap:8px">
+      <div class="field"><label>Revolut Savings — fecha base (YYYY-MM-DD)</label><input type="text" id="input-rev-savings-fecha" placeholder="vacia = hoy"></div>
+      <div class="field"><label>Revolut Savings — tasa anual %</label><input type="number" id="input-rev-savings-tasa" placeholder="ej. 15" step="0.01" inputmode="decimal"></div>
+    </div>
+    <div class="field"><label>acciones NVDA en Revolut (ej. 0.19)</label><input type="number" id="input-nvda-shares" placeholder="ej. 0.19" step="0.0001" inputmode="decimal"></div>
     <button class="btn btn-purple" id="manuales-btn" onclick="guardarManuales()">guardar</button>
   </div>
+  </div>
 
+  <div class="sec">
   <div class="section-title">transferir entre cuentas</div>
   <div class="panel">
     <div class="row2" style="gap:8px">
@@ -323,6 +406,8 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
           <option value="cajita1">NU cajita 1</option>
           <option value="cajita2">NU cajita 2</option>
           <option value="gbm">GBM efectivo</option>
+          <option value="revolut">Revolut MXN</option>
+          <option value="revSavings">Revolut Savings</option>
         </select>
       </div>
       <div class="field"><label>hacia</label>
@@ -332,6 +417,8 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
           <option value="cajita1">NU cajita 1</option>
           <option value="cajita2">NU cajita 2</option>
           <option value="gbm">GBM efectivo</option>
+          <option value="revolut">Revolut MXN</option>
+          <option value="revSavings">Revolut Savings</option>
           <option value="tarjeta">tarjeta NU (pago)</option>
         </select>
       </div>
@@ -342,7 +429,9 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
   </div>
   <div class="section-title">ultimas transferencias</div>
   <div class="panel" id="transfer-historial"><div class="empty-state">sin transferencias</div></div>
+  </div>
 
+  <div class="sec">
   <div class="section-title">tarjeta NU</div>
   <div class="panel">
     <div class="field"><label>monto</label><input type="number" id="tarjeta-cargo-monto" placeholder="ej. 350" step="0.01" inputmode="decimal"></div>
@@ -354,6 +443,8 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
         <option value="cajita1">NU cajita 1</option>
         <option value="cajita2">NU cajita 2</option>
         <option value="gbm">GBM efectivo</option>
+        <option value="revolut">Revolut MXN</option>
+        <option value="revSavings">Revolut Savings</option>
         <option value="externo">otro (no descontar de mis cuentas)</option>
       </select>
     </div>
@@ -362,8 +453,10 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
       <button class="btn btn-green" id="tarjeta-pago-btn" onclick="registrarTarjeta('pago')" style="margin-top:0">- pague</button>
     </div>
   </div>
+  </div>
+  </div>
   <div class="status" id="status-inicio">—</div>
-  <div class="status" style="margin-top:2px;padding-bottom:8px">version 2026-07-20.1</div>
+  <div class="status" style="margin-top:2px;padding-bottom:8px">version 2026-07-23.1</div>
 </div>
 
 <!-- GASTOS -->
@@ -381,6 +474,7 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
           <div class="type-opt active" onclick="setFuente('efectivo')">efectivo</div>
           <div class="type-opt" onclick="setFuente('nu')">NU saldo</div>
           <div class="type-opt" onclick="setFuente('tarjeta')">tarjeta NU</div>
+          <div class="type-opt" onclick="setFuente('revolut')">Revolut</div>
         </div>
       </div>
       <button class="btn btn-purple" id="gasto-btn" onclick="registrarGasto()">registrar gasto</button>
@@ -405,6 +499,7 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
           <div class="type-opt active" onclick="setDestinoIngreso('efectivo')">efectivo</div>
           <div class="type-opt" onclick="setDestinoIngreso('nu')">NU saldo</div>
           <div class="type-opt" onclick="setDestinoIngreso('gbm')">GBM</div>
+          <div class="type-opt" onclick="setDestinoIngreso('revolut')">Revolut</div>
         </div>
       </div>
       <button class="btn btn-green" id="ingreso-btn" onclick="registrarIngreso()">registrar ingreso</button>
@@ -451,6 +546,8 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
           <option value="cajita1">NU cajita 1</option>
           <option value="cajita2">NU cajita 2</option>
           <option value="gbm">GBM efectivo</option>
+          <option value="revolut">Revolut MXN</option>
+          <option value="revSavings">Revolut Savings</option>
         </select>
       </div>
       <div class="field"><label>monto</label><input type="number" id="deuda-monto" placeholder="ej. 500" step="0.01" inputmode="decimal"></div>
@@ -482,22 +579,40 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
       <div class="s-label">balance del periodo</div>
       <div class="s-amt" id="res-balance" style="font-size:24px">$—</div>
     </div>
+    <div class="summary-grid">
+    <div class="sec">
     <div class="section-title">a donde se va tu dinero</div>
     <div class="panel" id="res-pie"></div>
+    </div>
+    <div class="sec">
     <div class="section-title mt">de donde viene tu dinero</div>
     <div class="panel" id="res-pie-ingresos"></div>
+    </div>
+    <div class="sec">
     <div class="section-title mt">rendimientos del periodo</div>
     <div class="panel" id="res-rendimientos"></div>
+    </div>
+    <div class="sec">
     <div class="section-title mt">gastos por categoria</div>
     <div class="panel" id="resumen-cats"></div>
+    </div>
+    <div class="sec">
     <div class="section-title mt">ingresos por categoria</div>
     <div class="panel" id="resumen-ingresos-cats"></div>
+    </div>
+    <div class="sec">
     <div class="section-title mt">GBM · valor de tus 45 titulos</div>
     <div class="panel" id="gbm-chart"></div>
+    </div>
+    <div class="sec">
     <div class="section-title mt">GBM · cierre por mes</div>
     <div class="panel" id="gbm-tabla"></div>
+    </div>
+    <div class="sec">
     <div class="section-title mt">activos totales · evolucion</div>
     <div class="panel" id="patrimonio-chart"></div>
+    </div>
+    </div>
   </div>
 </div>
 
@@ -522,7 +637,9 @@ const auth = getAuth(app);
 
 const ALLOWED_EMAIL = 'rl7103405@gmail.com';
 const TITULOS = 45;
-const CUENTAS = {efectivo:'efectivo', nu:'NU saldo', cajita1:'NU cajita 1', cajita2:'NU cajita 2', gbm:'GBM efectivo', tarjeta:'tarjeta NU'};
+const CUENTAS = {efectivo:'efectivo', nu:'NU saldo', cajita1:'NU cajita 1', cajita2:'NU cajita 2', gbm:'GBM efectivo', revolut:'Revolut MXN', revSavings:'Revolut Savings', tarjeta:'tarjeta NU'};
+const FUENTES_GASTO=['efectivo','nu','tarjeta','revolut'];
+const DESTINOS_INGRESO=['efectivo','nu','gbm','revolut'];
 const CATS_GASTO_DEFAULT = ['Comida','Transporte','Salidas','Zoe','Ropa','Salud','Suscripciones','Educacion','Casa','Entretenimiento','Viajes','Regalos','Otros'];
 const CATS_INGRESO_DEFAULT = ['Trabajo','Quini','Maicitos','Brownies','Regalos','Deudas cobradas','Inversiones','Otros'];
 const MESES = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
@@ -583,6 +700,7 @@ onAuthStateChanged(auth, async user => {
     renderCatSelect('gasto-cat', state.catsGasto);
     renderCatSelect('ingreso-cat', state.catsIngreso);
     renderPersonaSelect();
+    renderQuickSelects();
     render();
     renderHistorialGastos();
     renderTransferencias();
@@ -677,8 +795,10 @@ let state = {
   nuCajita2Base:0, nuCajita2Fecha:'', nuCajita2Tasa:6.5,
   nuSaldo:523.58, efectivo:2200,
   reporto:99.74, efectivoGBM:46.16,
+  revMXN:0, revSavingsBase:0, revSavingsFecha:'', revSavingsTasa:15, revNvdaShares:0,
   tarjetaDeuda:2001, tarjetaMovimientos:[],
   ivvPrecio:154, ivvVar:null, ivvHistory:[],
+  nvdaPrecio:null, nvdaPrev:null, nvdaFecha:'', usdMxn:null, usdMxnPrev:null, usdMxnFecha:'',
   fuenteGasto:'efectivo', destinoIngreso:'efectivo', tipoDeuda:'cargo',
   mesOffset:0, resPeriodo:'mes',
   catsGasto:[...CATS_GASTO_DEFAULT], catsIngreso:[...CATS_INGRESO_DEFAULT],
@@ -705,10 +825,33 @@ async function loadFromFirebase() {
       ['nuCajita1Base','nuCajita1Tasa','nuCajita2Base','nuCajita2Tasa','nuSaldo','efectivo','reporto','efectivoGBM'].forEach(k => {
         if (!Number.isFinite(state[k])) state[k] = prev[k];
       });
-      ['nuCajita1Fecha','nuCajita2Fecha'].forEach(k => {
-        if (typeof state[k] !== 'string') state[k] = prev[k];
+      ['revMXN','revSavingsBase','revSavingsTasa','revNvdaShares'].forEach(k => {
+        if (!Number.isFinite(state[k])) state[k] = 0;
+      });
+      ['nuCajita1Fecha','nuCajita2Fecha','revSavingsFecha'].forEach(k => {
+        if (typeof state[k] !== 'string') state[k] = '';
       });
       if (state.ivvVar!==null && !Number.isFinite(state.ivvVar)) state.ivvVar = null;
+    }
+    // cotizaciones viven en su propio doc (cartera/mercado) para que un guardado de
+    // saldos nunca pise precios y viceversa; si aun no existe, quedan los legados de saldos
+    const mDoc = await getDoc(doc(db,'cartera','mercado'));
+    if (mDoc.exists()) {
+      const m = mDoc.data();
+      if (Number.isFinite(m.ivvPrecio)) state.ivvPrecio = m.ivvPrecio;
+      if (Array.isArray(m.ivvHistory)) state.ivvHistory = m.ivvHistory;
+      state.ivvVar = Number.isFinite(m.ivvVar) ? m.ivvVar : null;
+      if (Number.isFinite(m.nvdaPrecio)) state.nvdaPrecio = m.nvdaPrecio;
+      if (Number.isFinite(m.nvdaPrev)) state.nvdaPrev = m.nvdaPrev;
+      if (typeof m.nvdaFecha === 'string') state.nvdaFecha = m.nvdaFecha;
+      if (Number.isFinite(m.usdMxn)) state.usdMxn = m.usdMxn;
+      if (Number.isFinite(m.usdMxnPrev)) state.usdMxnPrev = m.usdMxnPrev;
+      if (typeof m.usdMxnFecha === 'string') state.usdMxnFecha = m.usdMxnFecha;
+    } else {
+      // migracion unica: persistir en mercado las cotizaciones legadas de saldos
+      // (la proxima escritura de saldos ya no las incluye y se perderian si Yahoo falla)
+      try { await setDoc(doc(db,'cartera','mercado'), {ivvPrecio:state.ivvPrecio, ivvVar:state.ivvVar, ivvHistory:state.ivvHistory}, {merge:true}); }
+      catch(e) { console.error('migracion mercado',e); }
     }
     const pDoc = await getDoc(doc(db,'cartera','personas'));
     if (pDoc.exists()) {
@@ -742,12 +885,14 @@ async function loadFromFirebase() {
 }
 
 function saldosPayload() {
+  // OJO: las cotizaciones (ivv*, nvda*, usdMxn*) NO van aqui: viven en cartera/mercado
   return {
     nuCajita1Base:state.nuCajita1Base, nuCajita1Fecha:state.nuCajita1Fecha, nuCajita1Tasa:state.nuCajita1Tasa,
     nuCajita2Base:state.nuCajita2Base, nuCajita2Fecha:state.nuCajita2Fecha, nuCajita2Tasa:state.nuCajita2Tasa,
     nuSaldo:state.nuSaldo, efectivo:state.efectivo,
     reporto:state.reporto, efectivoGBM:state.efectivoGBM,
-    ivvPrecio:state.ivvPrecio, ivvVar:state.ivvVar, ivvHistory:state.ivvHistory
+    revMXN:state.revMXN, revSavingsBase:state.revSavingsBase, revSavingsFecha:state.revSavingsFecha,
+    revSavingsTasa:state.revSavingsTasa, revNvdaShares:state.revNvdaShares
   };
 }
 async function saveSaldos() {
@@ -789,6 +934,7 @@ window.handleCatChange = async function(tipo, sel) {
     await saveCategorias();
     renderCatSelect(sel.id, arr);
     sel.value=nombre;
+    renderQuickSelects(); // el select del registro rapido tambien usa las categorias
     showToast('categoria "'+nombre+'" agregada');
   }catch(e){
     arr.pop();
@@ -810,8 +956,8 @@ window.showPage = function(p) {
   if(p==='ingresos') renderHistorialIngresos();
   if(p==='deudas') renderDeudas();
 };
-window.setFuente = f => { state.fuenteGasto=f; document.querySelectorAll('#gasto-fuente-toggle .type-opt').forEach((el,i)=>el.classList.toggle('active',['efectivo','nu','tarjeta'][i]===f)); };
-window.setDestinoIngreso = f => { state.destinoIngreso=f; document.querySelectorAll('#ingreso-destino-toggle .type-opt').forEach((el,i)=>el.classList.toggle('active',['efectivo','nu','gbm'][i]===f)); };
+window.setFuente = f => { state.fuenteGasto=f; document.querySelectorAll('#gasto-fuente-toggle .type-opt').forEach((el,i)=>el.classList.toggle('active',['efectivo','nu','tarjeta','revolut'][i]===f)); };
+window.setDestinoIngreso = f => { state.destinoIngreso=f; document.querySelectorAll('#ingreso-destino-toggle .type-opt').forEach((el,i)=>el.classList.toggle('active',['efectivo','nu','gbm','revolut'][i]===f)); };
 window.setTipoDeuda = t => { state.tipoDeuda=t; ['cargo','pago','debo','pague'].forEach(id=>document.getElementById('tipo-'+id).classList.toggle('active',id===t)); };
 
 // ── CALCS ─────────────────────────────────────────────────────
@@ -845,6 +991,12 @@ function calcNu2() {
   const saldo=calcNu2At(Date.now());
   return {saldo, rend:saldo-(state.nuCajita2Base||0)};
 }
+// Revolut Savings paga interes diario igual que Nu: mismo modelo base+fecha+tasa nominal/365
+function calcRevSavingsAt(ms) { return calcCompoundAt(state.revSavingsBase, state.revSavingsFecha, state.revSavingsTasa, ms); }
+function calcRevSavings() {
+  const saldo=calcRevSavingsAt(Date.now());
+  return {saldo, rend:saldo-(state.revSavingsBase||0)};
+}
 function diasParaCorte() {
   const now=new Date();
   let corte=new Date(now.getFullYear(),now.getMonth(),18);
@@ -868,6 +1020,33 @@ function render() {
   document.getElementById('nu2-rend-val').textContent='+'+fmt(nu2.rend);
   document.getElementById('nu-saldo-display').textContent=fmt(state.nuSaldo);
   document.getElementById('cash-display').textContent=fmt(state.efectivo);
+
+  // Revolut
+  document.getElementById('rev-mxn-display').textContent=fmt(state.revMXN);
+  const rs=calcRevSavings();
+  document.getElementById('rev-savings-display').textContent=fmt(rs.saldo);
+  document.getElementById('rev-savings-sub').textContent=(state.revSavingsTasa||0)+'% anual · interes diario';
+  document.getElementById('rev-savings-rend').textContent=rs.rend>0?'+'+fmt(rs.rend):'$0.00';
+  document.getElementById('rev-savings-base-val').textContent=fmt(state.revSavingsBase);
+  document.getElementById('rev-savings-rend-val').textContent='+'+fmt(rs.rend);
+  // NVDA: valor en pesos = acciones x precio USD x tipo de cambio (cotizaciones de cartera/mercado)
+  const nvdaOk=state.revNvdaShares>0&&Number.isFinite(state.nvdaPrecio)&&Number.isFinite(state.usdMxn);
+  const nvdaVal=nvdaOk?state.revNvdaShares*state.nvdaPrecio*state.usdMxn:0;
+  document.getElementById('rev-stocks-display').textContent=nvdaOk?fmt(nvdaVal):(state.revNvdaShares>0?'$—':fmt(0));
+  document.getElementById('rev-stocks-sub').textContent=state.revNvdaShares>0
+    ?(state.revNvdaShares+' NVDA'+(Number.isFinite(state.nvdaPrecio)?' · US$'+state.nvdaPrecio.toFixed(2):'')+(Number.isFinite(state.usdMxn)?' · $'+state.usdMxn.toFixed(2)+'/USD':''))
+    :'sin posicion — captura tus acciones';
+  const fechasNvda=[state.nvdaFecha,state.usdMxnFecha].filter(Boolean);
+  document.getElementById('rev-stocks-fecha-val').textContent=fechasNvda.length?fechasNvda.sort()[0]:'—';
+  const nvdaVarEl=document.getElementById('rev-stocks-var');
+  if(nvdaOk&&Number.isFinite(state.nvdaPrev)&&Number.isFinite(state.usdMxnPrev)&&state.nvdaPrev>0&&state.usdMxnPrev>0
+    &&state.nvdaFecha&&state.nvdaFecha===state.usdMxnFecha){
+    // variacion diaria del valor en pesos: combina accion y tipo de cambio SOLO si
+    // ambas series cierran el mismo dia (si no, se mezclarian periodos distintos)
+    const v=((state.nvdaPrecio*state.usdMxn)/(state.nvdaPrev*state.usdMxnPrev)-1)*100;
+    nvdaVarEl.textContent=(v>=0?'+':'')+v.toFixed(2)+'% hoy';
+    nvdaVarEl.className='card-change '+(v>=0?'pos':'neg');
+  } else { nvdaVarEl.textContent='—'; nvdaVarEl.className='card-change neu'; }
 
   // Tarjeta
   document.getElementById('tarjeta-display').textContent=state.tarjetaDeuda<0?('−'+fmt(Math.abs(state.tarjetaDeuda))):fmt(state.tarjetaDeuda);
@@ -893,7 +1072,7 @@ function render() {
     varEl.textContent=(state.ivvVar>=0?'+':'')+state.ivvVar.toFixed(2)+'% hoy';
     varEl.className='card-change '+(state.ivvVar>=0?'pos':'neg');
   }
-  const total=nu1.saldo+nu2.saldo+state.nuSaldo+gbmTotal+state.efectivo;
+  const total=nu1.saldo+nu2.saldo+state.nuSaldo+gbmTotal+state.efectivo+state.revMXN+rs.saldo+nvdaVal;
   document.getElementById('total-display').textContent=fmt(total);
   // neto = activos + lo que me deben (o menos lo que debo) - deuda de tarjeta
   const saldoDeudas=Object.values(state.personas||{}).reduce((s,p)=>s+(p.saldo||0),0);
@@ -932,25 +1111,30 @@ function maybeSnapshot(total,gbm) {
 window.guardarManuales = async function() {
   const ids={c1b:'input-cajita1-base',c1f:'input-cajita1-fecha',c1t:'input-cajita1-tasa',
     c2b:'input-cajita2-base',c2f:'input-cajita2-fecha',c2t:'input-cajita2-tasa',
-    ns:'input-nu-saldo',ef:'input-efectivo',ge:'input-gbm-efec',rp:'input-reporto'};
+    ns:'input-nu-saldo',ef:'input-efectivo',ge:'input-gbm-efec',rp:'input-reporto',
+    rvm:'input-rev-mxn',rsb:'input-rev-savings-base',rsf:'input-rev-savings-fecha',rst:'input-rev-savings-tasa',
+    nvs:'input-nvda-shares'};
   const labels={c1b:'cajita 1 - saldo base',c1f:'cajita 1 - fecha base',c1t:'cajita 1 - tasa',
     c2b:'cajita 2 - saldo base',c2f:'cajita 2 - fecha base',c2t:'cajita 2 - tasa',
-    ns:'NU saldo',ef:'efectivo',ge:'efectivo GBM',rp:'reporto LF'};
+    ns:'NU saldo',ef:'efectivo',ge:'efectivo GBM',rp:'reporto LF',
+    rvm:'Revolut MXN',rsb:'Revolut Savings - saldo base',rsf:'Revolut Savings - fecha base',rst:'Revolut Savings - tasa',
+    nvs:'acciones NVDA'};
   const raw={}; Object.keys(ids).forEach(k=>raw[k]=document.getElementById(ids[k]).value.trim());
   const vals={};
-  for(const k of ['c1b','c2b','ns','ef','ge','rp']) {
+  for(const k of ['c1b','c2b','ns','ef','ge','rp','rvm','rsb','nvs']) {
     if(raw[k]===''){ vals[k]=null; continue; }
     const n=parseFloat(raw[k]);
     if(!Number.isFinite(n)){ showToast('monto invalido en '+labels[k]); return; }
     vals[k]=n;
   }
-  for(const k of ['c1t','c2t']) {
+  if(vals.nvs!==null&&vals.nvs<0){ showToast('las acciones NVDA no pueden ser negativas'); return; }
+  for(const k of ['c1t','c2t','rst']) {
     if(raw[k]===''){ vals[k]=null; continue; }
     const n=parseFloat(raw[k]);
     if(!Number.isFinite(n)||n<=-100){ showToast('tasa invalida en '+labels[k]); return; }
     vals[k]=n;
   }
-  for(const k of ['c1f','c2f']) {
+  for(const k of ['c1f','c2f','rsf']) {
     if(raw[k]===''){ vals[k]=null; continue; }
     if(!/^\d{4}-\d{2}-\d{2}$/.test(raw[k])){ showToast('fecha invalida en '+labels[k]); return; }
     const d=parseFechaLocal(raw[k]);
@@ -963,20 +1147,25 @@ window.guardarManuales = async function() {
   // fecha sin base reancla la base vieja e inventa/borra rendimiento: se rechaza
   if(vals.c1f!==null&&vals.c1b===null){ showToast('captura tambien el saldo base de cajita 1'); return; }
   if(vals.c2f!==null&&vals.c2b===null){ showToast('captura tambien el saldo base de cajita 2'); return; }
+  if(vals.rsf!==null&&vals.rsb===null){ showToast('captura tambien el saldo base de Revolut Savings'); return; }
   // tasa nueva SIN saldo base: cristaliza el saldo actual (con la tasa vieja) como nueva base
   // antes de aplicar la tasa nueva; si no, la tasa nueva se aplicaria retroactivamente
   // a dias que ya generaron interes con la tasa anterior
   if(vals.c1t!==null&&vals.c1b===null&&state.nuCajita1Base>0&&state.nuCajita1Fecha){ vals.c1b=calcNu1().saldo; vals.c1f=hoyLocal(); }
   if(vals.c2t!==null&&vals.c2b===null&&state.nuCajita2Base>0&&state.nuCajita2Fecha){ vals.c2b=calcNu2().saldo; vals.c2f=hoyLocal(); }
+  if(vals.rst!==null&&vals.rsb===null&&state.revSavingsBase>0&&state.revSavingsFecha){ vals.rsb=calcRevSavings().saldo; vals.rsf=hoyLocal(); }
   // base sin fecha: la base capturada es el saldo observado HOY; sin esto la fecha
   // queda vacia (la cajita nunca crece) o vieja (genera de golpe interes ya contado)
   if(vals.c1b!==null&&vals.c1f===null) vals.c1f=hoyLocal();
   if(vals.c2b!==null&&vals.c2f===null) vals.c2f=hoyLocal();
+  if(vals.rsb!==null&&vals.rsf===null) vals.rsf=hoyLocal();
   const btn=document.getElementById('manuales-btn');
   // respaldo para revertir el estado optimista si falla la escritura
   const prev={c1b:state.nuCajita1Base,c1f:state.nuCajita1Fecha,c1t:state.nuCajita1Tasa,
     c2b:state.nuCajita2Base,c2f:state.nuCajita2Fecha,c2t:state.nuCajita2Tasa,
-    ns:state.nuSaldo,ef:state.efectivo,ge:state.efectivoGBM,rp:state.reporto};
+    ns:state.nuSaldo,ef:state.efectivo,ge:state.efectivoGBM,rp:state.reporto,
+    rvm:state.revMXN,rsb:state.revSavingsBase,rsf:state.revSavingsFecha,rst:state.revSavingsTasa,
+    nvs:state.revNvdaShares};
   if(vals.c1b!==null) state.nuCajita1Base=vals.c1b;
   if(vals.c1f!==null) state.nuCajita1Fecha=vals.c1f;
   if(vals.c1t!==null) state.nuCajita1Tasa=vals.c1t;
@@ -987,6 +1176,11 @@ window.guardarManuales = async function() {
   if(vals.ef!==null) state.efectivo=vals.ef;
   if(vals.ge!==null) state.efectivoGBM=vals.ge;
   if(vals.rp!==null) state.reporto=vals.rp;
+  if(vals.rvm!==null) state.revMXN=vals.rvm;
+  if(vals.rsb!==null) state.revSavingsBase=vals.rsb;
+  if(vals.rsf!==null) state.revSavingsFecha=vals.rsf;
+  if(vals.rst!==null) state.revSavingsTasa=vals.rst;
+  if(vals.nvs!==null) state.revNvdaShares=vals.nvs;
   btn.disabled=true;
   try {
     await saveSaldos();
@@ -997,6 +1191,8 @@ window.guardarManuales = async function() {
     state.nuCajita1Base=prev.c1b;state.nuCajita1Fecha=prev.c1f;state.nuCajita1Tasa=prev.c1t;
     state.nuCajita2Base=prev.c2b;state.nuCajita2Fecha=prev.c2f;state.nuCajita2Tasa=prev.c2t;
     state.nuSaldo=prev.ns;state.efectivo=prev.ef;state.efectivoGBM=prev.ge;state.reporto=prev.rp;
+    state.revMXN=prev.rvm;state.revSavingsBase=prev.rsb;state.revSavingsFecha=prev.rsf;state.revSavingsTasa=prev.rst;
+    state.revNvdaShares=prev.nvs;
     setSyncDot('err');
     console.error('guardarManuales',e);
     showToast('ERROR: no se guardo, revisa tu conexion');
@@ -1018,9 +1214,7 @@ window.registrarTarjeta = async function(tipo) {
     if(fuente!=='externo'&&monto>getSaldoCuenta(fuente)+0.01){showToast('saldo insuficiente en '+CUENTAS[fuente]);return;}
   }
   // respaldo para revertir el estado optimista si falla la escritura
-  const prev={efectivo:state.efectivo,nuSaldo:state.nuSaldo,efectivoGBM:state.efectivoGBM,
-    c1b:state.nuCajita1Base,c1f:state.nuCajita1Fecha,c2b:state.nuCajita2Base,c2f:state.nuCajita2Fecha,
-    tarjetaDeuda:state.tarjetaDeuda};
+  const prev={...backupCuentas(),tarjetaDeuda:state.tarjetaDeuda};
   let tr=null;
   if(tipo==='cargo') {
     state.tarjetaDeuda+=monto;
@@ -1050,9 +1244,7 @@ window.registrarTarjeta = async function(tipo) {
     render();renderTransferencias();
     showToast(tipo==='cargo'?'+'+fmt(monto)+' a la tarjeta':'pago de '+fmt(monto)+' registrado');
   }catch(e){
-    state.efectivo=prev.efectivo;state.nuSaldo=prev.nuSaldo;state.efectivoGBM=prev.efectivoGBM;
-    state.nuCajita1Base=prev.c1b;state.nuCajita1Fecha=prev.c1f;
-    state.nuCajita2Base=prev.c2b;state.nuCajita2Fecha=prev.c2f;
+    restoreCuentas(prev);
     state.tarjetaDeuda=prev.tarjetaDeuda;
     state.tarjetaMovimientos.shift();
     if(tr) state.transferencias.splice(state.transferencias.indexOf(tr),1);
@@ -1069,15 +1261,32 @@ function getSaldoCuenta(c) {
   if(c==='cajita1') return calcNu1().saldo;
   if(c==='cajita2') return calcNu2().saldo;
   if(c==='gbm') return state.efectivoGBM;
+  if(c==='revolut') return state.revMXN;
+  if(c==='revSavings') return calcRevSavings().saldo;
   return 0;
 }
+function clampCero(v) { return Math.abs(v)<0.005?0:v; } // al vaciar una cajita no quedan residuos de centavos
 function aplicarDelta(c,d) {
   const hoy=hoyLocal();
   if(c==='efectivo') state.efectivo+=d;
   else if(c==='nu') state.nuSaldo+=d;
-  else if(c==='cajita1'){ state.nuCajita1Base=calcNu1().saldo+d; state.nuCajita1Fecha=hoy; }
-  else if(c==='cajita2'){ state.nuCajita2Base=calcNu2().saldo+d; state.nuCajita2Fecha=hoy; }
+  else if(c==='cajita1'){ state.nuCajita1Base=clampCero(calcNu1().saldo+d); state.nuCajita1Fecha=hoy; }
+  else if(c==='cajita2'){ state.nuCajita2Base=clampCero(calcNu2().saldo+d); state.nuCajita2Fecha=hoy; }
   else if(c==='gbm') state.efectivoGBM+=d;
+  else if(c==='revolut') state.revMXN+=d;
+  else if(c==='revSavings'){ state.revSavingsBase=clampCero(calcRevSavings().saldo+d); state.revSavingsFecha=hoy; }
+}
+// respaldo centralizado de TODAS las cuentas que aplicarDelta puede tocar: cualquier
+// funcion de mutacion lo usa para revertir el estado optimista si falla la escritura
+function backupCuentas() {
+  return {efectivo:state.efectivo,nuSaldo:state.nuSaldo,efectivoGBM:state.efectivoGBM,revMXN:state.revMXN,
+    c1b:state.nuCajita1Base,c1f:state.nuCajita1Fecha,c2b:state.nuCajita2Base,c2f:state.nuCajita2Fecha,
+    rsb:state.revSavingsBase,rsf:state.revSavingsFecha};
+}
+function restoreCuentas(p) {
+  state.efectivo=p.efectivo;state.nuSaldo=p.nuSaldo;state.efectivoGBM=p.efectivoGBM;state.revMXN=p.revMXN;
+  state.nuCajita1Base=p.c1b;state.nuCajita1Fecha=p.c1f;state.nuCajita2Base=p.c2b;state.nuCajita2Fecha=p.c2f;
+  state.revSavingsBase=p.rsb;state.revSavingsFecha=p.rsf;
 }
 window.registrarTransferencia = async function() {
   const btn=document.getElementById('transfer-btn');
@@ -1091,9 +1300,7 @@ window.registrarTransferencia = async function() {
   if(monto>getSaldoCuenta(origen)+0.01){showToast('saldo insuficiente en '+CUENTAS[origen]);return;}
   if(destino==='tarjeta'&&monto>state.tarjetaDeuda+0.01){showToast('el pago excede la deuda de la tarjeta');return;}
   // respaldo para revertir el estado optimista si falla la escritura
-  const prev={efectivo:state.efectivo,nuSaldo:state.nuSaldo,efectivoGBM:state.efectivoGBM,
-    c1b:state.nuCajita1Base,c1f:state.nuCajita1Fecha,c2b:state.nuCajita2Base,c2f:state.nuCajita2Fecha,
-    tarjetaDeuda:state.tarjetaDeuda};
+  const prev={...backupCuentas(),tarjetaDeuda:state.tarjetaDeuda};
   aplicarDelta(origen,-monto);
   if(destino==='tarjeta'){
     state.tarjetaDeuda-=monto; // ya validado arriba que no excede
@@ -1117,9 +1324,7 @@ window.registrarTransferencia = async function() {
     render();renderTransferencias();
     showToast(fmt(monto)+' · '+CUENTAS[origen]+' → '+CUENTAS[destino]);
   }catch(e){
-    state.efectivo=prev.efectivo;state.nuSaldo=prev.nuSaldo;state.efectivoGBM=prev.efectivoGBM;
-    state.nuCajita1Base=prev.c1b;state.nuCajita1Fecha=prev.c1f;
-    state.nuCajita2Base=prev.c2b;state.nuCajita2Fecha=prev.c2f;
+    restoreCuentas(prev);
     state.tarjetaDeuda=prev.tarjetaDeuda;
     if(destino==='tarjeta') state.tarjetaMovimientos.shift();
     state.transferencias.splice(state.transferencias.indexOf(tr),1);
@@ -1132,13 +1337,13 @@ window.eliminarTransferencia = async function(id) {
   const idx=state.transferencias.findIndex(t=>t.id===id); if(idx<0)return;
   const t=state.transferencias[idx];
   if(t.destino==='tarjeta'){showToast('los pagos a tarjeta no se pueden deshacer aqui');return;}
-  // si la transferencia toca una cajita, el interes que ese dinero ya genero no se revierte al deshacer
-  const tocaCajitaTr=t.origen==='cajita1'||t.origen==='cajita2'||t.destino==='cajita1'||t.destino==='cajita2';
+  // si la transferencia toca una cajita/savings, el interes que ese dinero ya genero no se revierte al deshacer
+  const CTAS_INTERES=['cajita1','cajita2','revSavings'];
+  const tocaCajitaTr=CTAS_INTERES.includes(t.origen)||CTAS_INTERES.includes(t.destino);
   if(!confirm('¿Deshacer transferencia de '+fmt(t.monto)+' ('+(CUENTAS[t.origen]||t.origen)+' → '+(CUENTAS[t.destino]||t.destino)+')? El dinero regresa a su cuenta original'+(tocaCajitaTr?' (el rendimiento que ese dinero ya genero no se revierte)':'')))return;
   if(getSaldoCuenta(t.destino)<t.monto-0.01){showToast('no se puede deshacer: ya no hay saldo suficiente en la cuenta destino');return;}
   // respaldo para revertir el estado optimista si falla la escritura
-  const prev={efectivo:state.efectivo,nuSaldo:state.nuSaldo,efectivoGBM:state.efectivoGBM,
-    c1b:state.nuCajita1Base,c1f:state.nuCajita1Fecha,c2b:state.nuCajita2Base,c2f:state.nuCajita2Fecha};
+  const prev=backupCuentas();
   aplicarDelta(t.destino,-t.monto);
   aplicarDelta(t.origen,t.monto);
   state.transferencias.splice(idx,1);
@@ -1151,9 +1356,7 @@ window.eliminarTransferencia = async function(id) {
     render();renderTransferencias();
     showToast('transferencia deshecha');
   }catch(e){
-    state.efectivo=prev.efectivo;state.nuSaldo=prev.nuSaldo;state.efectivoGBM=prev.efectivoGBM;
-    state.nuCajita1Base=prev.c1b;state.nuCajita1Fecha=prev.c1f;
-    state.nuCajita2Base=prev.c2b;state.nuCajita2Fecha=prev.c2f;
+    restoreCuentas(prev);
     state.transferencias.splice(idx,0,t);
     setSyncDot('err');
     console.error('eliminarTransferencia',e);
@@ -1171,23 +1374,21 @@ function renderTransferencias() {
 }
 
 // ── GASTOS ────────────────────────────────────────────────────
-window.registrarGasto = async function() {
-  const btn=document.getElementById('gasto-btn');
-  const cat=document.getElementById('gasto-cat').value;
-  const monto=parseFloat(document.getElementById('gasto-monto').value);
-  const nota=document.getElementById('gasto-nota').value.trim();
-  const fuente=state.fuenteGasto;
-  if(!Number.isFinite(monto)||monto<=0){showToast('ingresa un monto valido');return;}
-  if(!['efectivo','nu','tarjeta'].includes(fuente)){showToast('fuente no valida');return;}
-  // respaldo para revertir el estado optimista si falla la escritura
-  const prev={efectivo:state.efectivo,nuSaldo:state.nuSaldo,tarjetaDeuda:state.tarjetaDeuda};
+// nucleo compartido: lo usan el formulario normal y el registro rapido del movil.
+// Valida, muta, guarda con batch atomico y revierte si falla. Cada formulario
+// limpia sus propios inputs SOLO si esta funcion regresa true.
+async function altaGasto(cat,monto,nota,fuente,btn) {
+  if(!Number.isFinite(monto)||monto<=0){showToast('ingresa un monto valido');return false;}
+  if(!FUENTES_GASTO.includes(fuente)){showToast('fuente no valida');return false;}
+  const prev={...backupCuentas(),tarjetaDeuda:state.tarjetaDeuda};
   let quedoNegativo=false;
   if(fuente==='efectivo'){ state.efectivo-=monto; if(state.efectivo<0) quedoNegativo=true; }
   else if(fuente==='nu'){ state.nuSaldo-=monto; if(state.nuSaldo<0) quedoNegativo=true; }
+  else if(fuente==='revolut'){ state.revMXN-=monto; if(state.revMXN<0) quedoNegativo=true; }
   else if(fuente==='tarjeta') state.tarjetaDeuda+=monto;
   const gasto={cat,monto,nota,fuente,fecha:new Date().toISOString()};
   state.gastos.unshift(gasto);
-  btn.disabled=true;
+  if(btn) btn.disabled=true;
   try{
     // batch atomico: gasto, saldos y tarjeta (si aplica) se guardan juntos o ninguno
     const ref=doc(collection(db,'gastos'));
@@ -1198,16 +1399,27 @@ window.registrarGasto = async function() {
     await batch.commit();
     gasto.id=ref.id;
     setSyncDot('ok');
-    document.getElementById('gasto-monto').value='';document.getElementById('gasto-nota').value='';
     render();renderHistorialGastos();
     showToast(quedoNegativo?('-'+fmt(monto)+' registrado · ojo: SALDO quedo negativo'):('-'+fmt(monto)+' registrado'));
+    return true;
   }catch(e){
-    state.efectivo=prev.efectivo;state.nuSaldo=prev.nuSaldo;state.tarjetaDeuda=prev.tarjetaDeuda;
+    restoreCuentas(prev);
+    state.tarjetaDeuda=prev.tarjetaDeuda;
     state.gastos.splice(state.gastos.indexOf(gasto),1);
     setSyncDot('err');
-    console.error('registrarGasto',e);
+    console.error('altaGasto',e);
     showToast('ERROR: no se guardo, revisa tu conexion');
-  }finally{btn.disabled=false;}
+    return false;
+  }finally{if(btn) btn.disabled=false;}
+}
+window.registrarGasto = async function() {
+  const ok=await altaGasto(
+    document.getElementById('gasto-cat').value,
+    parseFloat(document.getElementById('gasto-monto').value),
+    document.getElementById('gasto-nota').value.trim(),
+    state.fuenteGasto,
+    document.getElementById('gasto-btn'));
+  if(ok){ document.getElementById('gasto-monto').value='';document.getElementById('gasto-nota').value=''; }
 };
 
 window.eliminarGasto = async function(id) {
@@ -1215,9 +1427,10 @@ window.eliminarGasto = async function(id) {
   const g=state.gastos[idx];
   if(!confirm('¿Eliminar gasto de '+fmt(g.monto)+' en '+g.cat+'? El dinero se devuelve a '+(g.fuente==='tarjeta'?'la tarjeta':CUENTAS[g.fuente]||g.fuente)))return;
   // respaldo para revertir el estado optimista si falla la escritura
-  const prev={efectivo:state.efectivo,nuSaldo:state.nuSaldo,tarjetaDeuda:state.tarjetaDeuda};
+  const prev={...backupCuentas(),tarjetaDeuda:state.tarjetaDeuda};
   if(g.fuente==='efectivo') state.efectivo+=g.monto;
   else if(g.fuente==='nu') state.nuSaldo+=g.monto;
+  else if(g.fuente==='revolut') state.revMXN+=g.monto;
   else if(g.fuente==='tarjeta') state.tarjetaDeuda-=g.monto;
   state.gastos.splice(idx,1);
   try{
@@ -1231,7 +1444,8 @@ window.eliminarGasto = async function(id) {
     // no se recorta a 0: si el gasto eliminado deja la tarjeta con saldo a favor, se avisa en vez de ocultarlo
     showToast((g.fuente==='tarjeta'&&state.tarjetaDeuda<0)?'gasto eliminado · ojo: la tarjeta quedo con saldo a favor':'gasto eliminado');
   }catch(e){
-    state.efectivo=prev.efectivo;state.nuSaldo=prev.nuSaldo;state.tarjetaDeuda=prev.tarjetaDeuda;
+    restoreCuentas(prev);
+    state.tarjetaDeuda=prev.tarjetaDeuda;
     state.gastos.splice(idx,0,g);
     setSyncDot('err');
     console.error('eliminarGasto',e);
@@ -1250,22 +1464,18 @@ function renderHistorialGastos() {
 }
 
 // ── INGRESOS ──────────────────────────────────────────────────
-window.registrarIngreso = async function() {
-  const btn=document.getElementById('ingreso-btn');
-  const cat=document.getElementById('ingreso-cat').value;
-  const monto=parseFloat(document.getElementById('ingreso-monto').value);
-  const nota=document.getElementById('ingreso-nota').value.trim();
-  const destino=state.destinoIngreso;
-  if(!Number.isFinite(monto)||monto<=0){showToast('ingresa un monto valido');return;}
-  if(!['efectivo','nu','gbm'].includes(destino)){showToast('destino no valido');return;}
-  // respaldo para revertir el estado optimista si falla la escritura
-  const prev={efectivo:state.efectivo,nuSaldo:state.nuSaldo,efectivoGBM:state.efectivoGBM};
+// nucleo compartido (mismo esquema que altaGasto): formulario normal + registro rapido
+async function altaIngreso(cat,monto,nota,destino,btn) {
+  if(!Number.isFinite(monto)||monto<=0){showToast('ingresa un monto valido');return false;}
+  if(!DESTINOS_INGRESO.includes(destino)){showToast('destino no valido');return false;}
+  const prev=backupCuentas();
   if(destino==='efectivo') state.efectivo+=monto;
   else if(destino==='nu') state.nuSaldo+=monto;
   else if(destino==='gbm') state.efectivoGBM+=monto;
+  else if(destino==='revolut') state.revMXN+=monto;
   const ingreso={cat,monto,nota,destino,fecha:new Date().toISOString()};
   state.ingresos.unshift(ingreso);
-  btn.disabled=true;
+  if(btn) btn.disabled=true;
   try{
     const ref=doc(collection(db,'ingresos'));
     const batch=writeBatch(db);
@@ -1274,16 +1484,48 @@ window.registrarIngreso = async function() {
     await batch.commit();
     ingreso.id=ref.id;
     setSyncDot('ok');
-    document.getElementById('ingreso-monto').value='';document.getElementById('ingreso-nota').value='';
     render();renderHistorialIngresos();
     showToast('+'+fmt(monto)+' ingresado');
+    return true;
   }catch(e){
-    state.efectivo=prev.efectivo;state.nuSaldo=prev.nuSaldo;state.efectivoGBM=prev.efectivoGBM;
+    restoreCuentas(prev);
     state.ingresos.splice(state.ingresos.indexOf(ingreso),1);
     setSyncDot('err');
-    console.error('registrarIngreso',e);
+    console.error('altaIngreso',e);
     showToast('ERROR: no se guardo, revisa tu conexion');
-  }finally{btn.disabled=false;}
+    return false;
+  }finally{if(btn) btn.disabled=false;}
+}
+window.registrarIngreso = async function() {
+  const ok=await altaIngreso(
+    document.getElementById('ingreso-cat').value,
+    parseFloat(document.getElementById('ingreso-monto').value),
+    document.getElementById('ingreso-nota').value.trim(),
+    state.destinoIngreso,
+    document.getElementById('ingreso-btn'));
+  if(ok){ document.getElementById('ingreso-monto').value='';document.getElementById('ingreso-nota').value=''; }
+};
+
+// ── REGISTRO RAPIDO (movil) ───────────────────────────────────
+function renderQuickSelects() {
+  const tipo=document.getElementById('qr-tipo').value;
+  const cats=tipo==='gasto'?state.catsGasto:state.catsIngreso;
+  document.getElementById('qr-cat').innerHTML=cats.map(c=>`<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join('');
+  const cuentas=tipo==='gasto'?FUENTES_GASTO:DESTINOS_INGRESO;
+  document.getElementById('qr-cuenta').innerHTML=cuentas.map(c=>`<option value="${c}">${CUENTAS[c]||c}</option>`).join('');
+  document.getElementById('qr-cuenta-label').textContent=tipo==='gasto'?'pagado con':'entra a';
+}
+window.renderQuickSelects=renderQuickSelects;
+window.registrarRapido = async function() {
+  const tipo=document.getElementById('qr-tipo').value;
+  const monto=parseFloat(document.getElementById('qr-monto').value);
+  const cat=document.getElementById('qr-cat').value;
+  const cuenta=document.getElementById('qr-cuenta').value;
+  const btn=document.getElementById('qr-btn');
+  const ok=tipo==='gasto'
+    ?await altaGasto(cat,monto,'',cuenta,btn)
+    :await altaIngreso(cat,monto,'',cuenta,btn);
+  if(ok) document.getElementById('qr-monto').value='';
 };
 
 window.eliminarIngreso = async function(id) {
@@ -1291,11 +1533,12 @@ window.eliminarIngreso = async function(id) {
   const g=state.ingresos[idx];
   if(!confirm('¿Eliminar ingreso de '+fmt(g.monto)+' ('+g.cat+')? Se resta de '+(CUENTAS[g.destino]||g.destino)))return;
   // respaldo para revertir el estado optimista si falla la escritura
-  const prev={efectivo:state.efectivo,nuSaldo:state.nuSaldo,efectivoGBM:state.efectivoGBM};
+  const prev=backupCuentas();
   let quedoNegativo=false;
   if(g.destino==='efectivo'){ state.efectivo-=g.monto; if(state.efectivo<0) quedoNegativo=true; }
   else if(g.destino==='nu'){ state.nuSaldo-=g.monto; if(state.nuSaldo<0) quedoNegativo=true; }
   else if(g.destino==='gbm'){ state.efectivoGBM-=g.monto; if(state.efectivoGBM<0) quedoNegativo=true; }
+  else if(g.destino==='revolut'){ state.revMXN-=g.monto; if(state.revMXN<0) quedoNegativo=true; }
   state.ingresos.splice(idx,1);
   try{
     const batch=writeBatch(db);
@@ -1306,7 +1549,7 @@ window.eliminarIngreso = async function(id) {
     render();renderHistorialIngresos();
     showToast(quedoNegativo?'ingreso eliminado · ojo: SALDO quedo negativo':'ingreso eliminado');
   }catch(e){
-    state.efectivo=prev.efectivo;state.nuSaldo=prev.nuSaldo;state.efectivoGBM=prev.efectivoGBM;
+    restoreCuentas(prev);
     state.ingresos.splice(idx,0,g);
     setSyncDot('err');
     console.error('eliminarIngreso',e);
@@ -1364,7 +1607,7 @@ window.handlePersonaChange = async function(sel) {
 // debo (yo debo -): me prestaron, ENTRA a mi cuenta
 // pague (pague deuda +): pago lo que debo, SALE de mi cuenta
 const DEUDA_TIPOS={cargo:{deuda:1,cuenta:-1},pago:{deuda:-1,cuenta:1},debo:{deuda:-1,cuenta:1},pague:{deuda:1,cuenta:-1}};
-const DEUDA_CUENTAS=['externo','efectivo','nu','cajita1','cajita2','gbm'];
+const DEUDA_CUENTAS=['externo','efectivo','nu','cajita1','cajita2','gbm','revolut','revSavings'];
 window.registrarDeuda = async function() {
   const btn=document.getElementById('deuda-btn');
   const persona=document.getElementById('deuda-persona').value;
@@ -1380,9 +1623,7 @@ window.registrarDeuda = async function() {
   const ef=DEUDA_TIPOS[tipo];
   if(cuenta!=='externo'&&ef.cuenta<0&&monto>getSaldoCuenta(cuenta)+0.01){showToast('saldo insuficiente en '+CUENTAS[cuenta]);return;}
   // respaldo para revertir el estado optimista si falla la escritura
-  const prev={saldo:state.personas[persona].saldo,
-    efectivo:state.efectivo,nuSaldo:state.nuSaldo,efectivoGBM:state.efectivoGBM,
-    c1b:state.nuCajita1Base,c1f:state.nuCajita1Fecha,c2b:state.nuCajita2Base,c2f:state.nuCajita2Fecha};
+  const prev={...backupCuentas(),saldo:state.personas[persona].saldo};
   state.personas[persona].saldo+=ef.deuda*monto;
   const mov={id:(crypto.randomUUID?crypto.randomUUID():String(Date.now())+Math.random().toString(36).slice(2)),
     subcat,monto,tipo,nota,cuenta,v:2,fecha:new Date().toISOString()};
@@ -1401,11 +1642,9 @@ window.registrarDeuda = async function() {
     render(); // el saldo de la persona afecta el patrimonio neto aunque la cuenta sea externo
     showToast('movimiento registrado');
   }catch(e){
+    restoreCuentas(prev);
     state.personas[persona].saldo=prev.saldo;
     state.personas[persona].movimientos=state.personas[persona].movimientos.filter(m=>m.id!==mov.id);
-    state.efectivo=prev.efectivo;state.nuSaldo=prev.nuSaldo;state.efectivoGBM=prev.efectivoGBM;
-    state.nuCajita1Base=prev.c1b;state.nuCajita1Fecha=prev.c1f;
-    state.nuCajita2Base=prev.c2b;state.nuCajita2Fecha=prev.c2f;
     setSyncDot('err');
     console.error('registrarDeuda',e);
     renderDeudas();
@@ -1454,12 +1693,10 @@ window.eliminarDeuda = async function(personaKey, movId) {
   if(!Number.isFinite(m.monto)||m.monto<=0){showToast('monto no valido');return;}
   // al revertir, el dinero hace el movimiento contrario: si habia entrado, ahora sale
   if(cuenta!=='externo'&&ef.cuenta>0&&m.monto>getSaldoCuenta(cuenta)+0.01){showToast('no se puede deshacer: saldo insuficiente en '+CUENTAS[cuenta]);return;}
-  // si el movimiento toca una cajita, el interes que ese dinero ya genero no se revierte al eliminar
-  const tocaCajitaDeuda=cuenta==='cajita1'||cuenta==='cajita2';
+  // si el movimiento toca una cajita/savings, el interes que ese dinero ya genero no se revierte al eliminar
+  const tocaCajitaDeuda=cuenta==='cajita1'||cuenta==='cajita2'||cuenta==='revSavings';
   if(!confirm('¿Eliminar movimiento de '+fmt(m.monto)+' ('+m.subcat+')? Se revierte el saldo de '+p.nombre+(cuenta!=='externo'?' y el dinero en '+CUENTAS[cuenta]:'')+(tocaCajitaDeuda?' (el rendimiento que ese dinero ya genero no se revierte)':'')))return;
-  const prev={saldo:p.saldo,
-    efectivo:state.efectivo,nuSaldo:state.nuSaldo,efectivoGBM:state.efectivoGBM,
-    c1b:state.nuCajita1Base,c1f:state.nuCajita1Fecha,c2b:state.nuCajita2Base,c2f:state.nuCajita2Fecha};
+  const prev={...backupCuentas(),saldo:p.saldo};
   p.saldo-=ef.deuda*m.monto;
   p.movimientos.splice(idx,1);
   if(cuenta!=='externo') aplicarDelta(cuenta,-ef.cuenta*m.monto);
@@ -1473,11 +1710,9 @@ window.eliminarDeuda = async function(personaKey, movId) {
     renderDeudas(); render();
     showToast('movimiento eliminado');
   }catch(e){
+    restoreCuentas(prev);
     p.saldo=prev.saldo;
     p.movimientos.splice(idx,0,m);
-    state.efectivo=prev.efectivo;state.nuSaldo=prev.nuSaldo;state.efectivoGBM=prev.efectivoGBM;
-    state.nuCajita1Base=prev.c1b;state.nuCajita1Fecha=prev.c1f;
-    state.nuCajita2Base=prev.c2b;state.nuCajita2Fecha=prev.c2f;
     setSyncDot('err');console.error('eliminarDeuda',e);
     renderDeudas();
     showToast('ERROR: no se guardo, revisa tu conexion');
@@ -1537,8 +1772,8 @@ function chartBlock(chartId,data,color,deltaLabel) {
 <div class="chart-wrap"><svg viewBox="0 0 ${w} ${h}" style="width:100%;height:auto;display:block">
 <polygon points="${pad},${h-pad} ${pts} ${w-pad},${h-pad}" fill="${color}" opacity="0.08"/>
 <polyline points="${pts}" fill="none" stroke="${color}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
-<line class="tip-line" x1="0" x2="0" y1="${pad}" y2="${h-pad}" stroke="rgba(255,255,255,0.3)" stroke-width="1" visibility="hidden"/>
-<circle class="tip-dot" r="3.5" fill="${color}" stroke="#0a0a0a" stroke-width="1.5" visibility="hidden"/>
+<line class="tip-line" x1="0" x2="0" y1="${pad}" y2="${h-pad}" stroke="rgba(15,23,42,0.35)" stroke-width="1" visibility="hidden"/>
+<circle class="tip-dot" r="3.5" fill="${color}" stroke="#ffffff" stroke-width="1.5" visibility="hidden"/>
 </svg><div class="chart-tip"></div></div>
 <div class="chart-dates"><span>${fd(minX)}</span><span>${fd(maxX)}</span></div>`;
 }
@@ -1547,9 +1782,9 @@ window.setChartRango=(chartId,r)=>{ chartRangoSel[chartId]=r; renderChart(chartI
 
 function renderChart(chartId) {
   if(chartId==='gbm-chart')
-    document.getElementById('gbm-chart').innerHTML=chartBlock('gbm-chart',(state.ivvHistory||[]).map(p=>({x:parseFechaLocal(p.t).getTime(),y:p.c*TITULOS})),'#34d399');
+    document.getElementById('gbm-chart').innerHTML=chartBlock('gbm-chart',(state.ivvHistory||[]).map(p=>({x:parseFechaLocal(p.t).getTime(),y:p.c*TITULOS})),'#059669');
   else
-    document.getElementById('patrimonio-chart').innerHTML=chartBlock('patrimonio-chart',(state.snapshots||[]).map(s=>({x:parseFechaLocal(s.f).getTime(),y:s.total})),'#a78bfa','cambio');
+    document.getElementById('patrimonio-chart').innerHTML=chartBlock('patrimonio-chart',(state.snapshots||[]).map(s=>({x:parseFechaLocal(s.f).getTime(),y:s.total})),'#2563eb','cambio');
 }
 
 // interaccion: cursor/tap sobre la grafica muestra fecha y valor del punto mas cercano
@@ -1593,7 +1828,8 @@ function initChartInteraccion(contId) {
 }
 
 // ── RESUMEN ───────────────────────────────────────────────────
-const PIE_COLORS=['#a78bfa','#34d399','#f87171','#fbbf24','#60a5fa','#f472b6','#4ade80','#fb923c','#22d3ee','#c084fc','#facc15','#94a3b8','#fda4af'];
+// paleta ajustada a fondo claro (tonos fuertes, distinguibles sobre blanco)
+const PIE_COLORS=['#2563eb','#059669','#dc2626','#d97706','#0ea5e9','#db2777','#16a34a','#ea580c','#0891b2','#7c3aed','#ca8a04','#64748b','#e11d48'];
 function pieChart(entries) {
   // entries: [[categoria, monto], ...] ordenado desc
   const total=entries.reduce((s,e)=>s+e[1],0);
@@ -1672,22 +1908,26 @@ function renderRendimientos(start, end, balance) {
   // si el periodo termina antes de la fecha base de la cajita, no hay rendimiento que calcular (no "sin datos" con +$0.00)
   const c1FechaValida=state.nuCajita1Fecha&&!isNaN(parseFechaLocal(state.nuCajita1Fecha).getTime());
   const c2FechaValida=state.nuCajita2Fecha&&!isNaN(parseFechaLocal(state.nuCajita2Fecha).getTime());
+  const rsFechaValida=state.revSavingsFecha&&!isNaN(parseFechaLocal(state.revSavingsFecha).getTime());
   const sinDatosC1=c1FechaValida&&endC.getTime()<=parseFechaLocal(state.nuCajita1Fecha).getTime();
   const sinDatosC2=c2FechaValida&&endC.getTime()<=parseFechaLocal(state.nuCajita2Fecha).getTime();
+  const sinDatosRS=rsFechaValida&&endC.getTime()<=parseFechaLocal(state.revSavingsFecha).getTime();
   const rend1=(!sinDatosC1&&dias>0)?Math.max(0,calcNu1At(endC.getTime())-calcNu1At(start.getTime())):0;
   const rend2=(!sinDatosC2&&dias>0)?Math.max(0,calcNu2At(endC.getTime())-calcNu2At(start.getTime())):0;
+  const rendRS=(!sinDatosRS&&dias>0)?Math.max(0,calcRevSavingsAt(endC.getTime())-calcRevSavingsAt(start.getTime())):0;
   // si la fecha base de la cajita cae DENTRO del periodo, el rendimiento calculado
   // solo cubre desde esa fecha, no el periodo completo: se etiqueta como parcial
   const fd=d=>d.toLocaleDateString('es-MX',{day:'numeric',month:'short'});
   const parcialC1=c1FechaValida&&!sinDatosC1&&start.getTime()<parseFechaLocal(state.nuCajita1Fecha).getTime()&&parseFechaLocal(state.nuCajita1Fecha).getTime()<endC.getTime();
   const parcialC2=c2FechaValida&&!sinDatosC2&&start.getTime()<parseFechaLocal(state.nuCajita2Fecha).getTime()&&parseFechaLocal(state.nuCajita2Fecha).getTime()<endC.getTime();
+  const parcialRS=rsFechaValida&&!sinDatosRS&&start.getTime()<parseFechaLocal(state.revSavingsFecha).getTime()&&parseFechaLocal(state.revSavingsFecha).getTime()<endC.getTime();
   // GBM: base = ultimo cierre ANTES del inicio del periodo (estrictamente <), fin = ultimo
   // cierre < fin del periodo (asi un periodo de un solo dia muestra su variacion)
   const hist=(state.ivvHistory||[]).slice().sort((a,b)=>a.t.localeCompare(b.t));
   const baseP=hist.filter(p=>parseFechaLocal(p.t)<start).pop();
   const finP=hist.filter(p=>parseFechaLocal(p.t)<end).pop();
   const rendG=(baseP&&finP&&finP.t>baseP.t)?(finP.c-baseP.c)*TITULOS:null;
-  const rendTotal=rend1+rend2+(rendG||0);
+  const rendTotal=rend1+rend2+rendRS+(rendG||0);
   const real=balance+rendTotal;
   const sgn=(v,cls)=>`<span class="${v>=0?'item-amt-pos':'item-amt-neg'}"${cls?' style="font-size:15px"':''}>${v>=0?'+':'−'}${fmt(Math.abs(v))}</span>`;
   const rowC1=sinDatosC1
@@ -1696,8 +1936,11 @@ function renderRendimientos(start, end, balance) {
   const rowC2=sinDatosC2
     ?`<div class="item-row"><div><div class="item-cat">NU cajita 2</div><div class="item-meta">sin datos anteriores a la fecha base</div></div><span class="item-meta">—</span></div>`
     :`<div class="item-row"><div><div class="item-cat">NU cajita 2</div><div class="item-meta">${(state.nuCajita2Tasa||0)}% anual${parcialC2?' · desde el '+fd(parseFechaLocal(state.nuCajita2Fecha))+' (parcial)':' compuesto'}</div></div>${sgn(rend2)}</div>`;
+  const rowRS=sinDatosRS
+    ?`<div class="item-row"><div><div class="item-cat">Revolut Savings</div><div class="item-meta">sin datos anteriores a la fecha base</div></div><span class="item-meta">—</span></div>`
+    :`<div class="item-row"><div><div class="item-cat">Revolut Savings</div><div class="item-meta">${(state.revSavingsTasa||0)}% anual${parcialRS?' · desde el '+fd(parseFechaLocal(state.revSavingsFecha))+' (parcial)':' compuesto'}</div></div>${sgn(rendRS)}</div>`;
   document.getElementById('res-rendimientos').innerHTML=
-    rowC1+rowC2+
+    rowC1+rowC2+rowRS+
     `<div class="item-row"><div><div class="item-cat">GBM · IVVPESO</div><div class="item-meta">${rendG===null?'sin datos de este periodo':'variacion de tus 45 titulos'}</div></div>${rendG===null?'<span class="item-meta">—</span>':sgn(rendG)}</div>`+
     `<div class="item-row"><div class="item-cat" style="font-weight:600">total rendimientos</div>${sgn(rendTotal,1)}</div>`+
     `<div class="item-row"><div><div class="item-cat" style="font-weight:600">balance real del periodo</div><div class="item-meta">ingresos − gastos + rendimientos</div></div>${sgn(real,1)}</div>`;
@@ -1719,34 +1962,86 @@ function renderGBMResumen() {
 }
 window.cambiarMes=d=>{state.mesOffset+=d;renderResumen();};
 
-// ── GBM ───────────────────────────────────────────────────────
-async function fetchIVVPESO() {
-  const url='https://query1.finance.yahoo.com/v8/finance/chart/IVVPESO.MX?interval=1d&range=6mo';
+// ── COTIZACIONES (Yahoo Finance) ──────────────────────────────
+// helper unico: baja la serie diaria de un simbolo con validacion completa
+// (HTTP, JSON del proxy, chart.error, timestamps y precios finitos positivos)
+async function fetchYahooSeries(symbol) {
+  const url=`https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?interval=1d&range=6mo`;
   const proxies=[u=>`https://api.allorigins.win/get?url=${encodeURIComponent(u)}`,u=>`https://corsproxy.io/?${encodeURIComponent(u)}`];
-  // respaldo: si el guardado falla en todos los proxies, se restaura el estado previo
-  // (evita dejar en memoria un precio "en vivo" que nunca se sincronizo con otros dispositivos)
-  const prevPrecio=state.ivvPrecio, prevVar=state.ivvVar, prevHistory=state.ivvHistory;
   for(const proxy of proxies){
     try{
-      const r=await fetch(proxy(url),{signal:AbortSignal.timeout(15000)}); const outer=await r.json();
+      const r=await fetch(proxy(url),{signal:AbortSignal.timeout(15000)});
+      if(!r.ok) continue;
+      const outer=await r.json();
       const raw=typeof outer.contents==='string'?outer.contents:JSON.stringify(outer);
-      const d=JSON.parse(raw); const res=d.chart.result[0];
-      const ts=res.timestamp||[], closes=res.indicators.quote[0].close||[];
+      const d=JSON.parse(raw);
+      if(!d.chart||d.chart.error||!Array.isArray(d.chart.result)||!d.chart.result[0]) continue;
+      const res=d.chart.result[0];
+      const ts=res.timestamp||[];
+      const closes=(res.indicators&&res.indicators.quote&&res.indicators.quote[0]&&res.indicators.quote[0].close)||[];
       const hist=[];
-      for(let i=0;i<ts.length;i++){ if(closes[i]!=null) hist.push({t:new Date(ts[i]*1000).toISOString().split('T')[0], c:+closes[i].toFixed(2)}); }
-      if(!hist.length) continue;
-      state.ivvHistory=hist;
-      state.ivvPrecio=hist[hist.length-1].c;
-      state.ivvVar=hist.length>=2?((hist[hist.length-1].c-hist[hist.length-2].c)/hist[hist.length-2].c)*100:null;
-      // solo se escribe el precio/variacion/historial IVV (merge), nunca el resto de saldosPayload():
-      // otro dispositivo pudo haber guardado saldos mas recientes que aqui no se cargaron
-      await setDoc(doc(db,'cartera','saldos'), {ivvPrecio:state.ivvPrecio, ivvVar:state.ivvVar, ivvHistory:state.ivvHistory}, {merge:true});
-      setSyncDot('ok');
-      return true;
-    }catch(e){ console.error('fetchIVVPESO',e); }
+      for(let i=0;i<ts.length;i++){ if(Number.isFinite(closes[i])&&closes[i]>0) hist.push({t:new Date(ts[i]*1000).toISOString().split('T')[0], c:closes[i]}); }
+      if(hist.length) return hist;
+    }catch(e){ console.error('fetchYahooSeries '+symbol,e); }
   }
-  state.ivvPrecio=prevPrecio; state.ivvVar=prevVar; state.ivvHistory=prevHistory;
-  return false;
+  return null;
+}
+
+async function fetchIVVPESO() {
+  // respaldo: si falla el guardado se restaura el estado previo (no dejar en memoria
+  // un precio "en vivo" que nunca se sincronizo con otros dispositivos)
+  const prevPrecio=state.ivvPrecio, prevVar=state.ivvVar, prevHistory=state.ivvHistory;
+  const serie=await fetchYahooSeries('IVVPESO.MX');
+  if(!serie) return false;
+  const hist=serie.map(p=>({t:p.t,c:+p.c.toFixed(2)}));
+  state.ivvHistory=hist;
+  state.ivvPrecio=hist[hist.length-1].c;
+  state.ivvVar=hist.length>=2?((hist[hist.length-1].c-hist[hist.length-2].c)/hist[hist.length-2].c)*100:null;
+  try{
+    // cotizaciones SOLO al doc cartera/mercado (merge): nunca pisan saldos y viceversa
+    await setDoc(doc(db,'cartera','mercado'), {ivvPrecio:state.ivvPrecio, ivvVar:state.ivvVar, ivvHistory:state.ivvHistory}, {merge:true});
+    setSyncDot('ok');
+    return true;
+  }catch(e){
+    console.error('fetchIVVPESO save',e);
+    state.ivvPrecio=prevPrecio; state.ivvVar=prevVar; state.ivvHistory=prevHistory;
+    return false;
+  }
+}
+
+// NVDA (USD) + tipo de cambio USD/MXN: cada serie con su propio cierre previo y fecha
+// de mercado; si solo una pata llega, se guarda esa y el valor queda parcialmente viejo
+async function fetchNVDA() {
+  if(!(state.revNvdaShares>0)) return true; // sin posicion: no gastar cuota de los proxies
+  // respaldo: si el guardado falla, la memoria vuelve al ultimo estado sincronizado
+  const prev={nvdaPrecio:state.nvdaPrecio,nvdaPrev:state.nvdaPrev,nvdaFecha:state.nvdaFecha,
+    usdMxn:state.usdMxn,usdMxnPrev:state.usdMxnPrev,usdMxnFecha:state.usdMxnFecha};
+  const [nv,fx]=await Promise.allSettled([fetchYahooSeries('NVDA'),fetchYahooSeries('MXN=X')]);
+  const nvS=nv.status==='fulfilled'?nv.value:null;
+  const fxS=fx.status==='fulfilled'?fx.value:null;
+  const cambios={};
+  if(nvS&&nvS.length){
+    state.nvdaPrecio=nvS[nvS.length-1].c;
+    state.nvdaPrev=nvS.length>=2?nvS[nvS.length-2].c:null;
+    state.nvdaFecha=nvS[nvS.length-1].t;
+    cambios.nvdaPrecio=state.nvdaPrecio; cambios.nvdaPrev=state.nvdaPrev; cambios.nvdaFecha=state.nvdaFecha;
+  }
+  if(fxS&&fxS.length){
+    state.usdMxn=fxS[fxS.length-1].c;
+    state.usdMxnPrev=fxS.length>=2?fxS[fxS.length-2].c:null;
+    state.usdMxnFecha=fxS[fxS.length-1].t;
+    cambios.usdMxn=state.usdMxn; cambios.usdMxnPrev=state.usdMxnPrev; cambios.usdMxnFecha=state.usdMxnFecha;
+  }
+  if(!Object.keys(cambios).length) return false;
+  try{
+    await setDoc(doc(db,'cartera','mercado'), cambios, {merge:true});
+  }catch(e){
+    console.error('fetchNVDA save',e);
+    state.nvdaPrecio=prev.nvdaPrecio;state.nvdaPrev=prev.nvdaPrev;state.nvdaFecha=prev.nvdaFecha;
+    state.usdMxn=prev.usdMxn;state.usdMxnPrev=prev.usdMxnPrev;state.usdMxnFecha=prev.usdMxnFecha;
+    return false;
+  }
+  return !!(nvS&&fxS);
 }
 
 window.fetchAll = async function() {
@@ -1758,10 +2053,15 @@ window.fetchAll = async function() {
   document.getElementById('status-inicio').textContent='actualizando...';
   try{
     // nota: no se recarga loadFromFirebase aqui — sobreescribiria el estado en memoria
-    // mientras el usuario registra algo (carrera); el merge:true de fetchIVVPESO ya evita
-    // pisar saldos de otros dispositivos
-    const ok=await fetchIVVPESO();
-    document.getElementById('status-inicio').textContent=ok?'precio en vivo · IVVPESO':'usando ultimo precio guardado';
+    // mientras el usuario registra algo (carrera); las cotizaciones van a su propio doc
+    const [rIvv,rNvda]=await Promise.allSettled([fetchIVVPESO(),fetchNVDA()]);
+    const okIvv=rIvv.status==='fulfilled'&&rIvv.value;
+    const okNvda=rNvda.status==='fulfilled'&&rNvda.value;
+    document.getElementById('status-inicio').textContent=
+      okIvv&&okNvda?'precios en vivo · IVVPESO + NVDA'
+      :okIvv?'IVVPESO en vivo · NVDA con ultimo precio'
+      :okNvda?'NVDA en vivo · IVVPESO con ultimo precio'
+      :'usando ultimos precios guardados';
     render();
     renderTransferencias();
     if(document.getElementById('page-gastos').classList.contains('active')) renderHistorialGastos();
