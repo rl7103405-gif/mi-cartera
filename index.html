@@ -117,7 +117,7 @@ nav{position:sticky;top:0;z-index:100;background:rgba(255,255,255,0.88);backdrop
 .btn-green{background:rgba(29,125,85,0.08);border-color:var(--green);color:var(--green)}
 .btn-red{background:rgba(192,74,58,0.07);border-color:var(--red);color:var(--red)}
 .type-toggle{display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap}
-.type-opt{flex:1;min-width:calc(33% - 4px);padding:8px 4px;background:var(--bg3);border:0.5px solid var(--border);border-radius:var(--rs);color:var(--muted);font-size:12px;cursor:pointer;text-align:center}
+.type-opt{flex:1;min-width:calc(33% - 4px);padding:8px 4px;background:var(--bg3);border:0.5px solid var(--border);border-radius:var(--rs);color:var(--muted);font-size:12px;cursor:pointer;text-align:center;font-family:inherit}
 .type-opt.active{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600;box-shadow:0 3px 10px rgba(28,92,63,0.28)}
 
 /* ITEMS */
@@ -211,6 +211,7 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
   #quick-register{display:none}
   .page{max-width:560px}
   #page-inicio{max-width:1060px}
+  #page-movimientos{max-width:1060px}
   #page-resumen{max-width:1080px}
   nav,.tabs{padding-left:32px;padding-right:32px}
   .hero-grid{display:grid;grid-template-columns:1fr 1.1fr;gap:0 24px;align-items:center;margin-bottom:8px}
@@ -247,16 +248,19 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
   <div class="logo">mi <span>cartera</span></div>
   <div class="nav-right">
     <div class="sync-dot" id="sync-dot"></div>
+    <button class="logout-btn" id="privado-btn" onclick="togglePrivado()" aria-pressed="false" title="ocultar montos" aria-label="ocultar montos" style="font-size:16px;line-height:1">
+      <svg id="ojo-abierto" width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-6.5 10-6.5S22 12 22 12s-3.5 6.5-10 6.5S2 12 2 12Z"/><circle cx="12" cy="12" r="2.8"/></svg>
+      <svg id="ojo-cerrado" width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="display:none"><path d="M2 12s3.5-6.5 10-6.5S22 12 22 12s-3.5 6.5-10 6.5S2 12 2 12Z"/><path d="M4 4l16 16"/></svg>
+    </button>
     <button class="refresh-btn" onclick="fetchAll()"><span class="spin" id="spin-icon">&#8635;</span> actualizar</button>
     <button class="logout-btn" onclick="doLogout()">salir</button>
   </div>
 </nav>
 <div class="tabs">
-  <div class="tab active" onclick="showPage('inicio')">inicio</div>
-  <div class="tab" onclick="showPage('gastos')">gastos</div>
-  <div class="tab" onclick="showPage('ingresos')">ingresos</div>
-  <div class="tab" onclick="showPage('deudas')">deudas</div>
-  <div class="tab" onclick="showPage('resumen')">resumen</div>
+  <div class="tab active" data-page="inicio" onclick="showPage('inicio')">inicio</div>
+  <div class="tab" data-page="movimientos" onclick="showPage('movimientos')">movimientos</div>
+  <div class="tab" data-page="deudas" onclick="showPage('deudas')">deudas</div>
+  <div class="tab" data-page="resumen" onclick="showPage('resumen')">resumen</div>
 </div>
 
 <!-- INICIO -->
@@ -472,13 +476,20 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
   </div>
   </div>
   <div class="status" id="status-inicio">—</div>
-  <div class="status" style="margin-top:2px;padding-bottom:8px">version 2026-07-24.2</div>
+  <div class="status" style="margin-top:2px;padding-bottom:8px">version 2026-07-24.3</div>
 </div>
 
-<!-- GASTOS -->
-<div class="page" id="page-gastos">
+<!-- MOVIMIENTOS (gastos + ingresos en una sola pestana) -->
+<div class="page" id="page-movimientos">
   <div class="mt">
-    <div class="section-title">registrar gasto</div>
+  <div class="inicio-grid">
+  <div class="sec">
+    <div class="section-title">registrar movimiento</div>
+    <div class="type-toggle" id="mov-tipo-toggle">
+      <button type="button" class="type-opt active" id="mov-tipo-gasto" aria-pressed="true" onclick="setMovTipo('gasto')">gasto</button>
+      <button type="button" class="type-opt" id="mov-tipo-ingreso" aria-pressed="false" onclick="setMovTipo('ingreso')">ingreso</button>
+    </div>
+    <div id="form-gasto-wrap">
     <div class="panel">
       <div class="field"><label>categoria</label>
         <select id="gasto-cat" onchange="handleCatChange('gasto',this)"></select>
@@ -495,15 +506,8 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
       </div>
       <button class="btn btn-purple" id="gasto-btn" onclick="registrarGasto()">registrar gasto</button>
     </div>
-    <div class="section-title">historial</div>
-    <div class="panel" id="historial-container"><div class="empty-state">sin gastos registrados</div></div>
-  </div>
-</div>
-
-<!-- INGRESOS -->
-<div class="page" id="page-ingresos">
-  <div class="mt">
-    <div class="section-title">registrar ingreso</div>
+    </div>
+    <div id="form-ingreso-wrap" hidden>
     <div class="panel">
       <div class="field"><label>categoria</label>
         <select id="ingreso-cat" onchange="handleCatChange('ingreso',this)"></select>
@@ -520,8 +524,13 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
       </div>
       <button class="btn btn-green" id="ingreso-btn" onclick="registrarIngreso()">registrar ingreso</button>
     </div>
-    <div class="section-title">historial</div>
-    <div class="panel" id="ingresos-historial"><div class="empty-state">sin ingresos registrados</div></div>
+    </div>
+  </div>
+  <div class="sec">
+    <div class="section-title">movimientos</div>
+    <div class="panel" id="movimientos-historial"><div class="empty-state">sin movimientos registrados</div></div>
+  </div>
+  </div>
   </div>
 </div>
 
@@ -659,7 +668,11 @@ const CATS_GASTO_DEFAULT = ['Comida','Transporte','Salidas','Zoe','Ropa','Salud'
 const CATS_INGRESO_DEFAULT = ['Trabajo','Quini','Maicitos','Brownies','Regalos','Deudas cobradas','Inversiones','Otros'];
 const MESES = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
 
+// modo privado: oculta todos los montos (para ensenar la pantalla sin ensenar el dinero)
+let modoPrivado=false;
+try { modoPrivado = localStorage.getItem('modoPrivado')==='1'; } catch(e) {}
 function fmt(n) {
+  if (modoPrivado) return '$ ····';
   if (n === null || n === undefined || isNaN(n)) return '$—';
   return '$' + Number(n).toLocaleString('es-MX', {minimumFractionDigits:2, maximumFractionDigits:2});
 }
@@ -717,7 +730,7 @@ onAuthStateChanged(auth, async user => {
     renderPersonaSelect();
     renderQuickSelects();
     render();
-    renderHistorialGastos();
+    renderMovimientos();
     renderTransferencias();
     fetchAll();
   } else {
@@ -997,13 +1010,37 @@ window.handleCatChange = async function(tipo, sel) {
 // ── NAVIGATION ────────────────────────────────────────────────
 window.showPage = function(p) {
   document.querySelectorAll('.page').forEach(el => el.classList.remove('active'));
-  document.querySelectorAll('.tab').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(el => el.classList.toggle('active', el.dataset.page===p));
   document.getElementById('page-'+p).classList.add('active');
-  ['inicio','gastos','ingresos','deudas','resumen'].forEach((t,i) => { if(t===p) document.querySelectorAll('.tab')[i].classList.add('active'); });
   if(p==='resumen') renderResumen();
-  if(p==='gastos') renderHistorialGastos();
-  if(p==='ingresos') renderHistorialIngresos();
+  if(p==='movimientos') renderMovimientos();
   if(p==='deudas') renderDeudas();
+};
+window.togglePrivado = function() {
+  modoPrivado=!modoPrivado;
+  try{ localStorage.setItem('modoPrivado',modoPrivado?'1':'0'); }catch(e){}
+  actualizarOjo();
+  if(datosCargados) rerenderTodo();
+};
+function actualizarOjo() {
+  document.getElementById('ojo-abierto').style.display=modoPrivado?'none':'block';
+  document.getElementById('ojo-cerrado').style.display=modoPrivado?'block':'none';
+  const b=document.getElementById('privado-btn');
+  b.setAttribute('aria-pressed',String(modoPrivado));
+  b.title=modoPrivado?'mostrar montos':'ocultar montos';
+  b.setAttribute('aria-label',b.title);
+}
+// re-renderiza TODAS las paginas (tambien las inactivas, para no dejar montos viejos en el DOM)
+function rerenderTodo() {
+  render(); renderTransferencias(); renderMovimientos(); renderDeudas(); renderResumen();
+}
+window.setMovTipo = t => {
+  document.getElementById('form-gasto-wrap').hidden = t!=='gasto';
+  document.getElementById('form-ingreso-wrap').hidden = t!=='ingreso';
+  document.getElementById('mov-tipo-gasto').classList.toggle('active', t==='gasto');
+  document.getElementById('mov-tipo-gasto').setAttribute('aria-pressed', t==='gasto');
+  document.getElementById('mov-tipo-ingreso').classList.toggle('active', t==='ingreso');
+  document.getElementById('mov-tipo-ingreso').setAttribute('aria-pressed', t==='ingreso');
 };
 window.setFuente = f => { state.fuenteGasto=f; document.querySelectorAll('#gasto-fuente-toggle .type-opt').forEach((el,i)=>el.classList.toggle('active',['efectivo','nu','tarjeta','revolut'][i]===f)); };
 window.setDestinoIngreso = f => { state.destinoIngreso=f; document.querySelectorAll('#ingreso-destino-toggle .type-opt').forEach((el,i)=>el.classList.toggle('active',['efectivo','nu','gbm','revolut'][i]===f)); };
@@ -1058,7 +1095,7 @@ function render() {
   const nu1=calcNu1();
   document.getElementById('nu-cajita1-display').textContent=fmt(nu1.saldo);
   document.getElementById('nu1-sub').textContent=(state.nuCajita1Tasa||0)+'% anual';
-  document.getElementById('nu1-rend').textContent=nu1.rend>0?'+'+fmt(nu1.rend):'$0.00';
+  document.getElementById('nu1-rend').textContent=nu1.rend>0?'+'+fmt(nu1.rend):fmt(0);
   document.getElementById('nu1-base-val').textContent=fmt(state.nuCajita1Base);
   document.getElementById('nu1-rend-val').textContent='+'+fmt(nu1.rend);
   document.getElementById('nu-saldo-display').textContent=fmt(state.nuSaldo);
@@ -1069,16 +1106,17 @@ function render() {
   const rs=calcRevSavings();
   document.getElementById('rev-savings-display').textContent=fmt(rs.saldo);
   document.getElementById('rev-savings-sub').textContent=(state.revSavingsTasa||0)+'% anual · interes diario';
-  document.getElementById('rev-savings-rend').textContent=rs.rend>0?'+'+fmt(rs.rend):'$0.00';
+  document.getElementById('rev-savings-rend').textContent=rs.rend>0?'+'+fmt(rs.rend):fmt(0);
   document.getElementById('rev-savings-base-val').textContent=fmt(state.revSavingsBase);
   document.getElementById('rev-savings-rend-val').textContent='+'+fmt(rs.rend);
   // NVDA: valor en pesos = acciones x precio USD x tipo de cambio (cotizaciones de cartera/mercado)
   const nvdaOk=state.revNvdaShares>0&&Number.isFinite(state.nvdaPrecio)&&Number.isFinite(state.usdMxn);
   const nvdaVal=nvdaOk?state.revNvdaShares*state.nvdaPrecio*state.usdMxn:0;
   document.getElementById('rev-stocks-display').textContent=nvdaOk?fmt(nvdaVal):(state.revNvdaShares>0?'$—':fmt(0));
-  document.getElementById('rev-stocks-sub').textContent=state.revNvdaShares>0
+  // en modo privado tampoco se muestra la posicion (con las acciones y el precio publico se reconstruye el monto)
+  document.getElementById('rev-stocks-sub').textContent=modoPrivado?'NVDA · posicion oculta':(state.revNvdaShares>0
     ?(state.revNvdaShares+' NVDA'+(Number.isFinite(state.nvdaPrecio)?' · US$'+state.nvdaPrecio.toFixed(2):'')+(Number.isFinite(state.usdMxn)?' · $'+state.usdMxn.toFixed(2)+'/USD':''))
-    :'sin posicion — captura tus acciones';
+    :'sin posicion — captura tus acciones');
   const fechasNvda=[state.nvdaFecha,state.usdMxnFecha].filter(Boolean);
   document.getElementById('rev-stocks-fecha-val').textContent=fechasNvda.length?fechasNvda.sort()[0]:'—';
   const nvdaVarEl=document.getElementById('rev-stocks-var');
@@ -1109,7 +1147,7 @@ function render() {
   document.getElementById('gbm-precio-val').textContent=fmt(state.ivvPrecio);
   document.getElementById('gbm-reporto-val').textContent=fmt(state.reporto);
   document.getElementById('gbm-efec-val').textContent=fmt(state.efectivoGBM);
-  document.getElementById('gbm-sub').textContent='IVVPESO · $'+state.ivvPrecio.toFixed(2)+' /titulo';
+  document.getElementById('gbm-sub').textContent=modoPrivado?'IVVPESO · posicion oculta':('IVVPESO · $'+state.ivvPrecio.toFixed(2)+' /titulo');
   if(state.ivvVar!==null){
     const varEl=document.getElementById('gbm-var');
     varEl.textContent=(state.ivvVar>=0?'+':'')+state.ivvVar.toFixed(2)+'% hoy';
@@ -1434,7 +1472,7 @@ async function altaGasto(cat,monto,nota,fuente,btn) {
     await batch.commit();
     gasto.id=ref.id;
     setSyncDot('ok');
-    render();renderHistorialGastos();
+    render();renderMovimientos();
     showToast(quedoNegativo?('-'+fmt(monto)+' registrado · ojo: SALDO quedo negativo'):('-'+fmt(monto)+' registrado'));
     return true;
   }catch(e){
@@ -1475,7 +1513,7 @@ window.eliminarGasto = async function(id) {
     if(g.fuente==='tarjeta') batch.set(doc(db,'cartera','tarjeta'),{deuda:state.tarjetaDeuda,movimientos:state.tarjetaMovimientos});
     await batch.commit();
     setSyncDot('ok');
-    render();renderHistorialGastos();
+    render();renderMovimientos();
     // no se recorta a 0: si el gasto eliminado deja la tarjeta con saldo a favor, se avisa en vez de ocultarlo
     showToast((g.fuente==='tarjeta'&&state.tarjetaDeuda<0)?'gasto eliminado · ojo: la tarjeta quedo con saldo a favor':'gasto eliminado');
   }catch(e){
@@ -1488,13 +1526,24 @@ window.eliminarGasto = async function(id) {
   }
 };
 
-function renderHistorialGastos() {
-  const c=document.getElementById('historial-container');
-  if(!state.gastos.length){c.innerHTML='<div class="empty-state">sin gastos registrados</div>';return;}
-  c.innerHTML=state.gastos.slice(0,50).map(item=>{
-    const fecha=new Date(item.fecha).toLocaleDateString('es-MX',{day:'numeric',month:'short'});
-    const del=item.id?`<button class="del-btn" onclick="eliminarGasto('${item.id}')">&times;</button>`:'';
-    return`<div class="item-row"><div><div class="item-cat">${escapeHtml(item.cat)}</div><div class="item-meta">${escapeHtml(item.nota||'')} · ${fecha} · ${item.fuente}</div></div><div style="display:flex;align-items:center"><div class="item-amt-neg">-${fmt(item.monto)}</div>${del}</div></div>`;
+// historial combinado de gastos e ingresos, ordenado por fecha (los dos tipos juntos)
+function renderMovimientos() {
+  const c=document.getElementById('movimientos-historial');
+  if(!c) return;
+  const todos=[
+    ...state.gastos.map(it=>({tipo:'gasto',it})),
+    ...state.ingresos.map(it=>({tipo:'ingreso',it}))
+  ];
+  if(!todos.length){c.innerHTML='<div class="empty-state">sin movimientos registrados</div>';return;}
+  const ts=f=>{ const t=Date.parse(f); return Number.isFinite(t)?t:0; }; // fecha invalida al final
+  todos.sort((a,b)=>ts(b.it.fecha)-ts(a.it.fecha));
+  c.innerHTML=todos.slice(0,50).map(m=>{
+    const it=m.it;
+    const fecha=fmtFechaMov(it.fecha,{day:'numeric',month:'short'});
+    const esGasto=m.tipo==='gasto';
+    const cuenta=esGasto?it.fuente:it.destino;
+    const del=it.id?`<button class="del-btn" onclick="${esGasto?'eliminarGasto':'eliminarIngreso'}('${it.id}')">&times;</button>`:'';
+    return`<div class="item-row"><div><div class="item-cat">${escapeHtml(it.cat)}</div><div class="item-meta">${escapeHtml(it.nota||'')} · ${fecha} · ${cuenta}</div></div><div style="display:flex;align-items:center"><div class="${esGasto?'item-amt-neg':'item-amt-pos'}">${esGasto?'-':'+'}${fmt(it.monto)}</div>${del}</div></div>`;
   }).join('');
 }
 
@@ -1519,7 +1568,7 @@ async function altaIngreso(cat,monto,nota,destino,btn) {
     await batch.commit();
     ingreso.id=ref.id;
     setSyncDot('ok');
-    render();renderHistorialIngresos();
+    render();renderMovimientos();
     showToast('+'+fmt(monto)+' ingresado');
     return true;
   }catch(e){
@@ -1581,7 +1630,7 @@ window.eliminarIngreso = async function(id) {
     batch.set(doc(db,'cartera','saldos'),saldosPayload());
     await batch.commit();
     setSyncDot('ok');
-    render();renderHistorialIngresos();
+    render();renderMovimientos();
     showToast(quedoNegativo?'ingreso eliminado · ojo: SALDO quedo negativo':'ingreso eliminado');
   }catch(e){
     restoreCuentas(prev);
@@ -1592,15 +1641,6 @@ window.eliminarIngreso = async function(id) {
   }
 };
 
-function renderHistorialIngresos() {
-  const c=document.getElementById('ingresos-historial');
-  if(!state.ingresos.length){c.innerHTML='<div class="empty-state">sin ingresos registrados</div>';return;}
-  c.innerHTML=state.ingresos.slice(0,50).map(item=>{
-    const fecha=new Date(item.fecha).toLocaleDateString('es-MX',{day:'numeric',month:'short'});
-    const del=item.id?`<button class="del-btn" onclick="eliminarIngreso('${item.id}')">&times;</button>`:'';
-    return`<div class="item-row"><div><div class="item-cat">${escapeHtml(item.cat)}</div><div class="item-meta">${escapeHtml(item.nota||'')} · ${fecha} · ${item.destino}</div></div><div style="display:flex;align-items:center"><div class="item-amt-pos">+${fmt(item.monto)}</div>${del}</div></div>`;
-  }).join('');
-}
 
 // ── DEUDAS ────────────────────────────────────────────────────
 // ultima persona valida seleccionada: al elegir '+ agregar...' el select ya vale
@@ -1758,6 +1798,7 @@ window.eliminarDeuda = async function(personaKey, movId) {
 // geometria: margen izquierdo para etiquetas de valores, inferior para respirar
 const CHART_W=360,CHART_H=156,CH_PT=10,CH_PR=12,CH_PB=8,CH_PL=46;
 function fmtCorto(v) {
+  if (modoPrivado) return '····';
   const a=Math.abs(v);
   if(a>=1e6) return '$'+(v/1e6).toFixed(1)+'M';
   if(a>=1e3) return '$'+(v/1e3).toFixed(1)+'k';
@@ -1834,7 +1875,7 @@ function chartBlock(chartId,data,color,deltaLabel) {
   [0.25,0.5,0.75].forEach(f=>{
     const gy=h-CH_PB-f*(h-CH_PT-CH_PB), gv=minY+f*spanY;
     grid+=`<line x1="${CH_PL}" x2="${w-CH_PR}" y1="${gy.toFixed(1)}" y2="${gy.toFixed(1)}" stroke="rgba(26,46,34,0.10)" stroke-width="1" stroke-dasharray="3 5"/>`+
-      `<text x="${CH_PL-6}" y="${(gy+3).toFixed(1)}" text-anchor="end" font-size="9" fill="#64766b">${fmtCorto(gv)}</text>`;
+      (modoPrivado?'':`<text x="${CH_PL-6}" y="${(gy+3).toFixed(1)}" text-anchor="end" font-size="9" fill="#64766b">${fmtCorto(gv)}</text>`);
   });
   const ult=P[P.length-1];
   const first=vis[0].y,last=vis[vis.length-1].y;
@@ -2072,7 +2113,7 @@ function renderRendimientos(start, end, balance) {
     :`<div class="item-row"><div><div class="item-cat">Revolut Savings</div><div class="item-meta">${(state.revSavingsTasa||0)}% anual${parcialRS?' · desde el '+fd(parseFechaLocal(state.revSavingsFecha))+' (parcial)':' compuesto'}</div></div>${sgn(rendRS)}</div>`;
   document.getElementById('res-rendimientos').innerHTML=
     rowC1+rowRS+
-    `<div class="item-row"><div><div class="item-cat">GBM · IVVPESO</div><div class="item-meta">${rendG===null?'sin datos de este periodo':'variacion de tus 45 titulos'}</div></div>${rendG===null?'<span class="item-meta">—</span>':sgn(rendG)}</div>`+
+    `<div class="item-row"><div><div class="item-cat">GBM · IVVPESO</div><div class="item-meta">${rendG===null?'sin datos de este periodo':(modoPrivado?'variacion de tus titulos':'variacion de tus 45 titulos')}</div></div>${rendG===null?'<span class="item-meta">—</span>':sgn(rendG)}</div>`+
     `<div class="item-row"><div class="item-cat" style="font-weight:600">total rendimientos</div>${sgn(rendTotal,1)}</div>`+
     `<div class="item-row"><div><div class="item-cat" style="font-weight:600">balance real del periodo</div><div class="item-meta">ingresos − gastos + rendimientos</div></div>${sgn(real,1)}</div>`;
 }
@@ -2201,8 +2242,7 @@ window.fetchAll = async function() {
       :'usando ultimos precios guardados';
     render();
     renderTransferencias();
-    if(document.getElementById('page-gastos').classList.contains('active')) renderHistorialGastos();
-    if(document.getElementById('page-ingresos').classList.contains('active')) renderHistorialIngresos();
+    if(document.getElementById('page-movimientos').classList.contains('active')) renderMovimientos();
     if(document.getElementById('page-deudas').classList.contains('active')) renderDeudas();
     if(document.getElementById('page-resumen').classList.contains('active')) renderResumen();
   }finally{
@@ -2213,6 +2253,7 @@ window.fetchAll = async function() {
 
 initChartInteraccion('gbm-chart');
 initChartInteraccion('patrimonio-chart');
+actualizarOjo();
 
 if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(()=>{});
 </script>
