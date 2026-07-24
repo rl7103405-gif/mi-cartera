@@ -1,4 +1,4 @@
-const CACHE = 'cartera-v4'; // v4: tema claro (manifest nuevo debe reemplazar al cacheado)
+const CACHE = 'cartera-v5'; // v5: rediseno premium (manifest nuevo debe reemplazar al cacheado)
 const ASSETS = ['./', './index.html', './manifest.json'];
 
 self.addEventListener('install', e => {

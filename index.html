@@ -6,15 +6,22 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Mi Cartera">
-<meta name="theme-color" content="#eef3f9">
+<meta name="theme-color" content="#eef7ff">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-192.png">
 <title>Mi Cartera</title>
 <style>
-/* tema claro: azul primario, verde para positivos, fondo blanco-azulado */
-:root{--bg:#eef3f9;--bg2:#ffffff;--bg3:#eef2f7;--border:rgba(15,42,80,0.08);--border2:rgba(15,42,80,0.18);--text:#0f172a;--muted:#5b6b7f;--green:#047857;--red:#dc2626;--accent:#2563eb;--purple:var(--accent);--r:16px;--rs:10px;--sombra:0 1px 2px rgba(15,42,80,0.05),0 6px 18px rgba(15,42,80,0.05)}
+/* tema claro premium: gradientes azul/verde estilo fintech, tarjetas cristal */
+:root{--bg:#f3f8fc;--bg2:rgba(255,255,255,0.82);--bg2s:#ffffff;--bg3:#eff4fa;--border:rgba(37,99,235,0.10);--border2:rgba(15,42,80,0.18);--text:#0b1f33;--muted:#617186;--green:#047857;--green-bright:#10b981;--red:#dc2626;--accent:#2563eb;--accent-dark:#1749b5;--cyan:#38bdf8;--purple:var(--accent);--r:18px;--rs:12px;--sombra:0 1px 2px rgba(15,42,80,0.04),0 12px 36px rgba(30,64,175,0.08)}
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
-body{font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;padding-bottom:calc(80px + env(safe-area-inset-bottom))}
+body{font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display',sans-serif;color:var(--text);min-height:100vh;padding-bottom:calc(80px + env(safe-area-inset-bottom));
+  background:
+    radial-gradient(circle at 10% 0%, rgba(56,189,248,0.18), transparent 34rem),
+    radial-gradient(circle at 95% 18%, rgba(16,185,129,0.12), transparent 30rem),
+    linear-gradient(145deg,#eef7ff 0%,#f9fcff 52%,#edfff8 100%);
+  background-attachment:fixed}
+/* montos siempre con numeros tabulares (alineacion perfecta) */
+.total-amount,.card-amount,.chart-val,.s-amt,.deuda-total,.item-amt-pos,.item-amt-neg,.detail-val,.dist-amt{font-variant-numeric:tabular-nums}
 .safe-top{padding-top:max(env(safe-area-inset-top),20px)}
 
 /* LOGIN */
@@ -55,21 +62,39 @@ nav{position:sticky;top:0;z-index:100;background:rgba(255,255,255,0.88);backdrop
 .page{display:none;padding:20px;max-width:430px;margin:0 auto}.page.active{display:block}
 
 /* TOTAL */
-.total-section{margin-bottom:24px;padding-top:6px}
-.total-label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:5px}
-.total-amount{font-size:40px;font-weight:700;letter-spacing:-1.5px;line-height:1}
+.total-section{margin-bottom:24px;padding-top:10px}
+.total-label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:6px}
+.total-amount{font-size:clamp(42px,11vw,58px);font-weight:780;letter-spacing:-0.045em;line-height:1;
+  background:linear-gradient(100deg,#1749b5,#2563eb 48%,#059669);color:#1749b5;
+  -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;
+  display:inline-block;padding-bottom:2px}
 .total-sub{font-size:12px;color:var(--muted);margin-top:6px}
 
 /* CARDS */
 .cards{display:flex;flex-direction:column;gap:10px;margin-bottom:24px}
-.card{background:var(--bg2);border:0.5px solid var(--border);border-radius:var(--r);padding:16px;cursor:pointer;box-shadow:var(--sombra)}
+.card{background:var(--bg2);border:1px solid rgba(255,255,255,0.85);border-radius:var(--r);padding:16px;cursor:pointer;box-shadow:var(--sombra);backdrop-filter:blur(10px) saturate(135%);-webkit-backdrop-filter:blur(10px) saturate(135%)}
 .card:active{transform:scale(0.99)}
 .card-header{display:flex;align-items:center;justify-content:space-between}
 .card-left{display:flex;align-items:center;gap:11px}
 .card-icon{width:38px;height:38px;border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:19px}
-.icon-nu{background:rgba(124,58,237,0.12)}.icon-nu2{background:rgba(96,165,250,0.14)}
-.icon-gbm{background:rgba(5,150,105,0.10)}.icon-cash{background:rgba(217,119,6,0.12)}
-.icon-tarjeta{background:rgba(220,38,38,0.10)}.icon-rev{background:rgba(37,99,235,0.10)}
+.icon-nu{background:rgba(124,58,237,0.10);color:#7c3aed}
+.icon-gbm{background:rgba(5,150,105,0.10);color:#047857}.icon-cash{background:rgba(217,119,6,0.10);color:#b45309}
+.icon-tarjeta{background:rgba(220,38,38,0.08);color:#dc2626}.icon-rev{background:rgba(37,99,235,0.08);color:#2563eb}
+.card-icon svg{display:block}
+
+/* DISTRIBUCION: donde esta mi dinero */
+.dist-wrap{display:flex;gap:18px;align-items:center}
+.dist-donut{flex:0 0 140px;width:140px;height:140px;position:relative}
+.dist-legend{flex:1;display:flex;flex-direction:column;gap:12px;min-width:0}
+.dist-row{display:flex;align-items:center;gap:9px}
+.dist-dot{width:10px;height:10px;border-radius:4px;flex:0 0 10px}
+.dist-info{flex:1;min-width:0}
+.dist-name{font-size:13px;font-weight:600}
+.dist-sub{font-size:10.5px;color:var(--muted);margin-top:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dist-right{text-align:right}
+.dist-amt{font-size:13px;font-weight:600}
+.dist-pct{display:inline-block;font-size:10.5px;font-weight:700;padding:1px 7px;border-radius:9px;margin-top:2px}
+@media(max-width:359px){.dist-wrap{flex-direction:column}.dist-legend{width:100%}}
 .card-name{font-size:15px;font-weight:500}
 .card-sub{font-size:12px;color:var(--muted);margin-top:1px}
 .card-right{text-align:right}
@@ -83,7 +108,7 @@ nav{position:sticky;top:0;z-index:100;background:rgba(255,255,255,0.88);backdrop
 
 /* PANELS */
 .section-title{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:10px}
-.panel{background:var(--bg2);border:0.5px solid var(--border);border-radius:var(--r);padding:16px;margin-bottom:10px;box-shadow:var(--sombra)}
+.panel{background:var(--bg2);border:1px solid rgba(255,255,255,0.85);border-radius:var(--r);padding:16px;margin-bottom:10px;box-shadow:var(--sombra);backdrop-filter:blur(10px) saturate(135%);-webkit-backdrop-filter:blur(10px) saturate(135%)}
 .field{margin-bottom:10px}
 .field label{font-size:12px;color:var(--muted);display:block;margin-bottom:4px}
 .field input,.field select{width:100%;background:var(--bg3);border:0.5px solid var(--border2);border-radius:var(--rs);padding:11px 14px;color:var(--text);font-size:15px;outline:none;-webkit-appearance:none;appearance:none}
@@ -91,12 +116,13 @@ nav{position:sticky;top:0;z-index:100;background:rgba(255,255,255,0.88);backdrop
 .field select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23777' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;padding-right:32px}
 .btn{width:100%;padding:13px;background:var(--bg3);border:0.5px solid var(--border2);border-radius:var(--rs);color:var(--text);font-size:15px;font-weight:500;cursor:pointer;margin-top:4px}
 .btn:active{transform:scale(0.99)}
-.btn-purple{background:rgba(37,99,235,0.08);border-color:var(--purple);color:var(--purple)}
+.btn-purple{background:linear-gradient(100deg,#1749b5,#2563eb 55%,#059669);border:none;color:#fff;font-weight:600;box-shadow:0 6px 18px rgba(37,99,235,0.25)}
+.btn-purple:active{opacity:0.9}
 .btn-green{background:rgba(4,120,87,0.08);border-color:var(--green);color:var(--green)}
 .btn-red{background:rgba(220,38,38,0.06);border-color:var(--red);color:var(--red)}
 .type-toggle{display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap}
 .type-opt{flex:1;min-width:calc(33% - 4px);padding:8px 4px;background:var(--bg3);border:0.5px solid var(--border);border-radius:var(--rs);color:var(--muted);font-size:12px;cursor:pointer;text-align:center}
-.type-opt.active{background:rgba(37,99,235,0.08);border-color:var(--purple);color:var(--purple)}
+.type-opt.active{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600;box-shadow:0 3px 10px rgba(37,99,235,0.28)}
 
 /* ITEMS */
 .item-row{display:flex;justify-content:space-between;align-items:center;padding:11px 0;border-bottom:0.5px solid var(--border)}
@@ -150,12 +176,16 @@ nav{position:sticky;top:0;z-index:100;background:rgba(255,255,255,0.88);backdrop
 .chart-val{font-size:18px;font-weight:700}
 .chart-delta{font-size:12px;font-weight:500}
 .chart-dates{display:flex;justify-content:space-between;font-size:10px;color:var(--muted);margin-top:4px}
-.chart-ranges{display:flex;gap:5px;margin-bottom:10px}
-.chart-range-btn{flex:1;padding:7px 0;background:var(--bg3);border:0.5px solid var(--border);border-radius:8px;color:var(--muted);font-size:11px;cursor:pointer;text-align:center;font-family:inherit}
-.chart-range-btn.active{background:rgba(37,99,235,0.08);border-color:var(--purple);color:var(--purple)}
+/* control segmentado: una capsula con la opcion activa rellena */
+.chart-ranges{display:flex;gap:2px;margin-bottom:12px;background:var(--bg3);border-radius:12px;padding:3px}
+.chart-range-btn{flex:1;padding:7px 0;background:transparent;border:none;border-radius:9px;color:var(--muted);font-size:11px;cursor:pointer;text-align:center;font-family:inherit;font-weight:500}
+.chart-range-btn.active{background:var(--accent);color:#fff;font-weight:600;box-shadow:0 2px 8px rgba(37,99,235,0.3)}
 .chart-range-btn:disabled{opacity:0.3;cursor:default}
+.chart-last-pulse{transform-box:fill-box;transform-origin:center;animation:chartPulse 2s ease-out infinite}
+@keyframes chartPulse{0%{transform:scale(0.7);opacity:0.55}75%,100%{transform:scale(2.4);opacity:0}}
+@media (prefers-reduced-motion:reduce){.chart-last-pulse{animation:none}}
 .chart-wrap{position:relative}
-.chart-wrap svg{touch-action:pan-y}
+.chart-wrap svg{touch-action:pan-y;overflow:visible} /* overflow: el pulso del ultimo punto no se recorta en los bordes */
 .chart-tip{position:absolute;top:4px;pointer-events:none;background:var(--bg3);border:0.5px solid var(--border2);border-radius:8px;padding:5px 10px;font-size:11px;color:var(--muted);display:none;z-index:5;white-space:nowrap;text-align:center}
 .chart-tip .tip-val{font-size:13px;font-weight:700;color:var(--text)}
 table.mini{width:100%;border-collapse:collapse;font-size:12px}
@@ -187,6 +217,7 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
   #page-inicio{max-width:1060px}
   #page-resumen{max-width:1080px}
   nav,.tabs{padding-left:32px;padding-right:32px}
+  .hero-grid{display:grid;grid-template-columns:1fr 1.1fr;gap:0 24px;align-items:center;margin-bottom:8px}
   .cards{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;align-items:start;margin-bottom:28px}
   .tarjeta-card{grid-column:1/-1;margin-bottom:0}
   .inicio-grid,.summary-grid{display:grid;grid-template-columns:1fr 1fr;gap:0 20px;align-items:start}
@@ -234,11 +265,19 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
 
 <!-- INICIO -->
 <div class="page active" id="page-inicio">
+  <div class="hero-grid">
   <div class="total-section">
-    <div class="total-label">patrimonio total</div>
+    <div class="total-label">activos totales</div>
     <div class="total-amount" id="total-display">$—</div>
     <div class="total-sub" id="neto-display">—</div>
     <div class="total-sub" id="last-update">—</div>
+  </div>
+
+  <!-- DONDE ESTA MI DINERO -->
+  <div class="sec">
+    <div class="section-title">donde esta mi dinero</div>
+    <div class="panel" id="distribucion-panel"><div class="empty-state">calculando...</div></div>
+  </div>
   </div>
 
   <!-- REGISTRO RAPIDO (visible solo en movil) -->
@@ -265,7 +304,7 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
   <div class="cards">
     <div class="card" onclick="toggleDetail('nu1-detail')">
       <div class="card-header">
-        <div class="card-left"><div class="card-icon icon-nu">&#128156;</div>
+        <div class="card-left"><div class="card-icon icon-nu"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="4"/><circle cx="12" cy="12" r="4"/><path d="M12 6.5V8M12 16v1.5M6.5 12H8M16 12h1.5"/></svg></div>
           <div><div class="card-name">NU cajita 1</div><div class="card-sub" id="nu1-sub">—</div></div>
         </div>
         <div class="card-right"><div class="card-amount" id="nu-cajita1-display">$—</div><div class="card-change pos" id="nu1-rend">—</div></div>
@@ -277,7 +316,7 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
     </div>
     <div class="card">
       <div class="card-header">
-        <div class="card-left"><div class="card-icon icon-nu">&#127974;</div>
+        <div class="card-left"><div class="card-icon icon-nu"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9.5 12 4l9 5.5"/><path d="M5 10v8M9.5 10v8M14.5 10v8M19 10v8"/><path d="M3 20h18"/></svg></div>
           <div><div class="card-name">NU saldo</div><div class="card-sub">disponible</div></div>
         </div>
         <div class="card-right"><div class="card-amount" id="nu-saldo-display">$—</div></div>
@@ -298,7 +337,7 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
 
     <div class="card" onclick="toggleDetail('gbm-detail')">
       <div class="card-header">
-        <div class="card-left"><div class="card-icon icon-gbm">&#128200;</div>
+        <div class="card-left"><div class="card-icon icon-gbm"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4v16h16"/><path d="M7 14l4-5 3 3 5-6"/></svg></div>
           <div><div class="card-name">GBM</div><div class="card-sub" id="gbm-sub">IVVPESO · 45 titulos</div></div>
         </div>
         <div class="card-right"><div class="card-amount" id="gbm-total">$—</div><div class="card-change neu" id="gbm-var">—</div></div>
@@ -312,7 +351,7 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
     </div>
     <div class="card">
       <div class="card-header">
-        <div class="card-left"><div class="card-icon icon-cash">&#128181;</div>
+        <div class="card-left"><div class="card-icon icon-cash"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="7" width="19" height="10" rx="2"/><circle cx="12" cy="12" r="2.6"/><path d="M6 12h.01M18 12h.01"/></svg></div>
           <div><div class="card-name">efectivo</div><div class="card-sub">pesos en mano</div></div>
         </div>
         <div class="card-right"><div class="card-amount" id="cash-display">$—</div></div>
@@ -322,7 +361,7 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
     <!-- REVOLUT -->
     <div class="card">
       <div class="card-header">
-        <div class="card-left"><div class="card-icon icon-rev">&#127758;</div>
+        <div class="card-left"><div class="card-icon icon-rev"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><ellipse cx="12" cy="12" rx="3.6" ry="8.5"/><path d="M3.5 12h17"/></svg></div>
           <div><div class="card-name">Revolut MXN</div><div class="card-sub">cuenta personal</div></div>
         </div>
         <div class="card-right"><div class="card-amount" id="rev-mxn-display">$—</div></div>
@@ -330,7 +369,7 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
     </div>
     <div class="card" onclick="toggleDetail('rev-savings-detail')">
       <div class="card-header">
-        <div class="card-left"><div class="card-icon icon-rev">&#129689;</div>
+        <div class="card-left"><div class="card-icon icon-rev"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M19 5 5 19"/><circle cx="7.2" cy="7.2" r="2.4"/><circle cx="16.8" cy="16.8" r="2.4"/></svg></div>
           <div><div class="card-name">Revolut Savings</div><div class="card-sub" id="rev-savings-sub">—</div></div>
         </div>
         <div class="card-right"><div class="card-amount" id="rev-savings-display">$—</div><div class="card-change pos" id="rev-savings-rend">—</div></div>
@@ -342,7 +381,7 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
     </div>
     <div class="card" onclick="toggleDetail('rev-stocks-detail')">
       <div class="card-header">
-        <div class="card-left"><div class="card-icon icon-rev">&#128202;</div>
+        <div class="card-left"><div class="card-icon icon-rev"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l6-6 4 4 8-8"/><path d="M15 7h6v6"/></svg></div>
           <div><div class="card-name">Revolut Stocks</div><div class="card-sub" id="rev-stocks-sub">—</div></div>
         </div>
         <div class="card-right"><div class="card-amount" id="rev-stocks-display">$—</div><div class="card-change neu" id="rev-stocks-var">—</div></div>
@@ -437,7 +476,7 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
   </div>
   </div>
   <div class="status" id="status-inicio">—</div>
-  <div class="status" style="margin-top:2px;padding-bottom:8px">version 2026-07-23.5</div>
+  <div class="status" style="margin-top:2px;padding-bottom:8px">version 2026-07-24.1</div>
 </div>
 
 <!-- GASTOS -->
@@ -1084,6 +1123,7 @@ function render() {
   const saldoDeudas=Object.values(state.personas||{}).reduce((s,p)=>s+(p.saldo||0),0);
   const neto=total+saldoDeudas-(state.tarjetaDeuda||0);
   document.getElementById('neto-display').textContent='patrimonio neto (con deudas y tarjeta): '+fmt(neto);
+  renderDistribucion(nu1.saldo+rs.saldo, gbmTotal+nvdaVal, state.efectivo+state.nuSaldo+state.revMXN, state.revNvdaShares>0&&!nvdaOk);
   const now=new Date();
   document.getElementById('last-update').textContent='actualizado '+now.toLocaleDateString('es-MX',{day:'numeric',month:'short'})+' · '+now.toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'});
   maybeSnapshot(total,gbmTotal);
@@ -1716,7 +1756,34 @@ window.eliminarDeuda = async function(personaKey, movId) {
 };
 
 // ── GRAFICAS ──────────────────────────────────────────────────
-const CHART_W=360,CHART_H=110,CHART_PAD=6;
+// geometria: margen izquierdo para etiquetas de valores, inferior para respirar
+const CHART_W=360,CHART_H=156,CH_PT=10,CH_PR=12,CH_PB=8,CH_PL=46;
+function fmtCorto(v) {
+  const a=Math.abs(v);
+  if(a>=1e6) return '$'+(v/1e6).toFixed(1)+'M';
+  if(a>=1e3) return '$'+(v/1e3).toFixed(1)+'k';
+  return '$'+v.toFixed(0);
+}
+// curva monotona (Fritsch-Carlson): suave pero NUNCA rebasa los maximos/minimos reales
+function pathSuave(pts) {
+  if(pts.length<3) return 'M'+pts.map(p=>p.x.toFixed(1)+','+p.y.toFixed(1)).join(' L');
+  const n=pts.length,dx=[],m=[],t=new Array(n);
+  for(let i=0;i<n-1;i++){ dx[i]=pts[i+1].x-pts[i].x||1e-9; m[i]=(pts[i+1].y-pts[i].y)/dx[i]; }
+  t[0]=m[0]; t[n-1]=m[n-2];
+  for(let i=1;i<n-1;i++) t[i]=(m[i-1]*m[i]<=0)?0:(m[i-1]+m[i])/2;
+  for(let i=0;i<n-1;i++){
+    if(m[i]===0){ t[i]=0; t[i+1]=0; continue; }
+    const a=t[i]/m[i],b=t[i+1]/m[i],s=a*a+b*b;
+    if(s>9){ const k=3/Math.sqrt(s); t[i]=k*a*m[i]; t[i+1]=k*b*m[i]; }
+  }
+  let d='M'+pts[0].x.toFixed(1)+','+pts[0].y.toFixed(1);
+  for(let i=0;i<n-1;i++){
+    d+=' C'+(pts[i].x+dx[i]/3).toFixed(1)+','+(pts[i].y+t[i]*dx[i]/3).toFixed(1)
+      +' '+(pts[i+1].x-dx[i]/3).toFixed(1)+','+(pts[i+1].y-t[i+1]*dx[i]/3).toFixed(1)
+      +' '+pts[i+1].x.toFixed(1)+','+pts[i+1].y.toFixed(1);
+  }
+  return d;
+}
 const CHART_RANGOS=[{k:'1s',dias:7},{k:'1m',dias:30},{k:'3m',dias:91},{k:'6m',dias:182},{k:'1a',dias:365},{k:'todo',dias:null}];
 const chartRangoSel={'gbm-chart':'todo','patrimonio-chart':'todo'};
 const CHART_DATA={}; // datos visibles por grafica, se refresca en cada render
@@ -1751,27 +1818,47 @@ function chartBlock(chartId,data,color,deltaLabel) {
     delete CHART_DATA[chartId];
     return toolbar+'<div class="empty-state">aun no hay suficientes datos — se ira construyendo con el tiempo</div>';
   }
-  const w=CHART_W,h=CHART_H,pad=CHART_PAD;
+  const w=CHART_W,h=CHART_H;
   const ys=vis.map(p=>p.y);
   let minY=Math.min(...ys),maxY=Math.max(...ys);
   if(maxY===minY){minY-=1;maxY+=1;} // serie plana: centrar la linea en vez de pegarla al borde inferior
   const spanY=maxY-minY;
   const minX=vis[0].x,maxX=vis[vis.length-1].x,spanX=(maxX-minX)||1;
   CHART_DATA[chartId]={data:vis,minX,maxX,minY,maxY,spanX,spanY};
-  const px=p=>pad+(p.x-minX)/spanX*(w-2*pad), py=p=>h-pad-(p.y-minY)/spanY*(h-2*pad);
-  const pts=vis.map(p=>px(p).toFixed(1)+','+py(p).toFixed(1)).join(' ');
+  const px=p=>CH_PL+(p.x-minX)/spanX*(w-CH_PL-CH_PR), py=p=>h-CH_PB-(p.y-minY)/spanY*(h-CH_PT-CH_PB);
+  const P=vis.map(p=>({x:px(p),y:py(p)}));
+  const linea=pathSuave(P);
+  const area=linea+' L'+P[P.length-1].x.toFixed(1)+','+(h-CH_PB)+' L'+P[0].x.toFixed(1)+','+(h-CH_PB)+' Z';
+  // rejilla horizontal con etiquetas de valor al 25/50/75%
+  const gid=chartId+'-grad', cid=chartId+'-clip';
+  let grid='';
+  [0.25,0.5,0.75].forEach(f=>{
+    const gy=h-CH_PB-f*(h-CH_PT-CH_PB), gv=minY+f*spanY;
+    grid+=`<line x1="${CH_PL}" x2="${w-CH_PR}" y1="${gy.toFixed(1)}" y2="${gy.toFixed(1)}" stroke="rgba(11,31,51,0.10)" stroke-width="1" stroke-dasharray="3 5"/>`+
+      `<text x="${CH_PL-6}" y="${(gy+3).toFixed(1)}" text-anchor="end" font-size="9" fill="#617186">${fmtCorto(gv)}</text>`;
+  });
+  const ult=P[P.length-1];
   const first=vis[0].y,last=vis[vis.length-1].y;
   const delta=last-first,up=delta>=0;
   const pctTxt=first?((up?'+':'')+(delta/first*100).toFixed(2)+'%'):'—';
   const fd=ms=>new Date(ms).toLocaleDateString('es-MX',{day:'numeric',month:'short',year:'2-digit'});
   return `${toolbar}<div class="chart-head"><div class="chart-val">${fmt(last)}</div><div class="chart-delta ${up?'pos':'neg'}">${deltaLabel?deltaLabel+' ':''}${up?'+':'−'}${fmt(Math.abs(delta))} · ${pctTxt}</div></div>
 <div class="chart-wrap"><svg viewBox="0 0 ${w} ${h}" style="width:100%;height:auto;display:block">
-<polygon points="${pad},${h-pad} ${pts} ${w-pad},${h-pad}" fill="${color}" opacity="0.08"/>
-<polyline points="${pts}" fill="none" stroke="${color}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
-<line class="tip-line" x1="0" x2="0" y1="${pad}" y2="${h-pad}" stroke="rgba(15,23,42,0.35)" stroke-width="1" visibility="hidden"/>
+<defs>
+<linearGradient id="${gid}" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="${color}" stop-opacity="0.28"/><stop offset="100%" stop-color="${color}" stop-opacity="0"/></linearGradient>
+<clipPath id="${cid}"><rect x="${CH_PL}" y="0" width="${w-CH_PL-CH_PR}" height="${h}"/></clipPath>
+</defs>
+${grid}
+<g clip-path="url(#${cid})">
+<path d="${area}" fill="url(#${gid})"/>
+<path d="${linea}" fill="none" stroke="${color}" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>
+</g>
+<circle class="chart-last-pulse" cx="${ult.x.toFixed(1)}" cy="${ult.y.toFixed(1)}" r="4" fill="${color}" opacity="0.4"/>
+<circle cx="${ult.x.toFixed(1)}" cy="${ult.y.toFixed(1)}" r="4" fill="${color}" stroke="#fff" stroke-width="1.5"/>
+<line class="tip-line" x1="0" x2="0" y1="${CH_PT}" y2="${h-CH_PB}" stroke="rgba(15,23,42,0.35)" stroke-width="1" visibility="hidden"/>
 <circle class="tip-dot" r="3.5" fill="${color}" stroke="#ffffff" stroke-width="1.5" visibility="hidden"/>
 </svg><div class="chart-tip"></div></div>
-<div class="chart-dates"><span>${fd(minX)}</span><span>${fd(maxX)}</span></div>`;
+<div class="chart-dates"><span style="margin-left:${(CH_PL/w*100).toFixed(0)}%">${fd(minX)}</span><span style="margin-right:${(CH_PR/w*100).toFixed(0)}%">${fd(maxX)}</span></div>`;
 }
 
 window.setChartRango=(chartId,r)=>{ chartRangoSel[chartId]=r; renderChart(chartId); };
@@ -1794,11 +1881,11 @@ function initChartInteraccion(contId) {
     const ctm=svg.getScreenCTM(); if(!ctm) return;
     const pt=svg.createSVGPoint(); pt.x=ev.clientX; pt.y=ev.clientY;
     const loc=pt.matrixTransform(ctm.inverse());
-    const dataX=entry.minX+(loc.x-CHART_PAD)/(CHART_W-2*CHART_PAD)*entry.spanX;
+    const dataX=entry.minX+(loc.x-CH_PL)/(CHART_W-CH_PL-CH_PR)*entry.spanX;
     let best=entry.data[0],bd=Infinity;
     entry.data.forEach(p=>{const d=Math.abs(p.x-dataX);if(d<bd){bd=d;best=p;}});
-    const cx=CHART_PAD+(best.x-entry.minX)/entry.spanX*(CHART_W-2*CHART_PAD);
-    const cy=CHART_H-CHART_PAD-(best.y-entry.minY)/entry.spanY*(CHART_H-2*CHART_PAD);
+    const cx=CH_PL+(best.x-entry.minX)/entry.spanX*(CHART_W-CH_PL-CH_PR);
+    const cy=CHART_H-CH_PB-(best.y-entry.minY)/entry.spanY*(CHART_H-CH_PT-CH_PB);
     const line=svg.querySelector('.tip-line'),dot=svg.querySelector('.tip-dot');
     line.setAttribute('x1',cx);line.setAttribute('x2',cx);line.setAttribute('visibility','visible');
     dot.setAttribute('cx',cx);dot.setAttribute('cy',cy);dot.setAttribute('visibility','visible');
@@ -1821,6 +1908,41 @@ function initChartInteraccion(contId) {
   });
   cont.addEventListener('pointerleave',ev=>{ if(ev.pointerType==='mouse') ocultar(); });
   document.addEventListener('pointerdown',ev=>{ if(!cont.contains(ev.target)) ocultar(); });
+}
+
+// ── DISTRIBUCION: donde esta mi dinero ────────────────────────
+// colores SEMANTICOS fijos (no por posicion): ahorro verde, inversion azul, disponible cyan
+function renderDistribucion(ahorro, inversiones, disponible, nvdaPendiente) {
+  const el=document.getElementById('distribucion-panel');
+  if(!el) return;
+  // un saldo negativo (posible tras un gasto con saldo insuficiente) se trata como 0
+  // para que los porcentajes sumen 100 y los arcos no se traslapen
+  const g1=Math.max(0,ahorro), g2=Math.max(0,inversiones), g3=Math.max(0,disponible);
+  const total=g1+g2+g3;
+  if(!(total>0)){ el.innerHTML='<div class="empty-state">sin datos todavia</div>'; return; }
+  const grupos=[
+    {nombre:'Ahorro con rendimiento',sub:'cajita NU 1 + Revolut Savings',monto:g1,color:'#10b981'},
+    {nombre:'Inversiones',sub:'GBM + NVDA'+(nvdaPendiente?' (precio pendiente)':''),monto:g2,color:'#2563eb'},
+    {nombre:'Disponible',sub:'efectivo + NU + Revolut',monto:g3,color:'#38bdf8'}
+  ];
+  const R=62,SW=16,rm=R-SW/2,C=2*Math.PI*rm;
+  let off=0,circ='';
+  grupos.forEach(g=>{
+    if(g.monto<=0) return;
+    const len=g.monto/total*C, gap=Math.min(3,len*0.15);
+    circ+=`<circle cx="70" cy="70" r="${rm}" fill="none" stroke="${g.color}" stroke-width="${SW}" stroke-dasharray="${Math.max(0.5,len-gap).toFixed(2)} ${(C-len+gap).toFixed(2)}" stroke-dashoffset="${(-off).toFixed(2)}" transform="rotate(-90 70 70)" stroke-linecap="round"/>`;
+    off+=len;
+  });
+  const legend=grupos.map(g=>{
+    const pct=g.monto/total*100;
+    return `<div class="dist-row"><span class="dist-dot" style="background:${g.color}"></span>`+
+      `<div class="dist-info"><div class="dist-name">${g.nombre}</div><div class="dist-sub">${g.sub}</div></div>`+
+      `<div class="dist-right"><div class="dist-amt">${fmt(g.monto)}</div><span class="dist-pct" style="background:${g.color}1a;color:${g.color}">${pct.toFixed(1)}%</span></div></div>`;
+  }).join('');
+  el.innerHTML=`<div class="dist-wrap"><div class="dist-donut"><svg viewBox="0 0 140 140" style="width:100%;height:100%">${circ}`+
+    `<text x="70" y="64" text-anchor="middle" font-size="10" fill="#617186">activos</text>`+
+    `<text x="70" y="82" text-anchor="middle" font-size="15" font-weight="700" fill="#0b1f33">${fmtCorto(total)}</text></svg></div>`+
+    `<div class="dist-legend">${legend}</div></div>`;
 }
 
 // ── RESUMEN ───────────────────────────────────────────────────
