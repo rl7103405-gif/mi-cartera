@@ -437,7 +437,7 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
   </div>
   </div>
   <div class="status" id="status-inicio">—</div>
-  <div class="status" style="margin-top:2px;padding-bottom:8px">version 2026-07-23.4</div>
+  <div class="status" style="margin-top:2px;padding-bottom:8px">version 2026-07-23.5</div>
 </div>
 
 <!-- GASTOS -->
@@ -833,39 +833,35 @@ async function loadFromFirebase() {
       try { await setDoc(doc(db,'cartera','mercado'), {ivvPrecio:state.ivvPrecio, ivvVar:state.ivvVar, ivvHistory:state.ivvHistory}, {merge:true}); }
       catch(e) { console.error('migracion mercado',e); }
     }
-    // SIEMBRA UNICA jul-2026 (v2, atomica): datos reales de Roberto pedidos por el.
-    // Los marcadores viejos (revSeedHecha/nuSeedHecha) se ignoran a proposito: aquellas
-    // siembras solo cambiaban la memoria y podian quedar sin persistir; esta version
-    // persiste TODO en un solo batch (saldos + gasto Premium + marcador, o nada).
-    // Las guardas por VALOR evitan doble aplicacion en cualquier orden:
-    //  - Revolut solo se siembra si sigue todo en cero (nunca capturado/persistido)
-    //  - NU saldo solo se corrige si sigue en el viejo 2857.92
-    //  - el gasto Premium (86.42, cobrado 22 jul) solo se crea si revMXN esta en los
-    //    95.68 sembrados (que ya incluian ese cargo pendiente); deja la cuenta en 9.26
-    const seedV2Hecha = mDoc.exists() && mDoc.data().seedJul26V2 === true;
-    if (!seedV2Hecha) {
-      const prevSeed={nuSaldo:state.nuSaldo,revMXN:state.revMXN,rsb:state.revSavingsBase,
-        rsf:state.revSavingsFecha,rst:state.revSavingsTasa,nvs:state.revNvdaShares};
+    // REPARACION UNICA jul-2026 (v3): los saldos Revolut quedaron mal por el hueco de
+    // las siembras anteriores — el gasto Premium se registro con la cuenta en 0 y dejo
+    // -86.42, y savings/acciones quedaron en 0 sin persistir. El gasto Premium YA existe
+    // en la coleccion: aqui NO se crea ningun gasto, SOLO se corrigen saldos, en un
+    // batch atomico con su marcador. Guardas por valor: no toca nada ya corregido ni
+    // valores que Roberto cambie a mano; NU y GBM no se tocan (peticion explicita).
+    const seedV3Hecha = mDoc.exists() && mDoc.data().seedJul26V3 === true;
+    if (!seedV3Hecha) {
+      const prevSeed={revMXN:state.revMXN,rsb:state.revSavingsBase,rsf:state.revSavingsFecha,
+        rst:state.revSavingsTasa,nvs:state.revNvdaShares};
       let cambio=false;
-      if (state.revMXN===0 && state.revSavingsBase===0 && !state.revSavingsFecha && state.revNvdaShares===0) {
-        state.revMXN=95.68; state.revSavingsBase=2000.79; state.revSavingsFecha='2026-07-23';
-        state.revSavingsTasa=15; state.revNvdaShares=0.19; cambio=true;
+      if (state.revMXN===0 || Math.abs(state.revMXN-(-86.42))<0.01) { state.revMXN=9.26; cambio=true; }
+      if (state.revSavingsBase===0 && !state.revSavingsFecha) {
+        state.revSavingsBase=2000.79; state.revSavingsFecha='2026-07-23'; state.revSavingsTasa=15; cambio=true;
       }
-      if (Math.abs(state.nuSaldo-2857.92)<0.01) { state.nuSaldo=57.92; cambio=true; }
-      const premiumPendiente=Math.abs(state.revMXN-95.68)<0.01;
-      if (premiumPendiente) { state.revMXN=9.26; cambio=true; }
+      if (state.revNvdaShares===0) { state.revNvdaShares=0.19; cambio=true; }
       try {
-        const batch=writeBatch(db);
-        if (premiumPendiente) batch.set(doc(collection(db,'gastos')),
-          {cat:'Suscripciones',monto:86.42,nota:'Revolut Premium',fuente:'revolut',fecha:'2026-07-22T19:35:00.000Z'});
-        if (cambio) batch.set(doc(db,'cartera','saldos'),saldosPayload());
-        batch.set(doc(db,'cartera','mercado'),{seedJul26V2:true},{merge:true});
-        await batch.commit();
+        if (cambio) {
+          const batch=writeBatch(db);
+          batch.set(doc(db,'cartera','saldos'),saldosPayload());
+          batch.set(doc(db,'cartera','mercado'),{seedJul26V3:true},{merge:true});
+          await batch.commit();
+        } else {
+          await setDoc(doc(db,'cartera','mercado'),{seedJul26V3:true},{merge:true});
+        }
       } catch(e) {
-        state.nuSaldo=prevSeed.nuSaldo; state.revMXN=prevSeed.revMXN;
-        state.revSavingsBase=prevSeed.rsb; state.revSavingsFecha=prevSeed.rsf;
+        state.revMXN=prevSeed.revMXN; state.revSavingsBase=prevSeed.rsb; state.revSavingsFecha=prevSeed.rsf;
         state.revSavingsTasa=prevSeed.rst; state.revNvdaShares=prevSeed.nvs;
-        console.error('seed jul26 v2',e); // sin marcador: se reintenta en la proxima carga
+        console.error('seed jul26 v3',e); // sin marcador: se reintenta en la proxima carga
       }
     }
     const pDoc = await getDoc(doc(db,'cartera','personas'));
