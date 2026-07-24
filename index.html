@@ -284,6 +284,10 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
   <div class="section-title">mi meta · fin de 2026</div>
   <div class="panel" id="metas-panel"><div class="empty-state">calculando...</div></div>
 
+  <!-- MIS APARTADOS (metas de ahorro para caprichos: contadores visuales) -->
+  <div class="section-title">mis apartados</div>
+  <div class="panel" id="apartados-panel"><div class="empty-state">cargando...</div></div>
+
   <!-- AVISO PREMIUM (dia 22 de cada mes) -->
   <div class="panel" id="premium-aviso" hidden style="border-color:rgba(47,111,79,0.45)">
     <div style="font-size:13px;font-weight:600;margin-bottom:3px">se acerca el cobro del plan Premium de Revolut</div>
@@ -490,7 +494,7 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
   </div>
   </div>
   <div class="status" id="status-inicio">—</div>
-  <div class="status" style="margin-top:2px;padding-bottom:8px">version 2026-07-24.4</div>
+  <div class="status" style="margin-top:2px;padding-bottom:8px">version 2026-07-24.5</div>
 </div>
 
 <!-- MOVIMIENTOS (gastos + ingresos en una sola pestana) -->
@@ -847,6 +851,7 @@ let state = {
   fuenteGasto:'efectivo', destinoIngreso:'efectivo', tipoDeuda:'cargo',
   mesOffset:0, resPeriodo:'mes',
   catsGasto:[...CATS_GASTO_DEFAULT], catsIngreso:[...CATS_INGRESO_DEFAULT],
+  apartados:[],
   personas:JSON.parse(JSON.stringify(PERSONAS_DEFAULT)),
   gastos:[], ingresos:[], transferencias:[], snapshots:[]
 };
@@ -944,6 +949,16 @@ async function loadFromFirebase() {
     if (tDoc.exists()) { state.tarjetaDeuda = Number.isFinite(tDoc.data().deuda) ? tDoc.data().deuda : state.tarjetaDeuda; state.tarjetaMovimientos = Array.isArray(tDoc.data().movimientos) ? tDoc.data().movimientos : []; }
     const hDoc = await getDoc(doc(db,'cartera','historial'));
     if (hDoc.exists()) state.snapshots = Array.isArray(hDoc.data().snapshots) ? hDoc.data().snapshots : [];
+    const aDoc = await getDoc(doc(db,'cartera','apartados'));
+    if (aDoc.exists() && Array.isArray(aDoc.data().items)) {
+      // normalizacion por item: se descartan elementos corruptos (id/nombre/montos invalidos)
+      state.apartados = aDoc.data().items.filter(a=>a&&typeof a.id==='string'&&/^[A-Za-z0-9-]+$/.test(a.id)
+        &&typeof a.nombre==='string'&&a.nombre.trim()
+        &&Number.isFinite(a.meta)&&a.meta>0&&Number.isFinite(a.ahorrado)&&a.ahorrado>=0)
+        .map(a=>({id:a.id,nombre:String(a.nombre).slice(0,30),meta:a.meta,ahorrado:a.ahorrado,
+          fechaLimite:(typeof a.fechaLimite==='string'&&/^\d{4}-(0[1-9]|1[0-2])$/.test(a.fechaLimite))?a.fechaLimite:'',
+          creado:typeof a.creado==='string'?a.creado:''}));
+    }
     const cDoc = await getDoc(doc(db,'cartera','categorias'));
     if (cDoc.exists()) {
       const cd = cDoc.data();
@@ -987,6 +1002,10 @@ async function savePersonas() {
 async function saveTarjeta() {
   if (!datosCargados) throw new Error('datos no cargados');
   try { await setDoc(doc(db,'cartera','tarjeta'),{deuda:state.tarjetaDeuda, movimientos:state.tarjetaMovimientos}); setSyncDot('ok'); } catch(e) { setSyncDot('err'); throw e; }
+}
+async function saveApartados() {
+  if (!datosCargados) throw new Error('datos no cargados');
+  try { await setDoc(doc(db,'cartera','apartados'),{items:state.apartados}); setSyncDot('ok'); } catch(e) { setSyncDot('err'); throw e; }
 }
 async function saveCategorias() {
   if (!datosCargados) throw new Error('datos no cargados');
@@ -1192,6 +1211,7 @@ function render() {
   document.getElementById('neto-display').textContent='patrimonio neto (con deudas y tarjeta): '+fmt(neto);
   renderDistribucion(nu1.saldo+rs.saldo, gbmTotal+nvdaVal, state.efectivo+state.nuSaldo+state.revMXN, state.revNvdaShares>0&&!nvdaOk);
   renderMetas(rs.saldo, gbmIVV+nvdaVal, state.revNvdaShares>0&&!nvdaOk);
+  renderApartados();
   checkPremium();
   const now=new Date();
   document.getElementById('last-update').textContent='actualizado '+now.toLocaleDateString('es-MX',{day:'numeric',month:'short'})+' · '+now.toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'});
@@ -2058,6 +2078,92 @@ function renderMetas(savings, stocks, nvdaPendiente) {
     fila('Revolut Savings','',savings,META_SAVINGS)+
     fila('invertido en bolsa','IVVPESO + NVDA'+(nvdaPendiente?' · cotizacion NVDA pendiente':''),stocks,META_STOCKS);
 }
+
+// ── APARTADOS (metas de caprichos: contadores visuales, no tocan cuentas) ──
+let apartadoOcupado=false;
+function mesesHasta(fechaYM) { // meses INCLUSIVOS desde el mes actual hasta YYYY-MM
+  const hoy=hoyLocal();
+  return (+fechaYM.slice(0,4)-+hoy.slice(0,4))*12+(+fechaYM.slice(5,7)-+hoy.slice(5,7))+1;
+}
+function renderApartados() {
+  const el=document.getElementById('apartados-panel'); if(!el) return;
+  const anoActual=+hoyLocal().slice(0,4);
+  const filas=state.apartados.map(a=>{
+    const pct=a.meta>0?a.ahorrado/a.meta*100:0;
+    const faltan=Math.max(0,a.meta-a.ahorrado);
+    let sub;
+    if(a.ahorrado>=a.meta) sub='meta completa · '+pct.toFixed(0)+'%';
+    else {
+      sub='te faltan '+fmt(faltan)+' · llevas '+pct.toFixed(1)+'%';
+      if(a.fechaLimite){
+        const meses=mesesHasta(a.fechaLimite);
+        if(meses>0){
+          const fa=+a.fechaLimite.slice(0,4), fm=+a.fechaLimite.slice(5,7);
+          sub+=' · guarda ~'+fmt(faltan/meses)+'/mes para llegar en '+MESES[fm-1]+(fa!==anoActual?' '+fa:'');
+        } else sub+=' · la fecha limite ya paso';
+      }
+    }
+    return `<div class="resumen-bar"><div class="bar-header"><span class="bar-label">${escapeHtml(a.nombre)}</span><span style="display:flex;align-items:center"><span class="bar-amt" style="color:var(--accent-dark)">${fmt(a.ahorrado)} / ${fmt(a.meta)}</span><button type="button" class="del-btn" onclick="eliminarApartado('${a.id}')">&times;</button></span></div>`+
+      `<div class="bar-track" style="height:6px"><div class="bar-fill" style="width:${Math.max(0,Math.min(100,pct)).toFixed(1)}%"></div></div>`+
+      `<div class="bar-header" style="margin-top:4px"><span class="item-meta">${sub}</span><button type="button" class="del-btn" style="font-size:12px;color:var(--accent);padding:2px 0 2px 10px" onclick="abonarApartado('${a.id}')">+ abonar / corregir</button></div></div>`;
+  }).join('');
+  el.innerHTML=(filas||'<div class="empty-state">sin apartados — crea tu primera meta</div>')+
+    `<button type="button" class="btn" style="margin-top:10px" onclick="nuevoApartado()">+ nueva meta de ahorro</button>`+
+    (state.apartados.length?`<div class="item-meta" style="text-align:center;margin-top:8px">registrado en metas: ${fmt(state.apartados.reduce((s,a)=>s+a.ahorrado,0))} · referencia visual, no se descuenta de tus cuentas</div>`:'');
+}
+window.nuevoApartado = async function() {
+  if(apartadoOcupado) return;
+  const nombreRaw=prompt('¿Para que estas ahorrando? (ej. Ropa, Viaje)'); if(nombreRaw===null) return;
+  const nombre=nombreRaw.trim().slice(0,30);
+  if(!nombre){ showToast('ponle un nombre a tu meta'); return; }
+  const montoRaw=prompt('¿Cuanto quieres juntar en total?'); if(montoRaw===null) return;
+  const meta=Math.round(Number(montoRaw.trim())*100)/100;
+  if(!Number.isFinite(meta)||meta<=0){ showToast('monto no valido'); return; }
+  const fRaw=prompt('¿Fecha limite? (formato 2026-12, o deja vacio si no hay)'); if(fRaw===null) return;
+  const fecha=fRaw.trim();
+  if(fecha){
+    const m=/^(\d{4})-(\d{2})$/.exec(fecha);
+    if(!m||+m[2]<1||+m[2]>12){ showToast('fecha no valida, usa el formato 2026-12'); return; }
+    if(fecha<hoyLocal().slice(0,7)){ showToast('esa fecha limite ya paso'); return; }
+  }
+  const item={id:(crypto.randomUUID?crypto.randomUUID():String(Date.now())+Math.random().toString(36).slice(2)),
+    nombre,meta,ahorrado:0,fechaLimite:fecha,creado:new Date().toISOString()};
+  const prev=state.apartados.map(a=>({...a}));
+  state.apartados.push(item);
+  apartadoOcupado=true;
+  try{ await saveApartados(); renderApartados(); showToast('meta "'+nombre+'" creada'); }
+  catch(e){ state.apartados=prev; console.error('nuevoApartado',e); renderApartados(); showToast('ERROR: no se guardo, revisa tu conexion'); }
+  finally{ apartadoOcupado=false; }
+};
+window.abonarApartado = async function(id) {
+  if(apartadoOcupado) return;
+  const a=state.apartados.find(x=>x.id===id); if(!a) return;
+  const raw=prompt('¿Cuanto abonas a "'+a.nombre+'"? (negativo para corregir)'); if(raw===null) return;
+  const monto=Math.round(Number(raw.trim())*100)/100;
+  if(!Number.isFinite(monto)||monto===0){ showToast('monto no valido'); return; }
+  const prev=state.apartados.map(x=>({...x}));
+  const antes=a.ahorrado;
+  a.ahorrado=Math.max(0,Math.round((a.ahorrado+monto)*100)/100);
+  const cambio=a.ahorrado-antes; // si pidio -100 teniendo 50, la correccion efectiva fue -50
+  apartadoOcupado=true;
+  try{
+    await saveApartados(); renderApartados();
+    showToast(cambio>=0?('+'+fmt(cambio)+' a "'+a.nombre+'"'):('correccion de '+fmt(cambio)+' en "'+a.nombre+'"'));
+  }catch(e){ state.apartados=prev; console.error('abonarApartado',e); renderApartados(); showToast('ERROR: no se guardo, revisa tu conexion'); }
+  finally{ apartadoOcupado=false; }
+};
+window.eliminarApartado = async function(id) {
+  if(apartadoOcupado) return;
+  const idx=state.apartados.findIndex(x=>x.id===id); if(idx<0) return;
+  const a=state.apartados[idx];
+  if(!confirm('¿Eliminar la meta "'+a.nombre+'"? (llevabas '+fmt(a.ahorrado)+' registrados)')) return;
+  const prev=state.apartados.map(x=>({...x}));
+  state.apartados.splice(idx,1);
+  apartadoOcupado=true;
+  try{ await saveApartados(); renderApartados(); showToast('meta eliminada'); }
+  catch(e){ state.apartados=prev; console.error('eliminarApartado',e); renderApartados(); showToast('ERROR: no se guardo, revisa tu conexion'); }
+  finally{ apartadoOcupado=false; }
+};
 
 // recordatorio del Premium: aparece a partir del dia 22 si el gasto del mes no existe
 let premiumDescartadoMem='';
