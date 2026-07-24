@@ -4,8 +4,8 @@
   "description": "Control de finanzas personales",
   "start_url": "./",
   "display": "standalone",
-  "background_color": "#eef7ff",
-  "theme_color": "#eef7ff",
+  "background_color": "#ecf2ea",
+  "theme_color": "#ecf2ea",
   "icons": [
     {
       "src": "icon-192.png",

@@ -6,19 +6,19 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Mi Cartera">
-<meta name="theme-color" content="#eef7ff">
+<meta name="theme-color" content="#ecf2ea">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-192.png">
 <title>Mi Cartera</title>
 <style>
-/* tema claro premium: gradientes azul/verde estilo fintech, tarjetas cristal */
-:root{--bg:#f3f8fc;--bg2:rgba(255,255,255,0.82);--bg2s:#ffffff;--bg3:#eff4fa;--border:rgba(37,99,235,0.10);--border2:rgba(15,42,80,0.18);--text:#0b1f33;--muted:#617186;--green:#047857;--green-bright:#10b981;--red:#dc2626;--accent:#2563eb;--accent-dark:#1749b5;--cyan:#38bdf8;--purple:var(--accent);--r:18px;--rs:12px;--sombra:0 1px 2px rgba(15,42,80,0.04),0 12px 36px rgba(30,64,175,0.08)}
+/* tema verde salvia claro: paleta minima (verde + blanco + gris), estilo Revolut en claro */
+:root{--bg:#ecf2ea;--bg2:rgba(255,255,255,0.85);--bg2s:#ffffff;--bg3:#eef3ec;--border:rgba(28,92,63,0.10);--border2:rgba(26,46,34,0.18);--text:#1a2e22;--muted:#64766b;--green:#1d7d55;--red:#c04a3a;--accent:#2f6f4f;--accent-dark:#1c5c3f;--purple:var(--accent);--r:18px;--rs:12px;--sombra:0 1px 2px rgba(26,46,34,0.04),0 12px 36px rgba(28,92,63,0.10)}
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 body{font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display',sans-serif;color:var(--text);min-height:100vh;padding-bottom:calc(80px + env(safe-area-inset-bottom));
   background:
-    radial-gradient(circle at 10% 0%, rgba(56,189,248,0.18), transparent 34rem),
-    radial-gradient(circle at 95% 18%, rgba(16,185,129,0.12), transparent 30rem),
-    linear-gradient(145deg,#eef7ff 0%,#f9fcff 52%,#edfff8 100%);
+    radial-gradient(circle at 20% 0%, rgba(255,255,255,0.55), transparent 30rem),
+    radial-gradient(circle at 90% 25%, rgba(47,111,79,0.10), transparent 28rem),
+    linear-gradient(150deg,#e7efe4 0%,#f2f7ef 48%,#e4eee2 100%);
   background-attachment:fixed}
 /* montos siempre con numeros tabulares (alineacion perfecta) */
 .total-amount,.card-amount,.chart-val,.s-amt,.deuda-total,.item-amt-pos,.item-amt-neg,.detail-val,.dist-amt{font-variant-numeric:tabular-nums}
@@ -64,10 +64,7 @@ nav{position:sticky;top:0;z-index:100;background:rgba(255,255,255,0.88);backdrop
 /* TOTAL */
 .total-section{margin-bottom:24px;padding-top:10px}
 .total-label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:6px}
-.total-amount{font-size:clamp(42px,11vw,58px);font-weight:780;letter-spacing:-0.045em;line-height:1;
-  background:linear-gradient(100deg,#1749b5,#2563eb 48%,#059669);color:#1749b5;
-  -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;
-  display:inline-block;padding-bottom:2px}
+.total-amount{font-size:clamp(42px,11vw,58px);font-weight:780;letter-spacing:-0.045em;line-height:1;color:var(--accent-dark);padding-bottom:2px}
 .total-sub{font-size:12px;color:var(--muted);margin-top:6px}
 
 /* CARDS */
@@ -77,9 +74,8 @@ nav{position:sticky;top:0;z-index:100;background:rgba(255,255,255,0.88);backdrop
 .card-header{display:flex;align-items:center;justify-content:space-between}
 .card-left{display:flex;align-items:center;gap:11px}
 .card-icon{width:38px;height:38px;border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:19px}
-.icon-nu{background:rgba(124,58,237,0.10);color:#7c3aed}
-.icon-gbm{background:rgba(5,150,105,0.10);color:#047857}.icon-cash{background:rgba(217,119,6,0.10);color:#b45309}
-.icon-tarjeta{background:rgba(220,38,38,0.08);color:#dc2626}.icon-rev{background:rgba(37,99,235,0.08);color:#2563eb}
+/* paleta minima: todos los iconos en el mismo verde salvia */
+.icon-nu,.icon-gbm,.icon-cash,.icon-tarjeta,.icon-rev{background:rgba(47,111,79,0.10);color:var(--accent)}
 .card-icon svg{display:block}
 
 /* DISTRIBUCION: donde esta mi dinero */
@@ -116,13 +112,13 @@ nav{position:sticky;top:0;z-index:100;background:rgba(255,255,255,0.88);backdrop
 .field select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23777' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;padding-right:32px}
 .btn{width:100%;padding:13px;background:var(--bg3);border:0.5px solid var(--border2);border-radius:var(--rs);color:var(--text);font-size:15px;font-weight:500;cursor:pointer;margin-top:4px}
 .btn:active{transform:scale(0.99)}
-.btn-purple{background:linear-gradient(100deg,#1749b5,#2563eb 55%,#059669);border:none;color:#fff;font-weight:600;box-shadow:0 6px 18px rgba(37,99,235,0.25)}
+.btn-purple{background:linear-gradient(115deg,#1c5c3f,#27794f);border:none;color:#fff;font-weight:600;box-shadow:0 6px 18px rgba(28,92,63,0.28)}
 .btn-purple:active{opacity:0.9}
-.btn-green{background:rgba(4,120,87,0.08);border-color:var(--green);color:var(--green)}
-.btn-red{background:rgba(220,38,38,0.06);border-color:var(--red);color:var(--red)}
+.btn-green{background:rgba(29,125,85,0.08);border-color:var(--green);color:var(--green)}
+.btn-red{background:rgba(192,74,58,0.07);border-color:var(--red);color:var(--red)}
 .type-toggle{display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap}
 .type-opt{flex:1;min-width:calc(33% - 4px);padding:8px 4px;background:var(--bg3);border:0.5px solid var(--border);border-radius:var(--rs);color:var(--muted);font-size:12px;cursor:pointer;text-align:center}
-.type-opt.active{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600;box-shadow:0 3px 10px rgba(37,99,235,0.28)}
+.type-opt.active{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600;box-shadow:0 3px 10px rgba(28,92,63,0.28)}
 
 /* ITEMS */
 .item-row{display:flex;justify-content:space-between;align-items:center;padding:11px 0;border-bottom:0.5px solid var(--border)}
@@ -158,8 +154,8 @@ nav{position:sticky;top:0;z-index:100;background:rgba(255,255,255,0.88);backdrop
 .grand-total-deuda .amount{font-size:32px;font-weight:700}
 
 /* TARJETA */
-.tarjeta-card{background:linear-gradient(135deg,#0b2a6b,#2563eb);border:0.5px solid rgba(37,99,235,0.35);border-radius:var(--r);padding:20px;margin-bottom:10px;box-shadow:var(--sombra)}
-.tarjeta-card .t-label{font-size:11px;color:rgba(191,219,254,0.9);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:4px}
+.tarjeta-card{background:linear-gradient(135deg,#12331f,#2f6f4f);border:0.5px solid rgba(47,111,79,0.35);border-radius:var(--r);padding:20px;margin-bottom:10px;box-shadow:var(--sombra)}
+.tarjeta-card .t-label{font-size:11px;color:rgba(214,236,222,0.9);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:4px}
 .tarjeta-card .t-amount{font-size:34px;font-weight:700;color:#fff;letter-spacing:-1px}
 .tarjeta-card .t-sub{font-size:12px;color:rgba(255,255,255,0.5);margin-top:6px}
 .corte-bar{height:4px;background:rgba(255,255,255,0.1);border-radius:2px;margin-top:12px;overflow:hidden}
@@ -179,7 +175,7 @@ nav{position:sticky;top:0;z-index:100;background:rgba(255,255,255,0.88);backdrop
 /* control segmentado: una capsula con la opcion activa rellena */
 .chart-ranges{display:flex;gap:2px;margin-bottom:12px;background:var(--bg3);border-radius:12px;padding:3px}
 .chart-range-btn{flex:1;padding:7px 0;background:transparent;border:none;border-radius:9px;color:var(--muted);font-size:11px;cursor:pointer;text-align:center;font-family:inherit;font-weight:500}
-.chart-range-btn.active{background:var(--accent);color:#fff;font-weight:600;box-shadow:0 2px 8px rgba(37,99,235,0.3)}
+.chart-range-btn.active{background:var(--accent);color:#fff;font-weight:600;box-shadow:0 2px 8px rgba(28,92,63,0.3)}
 .chart-range-btn:disabled{opacity:0.3;cursor:default}
 .chart-last-pulse{transform-box:fill-box;transform-origin:center;animation:chartPulse 2s ease-out infinite}
 @keyframes chartPulse{0%{transform:scale(0.7);opacity:0.55}75%,100%{transform:scale(2.4);opacity:0}}
@@ -476,7 +472,7 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
   </div>
   </div>
   <div class="status" id="status-inicio">—</div>
-  <div class="status" style="margin-top:2px;padding-bottom:8px">version 2026-07-24.1</div>
+  <div class="status" style="margin-top:2px;padding-bottom:8px">version 2026-07-24.2</div>
 </div>
 
 <!-- GASTOS -->
@@ -620,7 +616,7 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
     <div class="panel" id="resumen-ingresos-cats"></div>
     </div>
     <div class="sec">
-    <div class="section-title mt">GBM · valor de tus 45 titulos</div>
+    <div class="section-title mt">inversiones en bolsa · IVVPESO + NVDA (valor historico)</div>
     <div class="panel" id="gbm-chart"></div>
     </div>
     <div class="sec">
@@ -818,6 +814,7 @@ let state = {
   tarjetaDeuda:2001, tarjetaMovimientos:[],
   ivvPrecio:154, ivvVar:null, ivvHistory:[],
   nvdaPrecio:null, nvdaPrev:null, nvdaFecha:'', usdMxn:null, usdMxnPrev:null, usdMxnFecha:'',
+  nvdaHistory:[], usdMxnHistory:[],
   fuenteGasto:'efectivo', destinoIngreso:'efectivo', tipoDeuda:'cargo',
   mesOffset:0, resPeriodo:'mes',
   catsGasto:[...CATS_GASTO_DEFAULT], catsIngreso:[...CATS_INGRESO_DEFAULT],
@@ -866,6 +863,8 @@ async function loadFromFirebase() {
       if (Number.isFinite(m.usdMxn)) state.usdMxn = m.usdMxn;
       if (Number.isFinite(m.usdMxnPrev)) state.usdMxnPrev = m.usdMxnPrev;
       if (typeof m.usdMxnFecha === 'string') state.usdMxnFecha = m.usdMxnFecha;
+      if (Array.isArray(m.nvdaHistory)) state.nvdaHistory = m.nvdaHistory;
+      if (Array.isArray(m.usdMxnHistory)) state.usdMxnHistory = m.usdMxnHistory;
     } else {
       // migracion unica: persistir en mercado las cotizaciones legadas de saldos
       // (la proxima escritura de saldos ya no las incluye y se perderian si Yahoo falla)
@@ -1834,8 +1833,8 @@ function chartBlock(chartId,data,color,deltaLabel) {
   let grid='';
   [0.25,0.5,0.75].forEach(f=>{
     const gy=h-CH_PB-f*(h-CH_PT-CH_PB), gv=minY+f*spanY;
-    grid+=`<line x1="${CH_PL}" x2="${w-CH_PR}" y1="${gy.toFixed(1)}" y2="${gy.toFixed(1)}" stroke="rgba(11,31,51,0.10)" stroke-width="1" stroke-dasharray="3 5"/>`+
-      `<text x="${CH_PL-6}" y="${(gy+3).toFixed(1)}" text-anchor="end" font-size="9" fill="#617186">${fmtCorto(gv)}</text>`;
+    grid+=`<line x1="${CH_PL}" x2="${w-CH_PR}" y1="${gy.toFixed(1)}" y2="${gy.toFixed(1)}" stroke="rgba(26,46,34,0.10)" stroke-width="1" stroke-dasharray="3 5"/>`+
+      `<text x="${CH_PL-6}" y="${(gy+3).toFixed(1)}" text-anchor="end" font-size="9" fill="#64766b">${fmtCorto(gv)}</text>`;
   });
   const ult=P[P.length-1];
   const first=vis[0].y,last=vis[vis.length-1].y;
@@ -1855,7 +1854,7 @@ ${grid}
 </g>
 <circle class="chart-last-pulse" cx="${ult.x.toFixed(1)}" cy="${ult.y.toFixed(1)}" r="4" fill="${color}" opacity="0.4"/>
 <circle cx="${ult.x.toFixed(1)}" cy="${ult.y.toFixed(1)}" r="4" fill="${color}" stroke="#fff" stroke-width="1.5"/>
-<line class="tip-line" x1="0" x2="0" y1="${CH_PT}" y2="${h-CH_PB}" stroke="rgba(15,23,42,0.35)" stroke-width="1" visibility="hidden"/>
+<line class="tip-line" x1="0" x2="0" y1="${CH_PT}" y2="${h-CH_PB}" stroke="rgba(26,46,34,0.35)" stroke-width="1" visibility="hidden"/>
 <circle class="tip-dot" r="3.5" fill="${color}" stroke="#ffffff" stroke-width="1.5" visibility="hidden"/>
 </svg><div class="chart-tip"></div></div>
 <div class="chart-dates"><span style="margin-left:${(CH_PL/w*100).toFixed(0)}%">${fd(minX)}</span><span style="margin-right:${(CH_PR/w*100).toFixed(0)}%">${fd(maxX)}</span></div>`;
@@ -1863,11 +1862,31 @@ ${grid}
 
 window.setChartRango=(chartId,r)=>{ chartRangoSel[chartId]=r; renderChart(chartId); };
 
+// portafolio de inversiones: valor historico de las POSICIONES ACTUALES (45 titulos
+// IVVPESO + acciones NVDA en pesos). Cada componente usa su ultimo cierre <= fecha.
+function seriePortafolio() {
+  const ivv=state.ivvHistory||[], nv=state.nvdaHistory||[], fx=state.usdMxnHistory||[];
+  const shares=state.revNvdaShares||0;
+  const fechas=[...new Set([...ivv.map(p=>p.t),...nv.map(p=>p.t)])].sort();
+  const ffill=(arr,t)=>{ let v=null; for(const p of arr){ if(p.t<=t) v=p.c; else break; } return v; };
+  // si hay posicion NVDA con historial disponible, cada punto exige los 3 componentes
+  // (IVV, NVDA y tipo de cambio): mezclar puntos incompletos crearia saltos falsos.
+  // Sin historial NVDA todavia, la serie cae a solo IVVPESO.
+  const conNvda=shares>0&&nv.length>0&&fx.length>0;
+  return fechas.map(t=>{
+    const iv=ffill(ivv,t), nvda=ffill(nv,t), tc=ffill(fx,t);
+    if(conNvda){
+      if(iv===null||nvda===null||tc===null) return null;
+      return {x:parseFechaLocal(t).getTime(), y:iv*TITULOS+shares*nvda*tc};
+    }
+    return iv===null?null:{x:parseFechaLocal(t).getTime(), y:iv*TITULOS};
+  }).filter(Boolean);
+}
 function renderChart(chartId) {
   if(chartId==='gbm-chart')
-    document.getElementById('gbm-chart').innerHTML=chartBlock('gbm-chart',(state.ivvHistory||[]).map(p=>({x:parseFechaLocal(p.t).getTime(),y:p.c*TITULOS})),'#059669');
+    document.getElementById('gbm-chart').innerHTML=chartBlock('gbm-chart',seriePortafolio(),'#2f6f4f');
   else
-    document.getElementById('patrimonio-chart').innerHTML=chartBlock('patrimonio-chart',(state.snapshots||[]).map(s=>({x:parseFechaLocal(s.f).getTime(),y:s.total})),'#2563eb','cambio');
+    document.getElementById('patrimonio-chart').innerHTML=chartBlock('patrimonio-chart',(state.snapshots||[]).map(s=>({x:parseFechaLocal(s.f).getTime(),y:s.total})),'#1c5c3f','cambio');
 }
 
 // interaccion: cursor/tap sobre la grafica muestra fecha y valor del punto mas cercano
@@ -1920,10 +1939,11 @@ function renderDistribucion(ahorro, inversiones, disponible, nvdaPendiente) {
   const g1=Math.max(0,ahorro), g2=Math.max(0,inversiones), g3=Math.max(0,disponible);
   const total=g1+g2+g3;
   if(!(total>0)){ el.innerHTML='<div class="empty-state">sin datos todavia</div>'; return; }
+  // escala monocromatica verde (paleta minima): oscuro=inversion, medio=ahorro, claro=disponible
   const grupos=[
-    {nombre:'Ahorro con rendimiento',sub:'cajita NU 1 + Revolut Savings',monto:g1,color:'#10b981'},
-    {nombre:'Inversiones',sub:'GBM + NVDA'+(nvdaPendiente?' (precio pendiente)':''),monto:g2,color:'#2563eb'},
-    {nombre:'Disponible',sub:'efectivo + NU + Revolut',monto:g3,color:'#38bdf8'}
+    {nombre:'Ahorro con rendimiento',sub:'cajita NU 1 + Revolut Savings',monto:g1,color:'#2f8f5f',txt:'#176a47'},
+    {nombre:'Inversiones',sub:'GBM + NVDA'+(nvdaPendiente?' (precio pendiente)':''),monto:g2,color:'#1c5c3f',txt:'#1c5c3f'},
+    {nombre:'Disponible',sub:'efectivo + NU + Revolut',monto:g3,color:'#a9c9b4',txt:'#4f7a5e'}
   ];
   const R=62,SW=16,rm=R-SW/2,C=2*Math.PI*rm;
   let off=0,circ='';
@@ -1937,11 +1957,11 @@ function renderDistribucion(ahorro, inversiones, disponible, nvdaPendiente) {
     const pct=g.monto/total*100;
     return `<div class="dist-row"><span class="dist-dot" style="background:${g.color}"></span>`+
       `<div class="dist-info"><div class="dist-name">${g.nombre}</div><div class="dist-sub">${g.sub}</div></div>`+
-      `<div class="dist-right"><div class="dist-amt">${fmt(g.monto)}</div><span class="dist-pct" style="background:${g.color}1a;color:${g.color}">${pct.toFixed(1)}%</span></div></div>`;
+      `<div class="dist-right"><div class="dist-amt">${fmt(g.monto)}</div><span class="dist-pct" style="background:${g.color}26;color:${g.txt}">${pct.toFixed(1)}%</span></div></div>`;
   }).join('');
   el.innerHTML=`<div class="dist-wrap"><div class="dist-donut"><svg viewBox="0 0 140 140" style="width:100%;height:100%">${circ}`+
-    `<text x="70" y="64" text-anchor="middle" font-size="10" fill="#617186">activos</text>`+
-    `<text x="70" y="82" text-anchor="middle" font-size="15" font-weight="700" fill="#0b1f33">${fmtCorto(total)}</text></svg></div>`+
+    `<text x="70" y="64" text-anchor="middle" font-size="10" fill="#64766b">activos</text>`+
+    `<text x="70" y="82" text-anchor="middle" font-size="15" font-weight="700" fill="#1a2e22">${fmtCorto(total)}</text></svg></div>`+
     `<div class="dist-legend">${legend}</div></div>`;
 }
 
@@ -2126,7 +2146,8 @@ async function fetchNVDA() {
   if(!(state.revNvdaShares>0)) return true; // sin posicion: no gastar cuota de los proxies
   // respaldo: si el guardado falla, la memoria vuelve al ultimo estado sincronizado
   const prev={nvdaPrecio:state.nvdaPrecio,nvdaPrev:state.nvdaPrev,nvdaFecha:state.nvdaFecha,
-    usdMxn:state.usdMxn,usdMxnPrev:state.usdMxnPrev,usdMxnFecha:state.usdMxnFecha};
+    usdMxn:state.usdMxn,usdMxnPrev:state.usdMxnPrev,usdMxnFecha:state.usdMxnFecha,
+    nvdaHistory:state.nvdaHistory,usdMxnHistory:state.usdMxnHistory};
   const [nv,fx]=await Promise.allSettled([fetchYahooSeries('NVDA'),fetchYahooSeries('MXN=X')]);
   const nvS=nv.status==='fulfilled'?nv.value:null;
   const fxS=fx.status==='fulfilled'?fx.value:null;
@@ -2135,13 +2156,17 @@ async function fetchNVDA() {
     state.nvdaPrecio=nvS[nvS.length-1].c;
     state.nvdaPrev=nvS.length>=2?nvS[nvS.length-2].c:null;
     state.nvdaFecha=nvS[nvS.length-1].t;
+    state.nvdaHistory=nvS.map(p=>({t:p.t,c:+p.c.toFixed(2)})); // historial para la grafica del portafolio
     cambios.nvdaPrecio=state.nvdaPrecio; cambios.nvdaPrev=state.nvdaPrev; cambios.nvdaFecha=state.nvdaFecha;
+    cambios.nvdaHistory=state.nvdaHistory;
   }
   if(fxS&&fxS.length){
     state.usdMxn=fxS[fxS.length-1].c;
     state.usdMxnPrev=fxS.length>=2?fxS[fxS.length-2].c:null;
     state.usdMxnFecha=fxS[fxS.length-1].t;
+    state.usdMxnHistory=fxS.map(p=>({t:p.t,c:+p.c.toFixed(4)}));
     cambios.usdMxn=state.usdMxn; cambios.usdMxnPrev=state.usdMxnPrev; cambios.usdMxnFecha=state.usdMxnFecha;
+    cambios.usdMxnHistory=state.usdMxnHistory;
   }
   if(!Object.keys(cambios).length) return false;
   try{
@@ -2150,6 +2175,7 @@ async function fetchNVDA() {
     console.error('fetchNVDA save',e);
     state.nvdaPrecio=prev.nvdaPrecio;state.nvdaPrev=prev.nvdaPrev;state.nvdaFecha=prev.nvdaFecha;
     state.usdMxn=prev.usdMxn;state.usdMxnPrev=prev.usdMxnPrev;state.usdMxnFecha=prev.usdMxnFecha;
+    state.nvdaHistory=prev.nvdaHistory;state.usdMxnHistory=prev.usdMxnHistory;
     return false;
   }
   return !!(nvS&&fxS);
