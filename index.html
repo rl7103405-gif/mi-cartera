@@ -488,7 +488,7 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
   </div>
   </div>
   <div class="status" id="status-inicio">—</div>
-  <div class="status" style="margin-top:2px;padding-bottom:8px">version 2026-07-24.6</div>
+  <div class="status" style="margin-top:2px;padding-bottom:8px">version 2026-07-24.7</div>
 </div>
 
 <!-- MOVIMIENTOS (gastos + ingresos en una sola pestana) -->
@@ -672,7 +672,7 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
 
 <script type="module">
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
-import { getFirestore, doc, getDoc, setDoc, collection, getDocs, query, orderBy, writeBatch } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+import { getFirestore, doc, getDoc, setDoc, collection, getDocs, query, orderBy, writeBatch, runTransaction } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
 import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
 
 const firebaseConfig = {
@@ -981,11 +981,96 @@ async function loadFromFirebase() {
     state.ingresos = iSnap.docs.map(d => ({id:d.id, ...d.data()}));
     const trSnap = await getDocs(query(collection(db,'transferencias'), orderBy('fecha','desc')));
     state.transferencias = trSnap.docs.map(d => ({id:d.id, ...d.data()}));
+    // movimientos capturados por el Atajo de iOS (pendiente:true): se aplican a saldos aqui
+    const resAtajo = await procesarPendientesAtajo();
     setSyncDot('ok');
     datosCargados = true;
+    if (resAtajo) {
+      if (resAtajo.error) { setSyncDot('err'); showToast('movimientos del atajo sin aplicar — se reintentara'); }
+      else if (resAtajo.aplicados||resAtajo.rechazados)
+        showToast(resAtajo.aplicados+' del atajo aplicado(s)'+(resAtajo.rechazados?(' · '+resAtajo.rechazados+' rechazado(s)'):''));
+    }
     return true;
   } catch(e) { console.error(e); setSyncDot('err'); return false; }
 }
+
+// ── CAPTURA POR ATAJO DE iOS ──────────────────────────────────
+// El Atajo escribe docs en gastos/ingresos con {porAtajo:true, pendiente:true} pero NO
+// puede tocar saldos. Aqui se procesan con una TRANSACCION (exactamente una vez, aunque
+// dos dispositivos carguen a la vez): se releen los valores canonicos, se re-verifica
+// pendiente, se validan campos, y se actualizan doc + saldos/tarjeta atomicamente.
+// Validos → aplicadoSaldo:true. Invalidos → aplicadoSaldo:false (rechazado, no toca nada).
+async function procesarPendientesAtajo() {
+  // los MAS ANTIGUOS primero: si algun dia hay >100, ninguno queda atorado bajo el corte
+  const porFecha=(a,b)=>String(a.fecha).localeCompare(String(b.fecha));
+  const candG=state.gastos.filter(g=>g.pendiente===true).sort(porFecha).slice(0,100);
+  const candI=state.ingresos.filter(g=>g.pendiente===true).sort(porFecha).slice(0,100);
+  if(!candG.length&&!candI.length) return null;
+  const saldosRef=doc(db,'cartera','saldos'), tarjetaRef=doc(db,'cartera','tarjeta');
+  const resumen={aplicados:0,rechazados:0,error:false};
+  try{
+    const resultado=await runTransaction(db, async tx=>{
+      const sSnap=await tx.get(saldosRef), tSnap=await tx.get(tarjetaRef);
+      const s=sSnap.exists()?sSnap.data():{};
+      const cuentas={
+        efectivo:Number.isFinite(s.efectivo)?s.efectivo:0,
+        nuSaldo:Number.isFinite(s.nuSaldo)?s.nuSaldo:0,
+        revMXN:Number.isFinite(s.revMXN)?s.revMXN:0,
+        efectivoGBM:Number.isFinite(s.efectivoGBM)?s.efectivoGBM:0
+      };
+      let tarjetaDeuda=(tSnap.exists()&&Number.isFinite(tSnap.data().deuda))?tSnap.data().deuda:0;
+      let cambioCuentas=false, cambioTarjeta=false;
+      const estados=[];
+      const procesa=async (c,tipo)=>{
+        const ref=doc(db,tipo==='gasto'?'gastos':'ingresos',c.id);
+        const snap=await tx.get(ref);
+        if(!snap.exists()||snap.data().pendiente!==true) return; // otro dispositivo ya lo proceso
+        const d=snap.data();
+        const cta=tipo==='gasto'?d.fuente:d.destino;
+        const listas=tipo==='gasto'?FUENTES_GASTO:DESTINOS_INGRESO;
+        const valido=Number.isFinite(d.monto)&&d.monto>0&&d.monto<=10000000
+          &&typeof d.cat==='string'&&d.cat.trim()!==''
+          &&listas.includes(cta)&&Number.isFinite(Date.parse(d.fecha));
+        if(valido){
+          const sgn=tipo==='gasto'?-1:1;
+          if(cta==='efectivo') cuentas.efectivo+=sgn*d.monto;
+          else if(cta==='nu') cuentas.nuSaldo+=sgn*d.monto;
+          else if(cta==='revolut') cuentas.revMXN+=sgn*d.monto;
+          else if(cta==='gbm') cuentas.efectivoGBM+=sgn*d.monto;
+          else if(cta==='tarjeta'){ tarjetaDeuda+=d.monto; cambioTarjeta=true; }
+          if(cta!=='tarjeta') cambioCuentas=true;
+        }
+        estados.push({ref,id:c.id,tipo,aplicado:valido});
+      };
+      // lecturas en paralelo (todas ANTES de cualquier escritura, como exige la transaccion)
+      await Promise.all(candG.map(c=>procesa(c,'gasto')));
+      await Promise.all(candI.map(c=>procesa(c,'ingreso')));
+      estados.forEach(e=>tx.update(e.ref,{pendiente:false,aplicadoSaldo:e.aplicado}));
+      // update PARCIAL con valores canonicos: no pisa el resto del doc de saldos
+      if(cambioCuentas) tx.update(saldosRef,{efectivo:cuentas.efectivo,nuSaldo:cuentas.nuSaldo,revMXN:cuentas.revMXN,efectivoGBM:cuentas.efectivoGBM});
+      if(cambioTarjeta) tx.update(tarjetaRef,{deuda:tarjetaDeuda});
+      return {estados,cuentas,tarjetaDeuda,cambioCuentas,cambioTarjeta};
+    });
+    // reflejar en memoria lo que la transaccion dejo en Firestore
+    resultado.estados.forEach(e=>{
+      const arr=e.tipo==='gasto'?state.gastos:state.ingresos;
+      const it=arr.find(x=>x.id===e.id);
+      if(it){ it.pendiente=false; it.aplicadoSaldo=e.aplicado; }
+      if(e.aplicado) resumen.aplicados++; else { resumen.rechazados++; console.error('movimiento del atajo rechazado',e.id); }
+    });
+    if(resultado.cambioCuentas){
+      state.efectivo=resultado.cuentas.efectivo; state.nuSaldo=resultado.cuentas.nuSaldo;
+      state.revMXN=resultado.cuentas.revMXN; state.efectivoGBM=resultado.cuentas.efectivoGBM;
+    }
+    if(resultado.cambioTarjeta) state.tarjetaDeuda=resultado.tarjetaDeuda;
+  }catch(e){ console.error('procesarPendientesAtajo',e); resumen.error=true; }
+  return resumen;
+}
+// un movimiento del atajo que NO llego a aplicarse a saldos (pendiente o rechazado)
+// se puede eliminar sin revertir cuentas — nunca las toco
+function movSinEfecto(m) { return m.pendiente===true || (m.porAtajo===true && m.aplicadoSaldo!==true); }
+// los rechazados no cuentan en resumen ni en totales (nunca fueron dinero real validado)
+function movValido(m) { return Number.isFinite(m.monto) && !(m.porAtajo===true && m.aplicadoSaldo===false); }
 
 function saldosPayload() {
   // OJO: las cotizaciones (ivv*, nvda*, usdMxn*) NO van aqui: viven en cartera/mercado
@@ -1561,19 +1646,24 @@ window.registrarGasto = async function() {
 window.eliminarGasto = async function(id) {
   const idx=state.gastos.findIndex(g=>g.id===id); if(idx<0)return;
   const g=state.gastos[idx];
-  if(!confirm('¿Eliminar gasto de '+fmt(g.monto)+' en '+g.cat+'? El dinero se devuelve a '+(g.fuente==='tarjeta'?'la tarjeta':CUENTAS[g.fuente]||g.fuente)))return;
+  const sinEfecto=movSinEfecto(g); // capturado por atajo y nunca aplicado: borrar no toca cuentas
+  if(!confirm('¿Eliminar gasto de '+fmt(g.monto)+' en '+g.cat+'? '+(sinEfecto?'(no afecta saldos: no estaba aplicado)':'El dinero se devuelve a '+(g.fuente==='tarjeta'?'la tarjeta':CUENTAS[g.fuente]||g.fuente))))return;
   // respaldo para revertir el estado optimista si falla la escritura
   const prev={...backupCuentas(),tarjetaDeuda:state.tarjetaDeuda};
-  if(g.fuente==='efectivo') state.efectivo+=g.monto;
-  else if(g.fuente==='nu') state.nuSaldo+=g.monto;
-  else if(g.fuente==='revolut') state.revMXN+=g.monto;
-  else if(g.fuente==='tarjeta') state.tarjetaDeuda-=g.monto;
+  if(!sinEfecto){
+    if(g.fuente==='efectivo') state.efectivo+=g.monto;
+    else if(g.fuente==='nu') state.nuSaldo+=g.monto;
+    else if(g.fuente==='revolut') state.revMXN+=g.monto;
+    else if(g.fuente==='tarjeta') state.tarjetaDeuda-=g.monto;
+  }
   state.gastos.splice(idx,1);
   try{
     const batch=writeBatch(db);
     batch.delete(doc(db,'gastos',id));
-    batch.set(doc(db,'cartera','saldos'),saldosPayload());
-    if(g.fuente==='tarjeta') batch.set(doc(db,'cartera','tarjeta'),{deuda:state.tarjetaDeuda,movimientos:state.tarjetaMovimientos});
+    if(!sinEfecto){
+      batch.set(doc(db,'cartera','saldos'),saldosPayload());
+      if(g.fuente==='tarjeta') batch.set(doc(db,'cartera','tarjeta'),{deuda:state.tarjetaDeuda,movimientos:state.tarjetaMovimientos});
+    }
     await batch.commit();
     setSyncDot('ok');
     render();renderMovimientos();
@@ -1604,9 +1694,11 @@ function renderMovimientos() {
     const it=m.it;
     const fecha=fmtFechaMov(it.fecha,{day:'numeric',month:'short'});
     const esGasto=m.tipo==='gasto';
-    const cuenta=esGasto?it.fuente:it.destino;
+    // catalogo CUENTAS (nunca el valor crudo): el Atajo escribe por REST y el campo podria traer cualquier cosa
+    const cuenta=CUENTAS[esGasto?it.fuente:it.destino]||'(cuenta desconocida)';
     const del=it.id?`<button class="del-btn" onclick="${esGasto?'eliminarGasto':'eliminarIngreso'}('${it.id}')">&times;</button>`:'';
-    return`<div class="item-row"><div><div class="item-cat">${escapeHtml(it.cat)}</div><div class="item-meta">${escapeHtml(it.nota||'')} · ${fecha} · ${cuenta}</div></div><div style="display:flex;align-items:center"><div class="${esGasto?'item-amt-neg':'item-amt-pos'}">${esGasto?'-':'+'}${fmt(it.monto)}</div>${del}</div></div>`;
+    const marca=it.pendiente===true?' · atajo: pendiente de aplicar':(it.porAtajo===true&&it.aplicadoSaldo===false?' · atajo: rechazado (no afecto saldos)':'');
+    return`<div class="item-row"><div><div class="item-cat">${escapeHtml(it.cat)}</div><div class="item-meta">${escapeHtml(it.nota||'')} · ${fecha} · ${cuenta}${marca}</div></div><div style="display:flex;align-items:center"><div class="${esGasto?'item-amt-neg':'item-amt-pos'}">${esGasto?'-':'+'}${fmt(it.monto)}</div>${del}</div></div>`;
   }).join('');
 }
 
@@ -1678,19 +1770,22 @@ window.registrarRapido = async function() {
 window.eliminarIngreso = async function(id) {
   const idx=state.ingresos.findIndex(g=>g.id===id); if(idx<0)return;
   const g=state.ingresos[idx];
-  if(!confirm('¿Eliminar ingreso de '+fmt(g.monto)+' ('+g.cat+')? Se resta de '+(CUENTAS[g.destino]||g.destino)))return;
+  const sinEfecto=movSinEfecto(g);
+  if(!confirm('¿Eliminar ingreso de '+fmt(g.monto)+' ('+g.cat+')? '+(sinEfecto?'(no afecta saldos: no estaba aplicado)':'Se resta de '+(CUENTAS[g.destino]||g.destino))))return;
   // respaldo para revertir el estado optimista si falla la escritura
   const prev=backupCuentas();
   let quedoNegativo=false;
-  if(g.destino==='efectivo'){ state.efectivo-=g.monto; if(state.efectivo<0) quedoNegativo=true; }
-  else if(g.destino==='nu'){ state.nuSaldo-=g.monto; if(state.nuSaldo<0) quedoNegativo=true; }
-  else if(g.destino==='gbm'){ state.efectivoGBM-=g.monto; if(state.efectivoGBM<0) quedoNegativo=true; }
-  else if(g.destino==='revolut'){ state.revMXN-=g.monto; if(state.revMXN<0) quedoNegativo=true; }
+  if(!sinEfecto){
+    if(g.destino==='efectivo'){ state.efectivo-=g.monto; if(state.efectivo<0) quedoNegativo=true; }
+    else if(g.destino==='nu'){ state.nuSaldo-=g.monto; if(state.nuSaldo<0) quedoNegativo=true; }
+    else if(g.destino==='gbm'){ state.efectivoGBM-=g.monto; if(state.efectivoGBM<0) quedoNegativo=true; }
+    else if(g.destino==='revolut'){ state.revMXN-=g.monto; if(state.revMXN<0) quedoNegativo=true; }
+  }
   state.ingresos.splice(idx,1);
   try{
     const batch=writeBatch(db);
     batch.delete(doc(db,'ingresos',id));
-    batch.set(doc(db,'cartera','saldos'),saldosPayload());
+    if(!sinEfecto) batch.set(doc(db,'cartera','saldos'),saldosPayload());
     await batch.commit();
     setSyncDot('ok');
     render();renderMovimientos();
@@ -2270,7 +2365,8 @@ window.setResPeriodo = p => {
 function renderResumen() {
   const {start,end,label}=rangoResumen();
   document.getElementById('mes-label').textContent=label;
-  const enRango=i=>{const d=new Date(i.fecha);return d>=start&&d<end;};
+  // los rechazados del atajo (nunca aplicados a saldos) no cuentan en el resumen
+  const enRango=i=>{if(!movValido(i))return false;const d=new Date(i.fecha);return d>=start&&d<end;};
   const gastos=state.gastos.filter(enRango);
   const ingresos=state.ingresos.filter(enRango);
   const totalG=gastos.reduce((s,i)=>s+i.monto,0), totalI=ingresos.reduce((s,i)=>s+i.monto,0);
