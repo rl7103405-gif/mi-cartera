@@ -212,6 +212,7 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
   .page{max-width:560px}
   #page-inicio{max-width:1060px}
   #page-movimientos{max-width:1060px}
+  #page-metas{max-width:1060px}
   #page-resumen{max-width:1080px}
   nav,.tabs{padding-left:32px;padding-right:32px}
   .hero-grid{display:grid;grid-template-columns:1fr 1.1fr;gap:0 24px;align-items:center;margin-bottom:8px}
@@ -259,6 +260,7 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
 <div class="tabs">
   <div class="tab active" data-page="inicio" onclick="showPage('inicio')">inicio</div>
   <div class="tab" data-page="movimientos" onclick="showPage('movimientos')">movimientos</div>
+  <div class="tab" data-page="metas" onclick="showPage('metas')">metas</div>
   <div class="tab" data-page="deudas" onclick="showPage('deudas')">deudas</div>
   <div class="tab" data-page="resumen" onclick="showPage('resumen')">resumen</div>
 </div>
@@ -279,14 +281,6 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
     <div class="panel" id="distribucion-panel"><div class="empty-state">calculando...</div></div>
   </div>
   </div>
-
-  <!-- MI META -->
-  <div class="section-title">mi meta · fin de 2026</div>
-  <div class="panel" id="metas-panel"><div class="empty-state">calculando...</div></div>
-
-  <!-- MIS APARTADOS (metas de ahorro para caprichos: contadores visuales) -->
-  <div class="section-title">mis apartados</div>
-  <div class="panel" id="apartados-panel"><div class="empty-state">cargando...</div></div>
 
   <!-- AVISO PREMIUM (dia 22 de cada mes) -->
   <div class="panel" id="premium-aviso" hidden style="border-color:rgba(47,111,79,0.45)">
@@ -494,7 +488,7 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
   </div>
   </div>
   <div class="status" id="status-inicio">—</div>
-  <div class="status" style="margin-top:2px;padding-bottom:8px">version 2026-07-24.5</div>
+  <div class="status" style="margin-top:2px;padding-bottom:8px">version 2026-07-24.6</div>
 </div>
 
 <!-- MOVIMIENTOS (gastos + ingresos en una sola pestana) -->
@@ -547,6 +541,22 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
   <div class="sec">
     <div class="section-title">movimientos</div>
     <div class="panel" id="movimientos-historial"><div class="empty-state">sin movimientos registrados</div></div>
+  </div>
+  </div>
+  </div>
+</div>
+
+<!-- METAS (meta anual + apartados de caprichos) -->
+<div class="page" id="page-metas">
+  <div class="mt">
+  <div class="inicio-grid">
+  <div class="sec">
+    <div class="section-title">mi meta · fin de 2026</div>
+    <div class="panel" id="metas-panel"><div class="empty-state">calculando...</div></div>
+  </div>
+  <div class="sec">
+    <div class="section-title">mis apartados</div>
+    <div class="panel" id="apartados-panel"><div class="empty-state">cargando...</div></div>
   </div>
   </div>
   </div>
