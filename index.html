@@ -472,7 +472,7 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
   </div>
   </div>
   <div class="status" id="status-inicio">—</div>
-  <div class="status" style="margin-top:2px;padding-bottom:8px">version 2026-07-28.1</div>
+  <div class="status" style="margin-top:2px;padding-bottom:8px">version 2026-07-28.2</div>
 </div>
 
 <!-- MOVIMIENTOS (gastos + ingresos en una sola pestana) -->
@@ -646,7 +646,7 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
     <div class="panel" id="resumen-ingresos-cats"></div>
     </div>
     <div class="sec">
-    <div class="section-title mt">inversiones en bolsa · NVDA (valor historico)</div>
+    <div class="section-title mt">inversiones en bolsa · evolucion (GBM hasta su venta · NVDA desde tu compra)</div>
     <div class="panel" id="gbm-chart"></div>
     </div>
     <div class="sec">
@@ -952,6 +952,20 @@ async function loadFromFirebase() {
           state.efectivoGBM=0; state.reporto=0;
         }
       } catch(e) { console.error('seed jul28',e); } // sin marcador: se reintenta en la proxima carga
+    }
+    // SIEMBRA 28-jul-b: acciones NVDA exactas segun el recibo de Revolut de Roberto
+    // (compra 23-jul-2026 9:43am: $40 USD que compraron 0.19306994 acciones)
+    if (!(mDoc.exists() && mDoc.data().seedJul28b === true)) {
+      try {
+        const aplico = await runTransaction(db, async tx => {
+          const mSnap = await tx.get(doc(db,'cartera','mercado'));
+          if (mSnap.exists() && mSnap.data().seedJul28b === true) return false;
+          tx.update(doc(db,'cartera','saldos'), {revNvdaShares:0.19306994});
+          tx.set(doc(db,'cartera','mercado'), {seedJul28b:true}, {merge:true});
+          return true;
+        });
+        if (aplico) state.revNvdaShares=0.19306994;
+      } catch(e) { console.error('seed jul28b',e); }
     }
     const pDoc = await getDoc(doc(db,'cartera','personas'));
     if (pDoc.exists()) {
@@ -1307,7 +1321,7 @@ function render() {
   document.getElementById('rev-stocks-display').textContent=nvdaOk?fmt(nvdaVal):(state.revNvdaShares>0?'$—':fmt(0));
   // en modo privado tampoco se muestra la posicion (con las acciones y el precio publico se reconstruye el monto)
   document.getElementById('rev-stocks-sub').textContent=modoPrivado?'NVDA · posicion oculta':(state.revNvdaShares>0
-    ?(state.revNvdaShares+' NVDA'+(Number.isFinite(state.nvdaPrecio)?' · US$'+state.nvdaPrecio.toFixed(2):'')+(Number.isFinite(state.usdMxn)?' · $'+state.usdMxn.toFixed(2)+'/USD':''))
+    ?(state.revNvdaShares.toFixed(4)+' NVDA'+(Number.isFinite(state.nvdaPrecio)?' · US$'+state.nvdaPrecio.toFixed(2):'')+(Number.isFinite(state.usdMxn)?' · $'+state.usdMxn.toFixed(2)+'/USD':''))
     :'sin posicion — captura tus acciones');
   const fechasNvda=[state.nvdaFecha,state.usdMxnFecha].filter(Boolean);
   document.getElementById('rev-stocks-fecha-val').textContent=fechasNvda.length?fechasNvda.sort()[0]:'—';
@@ -2114,15 +2128,25 @@ window.setChartRango=(chartId,r)=>{ chartRangoSel[chartId]=r; renderChart(chartI
 
 // portafolio de inversiones: valor historico de las POSICIONES ACTUALES (45 titulos
 // IVVPESO + acciones NVDA en pesos). Cada componente usa su ultimo cierre <= fecha.
+// ventanas de tenencia REALES: GBM se tuvo hasta su venta (27-jul-2026);
+// NVDA se compro el 23-jul-2026. La grafica combina ambos en sus periodos.
+const GBM_HASTA='2026-07-27', NVDA_DESDE='2026-07-23';
 function seriePortafolio() {
-  // GBM retirado: el portafolio es solo NVDA en pesos (precio x tipo de cambio)
-  const nv=state.nvdaHistory||[], fx=state.usdMxnHistory||[];
+  const ivv=state.ivvHistory||[], nv=state.nvdaHistory||[], fx=state.usdMxnHistory||[];
   const shares=state.revNvdaShares||0;
-  if(!(shares>0)||!nv.length||!fx.length) return [];
   const ffill=(arr,t)=>{ let v=null; for(const p of arr){ if(p.t<=t) v=p.c; else break; } return v; };
-  return nv.map(p=>{
-    const tc=ffill(fx,p.t);
-    return tc===null?null:{x:parseFechaLocal(p.t).getTime(), y:shares*p.c*tc};
+  const fechas=[...new Set([
+    ...ivv.filter(p=>p.t<=GBM_HASTA).map(p=>p.t),
+    ...nv.filter(p=>p.t>=NVDA_DESDE).map(p=>p.t)
+  ])].sort();
+  return fechas.map(t=>{
+    let y=0, alguno=false;
+    if(t<=GBM_HASTA){ const iv=ffill(ivv,t); if(iv!==null){ y+=iv*TITULOS; alguno=true; } }
+    if(shares>0&&t>=NVDA_DESDE){
+      const nvda=ffill(nv,t), tc=ffill(fx,t);
+      if(nvda!==null&&tc!==null){ y+=shares*nvda*tc; alguno=true; }
+    }
+    return alguno?{x:parseFechaLocal(t).getTime(),y}:null;
   }).filter(Boolean);
 }
 function renderChart(chartId) {
