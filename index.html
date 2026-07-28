@@ -75,7 +75,7 @@ nav{position:sticky;top:0;z-index:100;background:rgba(255,255,255,0.88);backdrop
 .card-left{display:flex;align-items:center;gap:11px}
 .card-icon{width:38px;height:38px;border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:19px}
 /* paleta minima: todos los iconos en el mismo verde salvia */
-.icon-nu,.icon-gbm,.icon-cash,.icon-tarjeta,.icon-rev{background:rgba(47,111,79,0.10);color:var(--accent)}
+.icon-nu,.icon-cash,.icon-tarjeta,.icon-rev{background:rgba(47,111,79,0.10);color:var(--accent)}
 .card-icon svg{display:block}
 
 /* DISTRIBUCION: donde esta mi dinero */
@@ -199,7 +199,7 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
 .pie-cat{flex:1;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .pie-pct{color:var(--muted)}
 .pie-amt{font-weight:600}
-#res-periodo-toggle .type-opt{min-width:calc(25% - 5px)}
+#res-periodo-toggle .type-opt,#mov-periodo-toggle .type-opt{min-width:calc(25% - 5px)}
 .del-btn{background:none;border:none;color:var(--muted);font-size:17px;padding:4px 0 4px 12px;cursor:pointer;line-height:1}
 .del-btn:active{color:var(--red)}
 
@@ -314,7 +314,7 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
   </div>
 
   <div class="cards">
-    <div class="card" onclick="toggleDetail('nu1-detail')">
+    <div class="card" onclick="toggleCuenta('cajita1','nu1-detail')">
       <div class="card-header">
         <div class="card-left"><div class="card-icon icon-nu"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="4"/><circle cx="12" cy="12" r="4"/><path d="M12 6.5V8M12 16v1.5M6.5 12H8M16 12h1.5"/></svg></div>
           <div><div class="card-name">NU cajita 1</div><div class="card-sub" id="nu1-sub">—</div></div>
@@ -324,15 +324,17 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
       <div class="card-detail" id="nu1-detail">
         <div class="detail-row"><span class="detail-label">saldo base</span><span class="detail-val" id="nu1-base-val">$—</span></div>
         <div class="detail-row"><span class="detail-label">rendimiento acumulado</span><span class="detail-val pos" id="nu1-rend-val">$—</span></div>
+        <div id="movs-cajita1"></div>
       </div>
     </div>
-    <div class="card">
+    <div class="card" onclick="toggleCuenta('nu','nu-detail')">
       <div class="card-header">
         <div class="card-left"><div class="card-icon icon-nu"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9.5 12 4l9 5.5"/><path d="M5 10v8M9.5 10v8M14.5 10v8M19 10v8"/><path d="M3 20h18"/></svg></div>
           <div><div class="card-name">NU saldo</div><div class="card-sub">disponible</div></div>
         </div>
         <div class="card-right"><div class="card-amount" id="nu-saldo-display">$—</div></div>
       </div>
+      <div class="card-detail" id="nu-detail"><div id="movs-nu"></div></div>
     </div>
 
     <!-- TARJETA NU -->
@@ -347,39 +349,27 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
       </div>
     </div>
 
-    <div class="card" onclick="toggleDetail('gbm-detail')">
-      <div class="card-header">
-        <div class="card-left"><div class="card-icon icon-gbm"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4v16h16"/><path d="M7 14l4-5 3 3 5-6"/></svg></div>
-          <div><div class="card-name">GBM</div><div class="card-sub" id="gbm-sub">IVVPESO · 45 titulos</div></div>
-        </div>
-        <div class="card-right"><div class="card-amount" id="gbm-total">$—</div><div class="card-change neu" id="gbm-var">—</div></div>
-      </div>
-      <div class="card-detail" id="gbm-detail">
-        <div class="detail-row"><span class="detail-label">precio IVVPESO</span><span class="detail-val" id="gbm-precio-val">$—</span></div>
-        <div class="detail-row"><span class="detail-label">45 titulos</span><span class="detail-val" id="gbm-ivv-val">$—</span></div>
-        <div class="detail-row"><span class="detail-label">reporto LF</span><span class="detail-val" id="gbm-reporto-val">$—</span></div>
-        <div class="detail-row"><span class="detail-label">efectivo GBM</span><span class="detail-val" id="gbm-efec-val">$—</span></div>
-      </div>
-    </div>
-    <div class="card">
+    <div class="card" onclick="toggleCuenta('efectivo','cash-detail')">
       <div class="card-header">
         <div class="card-left"><div class="card-icon icon-cash"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="7" width="19" height="10" rx="2"/><circle cx="12" cy="12" r="2.6"/><path d="M6 12h.01M18 12h.01"/></svg></div>
           <div><div class="card-name">efectivo</div><div class="card-sub">pesos en mano</div></div>
         </div>
         <div class="card-right"><div class="card-amount" id="cash-display">$—</div></div>
       </div>
+      <div class="card-detail" id="cash-detail"><div id="movs-efectivo"></div></div>
     </div>
 
     <!-- REVOLUT -->
-    <div class="card">
+    <div class="card" onclick="toggleCuenta('revolut','rev-mxn-detail')">
       <div class="card-header">
         <div class="card-left"><div class="card-icon icon-rev"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><ellipse cx="12" cy="12" rx="3.6" ry="8.5"/><path d="M3.5 12h17"/></svg></div>
           <div><div class="card-name">Revolut MXN</div><div class="card-sub">cuenta personal</div></div>
         </div>
         <div class="card-right"><div class="card-amount" id="rev-mxn-display">$—</div></div>
       </div>
+      <div class="card-detail" id="rev-mxn-detail"><div id="movs-revolut"></div></div>
     </div>
-    <div class="card" onclick="toggleDetail('rev-savings-detail')">
+    <div class="card" onclick="toggleCuenta('revSavings','rev-savings-detail')">
       <div class="card-header">
         <div class="card-left"><div class="card-icon icon-rev"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M19 5 5 19"/><circle cx="7.2" cy="7.2" r="2.4"/><circle cx="16.8" cy="16.8" r="2.4"/></svg></div>
           <div><div class="card-name">Revolut Savings</div><div class="card-sub" id="rev-savings-sub">—</div></div>
@@ -389,6 +379,7 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
       <div class="card-detail" id="rev-savings-detail">
         <div class="detail-row"><span class="detail-label">saldo base</span><span class="detail-val" id="rev-savings-base-val">$—</span></div>
         <div class="detail-row"><span class="detail-label">rendimiento acumulado</span><span class="detail-val pos" id="rev-savings-rend-val">$—</span></div>
+        <div id="movs-revSavings"></div>
       </div>
     </div>
     <div class="card" onclick="toggleDetail('rev-stocks-detail')">
@@ -415,10 +406,6 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
     </div>
     <div class="field"><label>NU saldo disponible</label><input type="number" id="input-nu-saldo" placeholder="ej. 360.59" step="0.01" inputmode="decimal"></div>
     <div class="field"><label>efectivo en pesos</label><input type="number" id="input-efectivo" placeholder="ej. 2200" step="1" inputmode="decimal"></div>
-    <div class="row2" style="gap:8px">
-      <div class="field"><label>efectivo GBM</label><input type="number" id="input-gbm-efec" placeholder="ej. 46.16" step="0.01" inputmode="decimal"></div>
-      <div class="field"><label>reporto LF</label><input type="number" id="input-reporto" placeholder="ej. 99.74" step="0.01" inputmode="decimal"></div>
-    </div>
     <div class="field"><label>Revolut MXN (saldo de la cuenta)</label><input type="number" id="input-rev-mxn" placeholder="ej. 9.26" step="0.01" inputmode="decimal"></div>
     <div class="field"><label>Revolut Savings — saldo base (lo que muestra Revolut hoy)</label><input type="number" id="input-rev-savings-base" placeholder="ej. 2000.79" step="0.01" inputmode="decimal"></div>
     <div class="row2" style="gap:8px">
@@ -439,7 +426,6 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
           <option value="efectivo">efectivo</option>
           <option value="nu">NU saldo</option>
           <option value="cajita1">NU cajita 1</option>
-          <option value="gbm">GBM efectivo</option>
           <option value="revolut">Revolut MXN</option>
           <option value="revSavings">Revolut Savings</option>
         </select>
@@ -449,7 +435,6 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
           <option value="nu">NU saldo</option>
           <option value="efectivo">efectivo</option>
           <option value="cajita1">NU cajita 1</option>
-          <option value="gbm">GBM efectivo</option>
           <option value="revolut">Revolut MXN</option>
           <option value="revSavings">Revolut Savings</option>
           <option value="tarjeta">tarjeta NU (pago)</option>
@@ -474,7 +459,6 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
         <option value="nu">NU saldo</option>
         <option value="efectivo">efectivo</option>
         <option value="cajita1">NU cajita 1</option>
-        <option value="gbm">GBM efectivo</option>
         <option value="revolut">Revolut MXN</option>
         <option value="revSavings">Revolut Savings</option>
         <option value="externo">otro (no descontar de mis cuentas)</option>
@@ -488,7 +472,7 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
   </div>
   </div>
   <div class="status" id="status-inicio">—</div>
-  <div class="status" style="margin-top:2px;padding-bottom:8px">version 2026-07-24.7</div>
+  <div class="status" style="margin-top:2px;padding-bottom:8px">version 2026-07-28.1</div>
 </div>
 
 <!-- MOVIMIENTOS (gastos + ingresos en una sola pestana) -->
@@ -530,7 +514,6 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
         <div class="type-toggle" id="ingreso-destino-toggle">
           <div class="type-opt active" onclick="setDestinoIngreso('efectivo')">efectivo</div>
           <div class="type-opt" onclick="setDestinoIngreso('nu')">NU saldo</div>
-          <div class="type-opt" onclick="setDestinoIngreso('gbm')">GBM</div>
           <div class="type-opt" onclick="setDestinoIngreso('revolut')">Revolut</div>
         </div>
       </div>
@@ -540,6 +523,17 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
   </div>
   <div class="sec">
     <div class="section-title">movimientos</div>
+    <div class="type-toggle" id="mov-periodo-toggle">
+      <button type="button" class="type-opt" onclick="setMovPeriodo('dia')">dia</button>
+      <button type="button" class="type-opt" onclick="setMovPeriodo('semana')">semana</button>
+      <button type="button" class="type-opt active" onclick="setMovPeriodo('mes')">mes</button>
+      <button type="button" class="type-opt" onclick="setMovPeriodo('ano')">a&ntilde;o</button>
+    </div>
+    <div class="month-selector">
+      <button class="month-nav" onclick="cambiarPeriodoMov(-1)">&#8249;</button>
+      <div class="month-label" id="mov-periodo-label">—</div>
+      <button class="month-nav" onclick="cambiarPeriodoMov(1)">&#8250;</button>
+    </div>
     <div class="panel" id="movimientos-historial"><div class="empty-state">sin movimientos registrados</div></div>
   </div>
   </div>
@@ -597,7 +591,6 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
           <option value="efectivo">efectivo</option>
           <option value="nu">NU saldo</option>
           <option value="cajita1">NU cajita 1</option>
-          <option value="gbm">GBM efectivo</option>
           <option value="revolut">Revolut MXN</option>
           <option value="revSavings">Revolut Savings</option>
         </select>
@@ -653,12 +646,8 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
     <div class="panel" id="resumen-ingresos-cats"></div>
     </div>
     <div class="sec">
-    <div class="section-title mt">inversiones en bolsa · IVVPESO + NVDA (valor historico)</div>
+    <div class="section-title mt">inversiones en bolsa · NVDA (valor historico)</div>
     <div class="panel" id="gbm-chart"></div>
-    </div>
-    <div class="sec">
-    <div class="section-title mt">GBM · cierre por mes</div>
-    <div class="panel" id="gbm-tabla"></div>
     </div>
     <div class="sec">
     <div class="section-title mt">activos totales · evolucion</div>
@@ -693,7 +682,7 @@ const TITULOS = 45;
 const META_SAVINGS = 25000, META_STOCKS = 12000, META_FECHA = '2026-12-31', PREMIUM_MONTO = 145;
 const CUENTAS = {efectivo:'efectivo', nu:'NU saldo', cajita1:'NU cajita 1', cajita2:'NU cajita 2', gbm:'GBM efectivo', revolut:'Revolut MXN', revSavings:'Revolut Savings', tarjeta:'tarjeta NU'};
 const FUENTES_GASTO=['efectivo','nu','tarjeta','revolut'];
-const DESTINOS_INGRESO=['efectivo','nu','gbm','revolut'];
+const DESTINOS_INGRESO=['efectivo','nu','revolut']; // gbm retirado (los ingresos legados con gbm solo se muestran/deshacen)
 const CATS_GASTO_DEFAULT = ['Comida','Transporte','Salidas','Zoe','Ropa','Salud','Suscripciones','Educacion','Casa','Entretenimiento','Viajes','Regalos','Otros'];
 const CATS_INGRESO_DEFAULT = ['Trabajo','Quini','Maicitos','Brownies','Regalos','Deudas cobradas','Inversiones','Otros'];
 const MESES = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
@@ -946,6 +935,24 @@ async function loadFromFirebase() {
         console.error('seed jul26 v3',e); // sin marcador: se reintenta en la proxima carga
       }
     }
+    // SIEMBRA 28-jul-2026 (transaccion con update PARCIAL: no pisa nada concurrente):
+    // GBM vendido -> el dinero migro a Revolut. Anclas absolutas del dia (sin guardas por
+    // valor): NU saldo 51.03, Savings 9,007.46 al 28-jul, GBM en 0. Marcador seedJul28.
+    if (!(mDoc.exists() && mDoc.data().seedJul28 === true)) {
+      try {
+        const aplico = await runTransaction(db, async tx => {
+          const mSnap = await tx.get(doc(db,'cartera','mercado'));
+          if (mSnap.exists() && mSnap.data().seedJul28 === true) return false; // otro dispositivo ya sembro
+          tx.update(doc(db,'cartera','saldos'), {nuSaldo:51.03, revSavingsBase:9007.46, revSavingsFecha:'2026-07-28', efectivoGBM:0, reporto:0});
+          tx.set(doc(db,'cartera','mercado'), {seedJul28:true}, {merge:true});
+          return true;
+        });
+        if (aplico) {
+          state.nuSaldo=51.03; state.revSavingsBase=9007.46; state.revSavingsFecha='2026-07-28';
+          state.efectivoGBM=0; state.reporto=0;
+        }
+      } catch(e) { console.error('seed jul28',e); } // sin marcador: se reintenta en la proxima carga
+    }
     const pDoc = await getDoc(doc(db,'cartera','personas'));
     if (pDoc.exists()) {
       state.personas = pDoc.data().data || state.personas;
@@ -1164,6 +1171,40 @@ function actualizarOjo() {
 function rerenderTodo() {
   render(); renderTransferencias(); renderMovimientos(); renderDeudas(); renderResumen();
 }
+// detalle por cuenta: al tocar una tarjeta de inicio se listan sus movimientos del ultimo
+// mes (gastos, ingresos y transferencias; excluye pendientes/rechazados del atajo)
+const CUENTAS_DETALLE=['efectivo','nu','revolut','revSavings','cajita1'];
+window.toggleCuenta = function(key, detailId) {
+  if(!CUENTAS_DETALLE.includes(key)) return;
+  const cont=document.getElementById('movs-'+key);
+  if(cont){
+    const desde=Date.now()-30*86400000;
+    const items=[];
+    state.gastos.forEach(g=>{ if(g.fuente===key&&!movSinEfecto(g)){ const t=msFechaMov(g.fecha); if(t!==null&&t>=desde) items.push({t,txt:g.cat+(g.nota?' · '+g.nota:''),monto:-g.monto}); }});
+    state.ingresos.forEach(g=>{ if(g.destino===key&&!movSinEfecto(g)){ const t=msFechaMov(g.fecha); if(t!==null&&t>=desde) items.push({t,txt:g.cat+(g.nota?' · '+g.nota:''),monto:g.monto}); }});
+    Object.values(state.personas||{}).forEach(p=>{
+      (p.movimientos||[]).forEach(m=>{
+        if(m.cuenta!==key) return;
+        const ef=DEUDA_TIPOS[m.tipo]; if(!ef) return;
+        const t=msFechaMov(m.fecha); if(t===null||t<desde) return;
+        items.push({t,txt:'deuda '+(p.nombre||'')+' · '+(m.subcat||''),monto:ef.cuenta*m.monto});
+      });
+    });
+    state.transferencias.forEach(tr=>{
+      if(tr.origen===tr.destino) return; // dato corrupto: se omite
+      const t=msFechaMov(tr.fecha); if(t===null||t<desde) return;
+      if(tr.origen===key) items.push({t,txt:'transferencia a '+(CUENTAS[tr.destino]||'(cuenta desconocida)'),monto:-tr.monto});
+      else if(tr.destino===key) items.push({t,txt:'transferencia desde '+(CUENTAS[tr.origen]||'(cuenta desconocida)'),monto:tr.monto});
+    });
+    items.sort((a,b)=>b.t-a.t);
+    const filas=items.slice(0,15).map(i=>
+      `<div class="detail-row"><span class="detail-label">${escapeHtml(i.txt)} · ${new Date(i.t).toLocaleDateString('es-MX',{day:'numeric',month:'short'})}</span><span class="detail-val ${i.monto<0?'neg':'pos'}">${i.monto<0?'-':'+'}${fmt(Math.abs(i.monto))}</span></div>`
+    ).join('');
+    cont.innerHTML=`<div class="detail-row" style="margin-top:6px"><span class="detail-label" style="font-weight:600">ultimo mes (gastos, ingresos y transferencias)</span></div>`+
+      (filas||'<div class="detail-row"><span class="detail-label">sin movimientos en el ultimo mes</span></div>');
+  }
+  toggleDetail(detailId);
+};
 window.setMovTipo = t => {
   document.getElementById('form-gasto-wrap').hidden = t!=='gasto';
   document.getElementById('form-ingreso-wrap').hidden = t!=='ingreso';
@@ -1173,7 +1214,7 @@ window.setMovTipo = t => {
   document.getElementById('mov-tipo-ingreso').setAttribute('aria-pressed', t==='ingreso');
 };
 window.setFuente = f => { state.fuenteGasto=f; document.querySelectorAll('#gasto-fuente-toggle .type-opt').forEach((el,i)=>el.classList.toggle('active',['efectivo','nu','tarjeta','revolut'][i]===f)); };
-window.setDestinoIngreso = f => { state.destinoIngreso=f; document.querySelectorAll('#ingreso-destino-toggle .type-opt').forEach((el,i)=>el.classList.toggle('active',['efectivo','nu','gbm','revolut'][i]===f)); };
+window.setDestinoIngreso = f => { state.destinoIngreso=f; document.querySelectorAll('#ingreso-destino-toggle .type-opt').forEach((el,i)=>el.classList.toggle('active',['efectivo','nu','revolut'][i]===f)); };
 window.setTipoDeuda = t => { state.tipoDeuda=t; ['cargo','pago','debo','pague'].forEach(id=>document.getElementById('tipo-'+id).classList.toggle('active',id===t)); };
 
 // ── CALCS ─────────────────────────────────────────────────────
@@ -1193,6 +1234,13 @@ function mesLocalDe(f) {
   const d = new Date(f);
   if (isNaN(d.getTime())) return '';
   return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
+}
+// epoch ms LOCAL de un movimiento (fechas legadas a medianoche UTC se toman como dia local)
+function msFechaMov(f) {
+  const m = /^(\d{4}-\d{2}-\d{2})T00:00:00(\.000)?Z$/.exec(f);
+  const d = m ? parseFechaLocal(m[1]) : new Date(f);
+  const t = d.getTime();
+  return Number.isFinite(t) ? t : null; // invalida: se excluye, no cae en 1970
 }
 function diaLocalDe(f) {
   const m = /^\d{4}-\d{2}-(\d{2})T00:00:00(\.000)?Z$/.exec(f);
@@ -1285,32 +1333,20 @@ function render() {
     document.getElementById('tarjeta-ultimo').textContent=(ult.tipo==='cargo'?'+':'-')+fmt(ult.monto)+' · '+fmtFechaMov(ult.fecha,{day:'numeric',month:'short'});
   }
 
-  const gbmIVV=state.ivvPrecio*TITULOS, gbmTotal=gbmIVV+state.reporto+state.efectivoGBM;
-  document.getElementById('gbm-total').textContent=fmt(gbmTotal);
-  document.getElementById('gbm-ivv-val').textContent=fmt(gbmIVV);
-  document.getElementById('gbm-precio-val').textContent=fmt(state.ivvPrecio);
-  document.getElementById('gbm-reporto-val').textContent=fmt(state.reporto);
-  document.getElementById('gbm-efec-val').textContent=fmt(state.efectivoGBM);
-  document.getElementById('gbm-sub').textContent=modoPrivado?'IVVPESO · posicion oculta':('IVVPESO · $'+state.ivvPrecio.toFixed(2)+' /titulo');
-  if(state.ivvVar!==null){
-    const varEl=document.getElementById('gbm-var');
-    varEl.textContent=(state.ivvVar>=0?'+':'')+state.ivvVar.toFixed(2)+'% hoy';
-    varEl.className='card-change '+(state.ivvVar>=0?'pos':'neg');
-  }
-  // cajita 2 de Nu retirada de la app (su dinero se movio a Revolut): ya no suma al total
-  const total=nu1.saldo+state.nuSaldo+gbmTotal+state.efectivo+state.revMXN+rs.saldo+nvdaVal;
+  // GBM retirado (vendido jul-2026, el dinero migro a Revolut): fuera del total
+  const total=nu1.saldo+state.nuSaldo+state.efectivo+state.revMXN+rs.saldo+nvdaVal;
   document.getElementById('total-display').textContent=fmt(total);
   // neto = activos + lo que me deben (o menos lo que debo) - deuda de tarjeta
   const saldoDeudas=Object.values(state.personas||{}).reduce((s,p)=>s+(p.saldo||0),0);
   const neto=total+saldoDeudas-(state.tarjetaDeuda||0);
   document.getElementById('neto-display').textContent='patrimonio neto (con deudas y tarjeta): '+fmt(neto);
-  renderDistribucion(nu1.saldo+rs.saldo, gbmTotal+nvdaVal, state.efectivo+state.nuSaldo+state.revMXN, state.revNvdaShares>0&&!nvdaOk);
-  renderMetas(rs.saldo, gbmIVV+nvdaVal, state.revNvdaShares>0&&!nvdaOk);
+  renderDistribucion(nu1.saldo+rs.saldo, nvdaVal, state.efectivo+state.nuSaldo+state.revMXN, state.revNvdaShares>0&&!nvdaOk);
+  renderMetas(rs.saldo, nvdaVal, state.revNvdaShares>0&&!nvdaOk);
   renderApartados();
   checkPremium();
   const now=new Date();
   document.getElementById('last-update').textContent='actualizado '+now.toLocaleDateString('es-MX',{day:'numeric',month:'short'})+' · '+now.toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'});
-  maybeSnapshot(total,gbmTotal);
+  maybeSnapshot(total,0); // esquema legado: campo gbm queda en 0
 }
 
 // guarda un snapshot diario del patrimonio para las graficas (1 por dia, solo si cambio)
@@ -1340,16 +1376,16 @@ function maybeSnapshot(total,gbm) {
 
 window.guardarManuales = async function() {
   const ids={c1b:'input-cajita1-base',c1f:'input-cajita1-fecha',c1t:'input-cajita1-tasa',
-    ns:'input-nu-saldo',ef:'input-efectivo',ge:'input-gbm-efec',rp:'input-reporto',
+    ns:'input-nu-saldo',ef:'input-efectivo',
     rvm:'input-rev-mxn',rsb:'input-rev-savings-base',rsf:'input-rev-savings-fecha',rst:'input-rev-savings-tasa',
     nvs:'input-nvda-shares'};
   const labels={c1b:'cajita 1 - saldo base',c1f:'cajita 1 - fecha base',c1t:'cajita 1 - tasa',
-    ns:'NU saldo',ef:'efectivo',ge:'efectivo GBM',rp:'reporto LF',
+    ns:'NU saldo',ef:'efectivo',
     rvm:'Revolut MXN',rsb:'Revolut Savings - saldo base',rsf:'Revolut Savings - fecha base',rst:'Revolut Savings - tasa',
     nvs:'acciones NVDA'};
   const raw={}; Object.keys(ids).forEach(k=>raw[k]=document.getElementById(ids[k]).value.trim());
   const vals={};
-  for(const k of ['c1b','ns','ef','ge','rp','rvm','rsb','nvs']) {
+  for(const k of ['c1b','ns','ef','rvm','rsb','nvs']) {
     if(raw[k]===''){ vals[k]=null; continue; }
     const n=parseFloat(raw[k]);
     if(!Number.isFinite(n)){ showToast('monto invalido en '+labels[k]); return; }
@@ -1387,7 +1423,7 @@ window.guardarManuales = async function() {
   const btn=document.getElementById('manuales-btn');
   // respaldo para revertir el estado optimista si falla la escritura
   const prev={c1b:state.nuCajita1Base,c1f:state.nuCajita1Fecha,c1t:state.nuCajita1Tasa,
-    ns:state.nuSaldo,ef:state.efectivo,ge:state.efectivoGBM,rp:state.reporto,
+    ns:state.nuSaldo,ef:state.efectivo,
     rvm:state.revMXN,rsb:state.revSavingsBase,rsf:state.revSavingsFecha,rst:state.revSavingsTasa,
     nvs:state.revNvdaShares};
   if(vals.c1b!==null) state.nuCajita1Base=vals.c1b;
@@ -1395,8 +1431,6 @@ window.guardarManuales = async function() {
   if(vals.c1t!==null) state.nuCajita1Tasa=vals.c1t;
   if(vals.ns!==null) state.nuSaldo=vals.ns;
   if(vals.ef!==null) state.efectivo=vals.ef;
-  if(vals.ge!==null) state.efectivoGBM=vals.ge;
-  if(vals.rp!==null) state.reporto=vals.rp;
   if(vals.rvm!==null) state.revMXN=vals.rvm;
   if(vals.rsb!==null) state.revSavingsBase=vals.rsb;
   if(vals.rsf!==null) state.revSavingsFecha=vals.rsf;
@@ -1410,7 +1444,7 @@ window.guardarManuales = async function() {
     showToast('guardado y sincronizado');
   } catch(e) {
     state.nuCajita1Base=prev.c1b;state.nuCajita1Fecha=prev.c1f;state.nuCajita1Tasa=prev.c1t;
-    state.nuSaldo=prev.ns;state.efectivo=prev.ef;state.efectivoGBM=prev.ge;state.reporto=prev.rp;
+    state.nuSaldo=prev.ns;state.efectivo=prev.ef;
     state.revMXN=prev.rvm;state.revSavingsBase=prev.rsb;state.revSavingsFecha=prev.rsf;state.revSavingsTasa=prev.rst;
     state.revNvdaShares=prev.nvs;
     setSyncDot('err');
@@ -1430,6 +1464,7 @@ window.registrarTarjeta = async function(tipo) {
   let fuente=null;
   if(tipo==='pago') {
     fuente=document.getElementById('tarjeta-pago-fuente').value;
+    if(!['efectivo','nu','cajita1','revolut','revSavings','externo'].includes(fuente)){showToast('cuenta no valida');return;}
     if(monto>state.tarjetaDeuda+0.01){showToast('el pago excede la deuda de la tarjeta');return;}
     if(fuente!=='externo'&&monto>getSaldoCuenta(fuente)+0.01){showToast('saldo insuficiente en '+CUENTAS[fuente]);return;}
   }
@@ -1515,7 +1550,8 @@ window.registrarTransferencia = async function() {
   const monto=parseFloat(document.getElementById('transfer-monto').value);
   const nota=document.getElementById('transfer-nota').value.trim();
   if(!Number.isFinite(monto)||monto<=0){showToast('ingresa un monto valido');return;}
-  if(!(origen in CUENTAS)||!(destino in CUENTAS)){showToast('cuenta no valida');return;}
+  const CTAS_TRANSFER=['efectivo','nu','cajita1','revolut','revSavings'];
+  if(!CTAS_TRANSFER.includes(origen)||!(CTAS_TRANSFER.includes(destino)||destino==='tarjeta')){showToast('cuenta no valida');return;}
   if(origen===destino){showToast('elige cuentas distintas');return;}
   if(monto>getSaldoCuenta(origen)+0.01){showToast('saldo insuficiente en '+CUENTAS[origen]);return;}
   if(destino==='tarjeta'&&monto>state.tarjetaDeuda+0.01){showToast('el pago excede la deuda de la tarjeta');return;}
@@ -1557,6 +1593,7 @@ window.eliminarTransferencia = async function(id) {
   const idx=state.transferencias.findIndex(t=>t.id===id); if(idx<0)return;
   const t=state.transferencias[idx];
   if(t.destino==='tarjeta'){showToast('los pagos a tarjeta no se pueden deshacer aqui');return;}
+  if(t.origen==='gbm'||t.destino==='gbm'){showToast('las transferencias del GBM retirado ya no se pueden deshacer');return;}
   // si la transferencia toca una cajita/savings, el interes que ese dinero ya genero no se revierte al deshacer
   const CTAS_INTERES=['cajita1','cajita2','revSavings'];
   const tocaCajitaTr=CTAS_INTERES.includes(t.origen)||CTAS_INTERES.includes(t.destino);
@@ -1679,18 +1716,30 @@ window.eliminarGasto = async function(id) {
   }
 };
 
-// historial combinado de gastos e ingresos, ordenado por fecha (los dos tipos juntos)
+// historial combinado de gastos e ingresos con filtro de periodo (dia/semana/mes/ano)
+let movPeriodo='mes', movOffset=0;
+window.setMovPeriodo = p => {
+  movPeriodo=p; movOffset=0;
+  document.querySelectorAll('#mov-periodo-toggle .type-opt').forEach((el,i)=>el.classList.toggle('active',['dia','semana','mes','ano'][i]===p));
+  renderMovimientos();
+};
+window.cambiarPeriodoMov = d => { movOffset+=d; renderMovimientos(); };
 function renderMovimientos() {
   const c=document.getElementById('movimientos-historial');
   if(!c) return;
+  const {start,end,label}=rangoPeriodo(movPeriodo,movOffset);
+  const lbl=document.getElementById('mov-periodo-label'); if(lbl) lbl.textContent=label;
+  // filtrar primero (fechas invalidas fuera), ordenar despues, cap al final
+  const enRango=it=>{ const t=msFechaMov(it.fecha); return t!==null&&t>=start.getTime()&&t<end.getTime(); };
   const todos=[
-    ...state.gastos.map(it=>({tipo:'gasto',it})),
-    ...state.ingresos.map(it=>({tipo:'ingreso',it}))
+    ...state.gastos.filter(enRango).map(it=>({tipo:'gasto',it})),
+    ...state.ingresos.filter(enRango).map(it=>({tipo:'ingreso',it}))
   ];
-  if(!todos.length){c.innerHTML='<div class="empty-state">sin movimientos registrados</div>';return;}
-  const ts=f=>{ const t=Date.parse(f); return Number.isFinite(t)?t:0; }; // fecha invalida al final
-  todos.sort((a,b)=>ts(b.it.fecha)-ts(a.it.fecha));
-  c.innerHTML=todos.slice(0,50).map(m=>{
+  if(!todos.length){c.innerHTML='<div class="empty-state">sin movimientos en este periodo</div>';return;}
+  todos.sort((a,b)=>(msFechaMov(b.it.fecha)||0)-(msFechaMov(a.it.fecha)||0));
+  const recortado=todos.length>200;
+  c.innerHTML=(recortado?'<div class="item-meta" style="text-align:center;padding:6px 0">mostrando los 200 mas recientes de '+todos.length+'</div>':'')+
+  todos.slice(0,200).map(m=>{
     const it=m.it;
     const fecha=fmtFechaMov(it.fecha,{day:'numeric',month:'short'});
     const esGasto=m.tipo==='gasto';
@@ -1840,6 +1889,8 @@ window.handlePersonaChange = async function(sel) {
 // debo (yo debo -): me prestaron, ENTRA a mi cuenta
 // pague (pague deuda +): pago lo que debo, SALE de mi cuenta
 const DEUDA_TIPOS={cargo:{deuda:1,cuenta:-1},pago:{deuda:-1,cuenta:1},debo:{deuda:-1,cuenta:1},pague:{deuda:1,cuenta:-1}};
+// ALTA: cuentas vigentes para registrar; LEGADO: acepta tambien cuentas retiradas para poder deshacer
+const DEUDA_CUENTAS_ALTA=['externo','efectivo','nu','cajita1','revolut','revSavings'];
 const DEUDA_CUENTAS=['externo','efectivo','nu','cajita1','cajita2','gbm','revolut','revSavings'];
 window.registrarDeuda = async function() {
   const btn=document.getElementById('deuda-btn');
@@ -1851,7 +1902,7 @@ window.registrarDeuda = async function() {
   const tipo=state.tipoDeuda;
   if(!state.personas[persona]){showToast('persona no valida');return;}
   if(!DEUDA_TIPOS[tipo]){showToast('tipo no valido');return;}
-  if(!DEUDA_CUENTAS.includes(cuenta)){showToast('cuenta no valida');return;}
+  if(!DEUDA_CUENTAS_ALTA.includes(cuenta)){showToast('cuenta no valida');return;}
   if(!Number.isFinite(monto)||monto<=0){showToast('ingresa un monto valido');return;}
   const ef=DEUDA_TIPOS[tipo];
   if(cuenta!=='externo'&&ef.cuenta<0&&monto>getSaldoCuenta(cuenta)+0.01){showToast('saldo insuficiente en '+CUENTAS[cuenta]);return;}
@@ -2064,21 +2115,14 @@ window.setChartRango=(chartId,r)=>{ chartRangoSel[chartId]=r; renderChart(chartI
 // portafolio de inversiones: valor historico de las POSICIONES ACTUALES (45 titulos
 // IVVPESO + acciones NVDA en pesos). Cada componente usa su ultimo cierre <= fecha.
 function seriePortafolio() {
-  const ivv=state.ivvHistory||[], nv=state.nvdaHistory||[], fx=state.usdMxnHistory||[];
+  // GBM retirado: el portafolio es solo NVDA en pesos (precio x tipo de cambio)
+  const nv=state.nvdaHistory||[], fx=state.usdMxnHistory||[];
   const shares=state.revNvdaShares||0;
-  const fechas=[...new Set([...ivv.map(p=>p.t),...nv.map(p=>p.t)])].sort();
+  if(!(shares>0)||!nv.length||!fx.length) return [];
   const ffill=(arr,t)=>{ let v=null; for(const p of arr){ if(p.t<=t) v=p.c; else break; } return v; };
-  // si hay posicion NVDA con historial disponible, cada punto exige los 3 componentes
-  // (IVV, NVDA y tipo de cambio): mezclar puntos incompletos crearia saltos falsos.
-  // Sin historial NVDA todavia, la serie cae a solo IVVPESO.
-  const conNvda=shares>0&&nv.length>0&&fx.length>0;
-  return fechas.map(t=>{
-    const iv=ffill(ivv,t), nvda=ffill(nv,t), tc=ffill(fx,t);
-    if(conNvda){
-      if(iv===null||nvda===null||tc===null) return null;
-      return {x:parseFechaLocal(t).getTime(), y:iv*TITULOS+shares*nvda*tc};
-    }
-    return iv===null?null:{x:parseFechaLocal(t).getTime(), y:iv*TITULOS};
+  return nv.map(p=>{
+    const tc=ffill(fx,p.t);
+    return tc===null?null:{x:parseFechaLocal(p.t).getTime(), y:shares*p.c*tc};
   }).filter(Boolean);
 }
 function renderChart(chartId) {
@@ -2141,7 +2185,7 @@ function renderDistribucion(ahorro, inversiones, disponible, nvdaPendiente) {
   // escala monocromatica verde (paleta minima): oscuro=inversion, medio=ahorro, claro=disponible
   const grupos=[
     {nombre:'Ahorro con rendimiento',sub:'cajita NU 1 + Revolut Savings',monto:g1,color:'#2f8f5f',txt:'#176a47'},
-    {nombre:'Inversiones',sub:'GBM + NVDA'+(nvdaPendiente?' (precio pendiente)':''),monto:g2,color:'#1c5c3f',txt:'#1c5c3f'},
+    {nombre:'Inversiones',sub:'NVDA (Revolut)'+(nvdaPendiente?' · precio pendiente':''),monto:g2,color:'#1c5c3f',txt:'#1c5c3f'},
     {nombre:'Disponible',sub:'efectivo + NU + Revolut',monto:g3,color:'#a9c9b4',txt:'#4f7a5e'}
   ];
   const R=62,SW=16,rm=R-SW/2,C=2*Math.PI*rm;
@@ -2181,7 +2225,7 @@ function renderMetas(savings, stocks, nvdaPendiente) {
   };
   el.innerHTML=`<div class="item-meta" style="margin-bottom:10px">${dias>0?('quedan '+dias+' dias para el 31 de diciembre'):'fecha de la meta cumplida'}</div>`+
     fila('Revolut Savings','',savings,META_SAVINGS)+
-    fila('invertido en bolsa','IVVPESO + NVDA'+(nvdaPendiente?' · cotizacion NVDA pendiente':''),stocks,META_STOCKS);
+    fila('invertido en bolsa','NVDA'+(nvdaPendiente?' · cotizacion pendiente':''),stocks,META_STOCKS);
 }
 
 // ── APARTADOS (metas de caprichos: contadores visuales, no tocan cuentas) ──
@@ -2334,20 +2378,21 @@ function pieChart(entries) {
   return `<div class="pie-wrap"><svg viewBox="0 0 120 120" class="pie-svg">${paths}</svg><div class="pie-legend">${legend}</div></div>`;
 }
 
-function rangoResumen() {
-  const now=new Date(), o=state.mesOffset;
+// nucleo puro de rangos (lo comparten resumen y movimientos, con offsets independientes)
+function rangoPeriodo(periodo, o) {
+  const now=new Date();
   let start,end,label;
-  if(state.resPeriodo==='dia'){
+  if(periodo==='dia'){
     start=new Date(now.getFullYear(),now.getMonth(),now.getDate()+o);
     end=new Date(now.getFullYear(),now.getMonth(),now.getDate()+o+1);
     label=o===0?'hoy':start.toLocaleDateString('es-MX',{weekday:'short',day:'numeric',month:'short'});
-  } else if(state.resPeriodo==='semana'){
+  } else if(periodo==='semana'){
     const lunes=now.getDate()-((now.getDay()+6)%7);
     start=new Date(now.getFullYear(),now.getMonth(),lunes+o*7);
     end=new Date(start.getFullYear(),start.getMonth(),start.getDate()+7);
     const fin=new Date(end.getTime()-86400000);
     label=start.toLocaleDateString('es-MX',{day:'numeric',month:'short'})+' – '+fin.toLocaleDateString('es-MX',{day:'numeric',month:'short'});
-  } else if(state.resPeriodo==='ano'){
+  } else if(periodo==='ano'){
     start=new Date(now.getFullYear()+o,0,1); end=new Date(now.getFullYear()+o+1,0,1);
     label=String(now.getFullYear()+o);
   } else {
@@ -2356,6 +2401,7 @@ function rangoResumen() {
   }
   return {start,end,label};
 }
+function rangoResumen() { return rangoPeriodo(state.resPeriodo, state.mesOffset); }
 window.setResPeriodo = p => {
   state.resPeriodo=p; state.mesOffset=0;
   document.querySelectorAll('#res-periodo-toggle .type-opt').forEach((el,i)=>el.classList.toggle('active',['dia','semana','mes','ano'][i]===p));
@@ -2366,7 +2412,7 @@ function renderResumen() {
   const {start,end,label}=rangoResumen();
   document.getElementById('mes-label').textContent=label;
   // los rechazados del atajo (nunca aplicados a saldos) no cuentan en el resumen
-  const enRango=i=>{if(!movValido(i))return false;const d=new Date(i.fecha);return d>=start&&d<end;};
+  const enRango=i=>{if(!movValido(i))return false;const t=msFechaMov(i.fecha);return t!==null&&t>=start.getTime()&&t<end.getTime();};
   const gastos=state.gastos.filter(enRango);
   const ingresos=state.ingresos.filter(enRango);
   const totalG=gastos.reduce((s,i)=>s+i.monto,0), totalI=ingresos.reduce((s,i)=>s+i.monto,0);
@@ -2404,13 +2450,7 @@ function renderRendimientos(start, end, balance) {
   const fd=d=>d.toLocaleDateString('es-MX',{day:'numeric',month:'short'});
   const parcialC1=c1FechaValida&&!sinDatosC1&&start.getTime()<parseFechaLocal(state.nuCajita1Fecha).getTime()&&parseFechaLocal(state.nuCajita1Fecha).getTime()<endC.getTime();
   const parcialRS=rsFechaValida&&!sinDatosRS&&start.getTime()<parseFechaLocal(state.revSavingsFecha).getTime()&&parseFechaLocal(state.revSavingsFecha).getTime()<endC.getTime();
-  // GBM: base = ultimo cierre ANTES del inicio del periodo (estrictamente <), fin = ultimo
-  // cierre < fin del periodo (asi un periodo de un solo dia muestra su variacion)
-  const hist=(state.ivvHistory||[]).slice().sort((a,b)=>a.t.localeCompare(b.t));
-  const baseP=hist.filter(p=>parseFechaLocal(p.t)<start).pop();
-  const finP=hist.filter(p=>parseFechaLocal(p.t)<end).pop();
-  const rendG=(baseP&&finP&&finP.t>baseP.t)?(finP.c-baseP.c)*TITULOS:null;
-  const rendTotal=rend1+rendRS+(rendG||0);
+  const rendTotal=rend1+rendRS;
   const real=balance+rendTotal;
   const sgn=(v,cls)=>`<span class="${v>=0?'item-amt-pos':'item-amt-neg'}"${cls?' style="font-size:15px"':''}>${v>=0?'+':'−'}${fmt(Math.abs(v))}</span>`;
   const rowC1=sinDatosC1
@@ -2421,23 +2461,12 @@ function renderRendimientos(start, end, balance) {
     :`<div class="item-row"><div><div class="item-cat">Revolut Savings</div><div class="item-meta">${(state.revSavingsTasa||0)}% anual${parcialRS?' · desde el '+fd(parseFechaLocal(state.revSavingsFecha))+' (parcial)':' compuesto'}</div></div>${sgn(rendRS)}</div>`;
   document.getElementById('res-rendimientos').innerHTML=
     rowC1+rowRS+
-    `<div class="item-row"><div><div class="item-cat">GBM · IVVPESO</div><div class="item-meta">${rendG===null?'sin datos de este periodo':(modoPrivado?'variacion de tus titulos':'variacion de tus 45 titulos')}</div></div>${rendG===null?'<span class="item-meta">—</span>':sgn(rendG)}</div>`+
     `<div class="item-row"><div class="item-cat" style="font-weight:600">total rendimientos</div>${sgn(rendTotal,1)}</div>`+
     `<div class="item-row"><div><div class="item-cat" style="font-weight:600">balance real del periodo</div><div class="item-meta">ingresos − gastos + rendimientos</div></div>${sgn(real,1)}</div>`;
 }
 
 function renderGBMResumen() {
-  const hist=state.ivvHistory||[];
   renderChart('gbm-chart');
-  const byM={}; hist.forEach(p=>{byM[p.t.slice(0,7)]=p.c;});
-  const mks=Object.keys(byM).sort();
-  document.getElementById('gbm-tabla').innerHTML=mks.length?
-    `<table class="mini"><tr><th>mes</th><th>precio cierre</th><th>valor 45 tit.</th><th>Δ</th></tr>`+mks.map((k,i)=>{
-      const [y,m]=k.split('-'); const c=byM[k]; const prev=i>0?byM[mks[i-1]]:null;
-      const d=prev?((c-prev)/prev*100):null;
-      return`<tr><td>${MESES[+m-1].slice(0,3)} ${y.slice(2)}</td><td>${fmt(c)}</td><td>${fmt(c*TITULOS)}</td><td class="${d===null?'':(d>=0?'pos':'neg')}">${d===null?'—':(d>=0?'+':'')+d.toFixed(2)+'%'}</td></tr>`;
-    }).join('')+`</table>`
-    :'<div class="empty-state">sin datos — pulsa actualizar en el inicio</div>';
   renderChart('patrimonio-chart');
 }
 window.cambiarMes=d=>{state.mesOffset+=d;renderResumen();};
@@ -2465,28 +2494,6 @@ async function fetchYahooSeries(symbol) {
     }catch(e){ console.error('fetchYahooSeries '+symbol,e); }
   }
   return null;
-}
-
-async function fetchIVVPESO() {
-  // respaldo: si falla el guardado se restaura el estado previo (no dejar en memoria
-  // un precio "en vivo" que nunca se sincronizo con otros dispositivos)
-  const prevPrecio=state.ivvPrecio, prevVar=state.ivvVar, prevHistory=state.ivvHistory;
-  const serie=await fetchYahooSeries('IVVPESO.MX');
-  if(!serie) return false;
-  const hist=serie.map(p=>({t:p.t,c:+p.c.toFixed(2)}));
-  state.ivvHistory=hist;
-  state.ivvPrecio=hist[hist.length-1].c;
-  state.ivvVar=hist.length>=2?((hist[hist.length-1].c-hist[hist.length-2].c)/hist[hist.length-2].c)*100:null;
-  try{
-    // cotizaciones SOLO al doc cartera/mercado (merge): nunca pisan saldos y viceversa
-    await setDoc(doc(db,'cartera','mercado'), {ivvPrecio:state.ivvPrecio, ivvVar:state.ivvVar, ivvHistory:state.ivvHistory}, {merge:true});
-    setSyncDot('ok');
-    return true;
-  }catch(e){
-    console.error('fetchIVVPESO save',e);
-    state.ivvPrecio=prevPrecio; state.ivvVar=prevVar; state.ivvHistory=prevHistory;
-    return false;
-  }
 }
 
 // NVDA (USD) + tipo de cambio USD/MXN: cada serie con su propio cierre previo y fecha
@@ -2540,14 +2547,10 @@ window.fetchAll = async function() {
   try{
     // nota: no se recarga loadFromFirebase aqui — sobreescribiria el estado en memoria
     // mientras el usuario registra algo (carrera); las cotizaciones van a su propio doc
-    const [rIvv,rNvda]=await Promise.allSettled([fetchIVVPESO(),fetchNVDA()]);
-    const okIvv=rIvv.status==='fulfilled'&&rIvv.value;
-    const okNvda=rNvda.status==='fulfilled'&&rNvda.value;
+    let okNvda=false;
+    try{ okNvda=await fetchNVDA(); }catch(e){ console.error('fetchAll',e); }
     document.getElementById('status-inicio').textContent=
-      okIvv&&okNvda?'precios en vivo · IVVPESO + NVDA'
-      :okIvv?'IVVPESO en vivo · NVDA con ultimo precio'
-      :okNvda?'NVDA en vivo · IVVPESO con ultimo precio'
-      :'usando ultimos precios guardados';
+      okNvda?'precio en vivo · NVDA':'usando ultimo precio guardado';
     render();
     renderTransferencias();
     if(document.getElementById('page-movimientos').classList.contains('active')) renderMovimientos();
