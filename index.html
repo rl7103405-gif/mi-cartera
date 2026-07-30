@@ -390,7 +390,12 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
         <div class="card-right"><div class="card-amount" id="rev-stocks-display">$—</div><div class="card-change neu" id="rev-stocks-var">—</div></div>
       </div>
       <div class="card-detail" id="rev-stocks-detail">
+        <div id="stocks-detalle"></div>
         <div class="detail-row"><span class="detail-label">precio del cierre</span><span class="detail-val" id="rev-stocks-fecha-val">—</span></div>
+        <div class="row2" style="gap:8px;margin-top:8px">
+          <button type="button" class="btn btn-purple" style="margin-top:0;padding:10px" onclick="event.stopPropagation();registrarCompraStock()">+ compre</button>
+          <button type="button" class="btn btn-red" style="margin-top:0;padding:10px" onclick="event.stopPropagation();registrarVentaStock()">- vendi</button>
+        </div>
       </div>
     </div>
   </div>
@@ -412,7 +417,6 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
       <div class="field"><label>Revolut Savings — fecha base (YYYY-MM-DD)</label><input type="text" id="input-rev-savings-fecha" placeholder="vacia = hoy"></div>
       <div class="field"><label>Revolut Savings — tasa anual %</label><input type="number" id="input-rev-savings-tasa" placeholder="ej. 15" step="0.01" inputmode="decimal"></div>
     </div>
-    <div class="field"><label>acciones NVDA en Revolut (ej. 0.19)</label><input type="number" id="input-nvda-shares" placeholder="ej. 0.19" step="0.0001" inputmode="decimal"></div>
     <button class="btn btn-purple" id="manuales-btn" onclick="guardarManuales()">guardar</button>
   </div>
   </div>
@@ -472,7 +476,7 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
   </div>
   </div>
   <div class="status" id="status-inicio">—</div>
-  <div class="status" style="margin-top:2px;padding-bottom:8px">version 2026-07-28.2</div>
+  <div class="status" style="margin-top:2px;padding-bottom:8px">version 2026-07-30.1</div>
 </div>
 
 <!-- MOVIMIENTOS (gastos + ingresos en una sola pestana) -->
@@ -680,7 +684,8 @@ const ALLOWED_EMAIL = 'rl7103405@gmail.com';
 const TITULOS = 45;
 // metas de Roberto para el cierre de 2026 y cuota mensual del plan Premium de Revolut
 const META_SAVINGS = 25000, META_STOCKS = 12000, META_FECHA = '2026-12-31', PREMIUM_MONTO = 145;
-const CUENTAS = {efectivo:'efectivo', nu:'NU saldo', cajita1:'NU cajita 1', cajita2:'NU cajita 2', gbm:'GBM efectivo', revolut:'Revolut MXN', revSavings:'Revolut Savings', tarjeta:'tarjeta NU'};
+const CUENTAS = {efectivo:'efectivo', nu:'NU saldo', cajita1:'NU cajita 1', cajita2:'NU cajita 2', gbm:'GBM efectivo', revolut:'Revolut MXN', revSavings:'Revolut Savings', tarjeta:'tarjeta NU', stocks:'Stocks (bolsa)'};
+const CTAS_STOCK_OP=['efectivo','nu','revolut']; // cuentas desde las que se puede comprar/vender bolsa
 const FUENTES_GASTO=['efectivo','nu','tarjeta','revolut'];
 const DESTINOS_INGRESO=['efectivo','nu','revolut']; // gbm retirado (los ingresos legados con gbm solo se muestran/deshacen)
 const CATS_GASTO_DEFAULT = ['Comida','Transporte','Salidas','Zoe','Ropa','Salud','Suscripciones','Educacion','Casa','Entretenimiento','Viajes','Regalos','Otros'];
@@ -847,6 +852,7 @@ let state = {
   ivvPrecio:154, ivvVar:null, ivvHistory:[],
   nvdaPrecio:null, nvdaPrev:null, nvdaFecha:'', usdMxn:null, usdMxnPrev:null, usdMxnFecha:'',
   nvdaHistory:[], usdMxnHistory:[],
+  stocksOps:[], posiciones:{}, accionesMkt:{}, // ledger de operaciones de bolsa, posiciones derivadas y cotizaciones por simbolo
   fuenteGasto:'efectivo', destinoIngreso:'efectivo', tipoDeuda:'cargo',
   mesOffset:0, resPeriodo:'mes',
   catsGasto:[...CATS_GASTO_DEFAULT], catsIngreso:[...CATS_INGRESO_DEFAULT],
@@ -898,6 +904,21 @@ async function loadFromFirebase() {
       if (typeof m.usdMxnFecha === 'string') state.usdMxnFecha = m.usdMxnFecha;
       if (Array.isArray(m.nvdaHistory)) state.nvdaHistory = m.nvdaHistory;
       if (Array.isArray(m.usdMxnHistory)) state.usdMxnHistory = m.usdMxnHistory;
+      if (m.accionesMkt && typeof m.accionesMkt==='object') {
+        const limpio={};
+        Object.entries(m.accionesMkt).forEach(([k,mk])=>{
+          if(!/^[A-Z][A-Z0-9.\-]{0,9}$/.test(k)||!mk||typeof mk!=='object'||!Number.isFinite(mk.precio)||mk.precio<=0) return;
+          limpio[k]={precio:mk.precio, prev:(Number.isFinite(mk.prev)&&mk.prev>0)?mk.prev:null,
+            fecha:typeof mk.fecha==='string'?mk.fecha:'',
+            hist:Array.isArray(mk.hist)?mk.hist.filter(p=>p&&typeof p.t==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(p.t)&&Number.isFinite(p.c)&&p.c>0).sort((a,b)=>a.t.localeCompare(b.t)):[]};
+        });
+        state.accionesMkt = limpio;
+      }
+      // migracion en memoria: los campos nvda* legados se leen como accionesMkt.NVDA
+      // (se persiste en el nuevo formato con el siguiente fetchStocks, sin escritura aqui)
+      if (!state.accionesMkt.NVDA && Number.isFinite(state.nvdaPrecio)) {
+        state.accionesMkt = {...state.accionesMkt, NVDA:{precio:state.nvdaPrecio, prev:state.nvdaPrev, fecha:state.nvdaFecha, hist:state.nvdaHistory}};
+      }
     } else {
       // migracion unica: persistir en mercado las cotizaciones legadas de saldos
       // (la proxima escritura de saldos ya no las incluye y se perderian si Yahoo falla)
@@ -1002,6 +1023,35 @@ async function loadFromFirebase() {
     state.ingresos = iSnap.docs.map(d => ({id:d.id, ...d.data()}));
     const trSnap = await getDocs(query(collection(db,'transferencias'), orderBy('fecha','desc')));
     state.transferencias = trSnap.docs.map(d => ({id:d.id, ...d.data()}));
+    const opSnap = await getDocs(query(collection(db,'stocksOps'), orderBy('fecha','asc')));
+    const opsCrudas = opSnap.docs.map(d => ({id:d.id, ...d.data()}));
+    state.stocksOps = opsCrudas.filter(o=>o&&typeof o.simbolo==='string'&&/^[A-Z][A-Z0-9.\-]{0,9}$/.test(o.simbolo)
+        &&Number.isFinite(o.acciones)&&o.acciones>0&&(o.tipo==='compra'||o.tipo==='venta')
+        &&typeof o.fecha==='string'&&fechaCalendarioValida(o.fecha)&&o.fecha<=hoyLocal());
+    const opsInvalidas = opsCrudas.length - state.stocksOps.length;
+    if (opsInvalidas>0) { console.warn('stocksOps invalidas:',opsInvalidas); showToast('aviso: '+opsInvalidas+' operacion(es) de bolsa no se pudieron leer'); }
+    // SIEMBRA 30-jul (ledger inicial): las dos compras reales de Roberto segun sus recibos
+    // de Revolut. cuenta 'externo': el efectivo de esas compras YA quedo anclado en las
+    // siembras de saldos anteriores (no se descuenta doble). QQQ: monto MXN pendiente.
+    if (!(mDoc.exists() && mDoc.data().seedJul28c === true)) {
+      try {
+        const nuevos = await runTransaction(db, async tx => {
+          const mSnap = await tx.get(doc(db,'cartera','mercado'));
+          if (mSnap.exists() && mSnap.data().seedJul28c === true) return null;
+          const op1={tipo:'compra',simbolo:'NVDA',acciones:0.19306994,montoMxn:704.32,cuenta:'externo',fecha:'2026-07-23',nota:'compra inicial ($40 USD)',creado:new Date().toISOString()};
+          const op2={tipo:'compra',simbolo:'QQQ',acciones:0.5865555,montoMxn:0,cuenta:'externo',fecha:'2026-07-28',nota:'compra ($400.01 USD)',creado:new Date().toISOString()};
+          const r1=doc(collection(db,'stocksOps')), r2=doc(collection(db,'stocksOps'));
+          tx.set(r1,op1); tx.set(r2,op2);
+          tx.set(doc(db,'cartera','mercado'), {seedJul28c:true}, {merge:true});
+          return [{id:r1.id,...op1},{id:r2.id,...op2}];
+        });
+        if (nuevos) state.stocksOps.push(...nuevos);
+      } catch(e) { console.error('seed jul28c',e); }
+    }
+    derivarPosiciones();
+    // doc canonico de posiciones: lo valida y actualiza la transaccion de compra/venta
+    const posMap={}; Object.entries(state.posiciones).forEach(([k,p])=>{ posMap[k]=p.acciones; });
+    setDoc(doc(db,'cartera','posiciones'), posMap).catch(()=>{});
     // movimientos capturados por el Atajo de iOS (pendiente:true): se aplican a saldos aqui
     const resAtajo = await procesarPendientesAtajo();
     setSyncDot('ok');
@@ -1101,7 +1151,7 @@ function saldosPayload() {
     nuSaldo:state.nuSaldo, efectivo:state.efectivo,
     reporto:state.reporto, efectivoGBM:state.efectivoGBM,
     revMXN:state.revMXN, revSavingsBase:state.revSavingsBase, revSavingsFecha:state.revSavingsFecha,
-    revSavingsTasa:state.revSavingsTasa, revNvdaShares:state.revNvdaShares
+    revSavingsTasa:state.revSavingsTasa
   };
 }
 async function saveSaldos() {
@@ -1233,6 +1283,12 @@ window.setTipoDeuda = t => { state.tipoDeuda=t; ['cargo','pago','debo','pague'].
 
 // ── CALCS ─────────────────────────────────────────────────────
 function parseFechaLocal(f) { return new Date(f+'T00:00:00'); } // evita que YYYY-MM-DD se lea como UTC
+// valida que YYYY-MM-DD sea un dia de calendario real (rechaza p.ej. 2026-02-30, que JS normaliza a marzo)
+function fechaCalendarioValida(f) {
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(f)) return false;
+  const d=parseFechaLocal(f);
+  return !isNaN(d.getTime())&&f===`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
 // movimientos legados guardaron fecha como "YYYY-MM-DDT00:00:00(.000)?Z" (medianoche UTC);
 // new Date(...) normal los renderiza como el dia anterior en Mexico. Si coincide con ese
 // patron se formatea como fecha local en vez de UTC; si no, se usa new Date() como siempre.
@@ -1261,6 +1317,26 @@ function diaLocalDe(f) {
   if (m) return +m[1];
   const d = new Date(f);
   return isNaN(d.getTime()) ? 0 : d.getDate();
+}
+// ── BOLSA: el ledger stocksOps es la fuente de verdad; posiciones se derivan ─
+function accionesEnFecha(sym, tms) {
+  let a=0;
+  state.stocksOps.forEach(op=>{
+    if(op.simbolo!==sym) return;
+    const t=parseFechaLocal(op.fecha).getTime();
+    if(Number.isFinite(t)&&t<=tms) a+=(op.tipo==='venta'?-1:1)*op.acciones;
+  });
+  return Math.max(0,Math.round(a*1e8)/1e8);
+}
+function derivarPosiciones() {
+  const pos={};
+  state.stocksOps.forEach(op=>{
+    if(!pos[op.simbolo]) pos[op.simbolo]={acciones:0,desde:op.fecha};
+    pos[op.simbolo].acciones+=(op.tipo==='venta'?-1:1)*op.acciones;
+    if(op.fecha<pos[op.simbolo].desde) pos[op.simbolo].desde=op.fecha;
+  });
+  Object.keys(pos).forEach(k=>{ pos[k].acciones=Math.max(0,Math.round(pos[k].acciones*1e8)/1e8); });
+  state.posiciones=pos; // las cerradas (0 acciones) se conservan: su historia sigue en la grafica
 }
 function calcCompoundAt(base, fechaStr, tasaPct, ms) {
   if(!base||!fechaStr) return base||0;
@@ -1315,22 +1391,44 @@ function render() {
   document.getElementById('rev-savings-rend').textContent=rs.rend>0?'+'+fmt(rs.rend):fmt(0);
   document.getElementById('rev-savings-base-val').textContent=fmt(state.revSavingsBase);
   document.getElementById('rev-savings-rend-val').textContent='+'+fmt(rs.rend);
-  // NVDA: valor en pesos = acciones x precio USD x tipo de cambio (cotizaciones de cartera/mercado)
-  const nvdaOk=state.revNvdaShares>0&&Number.isFinite(state.nvdaPrecio)&&Number.isFinite(state.usdMxn);
-  const nvdaVal=nvdaOk?state.revNvdaShares*state.nvdaPrecio*state.usdMxn:0;
-  document.getElementById('rev-stocks-display').textContent=nvdaOk?fmt(nvdaVal):(state.revNvdaShares>0?'$—':fmt(0));
-  // en modo privado tampoco se muestra la posicion (con las acciones y el precio publico se reconstruye el monto)
-  document.getElementById('rev-stocks-sub').textContent=modoPrivado?'NVDA · posicion oculta':(state.revNvdaShares>0
-    ?(state.revNvdaShares.toFixed(4)+' NVDA'+(Number.isFinite(state.nvdaPrecio)?' · US$'+state.nvdaPrecio.toFixed(2):'')+(Number.isFinite(state.usdMxn)?' · $'+state.usdMxn.toFixed(2)+'/USD':''))
-    :'sin posicion — captura tus acciones');
-  const fechasNvda=[state.nvdaFecha,state.usdMxnFecha].filter(Boolean);
-  document.getElementById('rev-stocks-fecha-val').textContent=fechasNvda.length?fechasNvda.sort()[0]:'—';
+  // BOLSA: valor total de las posiciones abiertas (acciones x precio USD x tipo de cambio)
+  const posAbiertas=Object.entries(state.posiciones).filter(([k,p])=>p.acciones>0);
+  const fxOk=Number.isFinite(state.usdMxn);
+  let nvdaVal=0, stocksCompleto=true;
+  posAbiertas.forEach(([k,p])=>{
+    const mk=state.accionesMkt[k];
+    if(mk&&Number.isFinite(mk.precio)&&fxOk) nvdaVal+=p.acciones*mk.precio*state.usdMxn;
+    else stocksCompleto=false;
+  });
+  const nvdaOk=posAbiertas.length>0&&stocksCompleto; // para distribucion/metas: 'pendiente' si falta algun precio
+  document.getElementById('rev-stocks-display').textContent=posAbiertas.length?(stocksCompleto?fmt(nvdaVal):(nvdaVal>0?fmt(nvdaVal):'$—')):fmt(0);
+  // en modo privado tampoco se muestran las posiciones (con acciones y precio publico se reconstruye el monto)
+  document.getElementById('rev-stocks-sub').textContent=modoPrivado?'posiciones ocultas':(posAbiertas.length
+    ?(posAbiertas.map(([k,p])=>p.acciones.toFixed(4)+' '+k).join(' · ')+(stocksCompleto?'':' · precio pendiente'))
+    :'sin posiciones — registra tu primera compra');
+  const detEl=document.getElementById('stocks-detalle');
+  if(detEl){
+    detEl.innerHTML=modoPrivado?'':posAbiertas.map(([k,p])=>{
+      const mk=state.accionesMkt[k];
+      const val=(mk&&Number.isFinite(mk.precio)&&fxOk)?fmt(p.acciones*mk.precio*state.usdMxn):'$—';
+      return `<div class="detail-row"><span class="detail-label">${escapeHtml(k)} · ${p.acciones.toFixed(4)} acc${mk&&Number.isFinite(mk.precio)?' · US$'+mk.precio.toFixed(2):''}</span><span class="detail-val">${val}</span></div>`;
+    }).join('');
+  }
+  const fechasMkt=posAbiertas.map(([k])=>state.accionesMkt[k]&&state.accionesMkt[k].fecha).filter(Boolean).concat(state.usdMxnFecha?[state.usdMxnFecha]:[]);
+  document.getElementById('rev-stocks-fecha-val').textContent=fechasMkt.length?fechasMkt.sort()[0]:'—';
   const nvdaVarEl=document.getElementById('rev-stocks-var');
-  if(nvdaOk&&Number.isFinite(state.nvdaPrev)&&Number.isFinite(state.usdMxnPrev)&&state.nvdaPrev>0&&state.usdMxnPrev>0
-    &&state.nvdaFecha&&state.nvdaFecha===state.usdMxnFecha){
-    // variacion diaria del valor en pesos: combina accion y tipo de cambio SOLO si
-    // ambas series cierran el mismo dia (si no, se mezclarian periodos distintos)
-    const v=((state.nvdaPrecio*state.usdMxn)/(state.nvdaPrev*state.usdMxnPrev)-1)*100;
+  // variacion diaria SOLO si todas las series (cada accion y el FX) cierran el mismo dia
+  // y todas tienen cierre previo valido; si no, se mezclarian periodos distintos
+  let varOk=nvdaOk&&Number.isFinite(state.usdMxnPrev)&&state.usdMxnPrev>0&&state.usdMxnFecha;
+  let hoyV=0, ayerV=0;
+  if(varOk) posAbiertas.forEach(([k,p])=>{
+    const mk=state.accionesMkt[k];
+    if(!mk||!Number.isFinite(mk.prev)||mk.prev<=0||mk.fecha!==state.usdMxnFecha){ varOk=false; return; }
+    hoyV+=p.acciones*mk.precio*state.usdMxn;
+    ayerV+=p.acciones*mk.prev*state.usdMxnPrev;
+  });
+  if(varOk&&ayerV>0){
+    const v=(hoyV/ayerV-1)*100;
     nvdaVarEl.textContent=(v>=0?'+':'')+v.toFixed(2)+'% hoy';
     nvdaVarEl.className='card-change '+(v>=0?'pos':'neg');
   } else { nvdaVarEl.textContent='—'; nvdaVarEl.className='card-change neu'; }
@@ -1354,13 +1452,14 @@ function render() {
   const saldoDeudas=Object.values(state.personas||{}).reduce((s,p)=>s+(p.saldo||0),0);
   const neto=total+saldoDeudas-(state.tarjetaDeuda||0);
   document.getElementById('neto-display').textContent='patrimonio neto (con deudas y tarjeta): '+fmt(neto);
-  renderDistribucion(nu1.saldo+rs.saldo, nvdaVal, state.efectivo+state.nuSaldo+state.revMXN, state.revNvdaShares>0&&!nvdaOk);
-  renderMetas(rs.saldo, nvdaVal, state.revNvdaShares>0&&!nvdaOk);
+  renderDistribucion(nu1.saldo+rs.saldo, nvdaVal, state.efectivo+state.nuSaldo+state.revMXN, posAbiertas.length>0&&!stocksCompleto);
+  renderMetas(rs.saldo, nvdaVal, posAbiertas.length>0&&!stocksCompleto);
   renderApartados();
   checkPremium();
   const now=new Date();
   document.getElementById('last-update').textContent='actualizado '+now.toLocaleDateString('es-MX',{day:'numeric',month:'short'})+' · '+now.toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'});
-  maybeSnapshot(total,0); // esquema legado: campo gbm queda en 0
+  // si falta el precio de alguna posicion, el total esta incompleto y no debe quedar como snapshot del dia
+  if (posAbiertas.length===0||stocksCompleto) maybeSnapshot(total,0); // esquema legado: campo gbm queda en 0
 }
 
 // guarda un snapshot diario del patrimonio para las graficas (1 por dia, solo si cambio)
@@ -1391,21 +1490,18 @@ function maybeSnapshot(total,gbm) {
 window.guardarManuales = async function() {
   const ids={c1b:'input-cajita1-base',c1f:'input-cajita1-fecha',c1t:'input-cajita1-tasa',
     ns:'input-nu-saldo',ef:'input-efectivo',
-    rvm:'input-rev-mxn',rsb:'input-rev-savings-base',rsf:'input-rev-savings-fecha',rst:'input-rev-savings-tasa',
-    nvs:'input-nvda-shares'};
+    rvm:'input-rev-mxn',rsb:'input-rev-savings-base',rsf:'input-rev-savings-fecha',rst:'input-rev-savings-tasa'};
   const labels={c1b:'cajita 1 - saldo base',c1f:'cajita 1 - fecha base',c1t:'cajita 1 - tasa',
     ns:'NU saldo',ef:'efectivo',
-    rvm:'Revolut MXN',rsb:'Revolut Savings - saldo base',rsf:'Revolut Savings - fecha base',rst:'Revolut Savings - tasa',
-    nvs:'acciones NVDA'};
+    rvm:'Revolut MXN',rsb:'Revolut Savings - saldo base',rsf:'Revolut Savings - fecha base',rst:'Revolut Savings - tasa'};
   const raw={}; Object.keys(ids).forEach(k=>raw[k]=document.getElementById(ids[k]).value.trim());
   const vals={};
-  for(const k of ['c1b','ns','ef','rvm','rsb','nvs']) {
+  for(const k of ['c1b','ns','ef','rvm','rsb']) {
     if(raw[k]===''){ vals[k]=null; continue; }
     const n=parseFloat(raw[k]);
     if(!Number.isFinite(n)){ showToast('monto invalido en '+labels[k]); return; }
     vals[k]=n;
   }
-  if(vals.nvs!==null&&vals.nvs<0){ showToast('las acciones NVDA no pueden ser negativas'); return; }
   for(const k of ['c1t','rst']) {
     if(raw[k]===''){ vals[k]=null; continue; }
     const n=parseFloat(raw[k]);
@@ -1438,8 +1534,7 @@ window.guardarManuales = async function() {
   // respaldo para revertir el estado optimista si falla la escritura
   const prev={c1b:state.nuCajita1Base,c1f:state.nuCajita1Fecha,c1t:state.nuCajita1Tasa,
     ns:state.nuSaldo,ef:state.efectivo,
-    rvm:state.revMXN,rsb:state.revSavingsBase,rsf:state.revSavingsFecha,rst:state.revSavingsTasa,
-    nvs:state.revNvdaShares};
+    rvm:state.revMXN,rsb:state.revSavingsBase,rsf:state.revSavingsFecha,rst:state.revSavingsTasa};
   if(vals.c1b!==null) state.nuCajita1Base=vals.c1b;
   if(vals.c1f!==null) state.nuCajita1Fecha=vals.c1f;
   if(vals.c1t!==null) state.nuCajita1Tasa=vals.c1t;
@@ -1449,7 +1544,6 @@ window.guardarManuales = async function() {
   if(vals.rsb!==null) state.revSavingsBase=vals.rsb;
   if(vals.rsf!==null) state.revSavingsFecha=vals.rsf;
   if(vals.rst!==null) state.revSavingsTasa=vals.rst;
-  if(vals.nvs!==null) state.revNvdaShares=vals.nvs;
   btn.disabled=true;
   try {
     await saveSaldos();
@@ -1460,7 +1554,6 @@ window.guardarManuales = async function() {
     state.nuCajita1Base=prev.c1b;state.nuCajita1Fecha=prev.c1f;state.nuCajita1Tasa=prev.c1t;
     state.nuSaldo=prev.ns;state.efectivo=prev.ef;
     state.revMXN=prev.rvm;state.revSavingsBase=prev.rsb;state.revSavingsFecha=prev.rsf;state.revSavingsTasa=prev.rst;
-    state.revNvdaShares=prev.nvs;
     setSyncDot('err');
     console.error('guardarManuales',e);
     showToast('ERROR: no se guardo, revisa tu conexion');
@@ -1608,6 +1701,7 @@ window.eliminarTransferencia = async function(id) {
   const t=state.transferencias[idx];
   if(t.destino==='tarjeta'){showToast('los pagos a tarjeta no se pueden deshacer aqui');return;}
   if(t.origen==='gbm'||t.destino==='gbm'){showToast('las transferencias del GBM retirado ya no se pueden deshacer');return;}
+  if(t.origen==='stocks'||t.destino==='stocks'||t.opId){showToast('las operaciones de bolsa no se deshacen: registra la operacion inversa');return;}
   // si la transferencia toca una cajita/savings, el interes que ese dinero ya genero no se revierte al deshacer
   const CTAS_INTERES=['cajita1','cajita2','revSavings'];
   const tocaCajitaTr=CTAS_INTERES.includes(t.origen)||CTAS_INTERES.includes(t.destino);
@@ -1639,7 +1733,7 @@ function renderTransferencias() {
   if(!state.transferencias.length){c.innerHTML='<div class="empty-state">sin transferencias</div>';return;}
   c.innerHTML=state.transferencias.slice(0,20).map(t=>{
     const fecha=new Date(t.fecha).toLocaleDateString('es-MX',{day:'numeric',month:'short'});
-    const del=(t.id&&t.destino!=='tarjeta')?`<button class="del-btn" onclick="eliminarTransferencia('${t.id}')">&times;</button>`:'';
+    const del=(t.id&&t.destino!=='tarjeta'&&t.origen!=='stocks'&&t.destino!=='stocks'&&!t.opId)?`<button class="del-btn" onclick="eliminarTransferencia('${t.id}')">&times;</button>`:'';
     return`<div class="item-row"><div><div class="item-cat">${CUENTAS[t.origen]||t.origen} → ${CUENTAS[t.destino]||t.destino}</div><div class="item-meta">${escapeHtml(t.nota||'')} · ${fecha}</div></div><div style="display:flex;align-items:center"><div style="font-size:14px;font-weight:600;color:var(--purple)">${fmt(t.monto)}</div>${del}</div></div>`;
   }).join('');
 }
@@ -2017,6 +2111,89 @@ window.eliminarDeuda = async function(personaKey, movId) {
   }finally{borrandoDeuda=false;}
 };
 
+// ── COMPRA/VENTA DE ACCIONES (ledger stocksOps) ───────────────
+let stockOpOcupado=false;
+function pedirDatosStock(accion) {
+  const symRaw=prompt('\u00bfSimbolo de la accion? (ej. NVDA, QQQ)'); if(symRaw===null) return null;
+  const simbolo=symRaw.trim().toUpperCase();
+  if(!/^[A-Z][A-Z0-9.\-]{0,9}$/.test(simbolo)){ showToast('simbolo no valido'); return null; }
+  const accRaw=prompt('\u00bfCuantas acciones '+accion+'? (ej. 0.5865555)'); if(accRaw===null) return null;
+  const acciones=Math.round(Number(accRaw.trim())*1e8)/1e8;
+  if(!Number.isFinite(acciones)||acciones<=0){ showToast('numero de acciones no valido'); return null; }
+  const mRaw=prompt('\u00bfCuantos PESOS '+(accion==='compraste'?'pagaste':'recibiste')+' en total?'); if(mRaw===null) return null;
+  const monto=Math.round(Number(mRaw.trim())*100)/100;
+  if(!Number.isFinite(monto)||monto<=0){ showToast('monto no valido'); return null; }
+  const cRaw=prompt('\u00bfCon que cuenta? escribe: efectivo, nu o revolut'); if(cRaw===null) return null;
+  const cuenta=cRaw.trim().toLowerCase();
+  if(!CTAS_STOCK_OP.includes(cuenta)){ showToast('cuenta no valida (efectivo, nu o revolut)'); return null; }
+  const fRaw=prompt('\u00bfFecha de la operacion? (formato 2026-07-30, vacio = hoy)'); if(fRaw===null) return null;
+  const fecha=fRaw.trim()||hoyLocal();
+  if(!fechaCalendarioValida(fecha)||fecha>hoyLocal()){ showToast('fecha no valida'); return null; }
+  return {simbolo,acciones,monto,cuenta,fecha};
+}
+async function operarStock(tipo) {
+  if(stockOpOcupado) return;
+  const d=pedirDatosStock(tipo==='compra'?'compraste':'vendiste'); if(!d) return;
+  if(tipo==='venta'){
+    const pos=state.posiciones[d.simbolo];
+    if(!pos||pos.acciones<d.acciones-1e-8){ showToast('no tienes tantas acciones de '+d.simbolo); return; }
+    if(accionesEnFecha(d.simbolo, parseFechaLocal(d.fecha).getTime())<d.acciones-1e-8){ showToast('en esa fecha no tenias tantas acciones de '+d.simbolo); return; }
+  }
+  const campo={efectivo:'efectivo',nu:'nuSaldo',revolut:'revMXN'}[d.cuenta];
+  stockOpOcupado=true;
+  try{
+    let res;
+    try{
+      res=await runTransaction(db, async tx=>{
+        const sSnap=await tx.get(doc(db,'cartera','saldos'));
+        const pSnap=await tx.get(doc(db,'cartera','posiciones'));
+        const saldoActual=(sSnap.exists()&&Number.isFinite(sSnap.data()[campo]))?sSnap.data()[campo]:0;
+        if(tipo==='compra'&&Math.round(d.monto*100)>Math.round(saldoActual*100)) return {error:'saldo insuficiente en '+(CUENTAS[d.cuenta]||d.cuenta)};
+        const posData=pSnap.exists()?pSnap.data():{};
+        const actUnits=Math.round((Number.isFinite(posData[d.simbolo])?posData[d.simbolo]:0)*1e8);
+        const opUnits=Math.round(d.acciones*1e8);
+        if(tipo==='venta'&&opUnits>actUnits) return {error:'no tienes tantas acciones de '+d.simbolo};
+        const nuevoUnits=tipo==='compra'?actUnits+opUnits:actUnits-opUnits;
+        const nuevoSaldo=Math.round((saldoActual+(tipo==='compra'?-d.monto:d.monto))*100)/100;
+        const op={tipo,simbolo:d.simbolo,acciones:d.acciones,montoMxn:d.monto,cuenta:d.cuenta,fecha:d.fecha,creado:new Date().toISOString()};
+        const opRef=doc(collection(db,'stocksOps'));
+        const trFecha=d.fecha===hoyLocal()?new Date().toISOString():d.fecha+'T00:00:00Z';
+        const tr=tipo==='compra'
+          ?{origen:d.cuenta,destino:'stocks',monto:d.monto,nota:'compra '+d.acciones+' '+d.simbolo,fecha:trFecha,opId:opRef.id}
+          :{origen:'stocks',destino:d.cuenta,monto:d.monto,nota:'venta '+d.acciones+' '+d.simbolo,fecha:trFecha,opId:opRef.id};
+        const trRef=doc(collection(db,'transferencias'));
+        tx.set(opRef,op); tx.set(trRef,tr);
+        tx.update(doc(db,'cartera','saldos'), {[campo]:nuevoSaldo});
+        tx.set(doc(db,'cartera','posiciones'), {[d.simbolo]:nuevoUnits/1e8}, {merge:true});
+        return {op:{id:opRef.id,...op}, tr:{id:trRef.id,...tr}, nuevoSaldo};
+      });
+    }catch(e){
+      console.error('operarStock',e);
+      showToast('ERROR: no se guardo la operacion, revisa tu conexion');
+      return;
+    }
+    if(res.error){ showToast(res.error); return; }
+    try{
+      state.stocksOps.push(res.op);
+      state.stocksOps.sort((a,b)=>a.fecha<b.fecha?-1:a.fecha>b.fecha?1:0);
+      derivarPosiciones();
+      if(d.cuenta==='efectivo') state.efectivo=res.nuevoSaldo;
+      else if(d.cuenta==='nu') state.nuSaldo=res.nuevoSaldo;
+      else state.revMXN=res.nuevoSaldo;
+      state.transferencias.unshift(res.tr);
+      render(); renderTransferencias();
+      const sinPrecio=!state.accionesMkt[d.simbolo];
+      showToast((tipo==='compra'?'compra':'venta')+' de '+d.simbolo+' registrada');
+      if(sinPrecio) fetchAll();
+    }catch(e){
+      console.error('operarStock post-commit',e);
+      showToast('operacion guardada · recarga la app si no la ves');
+    }
+  }finally{ stockOpOcupado=false; }
+}
+window.registrarCompraStock=()=>operarStock('compra');
+window.registrarVentaStock=()=>operarStock('venta');
+
 // ── GRAFICAS ──────────────────────────────────────────────────
 // geometria: margen izquierdo para etiquetas de valores, inferior para respirar
 const CHART_W=360,CHART_H=156,CH_PT=10,CH_PR=12,CH_PB=8,CH_PL=46;
@@ -2128,27 +2305,31 @@ window.setChartRango=(chartId,r)=>{ chartRangoSel[chartId]=r; renderChart(chartI
 
 // portafolio de inversiones: valor historico de las POSICIONES ACTUALES (45 titulos
 // IVVPESO + acciones NVDA en pesos). Cada componente usa su ultimo cierre <= fecha.
-// ventanas de tenencia REALES: GBM se tuvo hasta su venta (27-jul-2026);
-// NVDA se compro el 23-jul-2026. La grafica combina ambos en sus periodos.
-const GBM_HASTA='2026-07-27', NVDA_DESDE='2026-07-23';
+// ventanas de tenencia REALES: GBM hasta su venta (27-jul-2026); cada accion
+// entra a la grafica segun el ledger stocksOps (accionesEnFecha), asi las compras
+// y ventas posteriores no reescriben la historia.
+const GBM_HASTA='2026-07-27';
 function seriePortafolio() {
-  const ivv=state.ivvHistory||[], nv=state.nvdaHistory||[], fx=state.usdMxnHistory||[];
-  const shares=state.revNvdaShares||0;
+  const ivv=state.ivvHistory||[], fx=state.usdMxnHistory||[];
   const ffill=(arr,t)=>{ let v=null; for(const p of arr){ if(p.t<=t) v=p.c; else break; } return v; };
-  const fechas=[...new Set([
-    ...ivv.filter(p=>p.t<=GBM_HASTA).map(p=>p.t),
-    ...nv.filter(p=>p.t>=NVDA_DESDE).map(p=>p.t)
-  ])].sort();
+  const fechasSet=new Set(ivv.filter(p=>p.t<=GBM_HASTA).map(p=>p.t));
+  Object.values(state.accionesMkt).forEach(mk=>{ (mk.hist||[]).forEach(p=>fechasSet.add(p.t)); });
+  const fechas=[...fechasSet].sort();
   return fechas.map(t=>{
     let y=0, alguno=false;
     if(t<=GBM_HASTA){ const iv=ffill(ivv,t); if(iv!==null){ y+=iv*TITULOS; alguno=true; } }
-    if(shares>0&&t>=NVDA_DESDE){
-      const nvda=ffill(nv,t), tc=ffill(fx,t);
-      if(nvda!==null&&tc!==null){ y+=shares*nvda*tc; alguno=true; }
+    const tms=parseFechaLocal(t).getTime();
+    const tc=ffill(fx,t);
+    if(tc!==null&&Number.isFinite(tms)){
+      for(const [sym,mk] of Object.entries(state.accionesMkt)){
+        const a=accionesEnFecha(sym,tms);
+        if(a>0){ const c=ffill(mk.hist||[],t); if(c!==null){ y+=a*c*tc; alguno=true; } }
+      }
     }
-    return alguno?{x:parseFechaLocal(t).getTime(),y}:null;
+    return alguno?{x:tms,y}:null;
   }).filter(Boolean);
 }
+
 function renderChart(chartId) {
   if(chartId==='gbm-chart')
     document.getElementById('gbm-chart').innerHTML=chartBlock('gbm-chart',seriePortafolio(),'#2f6f4f');
@@ -2209,7 +2390,7 @@ function renderDistribucion(ahorro, inversiones, disponible, nvdaPendiente) {
   // escala monocromatica verde (paleta minima): oscuro=inversion, medio=ahorro, claro=disponible
   const grupos=[
     {nombre:'Ahorro con rendimiento',sub:'cajita NU 1 + Revolut Savings',monto:g1,color:'#2f8f5f',txt:'#176a47'},
-    {nombre:'Inversiones',sub:'NVDA (Revolut)'+(nvdaPendiente?' · precio pendiente':''),monto:g2,color:'#1c5c3f',txt:'#1c5c3f'},
+    {nombre:'Inversiones',sub:'acciones (Revolut)'+(nvdaPendiente?' · precio pendiente':''),monto:g2,color:'#1c5c3f',txt:'#1c5c3f'},
     {nombre:'Disponible',sub:'efectivo + NU + Revolut',monto:g3,color:'#a9c9b4',txt:'#4f7a5e'}
   ];
   const R=62,SW=16,rm=R-SW/2,C=2*Math.PI*rm;
@@ -2249,7 +2430,7 @@ function renderMetas(savings, stocks, nvdaPendiente) {
   };
   el.innerHTML=`<div class="item-meta" style="margin-bottom:10px">${dias>0?('quedan '+dias+' dias para el 31 de diciembre'):'fecha de la meta cumplida'}</div>`+
     fila('Revolut Savings','',savings,META_SAVINGS)+
-    fila('invertido en bolsa','NVDA'+(nvdaPendiente?' · cotizacion pendiente':''),stocks,META_STOCKS);
+    fila('invertido en bolsa','acciones en Revolut'+(nvdaPendiente?' · cotizacion pendiente':''),stocks,META_STOCKS);
 }
 
 // ── APARTADOS (metas de caprichos: contadores visuales, no tocan cuentas) ──
@@ -2520,45 +2701,48 @@ async function fetchYahooSeries(symbol) {
   return null;
 }
 
-// NVDA (USD) + tipo de cambio USD/MXN: cada serie con su propio cierre previo y fecha
-// de mercado; si solo una pata llega, se guarda esa y el valor queda parcialmente viejo
-async function fetchNVDA() {
-  if(!(state.revNvdaShares>0)) return true; // sin posicion: no gastar cuota de los proxies
-  // respaldo: si el guardado falla, la memoria vuelve al ultimo estado sincronizado
-  const prev={nvdaPrecio:state.nvdaPrecio,nvdaPrev:state.nvdaPrev,nvdaFecha:state.nvdaFecha,
-    usdMxn:state.usdMxn,usdMxnPrev:state.usdMxnPrev,usdMxnFecha:state.usdMxnFecha,
-    nvdaHistory:state.nvdaHistory,usdMxnHistory:state.usdMxnHistory};
-  const [nv,fx]=await Promise.allSettled([fetchYahooSeries('NVDA'),fetchYahooSeries('MXN=X')]);
-  const nvS=nv.status==='fulfilled'?nv.value:null;
-  const fxS=fx.status==='fulfilled'?fx.value:null;
-  const cambios={};
-  if(nvS&&nvS.length){
-    state.nvdaPrecio=nvS[nvS.length-1].c;
-    state.nvdaPrev=nvS.length>=2?nvS[nvS.length-2].c:null;
-    state.nvdaFecha=nvS[nvS.length-1].t;
-    state.nvdaHistory=nvS.map(p=>({t:p.t,c:+p.c.toFixed(2)})); // historial para la grafica del portafolio
-    cambios.nvdaPrecio=state.nvdaPrecio; cambios.nvdaPrev=state.nvdaPrev; cambios.nvdaFecha=state.nvdaFecha;
-    cambios.nvdaHistory=state.nvdaHistory;
-  }
+// BOLSA: cotizaciones de todos los simbolos con posicion abierta + tipo de cambio.
+// Guarda por simbolo en mercado.accionesMkt (merge profundo: no borra cerrados,
+// cuya historia sigue sirviendo a la grafica).
+async function fetchStocks() {
+  const syms=Object.keys(state.posiciones).filter(k=>state.posiciones[k].acciones>0);
+  if(!syms.length) return true;
+  const prev={accionesMkt:state.accionesMkt,usdMxn:state.usdMxn,usdMxnPrev:state.usdMxnPrev,
+    usdMxnFecha:state.usdMxnFecha,usdMxnHistory:state.usdMxnHistory};
+  const res=await Promise.allSettled([...syms.map(sm=>fetchYahooSeries(sm)),fetchYahooSeries('MXN=X')]);
+  const cambios={}; let algun=false, todo=true;
+  const nuevoMkt={...state.accionesMkt};
+  syms.forEach((sm,i)=>{
+    const serie=res[i].status==='fulfilled'?res[i].value:null;
+    if(serie&&serie.length){
+      nuevoMkt[sm]={precio:serie[serie.length-1].c, prev:serie.length>=2?serie[serie.length-2].c:null,
+        fecha:serie[serie.length-1].t, hist:serie.map(p=>({t:p.t,c:+p.c.toFixed(2)}))};
+      algun=true;
+    } else todo=false;
+  });
+  const fxRes=res[res.length-1]; const fxS=fxRes.status==='fulfilled'?fxRes.value:null;
   if(fxS&&fxS.length){
     state.usdMxn=fxS[fxS.length-1].c;
     state.usdMxnPrev=fxS.length>=2?fxS[fxS.length-2].c:null;
     state.usdMxnFecha=fxS[fxS.length-1].t;
     state.usdMxnHistory=fxS.map(p=>({t:p.t,c:+p.c.toFixed(4)}));
-    cambios.usdMxn=state.usdMxn; cambios.usdMxnPrev=state.usdMxnPrev; cambios.usdMxnFecha=state.usdMxnFecha;
-    cambios.usdMxnHistory=state.usdMxnHistory;
-  }
-  if(!Object.keys(cambios).length) return false;
+    cambios.usdMxn=state.usdMxn; cambios.usdMxnPrev=state.usdMxnPrev;
+    cambios.usdMxnFecha=state.usdMxnFecha; cambios.usdMxnHistory=state.usdMxnHistory;
+    algun=true;
+  } else todo=false;
+  if(!algun) return false;
+  state.accionesMkt=nuevoMkt;
+  cambios.accionesMkt=nuevoMkt;
   try{
     await setDoc(doc(db,'cartera','mercado'), cambios, {merge:true});
   }catch(e){
-    console.error('fetchNVDA save',e);
-    state.nvdaPrecio=prev.nvdaPrecio;state.nvdaPrev=prev.nvdaPrev;state.nvdaFecha=prev.nvdaFecha;
-    state.usdMxn=prev.usdMxn;state.usdMxnPrev=prev.usdMxnPrev;state.usdMxnFecha=prev.usdMxnFecha;
-    state.nvdaHistory=prev.nvdaHistory;state.usdMxnHistory=prev.usdMxnHistory;
+    console.error('fetchStocks save',e);
+    state.accionesMkt=prev.accionesMkt;
+    state.usdMxn=prev.usdMxn;state.usdMxnPrev=prev.usdMxnPrev;
+    state.usdMxnFecha=prev.usdMxnFecha;state.usdMxnHistory=prev.usdMxnHistory;
     return false;
   }
-  return !!(nvS&&fxS);
+  return todo;
 }
 
 window.fetchAll = async function() {
@@ -2572,9 +2756,9 @@ window.fetchAll = async function() {
     // nota: no se recarga loadFromFirebase aqui — sobreescribiria el estado en memoria
     // mientras el usuario registra algo (carrera); las cotizaciones van a su propio doc
     let okNvda=false;
-    try{ okNvda=await fetchNVDA(); }catch(e){ console.error('fetchAll',e); }
+    try{ okNvda=await fetchStocks(); }catch(e){ console.error('fetchAll',e); }
     document.getElementById('status-inicio').textContent=
-      okNvda?'precio en vivo · NVDA':'usando ultimo precio guardado';
+      okNvda?'precios de bolsa en vivo':'usando ultimos precios guardados';
     render();
     renderTransferencias();
     if(document.getElementById('page-movimientos').classList.contains('active')) renderMovimientos();
