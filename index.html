@@ -357,6 +357,8 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
       <div class="card-detail" id="tarjeta-rev-detail" style="border-top-color:rgba(255,255,255,0.1);margin-top:14px;padding-top:14px">
         <div class="detail-row"><span class="detail-label" style="color:rgba(255,255,255,0.5)">deposito en garantia (congelado)</span><span class="detail-val" id="tarjeta-rev-dep">$—</span></div>
         <div class="detail-row"><span class="detail-label" style="color:rgba(255,255,255,0.5)">retirable ahora</span><span class="detail-val" id="tarjeta-rev-retirable">$—</span></div>
+        <div class="detail-row"><span class="detail-label" style="color:rgba(255,255,255,0.5)">dias para corte</span><span class="detail-val" id="tarjeta-rev-dias">—</span></div>
+        <div class="detail-row"><span class="detail-label" style="color:rgba(255,255,255,0.5)">pago limite del ultimo corte</span><span class="detail-val" id="tarjeta-rev-pago-limite">—</span></div>
         <div class="detail-row"><span class="detail-label" style="color:rgba(255,255,255,0.5)">ultimo movimiento</span><span class="detail-val" id="tarjeta-rev-ultimo">—</span></div>
       </div>
     </div>
@@ -510,7 +512,7 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
   </div>
   </div>
   <div class="status" id="status-inicio">—</div>
-  <div class="status" style="margin-top:2px;padding-bottom:8px">version 2026-07-31.1</div>
+  <div class="status" style="margin-top:2px;padding-bottom:8px">version 2026-07-31.2</div>
 </div>
 
 <!-- MOVIMIENTOS (gastos + ingresos en una sola pestana) -->
@@ -1145,6 +1147,34 @@ async function loadFromFirebase() {
         }
       } catch(e) { console.error('seed jul31',e); }
     }
+    // SIEMBRA 31-jul-b: monto real en pesos del MSFT segun el recibo de Revolut ($523.39).
+    // Solo corrige la op (no toca saldos: Roberto ya ajusto Revolut MXN a mano). La transaccion
+    // devuelve el monto EFECTIVO que quedo en Firestore (el propio si escribio, el existente si
+    // otro dispositivo ya lo puso, o null si el doc no existe); en memoria solo se asigna ese
+    // monto efectivo (nunca el literal), y si el doc no existe no se marca y se reintenta.
+    if (!(mDoc.exists() && mDoc.data().seedJul31b === true)) {
+      const msftOp = state.stocksOps.find(o=>o.id==='seed-msft-2026-07-30'&&!(o.montoMxn>0));
+      if (msftOp) {
+        try {
+          const resultado = await runTransaction(db, async tx => {
+            const mSnap = await tx.get(doc(db,'cartera','mercado'));
+            if (mSnap.exists() && mSnap.data().seedJul31b === true) return false;
+            const opSnapTx = await tx.get(doc(db,'stocksOps',msftOp.id));
+            if (!opSnapTx.exists()) return null;
+            if (opSnapTx.data().montoMxn>0) {
+              tx.set(doc(db,'cartera','mercado'), {seedJul31b:true}, {merge:true});
+              return opSnapTx.data().montoMxn;
+            }
+            tx.update(doc(db,'stocksOps',msftOp.id), {montoMxn:523.39});
+            tx.set(doc(db,'cartera','mercado'), {seedJul31b:true}, {merge:true});
+            return 523.39;
+          });
+          // en memoria: el monto efectivo que quedo en Firestore (el propio si gano
+          // la transaccion, o el ya existente si otro dispositivo la gano primero)
+          if (Number.isFinite(resultado) && resultado>0) msftOp.montoMxn=resultado;
+        } catch(e) { console.error('seed jul31b',e); }
+      }
+    }
     derivarPosiciones();
     // doc canonico de posiciones: lo valida y actualiza la transaccion de compra/venta
     const posMap={}; Object.entries(state.posiciones).forEach(([k,p])=>{ posMap[k]=p.acciones; });
@@ -1490,6 +1520,20 @@ function diasParaCorte() {
   if(now.getDate()>=18) corte=new Date(now.getFullYear(),now.getMonth()+1,18);
   return Math.ceil((corte-now)/86400000);
 }
+// ciclo TDC Revolut: corte el dia 30 (clamp al ultimo dia del mes, p.ej. febrero);
+// el pago del estado de cuenta vence 20 dias despues del corte (regla oficial de Revolut).
+// pagoLimite es del ULTIMO corte (la deuda ya cortada, que si es exigible), no del proximo
+function cicloTdcRev() {
+  const now=new Date();
+  const diaC=(y,m)=>Math.min(30,new Date(y,m+1,0).getDate());
+  const y=now.getFullYear(), m=now.getMonth();
+  let prox, ultimo;
+  if(now.getDate()>=diaC(y,m)){ prox=new Date(y,m+1,diaC(y,m+1)); ultimo=new Date(y,m,diaC(y,m)); }
+  else { prox=new Date(y,m,diaC(y,m)); ultimo=new Date(y,m-1,diaC(y,m-1)); }
+  // aritmetica de calendario (no ms): correcta aunque el dispositivo cruce zonas con DST
+  const pagoLimite=new Date(ultimo.getFullYear(),ultimo.getMonth(),ultimo.getDate()+20);
+  return {prox, dias:Math.ceil((prox-now)/86400000), ultimo, pagoLimite};
+}
 
 // ── RENDER ────────────────────────────────────────────────────
 function render() {
@@ -1570,9 +1614,12 @@ function render() {
   const tdcDisponible=Math.max(0,Math.min(tdcDep,tdcDep-tdcDeudaUsada));
   const tdcRetirable=Math.max(0,Math.min(tdcDep-250,tdcDep-tdcDeudaUsada));
   document.getElementById('tarjeta-rev-display').textContent=state.revTdcDeuda<0?('−'+fmt(Math.abs(state.revTdcDeuda))):fmt(state.revTdcDeuda);
-  document.getElementById('tarjeta-rev-sub').textContent='limite '+fmt(tdcDep)+' · disponible '+fmt(tdcDisponible);
+  document.getElementById('tarjeta-rev-sub').textContent='limite '+fmt(tdcDep)+' · disponible '+fmt(tdcDisponible)+' · corte el 30';
   document.getElementById('tarjeta-rev-dep').textContent=fmt(tdcDep);
   document.getElementById('tarjeta-rev-retirable').textContent=fmt(tdcRetirable);
+  const cicloTdc=cicloTdcRev();
+  document.getElementById('tarjeta-rev-dias').textContent=cicloTdc.dias+' dias';
+  document.getElementById('tarjeta-rev-pago-limite').textContent=cicloTdc.pagoLimite.toLocaleDateString('es-MX',{day:'numeric',month:'short'})+' (corte del '+cicloTdc.ultimo.toLocaleDateString('es-MX',{day:'numeric',month:'short'})+')';
   if(state.revTdcMovs.length>0) {
     const ultR=state.revTdcMovs[0];
     document.getElementById('tarjeta-rev-ultimo').textContent=(ultR.tipo==='cargo'?'+':'-')+fmt(ultR.monto)+' · '+fmtFechaMov(ultR.fecha,{day:'numeric',month:'short'});
