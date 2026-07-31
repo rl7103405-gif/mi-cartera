@@ -510,9 +510,36 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
     </div>
   </div>
   </div>
+
+  <div class="sec">
+  <div class="section-title">bolsa · registrar operacion</div>
+  <div class="panel" id="stock-form-panel">
+    <div class="type-toggle" id="stock-tipo-toggle">
+      <div class="type-opt active" onclick="setStockTipo('compra')">compre</div>
+      <div class="type-opt" onclick="setStockTipo('venta')">vendi</div>
+    </div>
+    <div class="row2" style="gap:8px">
+      <div class="field"><label>simbolo (formato valido, ej. MSFT)</label><input type="text" id="stock-simbolo" list="stock-symbols" placeholder="ej. MSFT" autocapitalize="characters" autocomplete="off"></div>
+      <div class="field"><label>acciones</label><input type="number" id="stock-acciones" placeholder="ej. 0.066874" step="0.00000001" inputmode="decimal"></div>
+    </div>
+    <div class="row2" style="gap:8px">
+      <div class="field"><label>total en pesos</label><input type="number" id="stock-monto" placeholder="ej. 523.39" step="0.01" inputmode="decimal"></div>
+      <div class="field"><label>cuenta</label>
+        <select id="stock-cuenta">
+          <option value="revolut">Revolut MXN</option>
+          <option value="efectivo">efectivo</option>
+          <option value="nu">NU saldo</option>
+        </select>
+      </div>
+    </div>
+    <div class="field"><label>fecha (YYYY-MM-DD, vacia = hoy)</label><input type="text" id="stock-fecha" placeholder="hoy"></div>
+    <button class="btn btn-purple" id="stock-op-btn" onclick="enviarOpStock()">registrar compra</button>
+    <datalist id="stock-symbols"></datalist>
+  </div>
+  </div>
   </div>
   <div class="status" id="status-inicio">—</div>
-  <div class="status" style="margin-top:2px;padding-bottom:8px">version 2026-07-31.2</div>
+  <div class="status" style="margin-top:2px;padding-bottom:8px">version 2026-07-31.3</div>
 </div>
 
 <!-- MOVIMIENTOS (gastos + ingresos en una sola pestana) -->
@@ -665,6 +692,8 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
       <div class="s-label">balance del periodo</div>
       <div class="s-amt" id="res-balance" style="font-size:24px">$—</div>
     </div>
+    <div class="section-title" id="cierre-title">cierre del mes</div>
+    <div class="panel" id="res-cierre" style="margin-bottom:16px"></div>
     <div class="summary-grid">
     <div class="sec">
     <div class="section-title">a donde se va tu dinero</div>
@@ -1636,6 +1665,7 @@ function render() {
   renderDistribucion(nu1.saldo+rs.saldo, nvdaVal, state.efectivo+state.nuSaldo+state.revMXN, tdcDep, posAbiertas.length>0&&!stocksCompleto);
   renderMetas(rs.saldo, nvdaVal, posAbiertas.length>0&&!stocksCompleto);
   renderApartados();
+  renderStockDatalist();
   checkPremium();
   const now=new Date();
   document.getElementById('last-update').textContent='actualizado '+now.toLocaleDateString('es-MX',{day:'numeric',month:'short'})+' · '+now.toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'});
@@ -2396,34 +2426,52 @@ window.eliminarDeuda = async function(personaKey, movId) {
 
 // ── COMPRA/VENTA DE ACCIONES (ledger stocksOps) ───────────────
 let stockOpOcupado=false;
-function pedirDatosStock(accion) {
-  const symRaw=prompt('\u00bfSimbolo de la accion? (ej. NVDA, QQQ)'); if(symRaw===null) return null;
-  const simbolo=symRaw.trim().toUpperCase();
-  if(!/^[A-Z][A-Z0-9.\-]{0,9}$/.test(simbolo)){ showToast('simbolo no valido'); return null; }
-  const accRaw=prompt('\u00bfCuantas acciones '+accion+'? (ej. 0.5865555)'); if(accRaw===null) return null;
-  const acciones=Math.round(Number(accRaw.trim())*1e8)/1e8;
+let stockTipoSel='compra';
+window.setStockTipo = t => {
+  if(stockOpOcupado) return;
+  stockTipoSel=t;
+  document.querySelectorAll('#stock-tipo-toggle .type-opt').forEach((el,i)=>el.classList.toggle('active',['compra','venta'][i]===t));
+  const b=document.getElementById('stock-op-btn'); if(b) b.textContent=t==='compra'?'registrar compra':'registrar venta';
+};
+// sugerencias del datalist: primero las posiciones abiertas, luego tickers populares
+// (el input acepta CUALQUIER simbolo con formato valido, no solo estos)
+const STOCKS_POPULARES=['AAPL','MSFT','NVDA','QQQ','VOO','SPY','TSLA','AMZN','GOOGL','META'];
+function renderStockDatalist() {
+  const dl=document.getElementById('stock-symbols'); if(!dl) return;
+  const propias=Object.entries(state.posiciones).filter(([k,p])=>p.acciones>0).map(([k])=>k);
+  const syms=[...propias,...STOCKS_POPULARES.filter(s=>!propias.includes(s))];
+  dl.innerHTML=syms.map(s=>`<option value="${s}">`).join('');
+}
+// lee y valida el formulario de bolsa; los valores NO se limpian aqui (solo tras exito)
+function pedirDatosStock() {
+  const simbolo=document.getElementById('stock-simbolo').value.trim().toUpperCase();
+  if(!/^[A-Z][A-Z0-9.\-]{0,9}$/.test(simbolo)){ showToast('simbolo no valido (ej. MSFT)'); return null; }
+  const acciones=Math.round(Number(document.getElementById('stock-acciones').value.trim())*1e8)/1e8;
   if(!Number.isFinite(acciones)||acciones<=0){ showToast('numero de acciones no valido'); return null; }
-  const mRaw=prompt('\u00bfCuantos PESOS '+(accion==='compraste'?'pagaste':'recibiste')+' en total?'); if(mRaw===null) return null;
-  const monto=Math.round(Number(mRaw.trim())*100)/100;
-  if(!Number.isFinite(monto)||monto<=0){ showToast('monto no valido'); return null; }
-  const cRaw=prompt('\u00bfCon que cuenta? escribe: efectivo, nu o revolut'); if(cRaw===null) return null;
-  const cuenta=cRaw.trim().toLowerCase();
-  if(!CTAS_STOCK_OP.includes(cuenta)){ showToast('cuenta no valida (efectivo, nu o revolut)'); return null; }
-  const fRaw=prompt('\u00bfFecha de la operacion? (formato 2026-07-30, vacio = hoy)'); if(fRaw===null) return null;
-  const fecha=fRaw.trim()||hoyLocal();
+  const monto=Math.round(Number(document.getElementById('stock-monto').value.trim())*100)/100;
+  if(!Number.isFinite(monto)||monto<=0){ showToast('monto en pesos no valido'); return null; }
+  const cuenta=document.getElementById('stock-cuenta').value;
+  if(!CTAS_STOCK_OP.includes(cuenta)){ showToast('cuenta no valida'); return null; }
+  const fRaw=document.getElementById('stock-fecha').value.trim();
+  const fecha=fRaw||hoyLocal();
   if(!fechaCalendarioValida(fecha)||fecha>hoyLocal()){ showToast('fecha no valida'); return null; }
   return {simbolo,acciones,monto,cuenta,fecha};
 }
+function limpiarFormStock() {
+  ['stock-simbolo','stock-acciones','stock-monto','stock-fecha'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
+}
 async function operarStock(tipo) {
   if(stockOpOcupado) return;
-  const d=pedirDatosStock(tipo==='compra'?'compraste':'vendiste'); if(!d) return;
+  const d=pedirDatosStock(); if(!d) return;
   if(tipo==='venta'){
     const pos=state.posiciones[d.simbolo];
     if(!pos||pos.acciones<d.acciones-1e-8){ showToast('no tienes tantas acciones de '+d.simbolo); return; }
     if(accionesEnFecha(d.simbolo, parseFechaLocal(d.fecha).getTime())<d.acciones-1e-8){ showToast('en esa fecha no tenias tantas acciones de '+d.simbolo); return; }
   }
   const campo={efectivo:'efectivo',nu:'nuSaldo',revolut:'revMXN'}[d.cuenta];
+  const opBtn=document.getElementById('stock-op-btn');
   stockOpOcupado=true;
+  if(opBtn) opBtn.disabled=true;
   try{
     let res;
     try{
@@ -2464,6 +2512,7 @@ async function operarStock(tipo) {
       else if(d.cuenta==='nu') state.nuSaldo=res.nuevoSaldo;
       else state.revMXN=res.nuevoSaldo;
       state.transferencias.unshift(res.tr);
+      limpiarFormStock(); // solo tras exito: ante error los valores capturados se conservan
       render(); renderTransferencias();
       const sinPrecio=!state.accionesMkt[d.simbolo];
       showToast((tipo==='compra'?'compra':'venta')+' de '+d.simbolo+' registrada');
@@ -2472,10 +2521,16 @@ async function operarStock(tipo) {
       console.error('operarStock post-commit',e);
       showToast('operacion guardada · recarga la app si no la ves');
     }
-  }finally{ stockOpOcupado=false; }
+  }finally{ stockOpOcupado=false; if(opBtn) opBtn.disabled=false; }
 }
-window.registrarCompraStock=()=>operarStock('compra');
-window.registrarVentaStock=()=>operarStock('venta');
+window.enviarOpStock=()=>operarStock(stockTipoSel);
+// los botones de la tarjeta solo preseleccionan el tipo y llevan al formulario
+function enfocarFormStock() {
+  const p=document.getElementById('stock-form-panel');
+  if(p){ p.scrollIntoView({behavior:'smooth',block:'center'}); const s=document.getElementById('stock-simbolo'); if(s) setTimeout(()=>s.focus(),350); }
+}
+window.registrarCompraStock=()=>{ window.setStockTipo('compra'); enfocarFormStock(); };
+window.registrarVentaStock=()=>{ window.setStockTipo('venta'); enfocarFormStock(); };
 
 // ── GRAFICAS ──────────────────────────────────────────────────
 // geometria: margen izquierdo para etiquetas de valores, inferior para respirar
@@ -2897,6 +2952,97 @@ window.setResPeriodo = p => {
   renderResumen();
 };
 
+// ── CIERRE DE MES ─────────────────────────────────────────────
+// aportaciones netas REGISTRADAS en el rango: transferencias hacia/desde cuentas con
+// rendimiento + compras/ventas de bolsa con monto conocido. Limite deliberado: siembras
+// y ajustes manuales de saldos no pasan por aqui (es flujo registrado, no saldos)
+function aportacionesEnRango(start,end) {
+  const enR=f=>{const t=msFechaMov(f);return t!==null&&t>=start.getTime()&&t<end.getTime();};
+  const neto={cajita1:0,revSavings:0,stocks:0};
+  state.transferencias.forEach(t=>{
+    if(!t||!Number.isFinite(t.monto)||t.monto<=0||!enR(t.fecha)) return;
+    if(t.destino==='cajita1') neto.cajita1+=t.monto;
+    if(t.origen==='cajita1') neto.cajita1-=t.monto;
+    if(t.destino==='revSavings') neto.revSavings+=t.monto;
+    if(t.origen==='revSavings') neto.revSavings-=t.monto;
+  });
+  state.stocksOps.forEach(o=>{
+    if(!Number.isFinite(o.montoMxn)||o.montoMxn<=0) return;
+    const t=parseFechaLocal(o.fecha).getTime();
+    if(!Number.isFinite(t)||t<start.getTime()||t>=end.getTime()) return;
+    neto.stocks+=(o.tipo==='venta'?-1:1)*o.montoMxn;
+  });
+  return neto;
+}
+function cierreMesHTML(start,end,totalI,totalG,gastosMes) {
+  const ahora=Date.now();
+  const esActual=ahora>=start.getTime()&&ahora<end.getTime();
+  const ap=aportacionesEnRango(start,end);
+  const aporte=ap.cajita1+ap.revSavings+ap.stocks;
+  if(totalI===0&&totalG===0&&ap.cajita1===0&&ap.revSavings===0&&ap.stocks===0)
+    return '<div class="empty-state">sin movimientos registrados en este mes</div>';
+  const filas=[];
+  const fila=(ico,titulo,meta,val)=>`<div class="item-row"><div><div class="item-cat">${ico} ${titulo}</div><div class="item-meta">${meta}</div></div><div style="font-size:14px;font-weight:600">${val}</div></div>`;
+  if(totalI>0){
+    const gPct=totalG/totalI*100;
+    filas.push(fila(gPct<=70?'✅':(gPct<=100?'🟡':'🔴'),'gasto del ingreso',
+      gPct>100?'gastaste mas de lo que ingreso':(gPct<=70?'buen control de gasto':'al limite: cuida los gastos'),gPct.toFixed(0)+'%'));
+    const aPct=aporte/totalI*100;
+    filas.push(fila(aPct>=20?'✅':(aPct>=10?'🟡':'⚠️'),'aportaste a ahorro e inversion',
+      'aportaciones netas registradas (savings, cajita y bolsa)',(aporte<0?'−':'')+Math.abs(aPct).toFixed(0)+'% · '+fmt(Math.abs(aporte))));
+    const falta20=0.2*totalI-aporte;
+    if(falta20>0.005) filas.push(fila('💡',esActual?('te faltan '+fmt(falta20)+' para el 20% este mes'):('te faltaron '+fmt(falta20)+' para el 20%'),
+      'regla base: al menos 20% del ingreso a ahorro/inversion — Revolut Savings paga '+(state.revSavingsTasa||0)+'%',fmt(falta20)));
+  } else {
+    filas.push(fila('ℹ️','sin ingresos registrados este mes','los porcentajes del cierre se calculan sobre tus ingresos',''));
+    if(ap.cajita1!==0||ap.revSavings!==0||ap.stocks!==0){
+      if(aporte>0) filas.push(fila('✅','aportaste a ahorro e inversion','aportaciones netas registradas',fmt(aporte)));
+      else if(aporte<0) filas.push(fila('⚠️','retiraste de ahorro/inversion','aportaciones netas registradas','−'+fmt(Math.abs(aporte))));
+      else filas.push(fila('·','aportaciones netas en cero','aportaciones netas registradas',fmt(0)));
+    }
+  }
+  // top 3 categorias del mes vs promedio de los 3 meses ANTERIORES AL MES VISTO
+  // (mismos umbrales que avisoCategoria: 1.5x y +$300 para no marcar ruido)
+  const byCat=Object.create(null); gastosMes.forEach(g=>byCat[g.cat]=(byCat[g.cat]||0)+g.monto);
+  const top=Object.entries(byCat).sort((a,b)=>b[1]-a[1]).slice(0,3);
+  const claves=[];
+  for(let i=1;i<=3;i++){ const d=new Date(start.getFullYear(),start.getMonth()-i,1); claves.push(d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')); }
+  top.forEach(([cat,amt])=>{
+    const sums=claves.map(k=>state.gastos.filter(g=>movValido(g)&&g.cat===cat&&mesLocalDe(g.fecha)===k).reduce((s,g)=>s+g.monto,0)).filter(v=>v>0);
+    let meta=(totalG>0?(amt/totalG*100).toFixed(0):'0')+'% de tus gastos';
+    let ico='·';
+    if(sums.length>=2){
+      const prom=sums.reduce((a,b)=>a+b,0)/sums.length;
+      if(amt>prom*1.5&&amt-prom>300){ ico='📈'; meta+=' · arriba de tu promedio ('+fmt(prom)+'/mes)'+(esActual?' y el mes no termina':''); }
+    }
+    filas.push(fila(ico,escapeHtml(cat),meta,fmt(amt)));
+  });
+  // ritmo hacia las metas de diciembre: solo tiene sentido en el mes en curso
+  if(esActual){
+    const hoyD=new Date(), metaD=parseFechaLocal(META_FECHA);
+    const mesesRest=Math.max(1,(metaD.getFullYear()-hoyD.getFullYear())*12+(metaD.getMonth()-hoyD.getMonth())+1);
+    const faltaS=Math.max(0,META_SAVINGS-calcRevSavings().saldo);
+    if(faltaS>0){
+      const ritmo=faltaS/mesesRest;
+      filas.push(fila(ap.revSavings>=ritmo-0.005?'✅':'🎯','ritmo meta Savings (dic 2026)',
+        'necesitas '+fmt(ritmo)+'/mes · este mes llevas '+fmt(ap.revSavings),''));
+    }
+    // meta de bolsa: solo con todas las cotizaciones (valor parcial daria un ritmo falso)
+    const posA=Object.entries(state.posiciones).filter(([k,p])=>p.acciones>0);
+    let val=0, completo=Number.isFinite(state.usdMxn);
+    posA.forEach(([k,p])=>{ const mk=state.accionesMkt[k]; if(mk&&Number.isFinite(mk.precio)&&completo) val+=p.acciones*mk.precio*state.usdMxn; else completo=false; });
+    if(completo||posA.length===0){
+      const faltaSt=Math.max(0,META_STOCKS-val);
+      if(faltaSt>0){
+        const ritmoSt=faltaSt/mesesRest;
+        filas.push(fila(ap.stocks>=ritmoSt-0.005?'✅':'🎯','ritmo meta bolsa (dic 2026)',
+          'necesitas '+fmt(ritmoSt)+'/mes · este mes llevas '+fmt(ap.stocks),''));
+      }
+    }
+  }
+  return filas.join('')+(esActual?'<div class="item-meta" style="text-align:center;padding-top:8px">mes en curso · cifras al dia de hoy</div>':'');
+}
+
 function renderResumen() {
   const {start,end,label}=rangoResumen();
   document.getElementById('mes-label').textContent=label;
@@ -2910,6 +3056,16 @@ function renderResumen() {
   document.getElementById('res-ingresos').textContent=fmt(totalI);
   const balEl=document.getElementById('res-balance');
   balEl.textContent=(balance>=0?'+':'−')+fmt(Math.abs(balance)); balEl.className='s-amt '+(balance>=0?'pos':'neg');
+  // cierre del mes: solo aplica en la vista mensual
+  const esMes=state.resPeriodo==='mes';
+  const cierreT=document.getElementById('cierre-title'), cierreP=document.getElementById('res-cierre');
+  if(cierreT&&cierreP){
+    cierreT.style.display=esMes?'':'none'; cierreP.style.display=esMes?'':'none';
+    if(esMes){
+      cierreT.textContent='cierre de '+label;
+      cierreP.innerHTML=cierreMesHTML(start,end,totalI,totalG,gastos);
+    }
+  }
   const byCat={}; gastos.forEach(i=>byCat[i.cat]=(byCat[i.cat]||0)+i.monto);
   const sortedG=Object.entries(byCat).sort((a,b)=>b[1]-a[1]); const maxG=sortedG[0]?sortedG[0][1]:1;
   document.getElementById('res-pie').innerHTML=pieChart(sortedG);
