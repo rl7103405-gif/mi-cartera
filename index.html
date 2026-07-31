@@ -349,6 +349,18 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
       </div>
     </div>
 
+    <!-- TDC REVOLUT (garantizada: limite = deposito 1:1) -->
+    <div class="tarjeta-card" onclick="toggleDetail('tarjeta-rev-detail')">
+      <div class="t-label">TDC Revolut · deuda actual</div>
+      <div class="t-amount" id="tarjeta-rev-display">$—</div>
+      <div class="t-sub" id="tarjeta-rev-sub">limite $— · disponible $—</div>
+      <div class="card-detail" id="tarjeta-rev-detail" style="border-top-color:rgba(255,255,255,0.1);margin-top:14px;padding-top:14px">
+        <div class="detail-row"><span class="detail-label" style="color:rgba(255,255,255,0.5)">deposito en garantia (congelado)</span><span class="detail-val" id="tarjeta-rev-dep">$—</span></div>
+        <div class="detail-row"><span class="detail-label" style="color:rgba(255,255,255,0.5)">retirable ahora</span><span class="detail-val" id="tarjeta-rev-retirable">$—</span></div>
+        <div class="detail-row"><span class="detail-label" style="color:rgba(255,255,255,0.5)">ultimo movimiento</span><span class="detail-val" id="tarjeta-rev-ultimo">—</span></div>
+      </div>
+    </div>
+
     <div class="card" onclick="toggleCuenta('efectivo','cash-detail')">
       <div class="card-header">
         <div class="card-left"><div class="card-icon icon-cash"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="7" width="19" height="10" rx="2"/><circle cx="12" cy="12" r="2.6"/><path d="M6 12h.01M18 12h.01"/></svg></div>
@@ -412,6 +424,7 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
     <div class="field"><label>NU saldo disponible</label><input type="number" id="input-nu-saldo" placeholder="ej. 360.59" step="0.01" inputmode="decimal"></div>
     <div class="field"><label>efectivo en pesos</label><input type="number" id="input-efectivo" placeholder="ej. 2200" step="1" inputmode="decimal"></div>
     <div class="field"><label>Revolut MXN (saldo de la cuenta)</label><input type="number" id="input-rev-mxn" placeholder="ej. 9.26" step="0.01" inputmode="decimal"></div>
+    <div class="field"><label>deposito garantia TDC Revolut ($250–$75,000; limite = deposito)</label><input type="number" id="input-rev-tdc-dep" placeholder="ej. 438.67" step="0.01" inputmode="decimal"></div>
     <div class="field"><label>Revolut Savings — saldo base (lo que muestra Revolut hoy)</label><input type="number" id="input-rev-savings-base" placeholder="ej. 2000.79" step="0.01" inputmode="decimal"></div>
     <div class="row2" style="gap:8px">
       <div class="field"><label>Revolut Savings — fecha base (YYYY-MM-DD)</label><input type="text" id="input-rev-savings-fecha" placeholder="vacia = hoy"></div>
@@ -442,6 +455,7 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
           <option value="revolut">Revolut MXN</option>
           <option value="revSavings">Revolut Savings</option>
           <option value="tarjeta">tarjeta NU (pago)</option>
+          <option value="tarjetaRev">TDC Revolut (pago)</option>
         </select>
       </div>
     </div>
@@ -474,9 +488,29 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
     </div>
   </div>
   </div>
+
+  <div class="sec">
+  <div class="section-title">TDC Revolut</div>
+  <div class="panel">
+    <div class="field"><label>monto</label><input type="number" id="tarjeta-rev-monto" placeholder="ej. 120" step="0.01" inputmode="decimal"></div>
+    <div class="field"><label>nota</label><input type="text" id="tarjeta-rev-nota" placeholder="ej. uber, super..."></div>
+    <div class="field"><label>si pagas, el dinero sale de</label>
+      <select id="tarjeta-rev-pago-fuente">
+        <option value="revolut">Revolut MXN</option>
+        <option value="efectivo">efectivo</option>
+        <option value="nu">NU saldo</option>
+        <option value="externo">otro (no descontar de mis cuentas)</option>
+      </select>
+    </div>
+    <div class="row2" style="gap:8px">
+      <button class="btn btn-red" id="tarjeta-rev-cargo-btn" onclick="registrarTarjetaRev('cargo')" style="margin-top:0">+ cargo</button>
+      <button class="btn btn-green" id="tarjeta-rev-pago-btn" onclick="registrarTarjetaRev('pago')" style="margin-top:0">- pague</button>
+    </div>
+  </div>
+  </div>
   </div>
   <div class="status" id="status-inicio">—</div>
-  <div class="status" style="margin-top:2px;padding-bottom:8px">version 2026-07-30.2</div>
+  <div class="status" style="margin-top:2px;padding-bottom:8px">version 2026-07-31.1</div>
 </div>
 
 <!-- MOVIMIENTOS (gastos + ingresos en una sola pestana) -->
@@ -502,6 +536,7 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
           <div class="type-opt" onclick="setFuente('nu')">NU saldo</div>
           <div class="type-opt" onclick="setFuente('tarjeta')">tarjeta NU</div>
           <div class="type-opt" onclick="setFuente('revolut')">Revolut</div>
+          <div class="type-opt" onclick="setFuente('tarjetaRev')">TDC Revolut</div>
         </div>
       </div>
       <button class="btn btn-purple" id="gasto-btn" onclick="registrarGasto()">registrar gasto</button>
@@ -684,9 +719,9 @@ const ALLOWED_EMAIL = 'rl7103405@gmail.com';
 const TITULOS = 45;
 // metas de Roberto para el cierre de 2026 y cuota mensual del plan Premium de Revolut
 const META_SAVINGS = 25000, META_STOCKS = 12000, META_FECHA = '2026-12-31', PREMIUM_MONTO = 145;
-const CUENTAS = {efectivo:'efectivo', nu:'NU saldo', cajita1:'NU cajita 1', cajita2:'NU cajita 2', gbm:'GBM efectivo', revolut:'Revolut MXN', revSavings:'Revolut Savings', tarjeta:'tarjeta NU', stocks:'Stocks (bolsa)'};
+const CUENTAS = {efectivo:'efectivo', nu:'NU saldo', cajita1:'NU cajita 1', cajita2:'NU cajita 2', gbm:'GBM efectivo', revolut:'Revolut MXN', revSavings:'Revolut Savings', tarjeta:'tarjeta NU', tarjetaRev:'TDC Revolut', stocks:'Stocks (bolsa)'};
 const CTAS_STOCK_OP=['efectivo','nu','revolut']; // cuentas desde las que se puede comprar/vender bolsa
-const FUENTES_GASTO=['efectivo','nu','tarjeta','revolut'];
+const FUENTES_GASTO=['efectivo','nu','tarjeta','revolut','tarjetaRev'];
 const DESTINOS_INGRESO=['efectivo','nu','revolut']; // gbm retirado (los ingresos legados con gbm solo se muestran/deshacen)
 const CATS_GASTO_DEFAULT = ['Comida','Transporte','Salidas','Zoe','Ropa','Salud','Suscripciones','Educacion','Casa','Entretenimiento','Viajes','Regalos','Otros'];
 const CATS_INGRESO_DEFAULT = ['Trabajo','Quini','Maicitos','Brownies','Regalos','Deudas cobradas','Inversiones','Otros'];
@@ -849,6 +884,8 @@ let state = {
   reporto:99.74, efectivoGBM:46.16,
   revMXN:0, revSavingsBase:0, revSavingsFecha:'', revSavingsTasa:15, revNvdaShares:0,
   tarjetaDeuda:2001, tarjetaMovimientos:[],
+  // TDC Revolut garantizada: limite de credito = deposito de garantia 1:1 (rango $250-$75,000)
+  revTdcDeuda:0, revTdcDeposito:438.67, revTdcMovs:[],
   ivvPrecio:154, ivvVar:null, ivvHistory:[],
   nvdaPrecio:null, nvdaPrev:null, nvdaFecha:'', usdMxn:null, usdMxnPrev:null, usdMxnFecha:'',
   nvdaHistory:[], usdMxnHistory:[],
@@ -999,6 +1036,16 @@ async function loadFromFirebase() {
     else await setDoc(doc(db,'cartera','personas'), {data:state.personas});
     const tDoc = await getDoc(doc(db,'cartera','tarjeta'));
     if (tDoc.exists()) { state.tarjetaDeuda = Number.isFinite(tDoc.data().deuda) ? tDoc.data().deuda : state.tarjetaDeuda; state.tarjetaMovimientos = Array.isArray(tDoc.data().movimientos) ? tDoc.data().movimientos : []; }
+    // TDC Revolut: {deuda, deposito, movimientos} viven JUNTOS en su doc (el deposito NO va
+    // en saldos: un cliente viejo con setDoc completo de saldosPayload lo borraria)
+    const trvDoc = await getDoc(doc(db,'cartera','tarjetaRev'));
+    if (trvDoc.exists()) {
+      const tv = trvDoc.data();
+      if (Number.isFinite(tv.deuda)) state.revTdcDeuda = tv.deuda;
+      if (Number.isFinite(tv.deposito)) state.revTdcDeposito = tv.deposito;
+      state.revTdcMovs = Array.isArray(tv.movimientos) ? tv.movimientos.filter(m=>m&&(m.tipo==='cargo'||m.tipo==='pago')
+        &&Number.isFinite(m.monto)&&m.monto>0&&typeof m.fecha==='string') : [];
+    }
     const hDoc = await getDoc(doc(db,'cartera','historial'));
     if (hDoc.exists()) state.snapshots = Array.isArray(hDoc.data().snapshots) ? hDoc.data().snapshots : [];
     const aDoc = await getDoc(doc(db,'cartera','apartados'));
@@ -1127,11 +1174,11 @@ async function procesarPendientesAtajo() {
   const candG=state.gastos.filter(g=>g.pendiente===true).sort(porFecha).slice(0,100);
   const candI=state.ingresos.filter(g=>g.pendiente===true).sort(porFecha).slice(0,100);
   if(!candG.length&&!candI.length) return null;
-  const saldosRef=doc(db,'cartera','saldos'), tarjetaRef=doc(db,'cartera','tarjeta');
+  const saldosRef=doc(db,'cartera','saldos'), tarjetaRef=doc(db,'cartera','tarjeta'), tarjetaRevRef=doc(db,'cartera','tarjetaRev');
   const resumen={aplicados:0,rechazados:0,error:false};
   try{
     const resultado=await runTransaction(db, async tx=>{
-      const sSnap=await tx.get(saldosRef), tSnap=await tx.get(tarjetaRef);
+      const sSnap=await tx.get(saldosRef), tSnap=await tx.get(tarjetaRef), trvSnap=await tx.get(tarjetaRevRef);
       const s=sSnap.exists()?sSnap.data():{};
       const cuentas={
         efectivo:Number.isFinite(s.efectivo)?s.efectivo:0,
@@ -1140,18 +1187,33 @@ async function procesarPendientesAtajo() {
         efectivoGBM:Number.isFinite(s.efectivoGBM)?s.efectivoGBM:0
       };
       let tarjetaDeuda=(tSnap.exists()&&Number.isFinite(tSnap.data().deuda))?tSnap.data().deuda:0;
-      let cambioCuentas=false, cambioTarjeta=false;
+      let revTdcDeuda=(trvSnap.exists()&&Number.isFinite(trvSnap.data().deuda))?trvSnap.data().deuda:0;
+      const revTdcDeposito=(trvSnap.exists()&&Number.isFinite(trvSnap.data().deposito))?trvSnap.data().deposito:state.revTdcDeposito;
+      let cambioCuentas=false, cambioTarjeta=false, cambioTarjetaRev=false;
       const estados=[];
-      const procesa=async (c,tipo)=>{
+      // fase de LECTURA (en paralelo, todas ANTES de cualquier escritura, como exige la transaccion):
+      // solo lee y devuelve el dato crudo, sin validar ni acumular todavia
+      const lee=async (c,tipo)=>{
         const ref=doc(db,tipo==='gasto'?'gastos':'ingresos',c.id);
         const snap=await tx.get(ref);
-        if(!snap.exists()||snap.data().pendiente!==true) return; // otro dispositivo ya lo proceso
-        const d=snap.data();
+        if(!snap.exists()||snap.data().pendiente!==true) return null; // otro dispositivo ya lo proceso
+        return {ref,id:c.id,tipo,d:snap.data()};
+      };
+      const leidosG=await Promise.all(candG.map(c=>lee(c,'gasto')));
+      const leidosI=await Promise.all(candI.map(c=>lee(c,'ingreso')));
+      // fase de VALIDACION/ACUMULACION: secuencial, en el orden original (candG luego candI
+      // por fecha), para que el limite de tarjetaRev se evalue de forma determinista
+      const procesa=(r)=>{
+        if(!r) return;
+        const {ref,id,tipo,d}=r;
         const cta=tipo==='gasto'?d.fuente:d.destino;
         const listas=tipo==='gasto'?FUENTES_GASTO:DESTINOS_INGRESO;
-        const valido=Number.isFinite(d.monto)&&d.monto>0&&d.monto<=10000000
+        let valido=Number.isFinite(d.monto)&&d.monto>0&&d.monto<=10000000
           &&typeof d.cat==='string'&&d.cat.trim()!==''
           &&listas.includes(cta)&&Number.isFinite(Date.parse(d.fecha));
+        // TDC Revolut: limite = deposito; aqui SI se valida contra los valores canonicos
+        // (este es el unico flujo genuinamente concurrente); si excede, se rechaza
+        if(valido&&cta==='tarjetaRev'&&Math.round((Math.max(0,revTdcDeuda)+d.monto)*100)>Math.round(revTdcDeposito*100)) valido=false;
         if(valido){
           const sgn=tipo==='gasto'?-1:1;
           if(cta==='efectivo') cuentas.efectivo+=sgn*d.monto;
@@ -1159,18 +1221,21 @@ async function procesarPendientesAtajo() {
           else if(cta==='revolut') cuentas.revMXN+=sgn*d.monto;
           else if(cta==='gbm') cuentas.efectivoGBM+=sgn*d.monto;
           else if(cta==='tarjeta'){ tarjetaDeuda+=d.monto; cambioTarjeta=true; }
-          if(cta!=='tarjeta') cambioCuentas=true;
+          else if(cta==='tarjetaRev'){ revTdcDeuda+=d.monto; cambioTarjetaRev=true; }
+          if(cta!=='tarjeta'&&cta!=='tarjetaRev') cambioCuentas=true;
         }
-        estados.push({ref,id:c.id,tipo,aplicado:valido});
+        estados.push({ref,id,tipo,aplicado:valido});
       };
-      // lecturas en paralelo (todas ANTES de cualquier escritura, como exige la transaccion)
-      await Promise.all(candG.map(c=>procesa(c,'gasto')));
-      await Promise.all(candI.map(c=>procesa(c,'ingreso')));
+      leidosG.forEach(procesa);
+      leidosI.forEach(procesa);
       estados.forEach(e=>tx.update(e.ref,{pendiente:false,aplicadoSaldo:e.aplicado}));
       // update PARCIAL con valores canonicos: no pisa el resto del doc de saldos
       if(cambioCuentas) tx.update(saldosRef,{efectivo:cuentas.efectivo,nuSaldo:cuentas.nuSaldo,revMXN:cuentas.revMXN,efectivoGBM:cuentas.efectivoGBM});
       if(cambioTarjeta) tx.update(tarjetaRef,{deuda:tarjetaDeuda});
-      return {estados,cuentas,tarjetaDeuda,cambioCuentas,cambioTarjeta};
+      // set con merge: el doc tarjetaRev puede no existir todavia (update fallaria);
+      // si es doc nuevo, incluir movimientos:[] para no dejarlo sin ese campo
+      if(cambioTarjetaRev) tx.set(tarjetaRevRef, trvSnap.exists()?{deuda:revTdcDeuda,deposito:revTdcDeposito}:{deuda:revTdcDeuda,deposito:revTdcDeposito,movimientos:[]}, {merge:true});
+      return {estados,cuentas,tarjetaDeuda,revTdcDeuda,cambioCuentas,cambioTarjeta,cambioTarjetaRev};
     });
     // reflejar en memoria lo que la transaccion dejo en Firestore
     resultado.estados.forEach(e=>{
@@ -1184,6 +1249,7 @@ async function procesarPendientesAtajo() {
       state.revMXN=resultado.cuentas.revMXN; state.efectivoGBM=resultado.cuentas.efectivoGBM;
     }
     if(resultado.cambioTarjeta) state.tarjetaDeuda=resultado.tarjetaDeuda;
+    if(resultado.cambioTarjetaRev) state.revTdcDeuda=resultado.revTdcDeuda;
   }catch(e){ console.error('procesarPendientesAtajo',e); resumen.error=true; }
   return resumen;
 }
@@ -1218,6 +1284,9 @@ async function savePersonas() {
 async function saveTarjeta() {
   if (!datosCargados) throw new Error('datos no cargados');
   try { await setDoc(doc(db,'cartera','tarjeta'),{deuda:state.tarjetaDeuda, movimientos:state.tarjetaMovimientos}); setSyncDot('ok'); } catch(e) { setSyncDot('err'); throw e; }
+}
+function tarjetaRevPayload() {
+  return {deuda:state.revTdcDeuda, deposito:state.revTdcDeposito, movimientos:state.revTdcMovs};
 }
 async function saveApartados() {
   if (!datosCargados) throw new Error('datos no cargados');
@@ -1327,7 +1396,7 @@ window.setMovTipo = t => {
   document.getElementById('mov-tipo-ingreso').classList.toggle('active', t==='ingreso');
   document.getElementById('mov-tipo-ingreso').setAttribute('aria-pressed', t==='ingreso');
 };
-window.setFuente = f => { state.fuenteGasto=f; document.querySelectorAll('#gasto-fuente-toggle .type-opt').forEach((el,i)=>el.classList.toggle('active',['efectivo','nu','tarjeta','revolut'][i]===f)); };
+window.setFuente = f => { state.fuenteGasto=f; document.querySelectorAll('#gasto-fuente-toggle .type-opt').forEach((el,i)=>el.classList.toggle('active',['efectivo','nu','tarjeta','revolut','tarjetaRev'][i]===f)); };
 window.setDestinoIngreso = f => { state.destinoIngreso=f; document.querySelectorAll('#ingreso-destino-toggle .type-opt').forEach((el,i)=>el.classList.toggle('active',['efectivo','nu','revolut'][i]===f)); };
 window.setTipoDeuda = t => { state.tipoDeuda=t; ['cargo','pago','debo','pague'].forEach(id=>document.getElementById('tipo-'+id).classList.toggle('active',id===t)); };
 
@@ -1495,14 +1564,29 @@ function render() {
     document.getElementById('tarjeta-ultimo').textContent=(ult.tipo==='cargo'?'+':'-')+fmt(ult.monto)+' · '+fmtFechaMov(ult.fecha,{day:'numeric',month:'short'});
   }
 
-  // GBM retirado (vendido jul-2026, el dinero migro a Revolut): fuera del total
-  const total=nu1.saldo+state.nuSaldo+state.efectivo+state.revMXN+rs.saldo+nvdaVal;
+  // TDC Revolut: limite = deposito 1:1; deudaUsada defensiva (un borrado puede dejar saldo a favor)
+  const tdcDep=Number.isFinite(state.revTdcDeposito)?state.revTdcDeposito:0;
+  const tdcDeudaUsada=Math.max(0,state.revTdcDeuda||0);
+  const tdcDisponible=Math.max(0,Math.min(tdcDep,tdcDep-tdcDeudaUsada));
+  const tdcRetirable=Math.max(0,Math.min(tdcDep-250,tdcDep-tdcDeudaUsada));
+  document.getElementById('tarjeta-rev-display').textContent=state.revTdcDeuda<0?('−'+fmt(Math.abs(state.revTdcDeuda))):fmt(state.revTdcDeuda);
+  document.getElementById('tarjeta-rev-sub').textContent='limite '+fmt(tdcDep)+' · disponible '+fmt(tdcDisponible);
+  document.getElementById('tarjeta-rev-dep').textContent=fmt(tdcDep);
+  document.getElementById('tarjeta-rev-retirable').textContent=fmt(tdcRetirable);
+  if(state.revTdcMovs.length>0) {
+    const ultR=state.revTdcMovs[0];
+    document.getElementById('tarjeta-rev-ultimo').textContent=(ultR.tipo==='cargo'?'+':'-')+fmt(ultR.monto)+' · '+fmtFechaMov(ultR.fecha,{day:'numeric',month:'short'});
+  }
+
+  // GBM retirado (vendido jul-2026, el dinero migro a Revolut): fuera del total.
+  // El deposito de la TDC Revolut SI es activo (dinero propio, aunque congelado)
+  const total=nu1.saldo+state.nuSaldo+state.efectivo+state.revMXN+rs.saldo+nvdaVal+tdcDep;
   document.getElementById('total-display').textContent=fmt(total);
-  // neto = activos + lo que me deben (o menos lo que debo) - deuda de tarjeta
+  // neto = activos + lo que me deben (o menos lo que debo) - deudas de tarjetas
   const saldoDeudas=Object.values(state.personas||{}).reduce((s,p)=>s+(p.saldo||0),0);
-  const neto=total+saldoDeudas-(state.tarjetaDeuda||0);
-  document.getElementById('neto-display').textContent='patrimonio neto (con deudas y tarjeta): '+fmt(neto);
-  renderDistribucion(nu1.saldo+rs.saldo, nvdaVal, state.efectivo+state.nuSaldo+state.revMXN, posAbiertas.length>0&&!stocksCompleto);
+  const neto=total+saldoDeudas-(state.tarjetaDeuda||0)-(state.revTdcDeuda||0);
+  document.getElementById('neto-display').textContent='patrimonio neto (con deudas y tarjetas): '+fmt(neto);
+  renderDistribucion(nu1.saldo+rs.saldo, nvdaVal, state.efectivo+state.nuSaldo+state.revMXN, tdcDep, posAbiertas.length>0&&!stocksCompleto);
   renderMetas(rs.saldo, nvdaVal, posAbiertas.length>0&&!stocksCompleto);
   renderApartados();
   checkPremium();
@@ -1540,10 +1624,12 @@ function maybeSnapshot(total,gbm) {
 window.guardarManuales = async function() {
   const ids={c1b:'input-cajita1-base',c1f:'input-cajita1-fecha',c1t:'input-cajita1-tasa',
     ns:'input-nu-saldo',ef:'input-efectivo',
-    rvm:'input-rev-mxn',rsb:'input-rev-savings-base',rsf:'input-rev-savings-fecha',rst:'input-rev-savings-tasa'};
+    rvm:'input-rev-mxn',rsb:'input-rev-savings-base',rsf:'input-rev-savings-fecha',rst:'input-rev-savings-tasa',
+    rtd:'input-rev-tdc-dep'};
   const labels={c1b:'cajita 1 - saldo base',c1f:'cajita 1 - fecha base',c1t:'cajita 1 - tasa',
     ns:'NU saldo',ef:'efectivo',
-    rvm:'Revolut MXN',rsb:'Revolut Savings - saldo base',rsf:'Revolut Savings - fecha base',rst:'Revolut Savings - tasa'};
+    rvm:'Revolut MXN',rsb:'Revolut Savings - saldo base',rsf:'Revolut Savings - fecha base',rst:'Revolut Savings - tasa',
+    rtd:'deposito TDC Revolut'};
   const raw={}; Object.keys(ids).forEach(k=>raw[k]=document.getElementById(ids[k]).value.trim());
   const vals={};
   for(const k of ['c1b','ns','ef','rvm','rsb']) {
@@ -1557,6 +1643,15 @@ window.guardarManuales = async function() {
     const n=parseFloat(raw[k]);
     if(!Number.isFinite(n)||n<=-100){ showToast('tasa invalida en '+labels[k]); return; }
     vals[k]=n;
+  }
+  // deposito TDC Revolut: limite = deposito (regla del producto); rango oficial $250-$75,000
+  // y nunca por debajo de la deuda usada (Revolut no permite bajar el limite bajo el saldo)
+  if(raw.rtd===''){ vals.rtd=null; }
+  else {
+    const n=parseFloat(raw.rtd);
+    if(!Number.isFinite(n)||n<250||n>75000){ showToast('deposito invalido: debe estar entre $250 y $75,000'); return; }
+    if(Math.round(n*100)<Math.round(Math.max(0,state.revTdcDeuda)*100)){ showToast('el deposito no puede ser menor que la deuda usada de la TDC Revolut'); return; }
+    vals.rtd=n;
   }
   for(const k of ['c1f','rsf']) {
     if(raw[k]===''){ vals[k]=null; continue; }
@@ -1584,7 +1679,8 @@ window.guardarManuales = async function() {
   // respaldo para revertir el estado optimista si falla la escritura
   const prev={c1b:state.nuCajita1Base,c1f:state.nuCajita1Fecha,c1t:state.nuCajita1Tasa,
     ns:state.nuSaldo,ef:state.efectivo,
-    rvm:state.revMXN,rsb:state.revSavingsBase,rsf:state.revSavingsFecha,rst:state.revSavingsTasa};
+    rvm:state.revMXN,rsb:state.revSavingsBase,rsf:state.revSavingsFecha,rst:state.revSavingsTasa,
+    rtd:state.revTdcDeposito};
   if(vals.c1b!==null) state.nuCajita1Base=vals.c1b;
   if(vals.c1f!==null) state.nuCajita1Fecha=vals.c1f;
   if(vals.c1t!==null) state.nuCajita1Tasa=vals.c1t;
@@ -1594,9 +1690,20 @@ window.guardarManuales = async function() {
   if(vals.rsb!==null) state.revSavingsBase=vals.rsb;
   if(vals.rsf!==null) state.revSavingsFecha=vals.rsf;
   if(vals.rst!==null) state.revSavingsTasa=vals.rst;
+  if(vals.rtd!==null) state.revTdcDeposito=vals.rtd;
   btn.disabled=true;
   try {
-    await saveSaldos();
+    if (!datosCargados) throw new Error('datos no cargados');
+    // el deposito vive en cartera/tarjetaRev: si se capturo, va en batch atomico con saldos
+    if(vals.rtd!==null){
+      const batch=writeBatch(db);
+      batch.set(doc(db,'cartera','saldos'),saldosPayload());
+      batch.set(doc(db,'cartera','tarjetaRev'),tarjetaRevPayload());
+      await batch.commit();
+      setSyncDot('ok');
+    } else {
+      await saveSaldos();
+    }
     Object.values(ids).forEach(id=>document.getElementById(id).value='');
     render();
     showToast('guardado y sincronizado');
@@ -1604,6 +1711,7 @@ window.guardarManuales = async function() {
     state.nuCajita1Base=prev.c1b;state.nuCajita1Fecha=prev.c1f;state.nuCajita1Tasa=prev.c1t;
     state.nuSaldo=prev.ns;state.efectivo=prev.ef;
     state.revMXN=prev.rvm;state.revSavingsBase=prev.rsb;state.revSavingsFecha=prev.rsf;state.revSavingsTasa=prev.rst;
+    state.revTdcDeposito=prev.rtd;
     setSyncDot('err');
     console.error('guardarManuales',e);
     showToast('ERROR: no se guardo, revisa tu conexion');
@@ -1666,6 +1774,66 @@ window.registrarTarjeta = async function(tipo) {
   }finally{btnCargo.disabled=false;btnPago.disabled=false;}
 };
 
+// ── TDC REVOLUT (garantizada: limite = deposito 1:1) ──────────
+window.registrarTarjetaRev = async function(tipo) {
+  const btnCargo=document.getElementById('tarjeta-rev-cargo-btn'), btnPago=document.getElementById('tarjeta-rev-pago-btn');
+  const monto=parseFloat(document.getElementById('tarjeta-rev-monto').value);
+  const nota=document.getElementById('tarjeta-rev-nota').value.trim();
+  if(!Number.isFinite(monto)||monto<=0){showToast('ingresa un monto valido');return;}
+  let fuente=null;
+  if(tipo==='cargo') {
+    // limite = deposito, bloqueante en centavos. Se valida contra estado en memoria
+    // DELIBERADAMENTE (mismo patron que tarjeta NU; el unico flujo concurrente real,
+    // el atajo de iOS, valida contra valores canonicos en su transaccion)
+    if(Math.round((Math.max(0,state.revTdcDeuda)+monto)*100)>Math.round((state.revTdcDeposito||0)*100)){
+      showToast('el cargo excede el limite (deposito de garantia) — actualiza primero el deposito');return;
+    }
+  } else {
+    fuente=document.getElementById('tarjeta-rev-pago-fuente').value;
+    if(!['revolut','efectivo','nu','externo'].includes(fuente)){showToast('cuenta no valida');return;}
+    if(monto>state.revTdcDeuda+0.01){showToast('el pago excede la deuda de la TDC Revolut');return;}
+    if(fuente!=='externo'&&monto>getSaldoCuenta(fuente)+0.01){showToast('saldo insuficiente en '+CUENTAS[fuente]);return;}
+  }
+  // respaldo para revertir el estado optimista si falla la escritura
+  const prev={...backupCuentas(),revTdcDeuda:state.revTdcDeuda};
+  let tr=null;
+  if(tipo==='cargo') {
+    state.revTdcDeuda+=monto;
+  } else {
+    if(fuente!=='externo'){
+      aplicarDelta(fuente,-monto);
+      tr={origen:fuente,destino:'tarjetaRev',monto,nota:nota||'pago TDC Revolut',fecha:new Date().toISOString()};
+      state.transferencias.unshift(tr);
+    }
+    state.revTdcDeuda-=monto; // ya se valido arriba que no excede la deuda
+  }
+  state.revTdcMovs.unshift({tipo,monto,nota,fecha:new Date().toISOString()});
+  btnCargo.disabled=true;btnPago.disabled=true;
+  try{
+    // batch atomico: transferencia (si aplica), saldos y tarjetaRev se guardan juntos o ninguno
+    const batch=writeBatch(db);
+    let ref=null;
+    if(tr){ ref=doc(collection(db,'transferencias')); batch.set(ref,tr); }
+    batch.set(doc(db,'cartera','saldos'),saldosPayload());
+    batch.set(doc(db,'cartera','tarjetaRev'),tarjetaRevPayload());
+    await batch.commit();
+    if(tr) tr.id=ref.id;
+    setSyncDot('ok');
+    document.getElementById('tarjeta-rev-monto').value='';
+    document.getElementById('tarjeta-rev-nota').value='';
+    render();renderTransferencias();
+    showToast(tipo==='cargo'?'+'+fmt(monto)+' a la TDC Revolut':'pago de '+fmt(monto)+' registrado');
+  }catch(e){
+    restoreCuentas(prev);
+    state.revTdcDeuda=prev.revTdcDeuda;
+    state.revTdcMovs.shift();
+    if(tr){ const i=state.transferencias.indexOf(tr); if(i>=0) state.transferencias.splice(i,1); }
+    setSyncDot('err');
+    console.error('registrarTarjetaRev',e);
+    showToast('ERROR: no se guardo, revisa tu conexion');
+  }finally{btnCargo.disabled=false;btnPago.disabled=false;}
+};
+
 // ── TRANSFERENCIAS ────────────────────────────────────────────
 function getSaldoCuenta(c) {
   if(c==='efectivo') return state.efectivo;
@@ -1708,16 +1876,20 @@ window.registrarTransferencia = async function() {
   const nota=document.getElementById('transfer-nota').value.trim();
   if(!Number.isFinite(monto)||monto<=0){showToast('ingresa un monto valido');return;}
   const CTAS_TRANSFER=['efectivo','nu','cajita1','revolut','revSavings'];
-  if(!CTAS_TRANSFER.includes(origen)||!(CTAS_TRANSFER.includes(destino)||destino==='tarjeta')){showToast('cuenta no valida');return;}
+  if(!CTAS_TRANSFER.includes(origen)||!(CTAS_TRANSFER.includes(destino)||destino==='tarjeta'||destino==='tarjetaRev')){showToast('cuenta no valida');return;}
   if(origen===destino){showToast('elige cuentas distintas');return;}
   if(monto>getSaldoCuenta(origen)+0.01){showToast('saldo insuficiente en '+CUENTAS[origen]);return;}
   if(destino==='tarjeta'&&monto>state.tarjetaDeuda+0.01){showToast('el pago excede la deuda de la tarjeta');return;}
+  if(destino==='tarjetaRev'&&monto>state.revTdcDeuda+0.01){showToast('el pago excede la deuda de la TDC Revolut');return;}
   // respaldo para revertir el estado optimista si falla la escritura
-  const prev={...backupCuentas(),tarjetaDeuda:state.tarjetaDeuda};
+  const prev={...backupCuentas(),tarjetaDeuda:state.tarjetaDeuda,revTdcDeuda:state.revTdcDeuda};
   aplicarDelta(origen,-monto);
   if(destino==='tarjeta'){
     state.tarjetaDeuda-=monto; // ya validado arriba que no excede
     state.tarjetaMovimientos.unshift({tipo:'pago',monto,nota:nota||('pago desde '+CUENTAS[origen]),fecha:new Date().toISOString()});
+  } else if(destino==='tarjetaRev'){
+    state.revTdcDeuda-=monto; // ya validado arriba que no excede
+    state.revTdcMovs.unshift({tipo:'pago',monto,nota:nota||('pago desde '+CUENTAS[origen]),fecha:new Date().toISOString()});
   } else {
     aplicarDelta(destino,monto);
   }
@@ -1730,6 +1902,7 @@ window.registrarTransferencia = async function() {
     batch.set(ref,tr);
     batch.set(doc(db,'cartera','saldos'),saldosPayload());
     if(destino==='tarjeta') batch.set(doc(db,'cartera','tarjeta'),{deuda:state.tarjetaDeuda,movimientos:state.tarjetaMovimientos});
+    if(destino==='tarjetaRev') batch.set(doc(db,'cartera','tarjetaRev'),tarjetaRevPayload());
     await batch.commit();
     tr.id=ref.id;
     setSyncDot('ok');
@@ -1739,7 +1912,9 @@ window.registrarTransferencia = async function() {
   }catch(e){
     restoreCuentas(prev);
     state.tarjetaDeuda=prev.tarjetaDeuda;
+    state.revTdcDeuda=prev.revTdcDeuda;
     if(destino==='tarjeta') state.tarjetaMovimientos.shift();
+    if(destino==='tarjetaRev') state.revTdcMovs.shift();
     state.transferencias.splice(state.transferencias.indexOf(tr),1);
     setSyncDot('err');
     console.error('registrarTransferencia',e);
@@ -1749,7 +1924,7 @@ window.registrarTransferencia = async function() {
 window.eliminarTransferencia = async function(id) {
   const idx=state.transferencias.findIndex(t=>t.id===id); if(idx<0)return;
   const t=state.transferencias[idx];
-  if(t.destino==='tarjeta'){showToast('los pagos a tarjeta no se pueden deshacer aqui');return;}
+  if(t.destino==='tarjeta'||t.destino==='tarjetaRev'){showToast('los pagos a tarjeta no se pueden deshacer aqui');return;}
   if(t.origen==='gbm'||t.destino==='gbm'){showToast('las transferencias del GBM retirado ya no se pueden deshacer');return;}
   if(t.origen==='stocks'||t.destino==='stocks'||t.opId){showToast('las operaciones de bolsa no se deshacen: registra la operacion inversa');return;}
   // si la transferencia toca una cajita/savings, el interes que ese dinero ya genero no se revierte al deshacer
@@ -1783,7 +1958,7 @@ function renderTransferencias() {
   if(!state.transferencias.length){c.innerHTML='<div class="empty-state">sin transferencias</div>';return;}
   c.innerHTML=state.transferencias.slice(0,20).map(t=>{
     const fecha=new Date(t.fecha).toLocaleDateString('es-MX',{day:'numeric',month:'short'});
-    const del=(t.id&&t.destino!=='tarjeta'&&t.origen!=='stocks'&&t.destino!=='stocks'&&!t.opId)?`<button class="del-btn" onclick="eliminarTransferencia('${t.id}')">&times;</button>`:'';
+    const del=(t.id&&t.destino!=='tarjeta'&&t.destino!=='tarjetaRev'&&t.origen!=='stocks'&&t.destino!=='stocks'&&!t.opId)?`<button class="del-btn" onclick="eliminarTransferencia('${t.id}')">&times;</button>`:'';
     return`<div class="item-row"><div><div class="item-cat">${CUENTAS[t.origen]||t.origen} → ${CUENTAS[t.destino]||t.destino}</div><div class="item-meta">${escapeHtml(t.nota||'')} · ${fecha}</div></div><div style="display:flex;align-items:center"><div style="font-size:14px;font-weight:600;color:var(--purple)">${fmt(t.monto)}</div>${del}</div></div>`;
   }).join('');
 }
@@ -1795,12 +1970,18 @@ function renderTransferencias() {
 async function altaGasto(cat,monto,nota,fuente,btn) {
   if(!Number.isFinite(monto)||monto<=0){showToast('ingresa un monto valido');return false;}
   if(!FUENTES_GASTO.includes(fuente)){showToast('fuente no valida');return false;}
-  const prev={...backupCuentas(),tarjetaDeuda:state.tarjetaDeuda};
+  // TDC Revolut: limite = deposito, bloqueante en centavos (validacion en memoria deliberada,
+  // mismo patron que tarjeta NU; el atajo valida canonico en su transaccion)
+  if(fuente==='tarjetaRev'&&Math.round((Math.max(0,state.revTdcDeuda)+monto)*100)>Math.round((state.revTdcDeposito||0)*100)){
+    showToast('el cargo excede el limite de la TDC Revolut (deposito de garantia)');return false;
+  }
+  const prev={...backupCuentas(),tarjetaDeuda:state.tarjetaDeuda,revTdcDeuda:state.revTdcDeuda};
   let quedoNegativo=false;
   if(fuente==='efectivo'){ state.efectivo-=monto; if(state.efectivo<0) quedoNegativo=true; }
   else if(fuente==='nu'){ state.nuSaldo-=monto; if(state.nuSaldo<0) quedoNegativo=true; }
   else if(fuente==='revolut'){ state.revMXN-=monto; if(state.revMXN<0) quedoNegativo=true; }
   else if(fuente==='tarjeta') state.tarjetaDeuda+=monto;
+  else if(fuente==='tarjetaRev') state.revTdcDeuda+=monto;
   const gasto={cat,monto,nota,fuente,fecha:new Date().toISOString()};
   state.gastos.unshift(gasto);
   if(btn) btn.disabled=true;
@@ -1811,6 +1992,7 @@ async function altaGasto(cat,monto,nota,fuente,btn) {
     batch.set(ref,gasto);
     batch.set(doc(db,'cartera','saldos'),saldosPayload());
     if(fuente==='tarjeta') batch.set(doc(db,'cartera','tarjeta'),{deuda:state.tarjetaDeuda,movimientos:state.tarjetaMovimientos});
+    if(fuente==='tarjetaRev') batch.set(doc(db,'cartera','tarjetaRev'),tarjetaRevPayload());
     await batch.commit();
     gasto.id=ref.id;
     setSyncDot('ok');
@@ -1821,6 +2003,7 @@ async function altaGasto(cat,monto,nota,fuente,btn) {
   }catch(e){
     restoreCuentas(prev);
     state.tarjetaDeuda=prev.tarjetaDeuda;
+    state.revTdcDeuda=prev.revTdcDeuda;
     state.gastos.splice(state.gastos.indexOf(gasto),1);
     setSyncDot('err');
     console.error('altaGasto',e);
@@ -1842,14 +2025,15 @@ window.eliminarGasto = async function(id) {
   const idx=state.gastos.findIndex(g=>g.id===id); if(idx<0)return;
   const g=state.gastos[idx];
   const sinEfecto=movSinEfecto(g); // capturado por atajo y nunca aplicado: borrar no toca cuentas
-  if(!confirm('¿Eliminar gasto de '+fmt(g.monto)+' en '+g.cat+'? '+(sinEfecto?'(no afecta saldos: no estaba aplicado)':'El dinero se devuelve a '+(g.fuente==='tarjeta'?'la tarjeta':CUENTAS[g.fuente]||g.fuente))))return;
+  if(!confirm('¿Eliminar gasto de '+fmt(g.monto)+' en '+g.cat+'? '+(sinEfecto?'(no afecta saldos: no estaba aplicado)':'El dinero se devuelve a '+(g.fuente==='tarjeta'||g.fuente==='tarjetaRev'?'la tarjeta':CUENTAS[g.fuente]||g.fuente))))return;
   // respaldo para revertir el estado optimista si falla la escritura
-  const prev={...backupCuentas(),tarjetaDeuda:state.tarjetaDeuda};
+  const prev={...backupCuentas(),tarjetaDeuda:state.tarjetaDeuda,revTdcDeuda:state.revTdcDeuda};
   if(!sinEfecto){
     if(g.fuente==='efectivo') state.efectivo+=g.monto;
     else if(g.fuente==='nu') state.nuSaldo+=g.monto;
     else if(g.fuente==='revolut') state.revMXN+=g.monto;
     else if(g.fuente==='tarjeta') state.tarjetaDeuda-=g.monto;
+    else if(g.fuente==='tarjetaRev') state.revTdcDeuda-=g.monto;
   }
   state.gastos.splice(idx,1);
   try{
@@ -1858,15 +2042,17 @@ window.eliminarGasto = async function(id) {
     if(!sinEfecto){
       batch.set(doc(db,'cartera','saldos'),saldosPayload());
       if(g.fuente==='tarjeta') batch.set(doc(db,'cartera','tarjeta'),{deuda:state.tarjetaDeuda,movimientos:state.tarjetaMovimientos});
+      if(g.fuente==='tarjetaRev') batch.set(doc(db,'cartera','tarjetaRev'),tarjetaRevPayload());
     }
     await batch.commit();
     setSyncDot('ok');
     render();renderMovimientos();
     // no se recorta a 0: si el gasto eliminado deja la tarjeta con saldo a favor, se avisa en vez de ocultarlo
-    showToast((g.fuente==='tarjeta'&&state.tarjetaDeuda<0)?'gasto eliminado · ojo: la tarjeta quedo con saldo a favor':'gasto eliminado');
+    showToast(((g.fuente==='tarjeta'&&state.tarjetaDeuda<0)||(g.fuente==='tarjetaRev'&&state.revTdcDeuda<0))?'gasto eliminado · ojo: la tarjeta quedo con saldo a favor':'gasto eliminado');
   }catch(e){
     restoreCuentas(prev);
     state.tarjetaDeuda=prev.tarjetaDeuda;
+    state.revTdcDeuda=prev.revTdcDeuda;
     state.gastos.splice(idx,0,g);
     setSyncDot('err');
     console.error('eliminarGasto',e);
@@ -2429,19 +2615,20 @@ function initChartInteraccion(contId) {
 
 // ── DISTRIBUCION: donde esta mi dinero ────────────────────────
 // colores SEMANTICOS fijos (no por posicion): ahorro verde, inversion azul, disponible cyan
-function renderDistribucion(ahorro, inversiones, disponible, nvdaPendiente) {
+function renderDistribucion(ahorro, inversiones, disponible, garantia, nvdaPendiente) {
   const el=document.getElementById('distribucion-panel');
   if(!el) return;
   // un saldo negativo (posible tras un gasto con saldo insuficiente) se trata como 0
   // para que los porcentajes sumen 100 y los arcos no se traslapen
-  const g1=Math.max(0,ahorro), g2=Math.max(0,inversiones), g3=Math.max(0,disponible);
-  const total=g1+g2+g3;
+  const g1=Math.max(0,ahorro), g2=Math.max(0,inversiones), g3=Math.max(0,disponible), g4=Math.max(0,garantia||0);
+  const total=g1+g2+g3+g4;
   if(!(total>0)){ el.innerHTML='<div class="empty-state">sin datos todavia</div>'; return; }
   // escala monocromatica verde (paleta minima): oscuro=inversion, medio=ahorro, claro=disponible
   const grupos=[
     {nombre:'Ahorro con rendimiento',sub:'cajita NU 1 + Revolut Savings',monto:g1,color:'#2f8f5f',txt:'#176a47'},
     {nombre:'Inversiones',sub:'acciones (Revolut)'+(nvdaPendiente?' · precio pendiente':''),monto:g2,color:'#1c5c3f',txt:'#1c5c3f'},
-    {nombre:'Disponible',sub:'efectivo + NU + Revolut',monto:g3,color:'#a9c9b4',txt:'#4f7a5e'}
+    {nombre:'Disponible',sub:'efectivo + NU + Revolut',monto:g3,color:'#a9c9b4',txt:'#4f7a5e'},
+    {nombre:'Garantia congelada',sub:'deposito TDC Revolut',monto:g4,color:'#6fae8a',txt:'#3d6b52'}
   ];
   const R=62,SW=16,rm=R-SW/2,C=2*Math.PI*rm;
   let off=0,circ='';
