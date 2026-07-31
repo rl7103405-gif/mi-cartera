@@ -1071,6 +1071,33 @@ async function loadFromFirebase() {
         } catch(e) { console.error('seed jul30',e); }
       }
     }
+    // SIEMBRA 31-jul: compra MSFT del 30-jul segun el recibo de Revolut de Roberto
+    // ($30 USD a $448.60 -> 0.06687472 acciones, fee $0). cuenta 'externo': Roberto
+    // ajusta el saldo Revolut MXN a mano; montoMxn pendiente (el recibo esta en USD).
+    // ID determinista: la transaccion relee ese doc y no puede duplicar la op.
+    if (!(mDoc.exists() && mDoc.data().seedJul31 === true)) {
+      try {
+        const msftRef = doc(db,'stocksOps','seed-msft-2026-07-30');
+        const nueva = await runTransaction(db, async tx => {
+          const mSnap = await tx.get(doc(db,'cartera','mercado'));
+          const opSnapTx = await tx.get(msftRef);
+          // si otro dispositivo ya la creo, se devuelve la existente igual: el getDocs
+          // de esta carga pudo correr antes de esa siembra y no traerla en memoria
+          if (opSnapTx.exists()) {
+            if (!(mSnap.exists() && mSnap.data().seedJul31 === true)) tx.set(doc(db,'cartera','mercado'),{seedJul31:true},{merge:true});
+            return {id:msftRef.id,...opSnapTx.data()};
+          }
+          const op={tipo:'compra',simbolo:'MSFT',acciones:0.06687472,montoMxn:0,cuenta:'externo',fecha:'2026-07-30',nota:'compra ($30 USD @ $448.60 · MXN pendiente)',creado:new Date().toISOString()};
+          tx.set(msftRef,op);
+          tx.set(doc(db,'cartera','mercado'),{seedJul31:true},{merge:true});
+          return {id:msftRef.id,...op};
+        });
+        if (nueva && !state.stocksOps.some(o=>o.id===nueva.id)) {
+          state.stocksOps.push(nueva);
+          state.stocksOps.sort((a,b)=>a.fecha<b.fecha?-1:a.fecha>b.fecha?1:0);
+        }
+      } catch(e) { console.error('seed jul31',e); }
+    }
     derivarPosiciones();
     // doc canonico de posiciones: lo valida y actualiza la transaccion de compra/venta
     const posMap={}; Object.entries(state.posiciones).forEach(([k,p])=>{ posMap[k]=p.acciones; });
