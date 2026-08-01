@@ -14,6 +14,7 @@
 /* tema verde salvia claro: paleta minima (verde + blanco + gris), estilo Revolut en claro */
 :root{--bg:#ecf2ea;--bg2:rgba(255,255,255,0.85);--bg2s:#ffffff;--bg3:#eef3ec;--border:rgba(28,92,63,0.10);--border2:rgba(26,46,34,0.18);--text:#1a2e22;--muted:#64766b;--green:#1d7d55;--red:#c04a3a;--accent:#2f6f4f;--accent-dark:#1c5c3f;--purple:var(--accent);--r:18px;--rs:12px;--sombra:0 1px 2px rgba(26,46,34,0.04),0 12px 36px rgba(28,92,63,0.10)}
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+button,input,select,textarea{font-family:inherit} /* los controles nativos no heredan la fuente del body por default */
 body{font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display',sans-serif;color:var(--text);min-height:100vh;padding-bottom:calc(80px + env(safe-area-inset-bottom));
   background:
     radial-gradient(circle at 20% 0%, rgba(255,255,255,0.55), transparent 30rem),
@@ -122,7 +123,9 @@ nav{position:sticky;top:0;z-index:100;background:rgba(255,255,255,0.88);backdrop
 .chip-verde{background:rgba(47,111,79,0.12);color:var(--accent-dark)}
 .chip-nu{background:rgba(130,10,209,0.10);color:#7a1fa2}
 .chip-rev{background:rgba(25,28,36,0.08);color:#22262e}
+.chip-rojo{background:rgba(192,74,58,0.10);color:#a03c2e}
 .chip-oro{background:rgba(202,138,4,0.14);color:#8a6116}
+.cierre-coach{background:rgba(47,111,79,0.08);border:0.5px solid rgba(47,111,79,0.15);border-radius:var(--rs);padding:12px 14px;font-size:13px;line-height:1.45;margin-bottom:10px}
 .field{margin-bottom:10px}
 .field label{font-size:12px;color:var(--muted);display:block;margin-bottom:4px}
 .field input,.field select{width:100%;background:var(--bg3);border:0.5px solid var(--border2);border-radius:var(--rs);padding:11px 14px;color:var(--text);font-size:15px;outline:none;-webkit-appearance:none;appearance:none}
@@ -210,7 +213,10 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
 
 /* PIE */
 .pie-wrap{display:flex;gap:16px;align-items:center}
-.pie-svg{width:120px;flex:0 0 120px;height:auto}
+.pie-svg{width:150px;flex:0 0 150px;height:auto}
+.pie-slice{cursor:pointer;transition:opacity 0.15s}
+.pie-svg.dim .pie-slice{opacity:0.25}
+.pie-svg.dim .pie-slice.on{opacity:1}
 .pie-legend{flex:1;display:flex;flex-direction:column;gap:6px;min-width:0}
 .pie-leg{display:flex;align-items:center;gap:7px;font-size:12px}
 .pie-dot{width:9px;height:9px;border-radius:3px;flex:0 0 9px}
@@ -594,7 +600,7 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
   </div>
   </div>
   <div class="status" id="status-inicio">—</div>
-  <div class="status" style="margin-top:2px;padding-bottom:8px">version 2026-07-31.5</div>
+  <div class="status" style="margin-top:2px;padding-bottom:8px">version 2026-07-31.6</div>
 </div>
 
 <!-- MOVIMIENTOS (gastos + ingresos en una sola pestana) -->
@@ -646,6 +652,11 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
   </div>
   <div class="sec">
     <div class="section-title">movimientos</div>
+    <div class="type-toggle" id="mov-filtro-toggle">
+      <button type="button" class="type-opt active" aria-pressed="true" onclick="setMovFiltro('todos')">todos</button>
+      <button type="button" class="type-opt" aria-pressed="false" onclick="setMovFiltro('gastos')">gastos</button>
+      <button type="button" class="type-opt" aria-pressed="false" onclick="setMovFiltro('ingresos')">ingresos</button>
+    </div>
     <div class="type-toggle" id="mov-periodo-toggle">
       <button type="button" class="type-opt" onclick="setMovPeriodo('dia')">dia</button>
       <button type="button" class="type-opt" onclick="setMovPeriodo('semana')">semana</button>
@@ -670,6 +681,8 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
   <div class="sec">
     <div class="section-title">mi meta · fin de 2026</div>
     <div class="panel" id="metas-panel"><div class="empty-state">calculando...</div></div>
+    <div class="section-title mt">camino a diciembre</div>
+    <div class="panel" id="camino-panel"><div class="empty-state">calculando...</div></div>
   </div>
   <div class="sec">
     <div class="section-title">mis apartados</div>
@@ -751,7 +764,15 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
     <div class="panel" id="res-cierre" style="margin-bottom:16px"></div>
     <div class="summary-grid">
     <div class="sec">
-    <div class="section-title">a donde se va tu dinero</div>
+    <div class="section-title">inversiones en bolsa · evolucion</div>
+    <div class="panel" id="gbm-chart"></div>
+    </div>
+    <div class="sec">
+    <div class="section-title mt">activos totales · evolucion</div>
+    <div class="panel" id="patrimonio-chart"></div>
+    </div>
+    <div class="sec">
+    <div class="section-title mt">a donde se va tu dinero</div>
     <div class="panel" id="res-pie"></div>
     </div>
     <div class="sec">
@@ -759,24 +780,31 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
     <div class="panel" id="res-pie-ingresos"></div>
     </div>
     <div class="sec">
-    <div class="section-title mt">rendimientos del periodo</div>
-    <div class="panel" id="res-rendimientos"></div>
+    <details class="acc">
+    <summary>
+      <div class="acc-icon chip-verde"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M19 5 5 19"/><circle cx="7.2" cy="7.2" r="2.4"/><circle cx="16.8" cy="16.8" r="2.4"/></svg></div>
+      <div><div class="acc-tit">rendimientos del periodo</div><div class="acc-sub">cajitas, savings y balance real</div></div>
+    </summary>
+    <div class="acc-body"><div class="panel" id="res-rendimientos"></div></div>
+    </details>
     </div>
     <div class="sec">
-    <div class="section-title mt">gastos por categoria</div>
-    <div class="panel" id="resumen-cats"></div>
+    <details class="acc">
+    <summary>
+      <div class="acc-icon chip-rojo"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V10M10 20V4M16 20v-8M22 20H2"/></svg></div>
+      <div><div class="acc-tit">gastos por categoria</div><div class="acc-sub">barras con el detalle completo</div></div>
+    </summary>
+    <div class="acc-body"><div class="panel" id="resumen-cats"></div></div>
+    </details>
     </div>
     <div class="sec">
-    <div class="section-title mt">ingresos por categoria</div>
-    <div class="panel" id="resumen-ingresos-cats"></div>
-    </div>
-    <div class="sec">
-    <div class="section-title mt">inversiones en bolsa · evolucion (GBM hasta su venta · NVDA desde tu compra)</div>
-    <div class="panel" id="gbm-chart"></div>
-    </div>
-    <div class="sec">
-    <div class="section-title mt">activos totales · evolucion</div>
-    <div class="panel" id="patrimonio-chart"></div>
+    <details class="acc">
+    <summary>
+      <div class="acc-icon chip-oro"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4v10M10 14V8M16 14V6M22 14H2"/><path d="M2 20h20"/></svg></div>
+      <div><div class="acc-tit">ingresos por categoria</div><div class="acc-sub">barras con el detalle completo</div></div>
+    </summary>
+    <div class="acc-body"><div class="panel" id="resumen-ingresos-cats"></div></div>
+    </details>
     </div>
     </div>
   </div>
@@ -1509,6 +1537,8 @@ window.setMovTipo = t => {
   document.getElementById('mov-tipo-gasto').setAttribute('aria-pressed', t==='gasto');
   document.getElementById('mov-tipo-ingreso').classList.toggle('active', t==='ingreso');
   document.getElementById('mov-tipo-ingreso').setAttribute('aria-pressed', t==='ingreso');
+  // el historial se filtra al tipo elegido (pedido de Roberto); 'todos' queda manual
+  window.setMovFiltro(t==='gasto'?'gastos':'ingresos');
 };
 window.setFuente = f => { state.fuenteGasto=f; document.querySelectorAll('#gasto-fuente-toggle .type-opt').forEach((el,i)=>el.classList.toggle('active',['efectivo','nu','tarjeta','revolut','tarjetaRev'][i]===f)); };
 window.setDestinoIngreso = f => { state.destinoIngreso=f; document.querySelectorAll('#ingreso-destino-toggle .type-opt').forEach((el,i)=>el.classList.toggle('active',['efectivo','nu','revolut'][i]===f)); };
@@ -2204,6 +2234,15 @@ window.eliminarGasto = async function(id) {
 
 // historial combinado de gastos e ingresos con filtro de periodo (dia/semana/mes/ano)
 let movPeriodo='mes', movOffset=0;
+let movFiltro='todos'; // filtro del historial: todos | gastos | ingresos (no toca periodo/offset)
+window.setMovFiltro = f => {
+  movFiltro=f;
+  document.querySelectorAll('#mov-filtro-toggle .type-opt').forEach((el,i)=>{
+    const on=['todos','gastos','ingresos'][i]===f;
+    el.classList.toggle('active',on); el.setAttribute('aria-pressed',String(on));
+  });
+  renderMovimientos();
+};
 window.setMovPeriodo = p => {
   movPeriodo=p; movOffset=0;
   document.querySelectorAll('#mov-periodo-toggle .type-opt').forEach((el,i)=>el.classList.toggle('active',['dia','semana','mes','ano'][i]===p));
@@ -2217,11 +2256,12 @@ function renderMovimientos() {
   const lbl=document.getElementById('mov-periodo-label'); if(lbl) lbl.textContent=label;
   // filtrar primero (fechas invalidas fuera), ordenar despues, cap al final
   const enRango=it=>{ const t=msFechaMov(it.fecha); return t!==null&&t>=start.getTime()&&t<end.getTime(); };
+  // el filtro se aplica ANTES del cap de 200 para no recortar el tipo elegido
   const todos=[
-    ...state.gastos.filter(enRango).map(it=>({tipo:'gasto',it})),
-    ...state.ingresos.filter(enRango).map(it=>({tipo:'ingreso',it}))
+    ...(movFiltro!=='ingresos'?state.gastos.filter(enRango).map(it=>({tipo:'gasto',it})):[]),
+    ...(movFiltro!=='gastos'?state.ingresos.filter(enRango).map(it=>({tipo:'ingreso',it})):[])
   ];
-  if(!todos.length){c.innerHTML='<div class="empty-state">sin movimientos en este periodo</div>';return;}
+  if(!todos.length){c.innerHTML='<div class="empty-state">sin '+(movFiltro==='todos'?'movimientos':movFiltro)+' en este periodo</div>';return;}
   todos.sort((a,b)=>(msFechaMov(b.it.fecha)||0)-(msFechaMov(a.it.fecha)||0));
   const recortado=todos.length>200;
   c.innerHTML=(recortado?'<div class="item-meta" style="text-align:center;padding:6px 0">mostrando los 200 mas recientes de '+todos.length+'</div>':'')+
@@ -2838,6 +2878,44 @@ function renderMetas(savings, stocks, nvdaPendiente) {
   el.innerHTML=`<div class="item-meta" style="margin-bottom:10px">${dias>0?('quedan '+dias+' dias para el 31 de diciembre'):'fecha de la meta cumplida'}</div>`+
     fila('Revolut Savings','',savings,META_SAVINGS)+
     fila('invertido en bolsa','acciones en Revolut'+(nvdaPendiente?' · cotizacion pendiente':''),stocks,META_STOCKS);
+  renderCamino(savings, stocks, nvdaPendiente);
+}
+
+// proyeccion CONSERVADORA hacia la meta: solo aportaciones registradas (promedio de los
+// ultimos 3 meses completos, incluyendo meses en cero), sin contar rendimientos futuros
+function renderCamino(savings, stocks, nvdaPendiente) {
+  const el=document.getElementById('camino-panel'); if(!el) return;
+  const hoyD=new Date(), metaD=parseFechaLocal(META_FECHA);
+  // comparacion por fecha calendario: el propio 31-dic todavia cuenta como ultimo dia
+  if(hoyLocal()>META_FECHA){ el.innerHTML='<div class="empty-state">la fecha de la meta ya paso — hora de definir las de 2027</div>'; return; }
+  // meses COMPLETOS que faltan despues del actual (los aportes del mes en curso ya estan en el saldo)
+  const mesesFut=Math.max(0,(metaD.getFullYear()-hoyD.getFullYear())*12+(metaD.getMonth()-hoyD.getMonth()));
+  let sumS=0,sumSt=0,huboOp=false;
+  for(let i=1;i<=3;i++){
+    const ini=new Date(hoyD.getFullYear(),hoyD.getMonth()-i,1);
+    const fin=new Date(hoyD.getFullYear(),hoyD.getMonth()-i+1,1);
+    const ap=aportacionesEnRango(ini,fin);
+    sumS+=ap.revSavings; sumSt+=ap.stocks;
+    // solo cuentan las cuentas que Camino proyecta (savings y bolsa)
+    if(ap.revSavings!==0||ap.stocks!==0) huboOp=true;
+  }
+  const fila=(nombre,actual,meta,prom,bloqueada)=>{
+    if(bloqueada) return `<div class="item-row"><div><div class="item-cat">${nombre}</div><div class="item-meta">cotizacion pendiente — proyeccion no disponible</div></div><span class="item-meta">—</span></div>`;
+    const falta=Math.max(0,meta-actual);
+    if(falta<=0) return `<div class="item-row"><div><div class="item-cat">🏁 ${nombre}</div><div class="item-meta">meta lograda — todo lo demas es ventaja</div></div><div style="font-weight:600">${fmt(actual)}</div></div>`;
+    if(mesesFut<=0) return `<div class="item-row"><div><div class="item-cat">${nombre}</div><div class="item-meta">ultimo mes: te faltan ${fmt(falta)} para la meta</div></div><span class="item-meta">—</span></div>`;
+    const proy=actual+prom*mesesFut, nece=falta/mesesFut, ok=proy>=meta-0.005;
+    const promTxt=(prom<0?'−':'')+fmt(Math.abs(prom)); // signo manual: fmt pone el $ antes del -
+    return `<div class="item-row"><div><div class="item-cat">${ok?'✅':'🎯'} ${nombre}</div><div class="item-meta">${
+      ok?('a tu ritmo (~'+promTxt+'/mes) llegas a diciembre con '+fmt(proy))
+        :('a tu ritmo (~'+promTxt+'/mes) llegarias a '+fmt(Math.max(0,proy))+' — sube tu aporte a '+fmt(nece)+'/mes')
+    }</div></div></div>`;
+  };
+  el.innerHTML=fila('Revolut Savings',savings,META_SAVINGS,sumS/3,false)+
+    fila('bolsa',stocks,META_STOCKS,sumSt/3,nvdaPendiente)+
+    `<div class="item-meta" style="text-align:center;padding-top:8px">${huboOp
+      ?'proyeccion conservadora: solo tus aportaciones, sin contar rendimientos'
+      :'aun no hay aportaciones registradas en los ultimos 3 meses — la proyeccion arranca cuando muevas dinero desde la app'}</div>`;
 }
 
 // ── APARTADOS (metas de caprichos: contadores visuales, no tocan cuentas) ──
@@ -2976,18 +3054,45 @@ function pieChart(entries) {
   // entries: [[categoria, monto], ...] ordenado desc
   const total=entries.reduce((s,e)=>s+e[1],0);
   if(!total) return '<div class="empty-state">sin datos en este periodo</div>';
-  const cx=60,cy=60,r=52,ir=30; let a0=-Math.PI/2; let paths='';
+  const cx=60,cy=60,r=52,ir=32; let a0=-Math.PI/2; let paths='';
+  // cada rebanada lleva sus datos (categoria escapada: va en un atributo HTML) para
+  // la interaccion tactil/cursor; el centro del donut muestra la seleccion
+  const attrs=(e,i)=>`class="pie-slice" data-cat="${escapeHtml(e[0])}" data-monto="${fmtCorto(e[1])}" data-pct="${(e[1]/total*100).toFixed(1)}"`;
   entries.forEach((e,i)=>{
     const frac=e[1]/total, color=PIE_COLORS[i%PIE_COLORS.length];
-    if(frac>=0.999){ paths+=`<circle cx="${cx}" cy="${cy}" r="${(r+ir)/2}" fill="none" stroke="${color}" stroke-width="${r-ir}"/>`; a0+=frac*2*Math.PI; return; }
+    if(frac>=0.999){ paths+=`<circle ${attrs(e,i)} cx="${cx}" cy="${cy}" r="${(r+ir)/2}" fill="none" stroke="${color}" stroke-width="${r-ir}"/>`; a0+=frac*2*Math.PI; return; }
     const a1=a0+frac*2*Math.PI, large=(a1-a0)>Math.PI?1:0;
     const x0=cx+r*Math.cos(a0),y0=cy+r*Math.sin(a0),x1=cx+r*Math.cos(a1),y1=cy+r*Math.sin(a1);
     const xi1=cx+ir*Math.cos(a1),yi1=cy+ir*Math.sin(a1),xi0=cx+ir*Math.cos(a0),yi0=cy+ir*Math.sin(a0);
-    paths+=`<path d="M${x0.toFixed(1)},${y0.toFixed(1)} A${r},${r} 0 ${large} 1 ${x1.toFixed(1)},${y1.toFixed(1)} L${xi1.toFixed(1)},${yi1.toFixed(1)} A${ir},${ir} 0 ${large} 0 ${xi0.toFixed(1)},${yi0.toFixed(1)} Z" fill="${color}"/>`;
+    paths+=`<path ${attrs(e,i)} d="M${x0.toFixed(1)},${y0.toFixed(1)} A${r},${r} 0 ${large} 1 ${x1.toFixed(1)},${y1.toFixed(1)} L${xi1.toFixed(1)},${yi1.toFixed(1)} A${ir},${ir} 0 ${large} 0 ${xi0.toFixed(1)},${yi0.toFixed(1)} Z" fill="${color}"/>`;
     a0=a1;
   });
+  const centro=`<text class="pie-c1" x="60" y="56" text-anchor="middle" font-size="8" fill="#64766b">total</text>`+
+    `<text class="pie-c2" x="60" y="69" text-anchor="middle" font-size="11" font-weight="700" fill="#1a2e22">${fmtCorto(total)}</text>`;
   const legend=entries.map((e,i)=>`<div class="pie-leg"><span class="pie-dot" style="background:${PIE_COLORS[i%PIE_COLORS.length]}"></span><span class="pie-cat">${escapeHtml(e[0])}</span><span class="pie-pct">${(e[1]/total*100).toFixed(1)}%</span><span class="pie-amt">${fmt(e[1])}</span></div>`).join('');
-  return `<div class="pie-wrap"><svg viewBox="0 0 120 120" class="pie-svg">${paths}</svg><div class="pie-legend">${legend}</div></div>`;
+  return `<div class="pie-wrap"><svg viewBox="0 0 120 120" class="pie-svg" data-total="${fmtCorto(total)}">${paths}${centro}</svg><div class="pie-legend">${legend}</div></div>`;
+}
+
+// interaccion del pastel: cursor/tap sobre una rebanada la resalta y el centro muestra
+// categoria + % + monto; tap fuera (o segundo tap en la misma) restaura el total.
+// Listeners DELEGADOS en el contenedor: sobreviven a cada innerHTML del render.
+function initPieInteraccion(contId) {
+  const cont=document.getElementById(contId); if(!cont) return;
+  const marcar=slice=>{
+    const svg=cont.querySelector('.pie-svg'); if(!svg) return;
+    svg.querySelectorAll('.pie-slice').forEach(s=>s.classList.remove('on'));
+    const c1=svg.querySelector('.pie-c1'), c2=svg.querySelector('.pie-c2');
+    if(!slice){ svg.classList.remove('dim'); if(c1)c1.textContent='total'; if(c2)c2.textContent=svg.dataset.total||''; return; }
+    svg.classList.add('dim'); slice.classList.add('on');
+    if(c1)c1.textContent=(slice.dataset.cat||'').slice(0,14)+' · '+slice.dataset.pct+'%';
+    if(c2)c2.textContent=slice.dataset.monto||'';
+  };
+  cont.addEventListener('pointerover',ev=>{ const s=ev.target.closest('.pie-slice'); if(s&&ev.pointerType==='mouse') marcar(s); });
+  // el toggle por tap es solo para touch/pen: con mouse el hover ya selecciona y un
+  // click no debe "des-seleccionar" la rebanada bajo el cursor
+  cont.addEventListener('pointerdown',ev=>{ if(ev.pointerType==='mouse') return; const s=ev.target.closest('.pie-slice'); if(s) marcar(s.classList.contains('on')?null:s); });
+  cont.addEventListener('pointerleave',ev=>{ if(ev.pointerType==='mouse') marcar(null); });
+  document.addEventListener('pointerdown',ev=>{ if(!cont.contains(ev.target)) marcar(null); });
 }
 
 // nucleo puro de rangos (lo comparten resumen y movimientos, con offsets independientes)
@@ -3042,48 +3147,65 @@ function aportacionesEnRango(start,end) {
   });
   return neto;
 }
-function cierreMesHTML(start,end,totalI,totalG,gastosMes) {
+function cierreMesHTML(start,end,totalI,totalG,gastosMes,modo) {
   const ahora=Date.now();
   const esActual=ahora>=start.getTime()&&ahora<end.getTime();
+  const esAno=modo==='ano', per=esAno?'año':'mes';
   const ap=aportacionesEnRango(start,end);
   const aporte=ap.cajita1+ap.revSavings+ap.stocks;
   if(totalI===0&&totalG===0&&ap.cajita1===0&&ap.revSavings===0&&ap.stocks===0)
-    return '<div class="empty-state">sin movimientos registrados en este mes</div>';
+    return '<div class="empty-state">sin movimientos registrados en este '+per+'</div>';
   const filas=[];
   const fila=(ico,titulo,meta,val)=>`<div class="item-row"><div><div class="item-cat">${ico} ${titulo}</div><div class="item-meta">${meta}</div></div><div style="font-size:14px;font-weight:600">${val}</div></div>`;
+  // hechos compartidos: semaforos Y coach se derivan de estos numeros, no del HTML
+  const gPct=totalI>0?totalG/totalI*100:null;
+  const aPct=totalI>0?aporte/totalI*100:null;
+  const falta20=totalI>0?0.2*totalI-aporte:0;
+  // top 3 categorias del mes vs promedio de los 3 meses ANTERIORES AL MES VISTO
+  // (mismos umbrales que avisoCategoria: 1.5x y +$300 para no marcar ruido)
+  const byCat=Object.create(null); gastosMes.forEach(g=>byCat[g.cat]=(byCat[g.cat]||0)+g.monto);
+  // la comparacion vs promedio mensual solo tiene sentido en la vista de mes
+  const claves=[];
+  if(!esAno) for(let i=1;i<=3;i++){ const d=new Date(start.getFullYear(),start.getMonth()-i,1); claves.push(d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')); }
+  const tops=Object.entries(byCat).sort((a,b)=>b[1]-a[1]).slice(0,3).map(([cat,amt])=>{
+    const sums=claves.map(k=>state.gastos.filter(g=>movValido(g)&&g.cat===cat&&mesLocalDe(g.fecha)===k).reduce((s,g)=>s+g.monto,0)).filter(v=>v>0);
+    let prom=null, inflada=false;
+    if(sums.length>=2){ prom=sums.reduce((a,b)=>a+b,0)/sums.length; inflada=amt>prom*1.5&&amt-prom>300; }
+    return {cat,amt,prom,inflada};
+  });
+  // mensaje coach: veredicto en una frase + el siguiente paso concreto
+  if(gPct!==null){
+    const gOk=gPct<=70, gMed=gPct<=100, aOk=aPct>=20;
+    const foco=tops.find(t=>t.inflada)||tops[0];
+    const cN=foco?escapeHtml(foco.cat):'tus gastos grandes';
+    let coach;
+    if(!gMed) coach='⚠️ '+(esActual?'Vas gastando':'Gastaste')+' mas de lo que '+(esActual?'ha ingresado':'ingreso')+' ('+gPct.toFixed(0)+'%). Prioridad: recorta '+cN+' y evita tapar el hueco con las tarjetas.';
+    else if(gOk&&aOk) coach='🎉 '+(esActual?('Este '+per+' va excelente'):('Fue un gran '+per))+': gastaste el '+gPct.toFixed(0)+'% de tus ingresos y aportaste el '+aPct.toFixed(0)+'% — muy buen ritmo de ahorro e inversion.'+(tops.find(t=>t.inflada)?' Solo cuida '+cN+', que va arriba de tu promedio.':' Sigue asi y diciembre llega solo.');
+    else if(gOk) coach='Buen control de gasto ('+gPct.toFixed(0)+'%). El siguiente paso es la aportacion: '+(esActual?'llevas':'cerraste con')+' el '+Math.max(0,aPct).toFixed(0)+'% — '+(esActual?'te faltan ':'te faltaron ')+fmt(Math.max(0,falta20))+' para el 20%.';
+    else if(aOk) coach='Buen ritmo de aportacion ('+aPct.toFixed(0)+'%). El gasto va algo cargado ('+gPct.toFixed(0)+'%): revisa '+cN+' para darte mas margen.';
+    else coach=(esAno?'Año apretado':'Mes apretado')+': gasto al '+gPct.toFixed(0)+'% y aportacion al '+Math.max(0,aPct).toFixed(0)+'%. Empieza recortando '+cN+' y aparta aunque sea una parte de los '+fmt(Math.max(0,falta20))+' que faltan para el 20%.';
+    filas.push('<div class="cierre-coach">'+coach+'</div>');
+  }
   if(totalI>0){
-    const gPct=totalG/totalI*100;
     filas.push(fila(gPct<=70?'✅':(gPct<=100?'🟡':'🔴'),'gasto del ingreso',
       gPct>100?'gastaste mas de lo que ingreso':(gPct<=70?'buen control de gasto':'al limite: cuida los gastos'),gPct.toFixed(0)+'%'));
-    const aPct=aporte/totalI*100;
     filas.push(fila(aPct>=20?'✅':(aPct>=10?'🟡':'⚠️'),'aportaste a ahorro e inversion',
       'aportaciones netas registradas (savings, cajita y bolsa)',(aporte<0?'−':'')+Math.abs(aPct).toFixed(0)+'% · '+fmt(Math.abs(aporte))));
-    const falta20=0.2*totalI-aporte;
-    if(falta20>0.005) filas.push(fila('💡',esActual?('te faltan '+fmt(falta20)+' para el 20% este mes'):('te faltaron '+fmt(falta20)+' para el 20%'),
+    if(falta20>0.005) filas.push(fila('💡',esActual?('te faltan '+fmt(falta20)+' para el 20% este '+per):('te faltaron '+fmt(falta20)+' para el 20%'),
       'regla base: al menos 20% del ingreso a ahorro/inversion — Revolut Savings paga '+(state.revSavingsTasa||0)+'%',fmt(falta20)));
   } else {
-    filas.push(fila('ℹ️','sin ingresos registrados este mes','los porcentajes del cierre se calculan sobre tus ingresos',''));
+    filas.push(fila('ℹ️','sin ingresos registrados este '+per,'los porcentajes del cierre se calculan sobre tus ingresos',''));
     if(ap.cajita1!==0||ap.revSavings!==0||ap.stocks!==0){
       if(aporte>0) filas.push(fila('✅','aportaste a ahorro e inversion','aportaciones netas registradas',fmt(aporte)));
       else if(aporte<0) filas.push(fila('⚠️','retiraste de ahorro/inversion','aportaciones netas registradas','−'+fmt(Math.abs(aporte))));
       else filas.push(fila('·','aportaciones netas en cero','aportaciones netas registradas',fmt(0)));
     }
   }
-  // top 3 categorias del mes vs promedio de los 3 meses ANTERIORES AL MES VISTO
-  // (mismos umbrales que avisoCategoria: 1.5x y +$300 para no marcar ruido)
-  const byCat=Object.create(null); gastosMes.forEach(g=>byCat[g.cat]=(byCat[g.cat]||0)+g.monto);
-  const top=Object.entries(byCat).sort((a,b)=>b[1]-a[1]).slice(0,3);
-  const claves=[];
-  for(let i=1;i<=3;i++){ const d=new Date(start.getFullYear(),start.getMonth()-i,1); claves.push(d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')); }
-  top.forEach(([cat,amt])=>{
-    const sums=claves.map(k=>state.gastos.filter(g=>movValido(g)&&g.cat===cat&&mesLocalDe(g.fecha)===k).reduce((s,g)=>s+g.monto,0)).filter(v=>v>0);
-    let meta=(totalG>0?(amt/totalG*100).toFixed(0):'0')+'% de tus gastos';
+  tops.forEach(t=>{
+    let meta=(totalG>0?(t.amt/totalG*100).toFixed(0):'0')+'% de tus gastos';
     let ico='·';
-    if(sums.length>=2){
-      const prom=sums.reduce((a,b)=>a+b,0)/sums.length;
-      if(amt>prom*1.5&&amt-prom>300){ ico='📈'; meta+=' · arriba de tu promedio ('+fmt(prom)+'/mes)'+(esActual?' y el mes no termina':''); }
-    }
-    filas.push(fila(ico,escapeHtml(cat),meta,fmt(amt)));
+    if(t.inflada){ ico='📈'; meta+=' · arriba de tu promedio ('+fmt(t.prom)+'/mes)'+(esActual?' y el mes no termina':''); }
+    filas.push(fila(ico,escapeHtml(t.cat),meta,fmt(t.amt)));
   });
   // ritmo hacia las metas de diciembre: solo tiene sentido en el mes en curso
   if(esActual){
@@ -3093,7 +3215,7 @@ function cierreMesHTML(start,end,totalI,totalG,gastosMes) {
     if(faltaS>0){
       const ritmo=faltaS/mesesRest;
       filas.push(fila(ap.revSavings>=ritmo-0.005?'✅':'🎯','ritmo meta Savings (dic 2026)',
-        'necesitas '+fmt(ritmo)+'/mes · este mes llevas '+fmt(ap.revSavings),''));
+        'necesitas '+fmt(ritmo)+'/mes · este '+per+' llevas '+fmt(ap.revSavings),''));
     }
     // meta de bolsa: solo con todas las cotizaciones (valor parcial daria un ritmo falso)
     const posA=Object.entries(state.posiciones).filter(([k,p])=>p.acciones>0);
@@ -3104,11 +3226,11 @@ function cierreMesHTML(start,end,totalI,totalG,gastosMes) {
       if(faltaSt>0){
         const ritmoSt=faltaSt/mesesRest;
         filas.push(fila(ap.stocks>=ritmoSt-0.005?'✅':'🎯','ritmo meta bolsa (dic 2026)',
-          'necesitas '+fmt(ritmoSt)+'/mes · este mes llevas '+fmt(ap.stocks),''));
+          'necesitas '+fmt(ritmoSt)+'/mes · este '+per+' llevas '+fmt(ap.stocks),''));
       }
     }
   }
-  return filas.join('')+(esActual?'<div class="item-meta" style="text-align:center;padding-top:8px">mes en curso · cifras al dia de hoy</div>':'');
+  return filas.join('')+(esActual?'<div class="item-meta" style="text-align:center;padding-top:8px">'+per+' en curso · cifras al dia de hoy</div>':'');
 }
 
 function renderResumen() {
@@ -3124,14 +3246,14 @@ function renderResumen() {
   document.getElementById('res-ingresos').textContent=fmt(totalI);
   const balEl=document.getElementById('res-balance');
   balEl.textContent=(balance>=0?'+':'−')+fmt(Math.abs(balance)); balEl.className='s-amt '+(balance>=0?'pos':'neg');
-  // cierre del mes: solo aplica en la vista mensual
-  const esMes=state.resPeriodo==='mes';
+  // cierre: aplica en las vistas de mes y de año (no en dia/semana)
+  const conCierre=state.resPeriodo==='mes'||state.resPeriodo==='ano';
   const cierreT=document.getElementById('cierre-title'), cierreP=document.getElementById('res-cierre');
   if(cierreT&&cierreP){
-    cierreT.style.display=esMes?'':'none'; cierreP.style.display=esMes?'':'none';
-    if(esMes){
+    cierreT.style.display=conCierre?'':'none'; cierreP.style.display=conCierre?'':'none';
+    if(conCierre){
       cierreT.textContent='cierre de '+label;
-      cierreP.innerHTML=cierreMesHTML(start,end,totalI,totalG,gastos);
+      cierreP.innerHTML=cierreMesHTML(start,end,totalI,totalG,gastos,state.resPeriodo);
     }
   }
   const byCat={}; gastos.forEach(i=>byCat[i.cat]=(byCat[i.cat]||0)+i.monto);
@@ -3280,6 +3402,8 @@ window.fetchAll = async function() {
 
 initChartInteraccion('gbm-chart');
 initChartInteraccion('patrimonio-chart');
+initPieInteraccion('res-pie');
+initPieInteraccion('res-pie-ingresos');
 actualizarOjo();
 
 if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(()=>{});
