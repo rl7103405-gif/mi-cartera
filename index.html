@@ -447,6 +447,7 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
           <option value="cajita1">NU cajita 1</option>
           <option value="revolut">Revolut MXN</option>
           <option value="revSavings">Revolut Savings</option>
+          <option value="revTdcDep">deposito TDC Revolut (solo retirable)</option>
         </select>
       </div>
       <div class="field"><label>hacia</label>
@@ -458,6 +459,7 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
           <option value="revSavings">Revolut Savings</option>
           <option value="tarjeta">tarjeta NU (pago)</option>
           <option value="tarjetaRev">TDC Revolut (pago)</option>
+          <option value="revTdcDep">deposito TDC Revolut (sube tu limite)</option>
         </select>
       </div>
     </div>
@@ -539,7 +541,7 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
   </div>
   </div>
   <div class="status" id="status-inicio">—</div>
-  <div class="status" style="margin-top:2px;padding-bottom:8px">version 2026-07-31.3</div>
+  <div class="status" style="margin-top:2px;padding-bottom:8px">version 2026-07-31.4</div>
 </div>
 
 <!-- MOVIMIENTOS (gastos + ingresos en una sola pestana) -->
@@ -750,7 +752,7 @@ const ALLOWED_EMAIL = 'rl7103405@gmail.com';
 const TITULOS = 45;
 // metas de Roberto para el cierre de 2026 y cuota mensual del plan Premium de Revolut
 const META_SAVINGS = 25000, META_STOCKS = 12000, META_FECHA = '2026-12-31', PREMIUM_MONTO = 145;
-const CUENTAS = {efectivo:'efectivo', nu:'NU saldo', cajita1:'NU cajita 1', cajita2:'NU cajita 2', gbm:'GBM efectivo', revolut:'Revolut MXN', revSavings:'Revolut Savings', tarjeta:'tarjeta NU', tarjetaRev:'TDC Revolut', stocks:'Stocks (bolsa)'};
+const CUENTAS = {efectivo:'efectivo', nu:'NU saldo', cajita1:'NU cajita 1', cajita2:'NU cajita 2', gbm:'GBM efectivo', revolut:'Revolut MXN', revSavings:'Revolut Savings', tarjeta:'tarjeta NU', tarjetaRev:'TDC Revolut', revTdcDep:'deposito TDC Revolut', stocks:'Stocks (bolsa)'};
 const CTAS_STOCK_OP=['efectivo','nu','revolut']; // cuentas desde las que se puede comprar/vender bolsa
 const FUENTES_GASTO=['efectivo','nu','tarjeta','revolut','tarjetaRev'];
 const DESTINOS_INGRESO=['efectivo','nu','revolut']; // gbm retirado (los ingresos legados con gbm solo se muestran/deshacen)
@@ -1920,6 +1922,9 @@ function getSaldoCuenta(c) {
   if(c==='gbm') return state.efectivoGBM;
   if(c==='revolut') return state.revMXN;
   if(c==='revSavings') return calcRevSavings().saldo;
+  // OJO: para el deposito de la TDC devuelve el RETIRABLE (piso $250 y deuda usada
+  // quedan bloqueados por Revolut), NO el deposito total — no usar para mostrarlo
+  if(c==='revTdcDep') return Math.max(0,Math.min((state.revTdcDeposito||0)-250,(state.revTdcDeposito||0)-Math.max(0,state.revTdcDeuda||0)));
   return 0;
 }
 function clampCero(v) { return Math.abs(v)<0.005?0:v; } // al vaciar una cajita no quedan residuos de centavos
@@ -1932,32 +1937,36 @@ function aplicarDelta(c,d) {
   else if(c==='gbm') state.efectivoGBM+=d;
   else if(c==='revolut') state.revMXN+=d;
   else if(c==='revSavings'){ state.revSavingsBase=clampCero(calcRevSavings().saldo+d); state.revSavingsFecha=hoy; }
+  else if(c==='revTdcDep') state.revTdcDeposito=Math.round(((state.revTdcDeposito||0)+d)*100)/100;
 }
 // respaldo centralizado de TODAS las cuentas que aplicarDelta puede tocar: cualquier
 // funcion de mutacion lo usa para revertir el estado optimista si falla la escritura
 function backupCuentas() {
   return {efectivo:state.efectivo,nuSaldo:state.nuSaldo,efectivoGBM:state.efectivoGBM,revMXN:state.revMXN,
     c1b:state.nuCajita1Base,c1f:state.nuCajita1Fecha,c2b:state.nuCajita2Base,c2f:state.nuCajita2Fecha,
-    rsb:state.revSavingsBase,rsf:state.revSavingsFecha};
+    rsb:state.revSavingsBase,rsf:state.revSavingsFecha,rtdDep:state.revTdcDeposito};
 }
 function restoreCuentas(p) {
   state.efectivo=p.efectivo;state.nuSaldo=p.nuSaldo;state.efectivoGBM=p.efectivoGBM;state.revMXN=p.revMXN;
   state.nuCajita1Base=p.c1b;state.nuCajita1Fecha=p.c1f;state.nuCajita2Base=p.c2b;state.nuCajita2Fecha=p.c2f;
-  state.revSavingsBase=p.rsb;state.revSavingsFecha=p.rsf;
+  state.revSavingsBase=p.rsb;state.revSavingsFecha=p.rsf;state.revTdcDeposito=p.rtdDep;
 }
 window.registrarTransferencia = async function() {
   const btn=document.getElementById('transfer-btn');
   const origen=document.getElementById('transfer-origen').value;
   const destino=document.getElementById('transfer-destino').value;
-  const monto=parseFloat(document.getElementById('transfer-monto').value);
+  const monto=Math.round(parseFloat(document.getElementById('transfer-monto').value)*100)/100;
   const nota=document.getElementById('transfer-nota').value.trim();
   if(!Number.isFinite(monto)||monto<=0){showToast('ingresa un monto valido');return;}
-  const CTAS_TRANSFER=['efectivo','nu','cajita1','revolut','revSavings'];
+  const CTAS_TRANSFER=['efectivo','nu','cajita1','revolut','revSavings','revTdcDep'];
   if(!CTAS_TRANSFER.includes(origen)||!(CTAS_TRANSFER.includes(destino)||destino==='tarjeta'||destino==='tarjetaRev')){showToast('cuenta no valida');return;}
   if(origen===destino){showToast('elige cuentas distintas');return;}
-  if(monto>getSaldoCuenta(origen)+0.01){showToast('saldo insuficiente en '+CUENTAS[origen]);return;}
+  const saldoOrigen=getSaldoCuenta(origen);
+  if(Math.round(monto*100)>Math.round(saldoOrigen*100)){showToast(origen==='revTdcDep'?'solo puedes retirar '+fmt(saldoOrigen)+' del deposito (piso $250 y deuda usada quedan bloqueados)':'saldo insuficiente en '+CUENTAS[origen]);return;}
   if(destino==='tarjeta'&&monto>state.tarjetaDeuda+0.01){showToast('el pago excede la deuda de la tarjeta');return;}
   if(destino==='tarjetaRev'&&monto>state.revTdcDeuda+0.01){showToast('el pago excede la deuda de la TDC Revolut');return;}
+  // tope oficial del deposito de garantia: $75,000
+  if(destino==='revTdcDep'&&Math.round(((state.revTdcDeposito||0)+monto)*100)>7500000){showToast('el deposito no puede exceder $75,000');return;}
   // respaldo para revertir el estado optimista si falla la escritura
   const prev={...backupCuentas(),tarjetaDeuda:state.tarjetaDeuda,revTdcDeuda:state.revTdcDeuda};
   aplicarDelta(origen,-monto);
@@ -1979,7 +1988,7 @@ window.registrarTransferencia = async function() {
     batch.set(ref,tr);
     batch.set(doc(db,'cartera','saldos'),saldosPayload());
     if(destino==='tarjeta') batch.set(doc(db,'cartera','tarjeta'),{deuda:state.tarjetaDeuda,movimientos:state.tarjetaMovimientos});
-    if(destino==='tarjetaRev') batch.set(doc(db,'cartera','tarjetaRev'),tarjetaRevPayload());
+    if(destino==='tarjetaRev'||destino==='revTdcDep'||origen==='revTdcDep') batch.set(doc(db,'cartera','tarjetaRev'),tarjetaRevPayload());
     await batch.commit();
     tr.id=ref.id;
     setSyncDot('ok');
@@ -2008,7 +2017,9 @@ window.eliminarTransferencia = async function(id) {
   const CTAS_INTERES=['cajita1','cajita2','revSavings'];
   const tocaCajitaTr=CTAS_INTERES.includes(t.origen)||CTAS_INTERES.includes(t.destino);
   if(!confirm('¿Deshacer transferencia de '+fmt(t.monto)+' ('+(CUENTAS[t.origen]||t.origen)+' → '+(CUENTAS[t.destino]||t.destino)+')? El dinero regresa a su cuenta original'+(tocaCajitaTr?' (el rendimiento que ese dinero ya genero no se revierte)':'')))return;
-  if(getSaldoCuenta(t.destino)<t.monto-0.01){showToast('no se puede deshacer: ya no hay saldo suficiente en la cuenta destino');return;}
+  if(Math.round(getSaldoCuenta(t.destino)*100)<Math.round(t.monto*100)){showToast('no se puede deshacer: ya no hay saldo suficiente en la cuenta destino');return;}
+  // deshacer un retiro del deposito re-mete dinero: no puede rebasar el tope de $75,000
+  if(t.origen==='revTdcDep'&&Math.round(((state.revTdcDeposito||0)+t.monto)*100)>7500000){showToast('no se puede deshacer: el deposito excederia $75,000');return;}
   // respaldo para revertir el estado optimista si falla la escritura
   const prev=backupCuentas();
   aplicarDelta(t.destino,-t.monto);
@@ -2018,6 +2029,7 @@ window.eliminarTransferencia = async function(id) {
     const batch=writeBatch(db);
     batch.delete(doc(db,'transferencias',id));
     batch.set(doc(db,'cartera','saldos'),saldosPayload());
+    if(t.origen==='revTdcDep'||t.destino==='revTdcDep') batch.set(doc(db,'cartera','tarjetaRev'),tarjetaRevPayload());
     await batch.commit();
     setSyncDot('ok');
     render();renderTransferencias();
