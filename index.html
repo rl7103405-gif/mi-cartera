@@ -105,6 +105,24 @@ nav{position:sticky;top:0;z-index:100;background:rgba(255,255,255,0.88);backdrop
 /* PANELS */
 .section-title{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:10px}
 .panel{background:var(--bg2);border:1px solid rgba(255,255,255,0.85);border-radius:var(--r);padding:16px;margin-bottom:10px;box-shadow:var(--sombra);backdrop-filter:blur(10px) saturate(135%);-webkit-backdrop-filter:blur(10px) saturate(135%)}
+
+/* ACORDEONES DE INICIO: secciones colapsables con encabezado tipo tarjeta */
+.acc{background:var(--bg2);border:1px solid rgba(255,255,255,0.85);border-radius:var(--r);margin-bottom:12px;box-shadow:var(--sombra);overflow:hidden;backdrop-filter:blur(10px) saturate(135%);-webkit-backdrop-filter:blur(10px) saturate(135%)}
+.acc>summary{display:flex;align-items:center;gap:12px;padding:15px 16px;cursor:pointer;list-style:none;-webkit-tap-highlight-color:transparent}
+.acc>summary::-webkit-details-marker{display:none}
+.acc>summary::after{content:'';width:8px;height:8px;border-right:1.5px solid var(--muted);border-bottom:1.5px solid var(--muted);transform:rotate(45deg);margin-left:auto;flex:0 0 8px;transition:transform 0.2s}
+.acc[open]>summary::after{transform:rotate(-135deg)}
+.acc[open]>summary{border-bottom:0.5px solid var(--border)}
+.acc-icon{width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center;flex:0 0 34px}
+.acc-tit{font-size:14px;font-weight:600}
+.acc-sub{font-size:11px;color:var(--muted);margin-top:1px;font-weight:400}
+.acc-body{padding:6px 16px 16px}
+.acc-body .panel{border:none;background:none;box-shadow:none;padding:0;margin-bottom:0;backdrop-filter:none;-webkit-backdrop-filter:none}
+.acc-body .section-title{margin-top:18px}
+.chip-verde{background:rgba(47,111,79,0.12);color:var(--accent-dark)}
+.chip-nu{background:rgba(130,10,209,0.10);color:#7a1fa2}
+.chip-rev{background:rgba(25,28,36,0.08);color:#22262e}
+.chip-oro{background:rgba(202,138,4,0.14);color:#8a6116}
 .field{margin-bottom:10px}
 .field label{font-size:12px;color:var(--muted);display:block;margin-bottom:4px}
 .field input,.field select{width:100%;background:var(--bg3);border:0.5px solid var(--border2);border-radius:var(--rs);padding:11px 14px;color:var(--text);font-size:15px;outline:none;-webkit-appearance:none;appearance:none}
@@ -416,7 +434,12 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
 
   <div class="inicio-grid">
   <div class="sec">
-  <div class="section-title">actualizar saldos</div>
+  <details class="acc">
+  <summary>
+    <div class="acc-icon chip-verde"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></div>
+    <div><div class="acc-tit">actualizar saldos</div><div class="acc-sub">captura lo que muestran tus apps hoy</div></div>
+  </summary>
+  <div class="acc-body">
   <div class="panel">
     <div class="field"><label>cajita NU 1 — saldo base (lo que muestra NU hoy)</label><input type="number" id="input-cajita1-base" placeholder="ej. 25072.31" step="0.01" inputmode="decimal"></div>
     <div class="row2" style="gap:8px">
@@ -435,9 +458,16 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
     <button class="btn btn-purple" id="manuales-btn" onclick="guardarManuales()">guardar</button>
   </div>
   </div>
+  </details>
+  </div>
 
   <div class="sec">
-  <div class="section-title">transferir entre cuentas</div>
+  <details class="acc">
+  <summary>
+    <div class="acc-icon chip-verde"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3l4 4-4 4"/><path d="M21 7H9"/><path d="M7 21l-4-4 4-4"/><path d="M3 17h12"/></svg></div>
+    <div><div class="acc-tit">transferir entre cuentas</div><div class="acc-sub">mueve dinero y revisa tus ultimas transferencias</div></div>
+  </summary>
+  <div class="acc-body">
   <div class="panel">
     <div class="row2" style="gap:8px">
       <div class="field"><label>desde</label>
@@ -470,9 +500,16 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
   <div class="section-title">ultimas transferencias</div>
   <div class="panel" id="transfer-historial"><div class="empty-state">sin transferencias</div></div>
   </div>
+  </details>
+  </div>
 
   <div class="sec">
-  <div class="section-title">tarjeta NU</div>
+  <details class="acc">
+  <summary>
+    <div class="acc-icon chip-nu"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="5" width="19" height="14" rx="2.5"/><path d="M2.5 10h19"/></svg></div>
+    <div><div class="acc-tit">tarjeta NU</div><div class="acc-sub">cargos y pagos de tu credito Nu</div></div>
+  </summary>
+  <div class="acc-body">
   <div class="panel">
     <div class="field"><label>monto</label><input type="number" id="tarjeta-cargo-monto" placeholder="ej. 350" step="0.01" inputmode="decimal"></div>
     <div class="field"><label>nota</label><input type="text" id="tarjeta-cargo-nota" placeholder="ej. spotify, gasolina..."></div>
@@ -492,9 +529,16 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
     </div>
   </div>
   </div>
+  </details>
+  </div>
 
   <div class="sec">
-  <div class="section-title">TDC Revolut</div>
+  <details class="acc">
+  <summary>
+    <div class="acc-icon chip-rev"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="5" width="19" height="14" rx="2.5"/><path d="M2.5 10h19"/><path d="M6 15h4"/></svg></div>
+    <div><div class="acc-tit">TDC Revolut</div><div class="acc-sub">cargos, pagos y deposito de garantia</div></div>
+  </summary>
+  <div class="acc-body">
   <div class="panel">
     <div class="field"><label>monto</label><input type="number" id="tarjeta-rev-monto" placeholder="ej. 120" step="0.01" inputmode="decimal"></div>
     <div class="field"><label>nota</label><input type="text" id="tarjeta-rev-nota" placeholder="ej. uber, super..."></div>
@@ -512,9 +556,16 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
     </div>
   </div>
   </div>
+  </details>
+  </div>
 
   <div class="sec">
-  <div class="section-title">bolsa · registrar operacion</div>
+  <details class="acc" id="stock-acc">
+  <summary>
+    <div class="acc-icon chip-oro"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l6-6 4 4 8-8"/><path d="M15 7h6v6"/></svg></div>
+    <div><div class="acc-tit">bolsa · registrar operacion</div><div class="acc-sub">compras y ventas de acciones</div></div>
+  </summary>
+  <div class="acc-body">
   <div class="panel" id="stock-form-panel">
     <div class="type-toggle" id="stock-tipo-toggle">
       <div class="type-opt active" onclick="setStockTipo('compra')">compre</div>
@@ -539,9 +590,11 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
     <datalist id="stock-symbols"></datalist>
   </div>
   </div>
+  </details>
+  </div>
   </div>
   <div class="status" id="status-inicio">—</div>
-  <div class="status" style="margin-top:2px;padding-bottom:8px">version 2026-07-31.4</div>
+  <div class="status" style="margin-top:2px;padding-bottom:8px">version 2026-07-31.5</div>
 </div>
 
 <!-- MOVIMIENTOS (gastos + ingresos en una sola pestana) -->
@@ -2539,7 +2592,10 @@ window.enviarOpStock=()=>operarStock(stockTipoSel);
 // los botones de la tarjeta solo preseleccionan el tipo y llevan al formulario
 function enfocarFormStock() {
   const p=document.getElementById('stock-form-panel');
-  if(p){ p.scrollIntoView({behavior:'smooth',block:'center'}); const s=document.getElementById('stock-simbolo'); if(s) setTimeout(()=>s.focus(),350); }
+  if(!p) return;
+  const det=p.closest('details'); if(det) det.open=true; // el acordeon puede estar cerrado
+  p.scrollIntoView({behavior:'smooth',block:'center'});
+  const s=document.getElementById('stock-simbolo'); if(s) setTimeout(()=>s.focus(),350);
 }
 window.registrarCompraStock=()=>{ window.setStockTipo('compra'); enfocarFormStock(); };
 window.registrarVentaStock=()=>{ window.setStockTipo('venta'); enfocarFormStock(); };
