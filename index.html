@@ -404,8 +404,9 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
       </div>
       <div class="card-detail" id="rev-stocks-detail">
         <div id="stocks-detalle"></div>
-        <div class="detail-row"><span class="detail-label">dinero invertido (tus aportes)</span><span class="detail-val" id="rev-stocks-inv">$—</span></div>
-        <div class="detail-row"><span class="detail-label">rendimiento sobre lo invertido</span><span class="detail-val" id="rev-stocks-rend">—</span></div>
+        <div class="detail-row"><span class="detail-label">valor actual de tus acciones</span><span class="detail-val" id="rev-stocks-val">$—</span></div>
+        <div class="detail-row"><span class="detail-label">aportado por ti (costo, NO es tu saldo)</span><span class="detail-val" id="rev-stocks-inv">$—</span></div>
+        <div class="detail-row"><span class="detail-label">rendimiento vs lo aportado</span><span class="detail-val" id="rev-stocks-rend">—</span></div>
         <div class="detail-row"><span class="detail-label">precio del cierre</span><span class="detail-val" id="rev-stocks-fecha-val">—</span></div>
         <div class="row2" style="gap:8px;margin-top:8px">
           <button type="button" class="btn btn-purple" style="margin-top:0;padding:10px" onclick="event.stopPropagation();registrarCompraStock()">+ compre</button>
@@ -577,7 +578,7 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
   </div>
   </div>
   <div class="status" id="status-inicio">—</div>
-  <div class="status" style="margin-top:2px;padding-bottom:8px">version 2026-08-01.1</div>
+  <div class="status" style="margin-top:2px;padding-bottom:8px">version 2026-08-01.2</div>
 </div>
 
 <!-- MOVIMIENTOS (gastos + ingresos en una sola pestana) -->
@@ -1673,8 +1674,9 @@ function render() {
     if(Number.isFinite(o.montoMxn)&&o.montoMxn>0) invNeto+=(o.tipo==='venta'?-1:1)*o.montoMxn;
     else costoCompleto=false;
   });
-  const invEl=document.getElementById('rev-stocks-inv'), rendStEl=document.getElementById('rev-stocks-rend');
+  const invEl=document.getElementById('rev-stocks-inv'), rendStEl=document.getElementById('rev-stocks-rend'), valEl=document.getElementById('rev-stocks-val');
   if(invEl&&rendStEl){
+    if(valEl) valEl.textContent=(posAbiertas.length&&stocksCompleto)?fmt(nvdaVal):(posAbiertas.length?'$— (precio pendiente)':fmt(0));
     invEl.textContent=fmt(invNeto)+(costoCompleto?'':' (incompleto)');
     if(posAbiertas.length&&stocksCompleto&&costoCompleto&&invNeto>0){
       const rendSt=nvdaVal-invNeto, rendPct=rendSt/invNeto*100;
