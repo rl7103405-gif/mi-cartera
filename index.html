@@ -35,6 +35,12 @@ html[data-tema='arena']{--bg:#f6f1e7;--bg3:#f8f4ec;--border:rgba(140,105,45,0.12
 html[data-tema='grafito']{color-scheme:dark;--bg:#14171a;--bg2:rgba(32,36,40,0.85);--bg2s:#202428;--bg3:#1b1f23;--border:rgba(255,255,255,0.08);--border2:rgba(255,255,255,0.16);--text:#e9edf0;--muted:#95a0a8;--green:#39b98a;--red:#e2705f;--accent:#4fa882;--accent-dark:#6fc79f;--sombra:0 1px 2px rgba(0,0,0,0.4),0 12px 36px rgba(0,0,0,0.5);
   --g1:rgba(255,255,255,0.04);--g2:rgba(79,168,130,0.10);--g3:#131719;--g4:#181c20;--g5:#111417;--nav-bg:rgba(20,23,26,0.8);--tj1:#0f2a1d;--tj2:#2c6b4d;--tj-borde:rgba(79,168,130,0.35);--chip-r:rgba(79,168,130,0.14);--sup-borde:rgba(255,255,255,0.06)}
 /* selector de temas */
+/* PERFIL: avatar y encabezado */
+.perfil-hero{display:flex;align-items:center;gap:14px;margin-bottom:16px}
+.avatar{width:76px;height:76px;flex:0 0 76px;border-radius:50%;background:var(--chip-r);border:2px solid var(--accent);
+  display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:700;color:var(--accent-dark);
+  cursor:pointer;overflow:hidden;background-size:cover;background-position:center;box-shadow:var(--sombra)}
+.perfil-nombre{font-size:20px;font-weight:700;letter-spacing:-0.3px}
 .temas-row{display:flex;gap:10px;flex-wrap:wrap}
 .tema-chip{width:38px;height:38px;border-radius:50%;border:2px solid transparent;cursor:pointer;padding:0;box-shadow:var(--sombra)}
 .tema-chip[aria-pressed='true']{border-color:var(--accent);transform:scale(1.06)}
@@ -310,6 +316,7 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
   <div class="tab active" data-page="inicio" onclick="showPage('inicio')">inicio</div>
   <div class="tab" data-page="movimientos" onclick="showPage('movimientos')">movimientos</div>
   <div class="tab" data-page="metas" onclick="showPage('metas')">metas</div>
+  <div class="tab" data-page="perfil" onclick="showPage('perfil')">perfil</div>
   <div class="tab" data-page="noticias" onclick="showPage('noticias')">noticias</div>
   <div class="tab" data-page="deudas" onclick="showPage('deudas')">deudas</div>
   <div class="tab" data-page="resumen" onclick="showPage('resumen')">resumen</div>
@@ -628,7 +635,7 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
   </div>
   </div>
   <div class="status" id="status-inicio">—</div>
-  <div class="status" style="margin-top:2px;padding-bottom:8px">version 2026-08-03.2</div>
+  <div class="status" style="margin-top:2px;padding-bottom:8px">version 2026-08-03.3</div>
 </div>
 
 <!-- MOVIMIENTOS (gastos + ingresos en una sola pestana) -->
@@ -702,19 +709,46 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
   </div>
 </div>
 
+<!-- PERFIL (quien eres, tu estandar y tu calificacion) -->
+<div class="page" id="page-perfil">
+  <div class="mt">
+  <div class="perfil-hero">
+    <div class="avatar" id="perfil-avatar" onclick="cambiarFoto()" title="cambiar foto">
+      <span id="avatar-inicial">·</span>
+    </div>
+    <div style="min-width:0">
+      <div class="perfil-nombre" id="perfil-nombre">tu perfil</div>
+      <div class="item-meta" id="perfil-sub">agrega tu foto y tus datos</div>
+    </div>
+  </div>
+  <input type="file" id="perfil-foto-input" accept="image/*" style="display:none" onchange="subirFoto(event)">
+  <div class="row2" style="gap:8px;margin-bottom:16px">
+    <button type="button" class="btn" style="margin-top:0" onclick="editarPerfil()">editar mis datos</button>
+    <button type="button" class="btn" style="margin-top:0" onclick="cambiarFoto()">cambiar foto</button>
+  </div>
+  <div class="inicio-grid">
+  <div class="sec">
+    <div class="section-title">tu manejo del dinero</div>
+    <div class="panel" id="score-panel"><div class="empty-state">calculando...</div></div>
+  </div>
+  <div class="sec">
+    <div class="section-title">tu referencia personal</div>
+    <div class="panel">
+      <div class="item-meta" id="perfil-resumen">—</div>
+      <div class="item-meta" style="margin-top:8px" id="perfil-fuente">—</div>
+      <button type="button" class="btn btn-red" style="margin-top:12px" onclick="quitarFoto()">quitar foto de perfil</button>
+    </div>
+  </div>
+  </div>
+  </div>
+</div>
+
 <!-- METAS (meta anual + apartados de caprichos) -->
 <div class="page" id="page-metas">
   <div class="mt">
   <div class="inicio-grid">
   <div class="sec">
-    <div class="section-title">tu manejo del dinero</div>
-    <div class="panel" id="score-panel"><div class="empty-state">calculando...</div></div>
-    <div class="section-title mt">tu perfil</div>
-    <div class="panel">
-      <div class="item-meta" id="perfil-resumen">—</div>
-      <button type="button" class="btn" style="margin-top:10px" onclick="editarPerfil()">editar mi perfil</button>
-    </div>
-    <div class="section-title mt">mi meta · fin de 2026</div>
+    <div class="section-title">mi meta · fin de 2026</div>
     <div class="panel" id="metas-panel"><div class="empty-state">calculando...</div></div>
     <div class="section-title mt">camino a diciembre</div>
     <div class="panel" id="camino-panel"><div class="empty-state">calculando...</div></div>
@@ -831,6 +865,10 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
     <div class="sec">
     <div class="section-title mt">de donde viene tu dinero</div>
     <div class="panel" id="res-pie-ingresos"></div>
+    </div>
+    <div class="sec">
+    <div class="section-title mt">cuanto gano tu dinero</div>
+    <div class="panel" id="res-utilidades"></div>
     </div>
     <div class="sec">
     <details class="acc">
@@ -1081,7 +1119,7 @@ let state = {
   catsGasto:[...CATS_GASTO_DEFAULT], catsIngreso:[...CATS_INGRESO_DEFAULT],
   apartados:[],
   // perfil para el estandar personalizado (vacio = estandar generico, no bloquea nada)
-  perfil:{anoNac:null, vivienda:'', dependientes:0, ingresoBase:null},
+  perfil:{anoNac:null, vivienda:'', dependientes:0, ingresoBase:null, nombre:'', foto:''},
   personas:JSON.parse(JSON.stringify(PERSONAS_DEFAULT)),
   gastos:[], ingresos:[], transferencias:[], snapshots:[]
 };
@@ -1231,7 +1269,10 @@ async function loadFromFirebase() {
         anoNac:(Number.isInteger(pf.anoNac)&&pf.anoNac>anoAct-100&&pf.anoNac<=anoAct-10)?pf.anoNac:null,
         vivienda:['familia','renta','propia'].includes(pf.vivienda)?pf.vivienda:'',
         dependientes:(Number.isInteger(pf.dependientes)&&pf.dependientes>=0&&pf.dependientes<=20)?pf.dependientes:0,
-        ingresoBase:(Number.isFinite(pf.ingresoBase)&&pf.ingresoBase>0)?pf.ingresoBase:null};
+        ingresoBase:(Number.isFinite(pf.ingresoBase)&&pf.ingresoBase>0)?pf.ingresoBase:null,
+        nombre:(typeof pf.nombre==='string')?pf.nombre.slice(0,40):'',
+        // solo se acepta un dataURL jpeg/png generado por la propia app
+        foto:(typeof pf.foto==='string'&&/^data:image\/(?:jpeg|png);base64,[A-Za-z0-9+/]+={0,2}$/.test(pf.foto)&&pf.foto.length<900000)?pf.foto:''};
     }
     const tDoc = await getDoc(doc(db,'cartera','tarjeta'));
     if (tDoc.exists()) { state.tarjetaDeuda = Number.isFinite(tDoc.data().deuda) ? tDoc.data().deuda : state.tarjetaDeuda; state.tarjetaMovimientos = Array.isArray(tDoc.data().movimientos) ? tDoc.data().movimientos : []; }
@@ -1562,6 +1603,7 @@ window.showPage = function(p) {
   if(p==='movimientos') renderMovimientos();
   if(p==='deudas') renderDeudas();
   if(p==='noticias') abrirNoticias(); // carga perezosa: cache primero, refresco si esta viejo
+  if(p==='perfil'){ renderPerfil(); renderScore(); }
 };
 window.togglePrivado = function() {
   modoPrivado=!modoPrivado;
@@ -3143,13 +3185,77 @@ function renderScore() {
     +`<div class="item-meta" style="padding-top:8px">indice propio de habitos, orientativo: mide lo que registras en la app. Tu referencia sale de tu perfil — ${escapeHtml(sc.est.fuente)}.</div>`;
 }
 function renderPerfil() {
-  const el=document.getElementById('perfil-resumen'); if(!el) return;
+  const el=document.getElementById('perfil-resumen');
   const p=state.perfil||{}, est=estandarDe(p);
   const edad=p.anoNac?(new Date().getFullYear()-p.anoNac):null;
   const viv={familia:'vives con familia (sin renta)',renta:'pagas renta',propia:'casa propia'}[p.vivienda]||'situacion de vivienda sin capturar';
-  el.textContent=(edad?(edad+' anos · '):'')+viv+(p.dependientes?(' · '+p.dependientes+' dependiente(s)'):'')
+  if(el) el.textContent=(edad?(edad+' anos · '):'')+viv+(p.dependientes?(' · '+p.dependientes+' dependiente(s)'):'')
     +(p.ingresoBase?(' · ingreso base '+fmt(p.ingresoBase)):'')
     +' → tu referencia: ahorrar '+est.ahorroObj+'% y no pasar de '+est.gastoMax+'% en gastos';
+  const fu=document.getElementById('perfil-fuente'); if(fu) fu.textContent='de donde sale: '+est.fuente;
+  // encabezado: avatar (foto o inicial), nombre y subtitulo
+  const nom=(p.nombre||'').trim();
+  const nEl=document.getElementById('perfil-nombre'); if(nEl) nEl.textContent=nom||'tu perfil';
+  const sEl=document.getElementById('perfil-sub');
+  if(sEl) sEl.textContent=(edad?(edad+' anos · '):'')+viv;
+  const av=document.getElementById('perfil-avatar'), ini=document.getElementById('avatar-inicial');
+  if(av){
+    // la foto se asigna por style (nunca interpolada en HTML)
+    av.style.backgroundImage=p.foto?('url("'+p.foto+'")'):'';
+    if(ini) ini.textContent=p.foto?'':((nom?nom[0]:'·').toUpperCase());
+  }
+}
+window.cambiarFoto = () => { const i=document.getElementById('perfil-foto-input'); if(i){ i.value=''; i.click(); } };
+// comprime a 300x300 recortando al centro; baja calidad hasta caber en el doc de Firestore
+window.subirFoto = function(ev) {
+  const f=ev&&ev.target&&ev.target.files&&ev.target.files[0]; if(!f) return;
+  if(!/^image\//.test(f.type)){ showToast('elige una imagen'); return; }
+  if(f.size>10*1024*1024){ showToast('esa imagen pesa mas de 10 MB, usa una mas chica'); return; }
+  const fr=new FileReader();
+  fr.onerror=()=>showToast('no se pudo leer la imagen');
+  fr.onload=()=>{
+    const img=new Image();
+    img.onerror=()=>showToast('esa imagen no se pudo abrir');
+    img.onload=async ()=>{
+      if(img.width*img.height>40e6){ showToast('esa imagen tiene demasiada resolucion, usa una mas chica'); return; }
+      const L=300, cv=document.createElement('canvas'); cv.width=L; cv.height=L;
+      const ctx=cv.getContext('2d');
+      const lado=Math.min(img.width,img.height); // recorte cuadrado centrado
+      ctx.drawImage(img,(img.width-lado)/2,(img.height-lado)/2,lado,lado,0,0,L,L);
+      let data='';
+      for(const q of [0.8,0.6,0.5]){ data=cv.toDataURL('image/jpeg',q); if(data.length<=700000) break; }
+      if(data.length>700000){ showToast('la imagen quedo muy pesada, prueba con otra'); return; }
+      await guardarPerfil({foto:data},'foto actualizada');
+    };
+    img.src=fr.result;
+  };
+  fr.readAsDataURL(f);
+};
+window.quitarFoto = async function() {
+  if(!(state.perfil&&state.perfil.foto)){ showToast('no tienes foto de perfil'); return; }
+  if(!confirm('¿Quitar tu foto de perfil?')) return;
+  await guardarPerfil({foto:''},'foto eliminada');
+};
+// guarda SOLO los campos indicados (merge): nunca borra los demas del perfil.
+// Lock: dos guardados solapados (foto + datos) escribirian el doc completo con una
+// copia vieja del estado y uno pisaria al otro en silencio
+let perfilGuardando=false;
+async function guardarPerfil(cambios,msgOk) {
+  if(perfilGuardando){ showToast('espera: se esta guardando tu perfil'); return false; }
+  perfilGuardando=true;
+  try{
+    if(!datosCargados) throw new Error('datos no cargados');
+    await setDoc(doc(db,'cartera','perfil'),cambios,{merge:true});
+    state.perfil={...state.perfil,...cambios}; // solo tras confirmar la escritura
+    setSyncDot('ok');
+    renderPerfil(); renderScore(); render();
+    showToast(msgOk||'perfil guardado');
+    return true;
+  }catch(e){
+    setSyncDot('err'); console.error('guardarPerfil',e);
+    showToast('ERROR: no se guardo, revisa tu conexion');
+    return false;
+  }finally{ perfilGuardando=false; }
 }
 window.editarPerfil = async function() {
   const p={...(state.perfil||{})};
@@ -3176,18 +3282,12 @@ window.editarPerfil = async function() {
   if(iTrim!==''&&!/^\d+(\.\d{1,2})?$/.test(iTrim)){ showToast('ingreso no valido'); return; }
   const ing=iTrim===''?null:Math.round(parseFloat(iTrim)*100)/100;
   if(ing!==null&&ing<=0){ showToast('ingreso no valido'); return; }
-  const nuevoPerfil={anoNac:ano,vivienda:viv,dependientes:dep,ingresoBase:ing};
-  try{
-    if(!datosCargados) throw new Error('datos no cargados');
-    await setDoc(doc(db,'cartera','perfil'),nuevoPerfil);
-    state.perfil=nuevoPerfil;
-    setSyncDot('ok');
-    renderPerfil(); renderScore(); render();
-    showToast('perfil guardado · tu referencia se ajusto');
-  }catch(e){
-    setSyncDot('err'); console.error('editarPerfil',e);
-    showToast('ERROR: no se guardo el perfil, revisa tu conexion');
-  }
+  const nRaw=prompt('¿Como te llamas? (para tu perfil; vacio = omitir)',p.nombre||'');
+  if(nRaw===null) return;
+  const nom=nRaw.trim().slice(0,40);
+  // merge: se conservan los campos que no se editan aqui (la foto)
+  await guardarPerfil({anoNac:ano,vivienda:viv,dependientes:dep,ingresoBase:ing,nombre:nom},
+    'perfil guardado · tu referencia se ajusto');
 };
 
 function renderMetas(savings, stocks, nvdaPendiente) {
@@ -3876,7 +3976,112 @@ function renderResumen() {
   document.getElementById('resumen-ingresos-cats').innerHTML=sortedI.length?sortedI.map(([cat,amt])=>`<div class="resumen-bar"><div class="bar-header"><span class="bar-label">${escapeHtml(cat)}</span><span class="bar-amt pos">${fmt(amt)}</span></div><div class="bar-track"><div class="bar-fill bar-fill-green" style="width:${(amt/maxI*100).toFixed(1)}%"></div></div></div>`).join(''):'<div class="empty-state">sin ingresos en este periodo</div>';
 
   renderRendimientos(start, end, balance);
+  renderUtilidades(start, end);
   renderGBMResumen();
+}
+
+// ── UTILIDADES: cuanto gano tu dinero ─────────────────────────
+// valor de la bolsa en una fecha: usa el ULTIMO cierre comun (accion + tipo de cambio)
+// en o antes de esa fecha. Si a alguna posicion le falta historial, devuelve null:
+// mezclar cierres de dias distintos daria una cifra falsa.
+function valorBolsaEn(ms) {
+  const fx=(state.usdMxnHistory||[]).filter(p=>parseFechaLocal(p.t).getTime()<=ms);
+  if(!fx.length) return null;
+  const syms=Object.keys(state.posiciones||{});
+  const abiertas=[];
+  for(const s of syms){
+    const acc=accionesEnFecha(s,ms);
+    if(acc<=0) continue;
+    const mk=state.accionesMkt[s];
+    const hs=(mk&&Array.isArray(mk.hist))?mk.hist.filter(p=>parseFechaLocal(p.t).getTime()<=ms):[];
+    if(!hs.length) return null; // sin cierre para esa fecha: no se puede valuar
+    abiertas.push({s,acc,hs});
+  }
+  if(!abiertas.length) return {valor:0,fecha:''};
+  // dia comun a TODAS las posiciones y al tipo de cambio: valuar cada accion en un dia
+  // distinto sumaria cifras de fechas diferentes
+  let comunes=fx.map(f=>f.t);
+  abiertas.forEach(a=>{ const set=new Set(a.hs.map(p=>p.t)); comunes=comunes.filter(t=>set.has(t)); });
+  if(!comunes.length) return null;
+  const dia=comunes.sort()[comunes.length-1];
+  const tc=fx.find(f=>f.t===dia); if(!tc) return null;
+  let total=0;
+  for(const a of abiertas){
+    const px=a.hs.find(p=>p.t===dia); if(!px) return null;
+    total+=a.acc*px.c*tc.c;
+  }
+  return {valor:total,fecha:dia};
+}
+function renderUtilidades(start,end) {
+  const el=document.getElementById('res-utilidades'); if(!el) return;
+  const endC=new Date(Math.min(Date.now(),end.getTime()));
+  const dias=Math.max(0,(endC-start)/86400000);
+  const filas=[];
+  const fila=(ico,tit,meta,val)=>filas.push(`<div class="item-row"><div><div class="item-cat">${ico} ${escapeHtml(tit)}</div><div class="item-meta">${escapeHtml(meta)}</div></div><div style="font-size:14px;font-weight:600">${escapeHtml(val)}</div></div>`);
+  // 1) intereses: SOLO desde la fecha base vigente de cada cuenta. Un movimiento reancla
+  // base+fecha, asi que no se puede reconstruir el interes de periodos anteriores
+  const c1Fecha=state.nuCajita1Fecha?parseFechaLocal(state.nuCajita1Fecha).getTime():null;
+  const rsFecha=state.revSavingsFecha?parseFechaLocal(state.revSavingsFecha).getTime():null;
+  const iniC1=Math.max(start.getTime(),Number.isFinite(c1Fecha)?c1Fecha:start.getTime());
+  const iniRS=Math.max(start.getTime(),Number.isFinite(rsFecha)?rsFecha:start.getTime());
+  const int1=(dias>0&&endC.getTime()>iniC1)?Math.max(0,calcNu1At(endC.getTime())-calcNu1At(iniC1)):0;
+  const int2=(dias>0&&endC.getTime()>iniRS)?Math.max(0,calcRevSavingsAt(endC.getTime())-calcRevSavingsAt(iniRS)):0;
+  const intereses=int1+int2;
+  const parcialInt=(Number.isFinite(c1Fecha)&&c1Fecha>start.getTime()&&c1Fecha<endC.getTime())||(Number.isFinite(rsFecha)&&rsFecha>start.getTime()&&rsFecha<endC.getTime());
+  fila('🏦','intereses de tus cuentas',
+    'cajita NU y Revolut Savings'+(parcialInt?' · parcial: solo desde la fecha base actual':''),'+'+fmt(intereses));
+  // 2) plusvalia de bolsa = valorFin - valorIni - aportes netos del periodo (compras-ventas)
+  const vIni=valorBolsaEn(start.getTime()-1), vFin=valorBolsaEn(endC.getTime());
+  let plus=null, motivo='';
+  const opsRango=(state.stocksOps||[]).filter(o=>{ const t=parseFechaLocal(o.fecha).getTime();
+    return Number.isFinite(t)&&t>=start.getTime()&&t<endC.getTime(); });
+  const opsSinMonto=opsRango.some(o=>!(Number.isFinite(o.montoMxn)&&o.montoMxn>0));
+  if(!vIni||!vFin) motivo='sin historial de precios suficiente para este periodo';
+  else if(opsSinMonto) motivo='hay operaciones sin monto capturado en el periodo';
+  else {
+    const aportes=opsRango.reduce((s,o)=>s+(o.tipo==='venta'?-1:1)*o.montoMxn,0);
+    plus=vFin.valor-vIni.valor-aportes;
+  }
+  if(plus===null) fila('📈','plusvalia de tus acciones',motivo,'—');
+  else fila('📈','plusvalia de tus acciones','cambio de valor sin contar lo que aportaste'+(vFin.fecha?(' · al cierre del '+vFin.fecha):''),(plus>=0?'+':'−')+fmt(Math.abs(plus)));
+  // 3) utilidad total del periodo
+  const util=intereses+(plus||0);
+  fila(util>=0?'💰':'⚠️','utilidad total',plus===null?'solo intereses (la plusvalia no se pudo calcular)':'intereses + plusvalia',(util>=0?'+':'−')+fmt(Math.abs(util)));
+  // 4) rendimiento sobre el capital, ponderando los flujos por el tiempo que estuvieron
+  // dentro del periodo (Modified Dietz): un deposito de ayer no infla el porcentaje
+  const capIni=(Number.isFinite(c1Fecha)&&c1Fecha<=start.getTime()?calcNu1At(start.getTime()):0)
+    +(Number.isFinite(rsFecha)&&rsFecha<=start.getTime()?calcRevSavingsAt(start.getTime()):0)
+    +(vIni?vIni.valor:0);
+  // si una cuenta de interes reanclo su base DENTRO del periodo y tenia saldo, ese
+  // saldo se cae del capital inicial (no hay forma de reconstruirlo): no calcular el %
+  const capIncompleto=(Number.isFinite(c1Fecha)&&c1Fecha>start.getTime()&&calcNu1At(c1Fecha)>0)
+    ||(Number.isFinite(rsFecha)&&rsFecha>start.getTime()&&calcRevSavingsAt(rsFecha)>0);
+  const flujos=[];
+  (state.transferencias||[]).forEach(t=>{
+    if(!t||!Number.isFinite(t.monto)||t.monto<=0) return;
+    const ms=msFechaMov(t.fecha); if(ms===null||ms<start.getTime()||ms>=endC.getTime()) return;
+    const dentro=['cajita1','revSavings'];
+    const sgn=(dentro.includes(t.destino)?1:0)-(dentro.includes(t.origen)?1:0);
+    if(sgn!==0) flujos.push({monto:sgn*t.monto,ms});
+  });
+  opsRango.forEach(o=>{ if(Number.isFinite(o.montoMxn)&&o.montoMxn>0)
+    flujos.push({monto:(o.tipo==='venta'?-1:1)*o.montoMxn,ms:parseFechaLocal(o.fecha).getTime()}); });
+  const capPond=capIni+flujos.reduce((s,f)=>s+f.monto*Math.max(0,Math.min(1,(endC.getTime()-f.ms)/(endC.getTime()-start.getTime()||1))),0);
+  if(capIncompleto) fila('%','rendimiento de tu capital','no se puede calcular: una cuenta reanclo su saldo base dentro del periodo','—');
+  else if(capPond>0&&dias>0&&plus!==null){
+    const r=util/capPond;
+    let txt=(r>=0?'+':'−')+Math.abs(r*100).toFixed(2)+'%';
+    // anualizar periodos muy cortos daria numeros absurdos
+    if(dias>=28&&1+r>0) txt+=' · ~'+((Math.pow(1+r,365/dias)-1)*100).toFixed(1)+'% anual';
+    fila('%','rendimiento de tu capital','sobre '+fmt(capPond)+' invertidos en promedio (metodo Modified Dietz)',txt);
+  } else fila('%','rendimiento de tu capital',plus===null?'necesita la plusvalia para calcularse':'aun sin capital suficiente en el periodo','—');
+  // 5) comparativa: cuanto trabajo tu dinero vs lo que registraste como ingresos
+  const enR=i=>{ if(!movValido(i)) return false; const t=msFechaMov(i.fecha); return t!==null&&t>=start.getTime()&&t<end.getTime(); };
+  const ingresos=state.ingresos.filter(enR).reduce((s,i)=>s+i.monto,0);
+  if(ingresos>0&&util>0) fila('⚖️','tu dinero vs tus ingresos',
+    'por cada $100 de ingresos registrados, tu dinero genero '+fmt(util/ingresos*100),
+    (util/ingresos*100).toFixed(1)+'%');
+  el.innerHTML=filas.join('')+'<div class="item-meta" style="text-align:center;padding-top:8px">los intereses se cuentan desde la fecha base de cada cuenta; la plusvalia usa cierres de mercado, no precios en vivo</div>';
 }
 
 function renderRendimientos(start, end, balance) {
