@@ -628,7 +628,7 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
   </div>
   </div>
   <div class="status" id="status-inicio">—</div>
-  <div class="status" style="margin-top:2px;padding-bottom:8px">version 2026-08-03.1</div>
+  <div class="status" style="margin-top:2px;padding-bottom:8px">version 2026-08-03.2</div>
 </div>
 
 <!-- MOVIMIENTOS (gastos + ingresos en una sola pestana) -->
@@ -707,7 +707,14 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
   <div class="mt">
   <div class="inicio-grid">
   <div class="sec">
-    <div class="section-title">mi meta · fin de 2026</div>
+    <div class="section-title">tu manejo del dinero</div>
+    <div class="panel" id="score-panel"><div class="empty-state">calculando...</div></div>
+    <div class="section-title mt">tu perfil</div>
+    <div class="panel">
+      <div class="item-meta" id="perfil-resumen">—</div>
+      <button type="button" class="btn" style="margin-top:10px" onclick="editarPerfil()">editar mi perfil</button>
+    </div>
+    <div class="section-title mt">mi meta · fin de 2026</div>
     <div class="panel" id="metas-panel"><div class="empty-state">calculando...</div></div>
     <div class="section-title mt">camino a diciembre</div>
     <div class="panel" id="camino-panel"><div class="empty-state">calculando...</div></div>
@@ -879,6 +886,26 @@ const ALLOWED_EMAIL = 'rl7103405@gmail.com';
 const TITULOS = 45;
 // metas de Roberto para el cierre de 2026 y cuota mensual del plan Premium de Revolut
 const META_SAVINGS = 25000, META_STOCKS = 12000, META_FECHA = '2026-12-31', PREMIUM_MONTO = 145;
+// ── ESTANDAR PERSONAL ─────────────────────────────────────────
+// UNICA fuente de umbrales: coach, cierre, score y metas lo consumen. Cada uno declara
+// su procedencia para no vender como "oficial" lo que es criterio propio.
+// Respaldados: 10% ahorro minimo y 3-6 meses de fondo de emergencia (CONDUSEF), 20% de
+// la regla 50/30/20 (Warren). Criterio propio: el ahorro objetivo elevado
+// para quien no paga vivienda (ningun organismo publica esa cifra) y los cortes de gasto.
+const ESTANDAR_VER='2026.08';
+const ESTANDARES={
+  familia:{ahorroObj:30,ahorroMin:10,gastoMax:70,emergenciaMeses:3,
+    fuente:'sin pagar vivienda hay mas margen: el objetivo de 30% es criterio propio de la app; el minimo de 10% y el fondo de 3 meses siguen a CONDUSEF'},
+  renta:{ahorroObj:20,ahorroMin:10,gastoMax:80,emergenciaMeses:6,
+    fuente:'20% de ahorro es el tramo de la regla 50/30/20; el fondo de 6 meses y el minimo de 10% siguen a CONDUSEF'},
+  generico:{ahorroObj:20,ahorroMin:10,gastoMax:75,emergenciaMeses:3,
+    fuente:'referencia general (regla 50/30/20 y minimos de CONDUSEF) mientras no completes tu perfil'}
+};
+function estandarDe(p) {
+  const base=(p&&p.vivienda==='familia')?ESTANDARES.familia
+    :((p&&(p.vivienda==='renta'||p.vivienda==='propia'))?ESTANDARES.renta:ESTANDARES.generico);
+  return {...base,ver:ESTANDAR_VER};
+}
 const CUENTAS = {efectivo:'efectivo', nu:'NU saldo', cajita1:'NU cajita 1', cajita2:'NU cajita 2', gbm:'GBM efectivo', revolut:'Revolut MXN', revSavings:'Revolut Savings', tarjeta:'tarjeta NU', tarjetaRev:'TDC Revolut', revTdcDep:'deposito TDC Revolut', stocks:'Stocks (bolsa)'};
 const CTAS_STOCK_OP=['efectivo','nu','revolut']; // cuentas desde las que se puede comprar/vender bolsa
 const FUENTES_GASTO=['efectivo','nu','tarjeta','revolut','tarjetaRev'];
@@ -1053,6 +1080,8 @@ let state = {
   mesOffset:0, resPeriodo:'mes',
   catsGasto:[...CATS_GASTO_DEFAULT], catsIngreso:[...CATS_INGRESO_DEFAULT],
   apartados:[],
+  // perfil para el estandar personalizado (vacio = estandar generico, no bloquea nada)
+  perfil:{anoNac:null, vivienda:'', dependientes:0, ingresoBase:null},
   personas:JSON.parse(JSON.stringify(PERSONAS_DEFAULT)),
   gastos:[], ingresos:[], transferencias:[], snapshots:[]
 };
@@ -1193,6 +1222,17 @@ async function loadFromFirebase() {
       });
     }
     else await setDoc(doc(db,'cartera','personas'), {data:state.personas});
+    // perfil: campos corruptos caen al default sin bloquear la carga
+    const perDoc = await getDoc(doc(db,'cartera','perfil'));
+    if (perDoc.exists()) {
+      const pf=perDoc.data()||{};
+      const anoAct=new Date().getFullYear();
+      state.perfil={
+        anoNac:(Number.isInteger(pf.anoNac)&&pf.anoNac>anoAct-100&&pf.anoNac<=anoAct-10)?pf.anoNac:null,
+        vivienda:['familia','renta','propia'].includes(pf.vivienda)?pf.vivienda:'',
+        dependientes:(Number.isInteger(pf.dependientes)&&pf.dependientes>=0&&pf.dependientes<=20)?pf.dependientes:0,
+        ingresoBase:(Number.isFinite(pf.ingresoBase)&&pf.ingresoBase>0)?pf.ingresoBase:null};
+    }
     const tDoc = await getDoc(doc(db,'cartera','tarjeta'));
     if (tDoc.exists()) { state.tarjetaDeuda = Number.isFinite(tDoc.data().deuda) ? tDoc.data().deuda : state.tarjetaDeuda; state.tarjetaMovimientos = Array.isArray(tDoc.data().movimientos) ? tDoc.data().movimientos : []; }
     // TDC Revolut: {deuda, deposito, movimientos} viven JUNTOS en su doc (el deposito NO va
@@ -1671,7 +1711,9 @@ function abrirNoticias() {
   if(el){
     const {start,end}=rangoPeriodo('mes',0);
     const m=calcularCierre(start,end,'mes');
-    const c=m.vacio?null:textoCoach(m);
+    // mismo criterio que Inicio: antes del dia 15, avance neutral en vez de veredicto
+    // (aunque el mes este vacio, textoAvance da cifras en cero — es correcto)
+    const c=!m.maduro?textoAvance(m):(m.vacio?null:textoCoach(m));
     el.innerHTML=c?('<div style="font-size:13px;line-height:1.45">'+escapeHtml(c)+'</div>')
       :'<div class="item-meta">registra movimientos del mes para ver tu resumen aqui</div>';
   }
@@ -1991,6 +2033,7 @@ function render() {
   renderApartados();
   renderStockDatalist();
   renderResumenCorto();
+  renderScore(); renderPerfil();
   checkPremium();
   const now=new Date();
   document.getElementById('last-update').textContent='actualizado '+now.toLocaleDateString('es-MX',{day:'numeric',month:'short'})+' · '+now.toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'});
@@ -3079,6 +3122,74 @@ function renderDistribucion(ahorro, inversiones, disponible, garantia, nvdaPendi
 }
 
 // ── METAS Y AVISOS ────────────────────────────────────────────
+// ── SCORE Y PERFIL (pestana Metas) ────────────────────────────
+function renderScore() {
+  const el=document.getElementById('score-panel'); if(!el) return;
+  // el score se calcula sobre el ULTIMO MES COMPLETO (un mes a medias es ruido);
+  // si el mes en curso ya maduro (dia >= 15) se ensena ademas como preliminar
+  const now=new Date();
+  const pi=new Date(now.getFullYear(),now.getMonth()-1,1), pf=new Date(now.getFullYear(),now.getMonth(),1);
+  const mPrev=calcularCierre(pi,pf,'mes');
+  const sc=calcScore(mPrev);
+  if(!sc){ el.innerHTML='<div class="empty-state">aun no hay un mes completo con movimientos — tu calificacion aparece cuando cierre tu primer mes</div>'; return; }
+  const barra=`<div class="bar-track" style="height:8px;margin:10px 0 4px"><div class="bar-fill" style="width:${sc.score}%"></div></div>`;
+  const filas=sc.comps.map(c=>`<div class="item-row"><div><div class="item-cat">${escapeHtml(c.nombre)}</div><div class="item-meta">${escapeHtml(c.detalle)}</div></div><div style="font-size:14px;font-weight:600">${c.puntos}/${c.max}</div></div>`).join('');
+  el.innerHTML=`<div class="bar-header"><span style="font-size:30px;font-weight:700">${sc.score}<span style="font-size:14px;color:var(--muted)">/100</span></span>`
+    +`<span class="pie-pct" style="font-size:13px">${escapeHtml(sc.nivel)}</span></div>`
+    +barra
+    +`<div class="item-meta">calificado sobre ${escapeHtml(MESES[pi.getMonth()])} (ultimo mes completo)</div>`
+    +filas
+    +(sc.excluidos.length?`<div class="item-meta" style="padding-top:6px">no se califico: ${escapeHtml(sc.excluidos.join(' · '))}</div>`:'')
+    +`<div class="item-meta" style="padding-top:8px">indice propio de habitos, orientativo: mide lo que registras en la app. Tu referencia sale de tu perfil — ${escapeHtml(sc.est.fuente)}.</div>`;
+}
+function renderPerfil() {
+  const el=document.getElementById('perfil-resumen'); if(!el) return;
+  const p=state.perfil||{}, est=estandarDe(p);
+  const edad=p.anoNac?(new Date().getFullYear()-p.anoNac):null;
+  const viv={familia:'vives con familia (sin renta)',renta:'pagas renta',propia:'casa propia'}[p.vivienda]||'situacion de vivienda sin capturar';
+  el.textContent=(edad?(edad+' anos · '):'')+viv+(p.dependientes?(' · '+p.dependientes+' dependiente(s)'):'')
+    +(p.ingresoBase?(' · ingreso base '+fmt(p.ingresoBase)):'')
+    +' → tu referencia: ahorrar '+est.ahorroObj+'% y no pasar de '+est.gastoMax+'% en gastos';
+}
+window.editarPerfil = async function() {
+  const p={...(state.perfil||{})};
+  const anoAct=new Date().getFullYear();
+  const aRaw=prompt('¿En que ano naciste? (ej. 2007; vacio = omitir)',p.anoNac||'');
+  if(aRaw===null) return;
+  const aTrim=aRaw.trim();
+  if(aTrim!==''&&!/^\d{4}$/.test(aTrim)){ showToast('ano no valido'); return; }
+  const ano=aTrim===''?null:parseInt(aTrim,10);
+  if(ano!==null&&(ano<=anoAct-100||ano>anoAct-10)){ showToast('ano no valido'); return; }
+  const vRaw=prompt('¿Donde vives? escribe: familia (sin pagar renta), renta o propia',p.vivienda||'familia');
+  if(vRaw===null) return;
+  const viv=vRaw.trim().toLowerCase();
+  if(viv&&!['familia','renta','propia'].includes(viv)){ showToast('opcion no valida'); return; }
+  const dRaw=prompt('¿Cuantas personas dependen de ti economicamente? (0 si ninguna)',String(p.dependientes||0));
+  if(dRaw===null) return;
+  const dTrim=dRaw.trim();
+  if(dTrim!==''&&!/^\d{1,2}$/.test(dTrim)){ showToast('numero no valido'); return; }
+  const dep=dTrim===''?0:parseInt(dTrim,10);
+  if(dep<0||dep>20){ showToast('numero no valido'); return; }
+  const iRaw=prompt('¿Cual es tu ingreso mensual base? (solo referencia; vacio = omitir)',p.ingresoBase||'');
+  if(iRaw===null) return;
+  const iTrim=iRaw.trim();
+  if(iTrim!==''&&!/^\d+(\.\d{1,2})?$/.test(iTrim)){ showToast('ingreso no valido'); return; }
+  const ing=iTrim===''?null:Math.round(parseFloat(iTrim)*100)/100;
+  if(ing!==null&&ing<=0){ showToast('ingreso no valido'); return; }
+  const nuevoPerfil={anoNac:ano,vivienda:viv,dependientes:dep,ingresoBase:ing};
+  try{
+    if(!datosCargados) throw new Error('datos no cargados');
+    await setDoc(doc(db,'cartera','perfil'),nuevoPerfil);
+    state.perfil=nuevoPerfil;
+    setSyncDot('ok');
+    renderPerfil(); renderScore(); render();
+    showToast('perfil guardado · tu referencia se ajusto');
+  }catch(e){
+    setSyncDot('err'); console.error('editarPerfil',e);
+    showToast('ERROR: no se guardo el perfil, revisa tu conexion');
+  }
+};
+
 function renderMetas(savings, stocks, nvdaPendiente) {
   const el=document.getElementById('metas-panel'); if(!el) return;
   const dias=Math.ceil((parseFechaLocal(META_FECHA).getTime()-parseFechaLocal(hoyLocal()).getTime())/86400000);
@@ -3379,7 +3490,9 @@ function mesStats(y,m) {
 // (comparaciones en centavos: el punto flotante no debe romper el umbral exacto)
 function mesBueno(st) {
   const i=Math.round(st.totalI*100), g=Math.round(st.totalG*100), a=Math.round(st.aporte*100);
-  return st.tieneDatos && i>0 && g<=i && a*5>=i; // a*5>=i === aporte>=20% exacto en centavos
+  // el umbral de aportacion sale del ESTANDAR del usuario (mismo que usan coach y score)
+  const obj=estandarDe(state.perfil).ahorroObj;
+  return st.tieneDatos && i>0 && g<=i && a*100>=i*obj;
 }
 // racha de meses buenos CONSECUTIVOS terminando en el ultimo mes COMPLETO (max 24: '24+')
 function calcRacha() {
@@ -3404,9 +3517,11 @@ function calcularCierre(start,end,modo) {
   const ap=aportacionesEnRango(start,end);
   const aporte=ap.cajita1+ap.revSavings+ap.stocks;
   const vacio=totalI===0&&totalG===0&&ap.cajita1===0&&ap.revSavings===0&&ap.stocks===0;
+  const estPre=estandarDe(state.perfil);
   const gPct=totalI>0?totalG/totalI*100:null;
   const aPct=totalI>0?aporte/totalI*100:null;
-  const falta20=totalI>0?0.2*totalI-aporte:0;
+  // "falta20" conserva el nombre historico, pero mide contra el objetivo del ESTANDAR del usuario
+  const falta20=totalI>0?(estPre.ahorroObj/100)*totalI-aporte:0;
   // top 3 categorias vs promedio de los 3 meses ANTERIORES (solo en vista de mes;
   // mismos umbrales que avisoCategoria: 1.5x y +$300 para no marcar ruido)
   const byCat=Object.create(null); gastosR.forEach(g=>byCat[g.cat]=(byCat[g.cat]||0)+g.monto);
@@ -3448,22 +3563,82 @@ function calcularCierre(start,end,modo) {
     metas={vencida:metaPaso,mesesRest,savActual,faltaS:Math.max(0,META_SAVINGS-savActual),
       stVal,stCompleto:stCompleto||posA.length===0,faltaSt:Math.max(0,META_STOCKS-stVal)};
   }
+  // "maduro": con menos de 15 dias corridos un veredicto seria ruido. Los consumidores
+  // deciden que mostrar; el cierre de Resumen igual ensena las cifras, marcadas como parciales
+  const diaMes=esActual?new Date().getDate():31;
+  const maduro=!esActual||esAno||diaMes>=15;
+  const diasMes=new Date(start.getFullYear(),start.getMonth()+1,0).getDate();
   return {start,end,modo,esAno,per,esActual,totalI,totalG,aporte,ap,vacio,gPct,aPct,falta20,tops,comp,metas,
+    maduro,diaMes,diasMes,est:estPre,
     racha:(esActual&&!esAno)?calcRacha():0};
+}
+
+// ── SCORE DE HABITOS (indice propio, no un diagnostico financiero) ──
+// Mide SOLO lo que la app observa con fiabilidad: aportaciones registradas / ingresos,
+// control de gasto, constancia y colchon. Los componentes sin datos se excluyen y se
+// renormaliza, informando cuales quedaron fuera.
+const SCORE_VER='1.0';
+function calcScore(m) {
+  if(!m||m.vacio) return null;
+  const est=m.est, comps=[], excluidos=[];
+  // 1) aportacion vs objetivo del estandar (40): es "aportaciones registradas / ingresos",
+  // no una tasa de ahorro contable — se nombra asi en la UI para no prometer de mas
+  if(m.gPct!==null){
+    const r=Math.max(0,m.aPct)/est.ahorroObj;
+    comps.push({nombre:'aportacion a ahorro e inversion',max:40,
+      puntos:Math.round(40*Math.max(0,Math.min(1,r))),
+      detalle:'aportaste '+Math.max(0,m.aPct).toFixed(0)+'% de tus ingresos · tu referencia es '+est.ahorroObj+'%'});
+  } else excluidos.push('aportacion (sin ingresos registrados este '+m.per+')');
+  // 2) control de gasto vs gastoMax (30): 100 pts si gastas &lt;= objetivo, 0 si duplicas el limite
+  if(m.gPct!==null){
+    const exceso=(m.gPct-est.gastoMax)/est.gastoMax;
+    comps.push({nombre:'control de gasto',max:30,
+      puntos:Math.round(30*Math.max(0,Math.min(1,1-Math.max(0,exceso)))),
+      detalle:'gastaste el '+m.gPct.toFixed(0)+'% de tus ingresos · tu referencia es no pasar de '+est.gastoMax+'%'});
+  } else excluidos.push('control de gasto (sin ingresos registrados)');
+  // 3) constancia (20): meses buenos seguidos, tope a 6 para no premiar eternamente lo mismo
+  comps.push({nombre:'constancia',max:20,puntos:Math.round(20*Math.min(1,m.racha/6)),
+    detalle:(m.racha>=1?('llevas '+(m.racha>=24?'24 o mas':m.racha)+' mes(es) seguidos cerrando bien'):'aun sin meses cerrados con buen resultado')
+      +' · se recalcula con tu referencia actual, asi que cambia si editas tu perfil'});
+  // 4) colchon (10): meses de gasto cubiertos por dinero DISPONIBLE (sin bolsa, sin el
+  // deposito congelado de la TDC, sin lo que te deben) contra el objetivo del estandar
+  const gastoRef=promedioGastoMensual();
+  if(gastoRef>0){
+    const liquido=Math.max(0,state.efectivo)+Math.max(0,state.nuSaldo)+Math.max(0,state.revMXN)+Math.max(0,calcNu1().saldo)+Math.max(0,calcRevSavings().saldo);
+    const meses=liquido/gastoRef;
+    comps.push({nombre:'colchon de emergencia',max:10,puntos:Math.round(10*Math.min(1,meses/est.emergenciaMeses)),
+      detalle:'tu dinero disponible cubre '+meses.toFixed(1)+' mes(es) de gasto · la referencia para ti es '+est.emergenciaMeses});
+  } else excluidos.push('colchon de emergencia (aun sin historial de gastos)');
+  const maxTotal=comps.reduce((s,c)=>s+c.max,0);
+  if(!maxTotal) return null;
+  const bruto=comps.reduce((s,c)=>s+c.puntos,0);
+  const score=Math.round(bruto/maxTotal*100); // renormalizado si algun componente no aplica
+  const nivel=score>=85?'excelente':score>=70?'muy bien':score>=55?'vas bien':score>=40?'a mejorar':'necesita atencion';
+  return {score,nivel,comps,excluidos,maxTotal,preliminar:!m.maduro,ver:SCORE_VER,est};
+}
+// gasto mensual de referencia: promedio de los ultimos 3 meses COMPLETOS con datos
+function promedioGastoMensual() {
+  const now=new Date(); const vals=[];
+  for(let i=1;i<=3;i++){
+    const d=new Date(now.getFullYear(),now.getMonth()-i,1);
+    const st=mesStats(d.getFullYear(),d.getMonth());
+    if(st.tieneDatos&&st.totalG>0) vals.push(st.totalG);
+  }
+  return vals.length?vals.reduce((a,b)=>a+b,0)/vals.length:0;
 }
 
 // texto corto (1 frase de veredicto + siguiente paso). TEXTO PLANO: quien lo pinte lo escapa
 function textoCoach(m) {
-  if(m.gPct===null) return null;
-  const {gPct,aPct,falta20,tops,esActual,esAno,per}=m;
-  const gOk=gPct<=70, gMed=gPct<=100, aOk=aPct>=20;
+  if(m.gPct===null||!m.maduro) return null; // sin madurez no hay veredicto (seria ruido)
+  const {gPct,aPct,falta20,tops,esActual,esAno,per,est}=m;
+  const gOk=gPct<=est.gastoMax, gMed=gPct<=100, aOk=aPct>=est.ahorroObj;
   const foco=tops.find(t=>t.inflada)||tops[0];
   const cN=foco?foco.cat:'tus gastos grandes';
   if(!gMed) return '⚠️ '+(esActual?'Vas gastando':'Gastaste')+' mas de lo que '+(esActual?'ha ingresado':'ingreso')+' ('+gPct.toFixed(0)+'%). Prioridad: recorta '+cN+' y evita tapar el hueco con las tarjetas.';
   if(gOk&&aOk) return '🎉 '+(esActual?('Este '+per+' va excelente'):('Fue un gran '+per))+': gastaste el '+gPct.toFixed(0)+'% de tus ingresos y aportaste el '+aPct.toFixed(0)+'% — muy buen ritmo de ahorro e inversion.'+(tops.find(t=>t.inflada)?' Solo cuida '+cN+', que va arriba de tu promedio.':' Sigue asi y diciembre llega solo.');
-  if(gOk) return 'Buen control de gasto ('+gPct.toFixed(0)+'%). El siguiente paso es la aportacion: '+(esActual?'llevas':'cerraste con')+' el '+Math.max(0,aPct).toFixed(0)+'% — '+(esActual?'te faltan ':'te faltaron ')+fmt(Math.max(0,falta20))+' para el 20%.';
+  if(gOk) return 'Buen control de gasto ('+gPct.toFixed(0)+'%). El siguiente paso es la aportacion: '+(esActual?'llevas':'cerraste con')+' el '+Math.max(0,aPct).toFixed(0)+'% — '+(esActual?'te faltan ':'te faltaron ')+fmt(Math.max(0,falta20))+' para tu '+est.ahorroObj+'%.';
   if(aOk) return 'Buen ritmo de aportacion ('+aPct.toFixed(0)+'%). El gasto va algo cargado ('+gPct.toFixed(0)+'%): revisa '+cN+' para darte mas margen.';
-  return (esAno?'Año apretado':'Mes apretado')+': gasto al '+gPct.toFixed(0)+'% y aportacion al '+Math.max(0,aPct).toFixed(0)+'%. Empieza recortando '+cN+' y aparta aunque sea una parte de los '+fmt(Math.max(0,falta20))+' que faltan para el 20%.';
+  return (esAno?'Año apretado':'Mes apretado')+': gasto al '+gPct.toFixed(0)+'% y aportacion al '+Math.max(0,aPct).toFixed(0)+'%. Empieza recortando '+cN+' y aparta aunque sea una parte de los '+fmt(Math.max(0,falta20))+' que faltan para tu '+est.ahorroObj+'%.';
 }
 
 // analisis largo: varias frases, omitiendo las que no tengan datos suficientes
@@ -3473,11 +3648,11 @@ function textoAnalisis(m) {
   const {totalI,totalG,aporte,gPct,aPct,falta20,tops,comp,metas,esActual,per,racha}=m;
   if(gPct!==null){
     p.push('Ingresaste '+fmt(totalI)+' y gastaste '+fmt(totalG)+' ('+gPct.toFixed(0)+'% de lo que entro), '+
-      (gPct<=70?'un margen sano':(gPct<=100?'un margen justo':'mas de lo que entro'))+
+      (gPct<=m.est.gastoMax?'un margen sano':(gPct<=100?'un margen justo':'mas de lo que entro'))+
       ', y te quedo un balance de '+((totalI-totalG)>=0?'+':'−')+fmt(Math.abs(totalI-totalG))+'.');
     p.push('De ese ingreso aportaste '+fmt(Math.abs(aporte))+(aporte<0?' en retiros netos':'')+' a ahorro e inversion, el '+Math.max(0,aPct).toFixed(0)+'%'+
-      (aPct>=20?' — por encima de la regla del 20%, que es justo donde quieres estar.'
-              :', debajo del 20% recomendado: '+(esActual?'te faltan ':'te faltaron ')+fmt(Math.max(0,falta20))+' para llegar.'));
+      (aPct>=m.est.ahorroObj?(' — por encima de tu referencia del '+m.est.ahorroObj+'%, que es justo donde quieres estar.')
+              :(', debajo de tu referencia del '+m.est.ahorroObj+'%: '+(esActual?'te faltan ':'te faltaron ')+fmt(Math.max(0,falta20))+' para llegar.')));
   } else p.push('Este '+per+' no hay ingresos registrados, asi que los porcentajes del cierre no se pueden calcular; el analisis se limita a lo que gastaste ('+fmt(totalG)+') y a tus aportaciones.');
   const infl=tops.find(t=>t.inflada);
   if(infl) p.push('Tu categoria mas cargada es '+infl.cat+' con '+fmt(infl.amt)+(totalG>0?(' ('+(infl.amt/totalG*100).toFixed(0)+'% de tus gastos)'):'')+', arriba de tu promedio de '+fmt(infl.prom)+' al mes'+(esActual?' y el mes todavia no termina.':'.'));
@@ -3507,13 +3682,14 @@ function cierreMesHTML(m,label,capturar) {
   const F=[]; // filas como DATOS {ico,titulo,meta,val}; el HTML y el canvas se derivan de aqui
   const fila=(ico,titulo,meta,val)=>F.push({ico,titulo,meta,val});
   const coach=textoCoach(m);
+  const est=m.est;
   if(totalI>0){
-    fila(gPct<=70?'✅':(gPct<=100?'🟡':'🔴'),'gasto del ingreso',
-      gPct>100?'gastaste mas de lo que ingreso':(gPct<=70?'buen control de gasto':'al limite: cuida los gastos'),gPct.toFixed(0)+'%');
-    fila(aPct>=20?'✅':(aPct>=10?'🟡':'⚠️'),'aportaste a ahorro e inversion',
-      'aportaciones netas registradas (savings, cajita y bolsa)',(aporte<0?'−':'')+Math.abs(aPct).toFixed(0)+'% · '+fmt(Math.abs(aporte)));
-    if(falta20>0.005) fila('💡',esActual?('te faltan '+fmt(falta20)+' para el 20% este '+per):('te faltaron '+fmt(falta20)+' para el 20%'),
-      'regla base: al menos 20% del ingreso a ahorro/inversion — Revolut Savings paga '+(state.revSavingsTasa||0)+'%',fmt(falta20));
+    fila(gPct<=est.gastoMax?'✅':(gPct<=100?'🟡':'🔴'),'gasto del ingreso',
+      gPct>100?'gastaste mas de lo que ingreso':(gPct<=est.gastoMax?'buen control de gasto':'al limite: cuida los gastos'),gPct.toFixed(0)+'%');
+    fila(aPct>=est.ahorroObj?'✅':(aPct>=est.ahorroMin?'🟡':'⚠️'),'aportaste a ahorro e inversion',
+      'aportaciones netas registradas (savings, cajita y bolsa) · tu referencia: '+est.ahorroObj+'%',(aporte<0?'−':'')+Math.abs(aPct).toFixed(0)+'% · '+fmt(Math.abs(aporte)));
+    if(falta20>0.005) fila('💡',esActual?('te faltan '+fmt(falta20)+' para tu '+est.ahorroObj+'% este '+per):('te faltaron '+fmt(falta20)+' para tu '+est.ahorroObj+'%'),
+      est.fuente,fmt(falta20));
   } else {
     fila('ℹ️','sin ingresos registrados este '+per,'los porcentajes del cierre se calculan sobre tus ingresos','');
     if(ap.cajita1!==0||ap.revSavings!==0||ap.stocks!==0){
@@ -3554,26 +3730,47 @@ function cierreMesHTML(m,label,capturar) {
     }
   }
   // snapshot para exportar: solo lo escribe el cierre VISIBLE en Resumen
-  if(capturar) ultimoCierre={label:label||'',per,esActual,coachTxt:coach,filas:F,racha};
+  if(capturar) ultimoCierre={label:label||'',per,esActual,coachTxt:coach,filas:F,racha,preliminar:(esActual&&!m.maduro)};
   const analisis=textoAnalisis(m);
   return (coach?'<div class="cierre-coach">'+escapeHtml(coach)+'</div>':'')
     +F.map(f=>`<div class="item-row"><div><div class="item-cat">${f.ico} ${escapeHtml(f.titulo)}</div><div class="item-meta">${escapeHtml(f.meta)}</div></div><div style="font-size:14px;font-weight:600">${escapeHtml(f.val)}</div></div>`).join('')
     +(analisis.length?'<details class="acc" style="margin:12px 0 0"><summary><div class="acc-icon chip-verde">📝</div><div><div class="acc-tit">analisis completo del '+per+'</div><div class="acc-sub">que paso, por que y que sigue</div></div></summary><div class="acc-body">'
       +analisis.map(t=>'<p style="font-size:13px;line-height:1.5;margin-bottom:9px">'+escapeHtml(t)+'</p>').join('')+'</div></details>':'')
-    +(esActual?'<div class="item-meta" style="text-align:center;padding-top:8px">'+per+' en curso · cifras al dia de hoy</div>':'')
+    +(esActual?('<div class="item-meta" style="text-align:center;padding-top:8px">'+per+' en curso · cifras al dia de hoy'
+      +(m.maduro?'':' · evaluacion preliminar: las cifras y semaforos son parciales hasta que avance el mes')+'</div>'):'')
     +'<button type="button" class="btn" style="margin-top:12px" onclick="exportarCierre(event)">compartir cierre como imagen 📤</button>';
 }
 
 // resumen CORTO del mes en curso para el Inicio (independiente de la pestana Resumen)
+// resumen corto del Inicio: antes del dia 15 muestra AVANCE NEUTRAL (cifras sin juicio)
+// mas el veredicto del mes anterior, que si esta cerrado
+function textoAvance(m) {
+  return 'Vas en el dia '+m.diaMes+' de '+m.diasMes+': llevas '+fmt(m.totalG)+' gastado'
+    +(m.totalI>0?(' y '+fmt(m.totalI)+' ingresado'):'')
+    +(m.aporte>0?(', con '+fmt(m.aporte)+' aportado a ahorro e inversion'):'')
+    +'. A partir del dia 15 te digo como vas con el veredicto del mes.';
+}
 function renderResumenCorto() {
   const el=document.getElementById('inicio-coach'); if(!el) return;
   const {start,end}=rangoPeriodo('mes',0);
   const m=calcularCierre(start,end,'mes');
-  if(m.vacio){ el.innerHTML='<div class="item-meta">registra tus movimientos del mes y aqui te digo como vas</div>'; return; }
-  const coach=textoCoach(m);
-  el.innerHTML=(coach?'<div style="font-size:13px;line-height:1.45">'+escapeHtml(coach)+'</div>':'')
+  let cuerpo;
+  if(!m.maduro){
+    // antes del dia 15: avance neutral (con cifras en cero si el mes esta vacio) + el
+    // cierre del mes ANTERIOR, que si puede tener veredicto aunque este mes no tenga datos
+    const pi=new Date(start.getFullYear(),start.getMonth()-1,1), pf=new Date(start.getFullYear(),start.getMonth(),1);
+    const mp=calcularCierre(pi,pf,'mes');
+    const coachPrev=mp.vacio?null:textoCoach(mp);
+    cuerpo='<div style="font-size:13px;line-height:1.45">'+escapeHtml(textoAvance(m))+'</div>'
+      +(!mp.vacio&&coachPrev?('<div class="item-meta" style="margin-top:8px"><b>'+escapeHtml(MESES[pi.getMonth()])+' cerrado:</b> '+escapeHtml(coachPrev)+'</div>'):'');
+  } else if(m.vacio){ el.innerHTML='<div class="item-meta">registra tus movimientos del mes y aqui te digo como vas</div>'; return; }
+  else {
+    const coach=textoCoach(m);
+    cuerpo=coach?('<div style="font-size:13px;line-height:1.45">'+escapeHtml(coach)+'</div>'):'';
+  }
+  el.innerHTML=cuerpo
     +'<div class="bar-header" style="margin-top:8px">'
-    +'<span class="item-meta">'+(m.gPct!==null?('gasto '+m.gPct.toFixed(0)+'% · aporte '+Math.max(0,m.aPct).toFixed(0)+'%'):'sin ingresos este mes')
+    +'<span class="item-meta">'+(m.gPct!==null?('gasto '+m.gPct.toFixed(0)+'% · aporte '+Math.max(0,m.aPct).toFixed(0)+'%'+(m.maduro?'':' · parcial')):'sin ingresos este mes')
     +(m.racha>=1?' · 🔥 '+(m.racha>=24?'24+':m.racha):'')+'</span>'
     +'<button type="button" class="del-btn" style="font-size:12px;color:var(--accent);padding:2px 0 2px 10px" onclick="showPage(\'resumen\')">ver detalle</button></div>';
 }
@@ -3608,12 +3805,15 @@ window.exportarCierre = function(ev) {
     met:f.meta?wrap(f.meta,F_META,maxW-30):[]
   }));
   const altoBloques=bloques.reduce((s,b)=>s+b.tit.length*46+b.met.length*32+8,0);
-  // misma medicion que el dibujo: titulo(110) + coach(44/linea +24) + bloques + pie(90)
-  const H=90+110+(coachLineas.length?coachLineas.length*44+24:0)+altoBloques+90;
+  // aviso de preliminar bajo el titulo, si el mes en curso aun no llega al dia 15
+  const preLinea=u.preliminar?'preliminar · el mes aun no llega al dia 15':'';
+  // misma medicion que el dibujo: titulo(110) + preliminar(34) + coach(44/linea +24) + bloques + pie(90)
+  const H=90+110+(preLinea?34:0)+(coachLineas.length?coachLineas.length*44+24:0)+altoBloques+90;
   cv.height=H; // redimensionar limpia el contexto: se re-declaran fuentes al dibujar
   ctx.fillStyle='#ecf2ea'; ctx.fillRect(0,0,W,H);
   ctx.fillStyle='#1c5c3f'; ctx.font=F_TIT; ctx.fillText('cierre de '+u.label,PADX,120);
   let y=180;
+  if(preLinea){ ctx.fillStyle='#64766b'; ctx.font=F_META; ctx.fillText(preLinea,PADX,y); y+=34; }
   if(coachLineas.length){ ctx.fillStyle='#1a2e22'; ctx.font=F_COACH;
     coachLineas.forEach(l=>{ ctx.fillText(l,PADX,y); y+=44; }); y+=24; }
   bloques.forEach(b=>{
