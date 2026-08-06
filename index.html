@@ -635,7 +635,7 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
   </div>
   </div>
   <div class="status" id="status-inicio">—</div>
-  <div class="status" style="margin-top:2px;padding-bottom:8px">version 2026-08-03.3</div>
+  <div class="status" style="margin-top:2px;padding-bottom:8px">version 2026-08-04.1</div>
 </div>
 
 <!-- MOVIMIENTOS (gastos + ingresos en una sola pestana) -->
@@ -1412,6 +1412,31 @@ async function loadFromFirebase() {
           if (Number.isFinite(resultado) && resultado>0) msftOp.montoMxn=resultado;
         } catch(e) { console.error('seed jul31b',e); }
       }
+    }
+    // SIEMBRA 4-ago: compra de SPCX (SpaceX via Revolut) segun el recibo: $60 USD que
+    // compraron 0.47468805 acciones; la transferencia real fue de M$1,040.81 desde
+    // Revolut MXN. cuenta 'externo': Roberto ajusta ese saldo a mano (igual que las
+    // siembras anteriores, para no descontar dos veces si ya lo corrigio).
+    if (!(mDoc.exists() && mDoc.data().seedAgo04 === true)) {
+      try {
+        const spcxRef = doc(db,'stocksOps','seed-spcx-2026-08-04');
+        const nueva = await runTransaction(db, async tx => {
+          const mSnap = await tx.get(doc(db,'cartera','mercado'));
+          const opSnapTx = await tx.get(spcxRef);
+          if (opSnapTx.exists()) {
+            if (!(mSnap.exists() && mSnap.data().seedAgo04 === true)) tx.set(doc(db,'cartera','mercado'),{seedAgo04:true},{merge:true});
+            return {id:spcxRef.id,...opSnapTx.data()};
+          }
+          const op={tipo:'compra',simbolo:'SPCX',acciones:0.47468805,montoMxn:1040.81,cuenta:'externo',fecha:'2026-08-04',nota:'compra ($60 USD @ $126.40 · SpaceX en Revolut)',creado:new Date().toISOString()};
+          tx.set(spcxRef,op);
+          tx.set(doc(db,'cartera','mercado'),{seedAgo04:true},{merge:true});
+          return {id:spcxRef.id,...op};
+        });
+        if (nueva && !state.stocksOps.some(o=>o.id===nueva.id)) {
+          state.stocksOps.push(nueva);
+          state.stocksOps.sort((a,b)=>a.fecha<b.fecha?-1:a.fecha>b.fecha?1:0);
+        }
+      } catch(e) { console.error('seed ago04',e); }
     }
     derivarPosiciones();
     // doc canonico de posiciones: lo valida y actualiza la transaccion de compra/venta
