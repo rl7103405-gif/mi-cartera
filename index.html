@@ -618,6 +618,9 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
     </div>
     <div class="row2" style="gap:8px">
       <div class="field"><label>total en pesos</label><input type="number" id="stock-monto" placeholder="ej. 523.39" step="0.01" inputmode="decimal"></div>
+      <div class="field"><label>total en dolares (opcional)</label><input type="number" id="stock-usd" placeholder="ej. 30.00" step="0.01" inputmode="decimal"></div>
+    </div>
+    <div class="row2" style="gap:8px">
       <div class="field"><label>cuenta</label>
         <select id="stock-cuenta">
           <option value="revolut">Revolut MXN</option>
@@ -625,8 +628,8 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
           <option value="nu">NU saldo</option>
         </select>
       </div>
+      <div class="field"><label>fecha (YYYY-MM-DD, vacia = hoy)</label><input type="text" id="stock-fecha" placeholder="hoy"></div>
     </div>
-    <div class="field"><label>fecha (YYYY-MM-DD, vacia = hoy)</label><input type="text" id="stock-fecha" placeholder="hoy"></div>
     <button class="btn btn-purple" id="stock-op-btn" onclick="enviarOpStock()">registrar compra</button>
     <datalist id="stock-symbols"></datalist>
   </div>
@@ -635,7 +638,7 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
   </div>
   </div>
   <div class="status" id="status-inicio">—</div>
-  <div class="status" style="margin-top:2px;padding-bottom:8px">version 2026-08-06.2</div>
+  <div class="status" style="margin-top:2px;padding-bottom:8px">version 2026-08-07.1</div>
 </div>
 
 <!-- MOVIMIENTOS (gastos + ingresos en una sola pestana) -->
@@ -1333,7 +1336,9 @@ async function loadFromFirebase() {
     const opsCrudas = opSnap.docs.map(d => ({id:d.id, ...d.data()}));
     state.stocksOps = opsCrudas.filter(o=>o&&typeof o.simbolo==='string'&&/^[A-Z][A-Z0-9.\-]{0,9}$/.test(o.simbolo)
         &&Number.isFinite(o.acciones)&&o.acciones>0&&(o.tipo==='compra'||o.tipo==='venta')
-        &&typeof o.fecha==='string'&&fechaCalendarioValida(o.fecha)&&o.fecha<=hoyLocal());
+        &&typeof o.fecha==='string'&&fechaCalendarioValida(o.fecha)&&o.fecha<=hoyLocal())
+      // montoUsd es opcional: un valor corrupto se descarta a null en vez de propagar NaN
+      .map(o=>({...o, montoUsd:(Number.isFinite(o.montoUsd)&&o.montoUsd>0)?o.montoUsd:null}));
     const opsInvalidas = opsCrudas.length - state.stocksOps.length;
     if (opsInvalidas>0) { console.warn('stocksOps invalidas:',opsInvalidas); showToast('aviso: '+opsInvalidas+' operacion(es) de bolsa no se pudieron leer'); }
     // SIEMBRA 30-jul (ledger inicial): las dos compras reales de Roberto segun sus recibos
@@ -1456,6 +1461,62 @@ async function loadFromFirebase() {
           state.stocksOps.sort((a,b)=>a.fecha<b.fecha?-1:a.fecha>b.fecha?1:0);
         }
       } catch(e) { console.error('seed ago04',e); }
+    }
+    // SIEMBRA 7-ago: dos correcciones sobre las compras ya sembradas.
+    // (a) MSFT: el recibo real de Revolut dice 0.06666666 acciones a $450.00 exactos;
+    //     la siembra de jul-31 quedo en 0.06687472 @ $448.60 (lectura equivocada del recibo).
+    // (b) montoUsd: lo que costo cada compra EN DOLARES. Sin ese dato no se puede separar
+    //     cuanto gano la accion de cuanto movio el tipo de cambio, que es exactamente la
+    //     diferencia entre lo que muestra esta app (pesos reales) y lo que muestra el broker.
+    // Cada op se corrige SOLO si conserva el valor viejo: una edicion manual posterior manda.
+    if (!(mDoc.exists() && mDoc.data().seedAgo07 === true)) {
+      const CORR=[
+        {sim:'NVDA', fecha:'2026-07-23', usd:40},
+        {sim:'QQQ',  fecha:'2026-07-28', usd:400.01},
+        {sim:'MSFT', fecha:'2026-07-30', usd:30, accDe:0.06687472, accA:0.06666666},
+        {sim:'SPCX', fecha:'2026-08-04', usd:60}
+      ];
+      const objetivo=CORR.map(c=>({c, op:state.stocksOps.find(o=>o.id&&o.tipo==='compra'&&o.simbolo===c.sim&&o.fecha===c.fecha)}))
+        .filter(x=>x.op);
+      // si alguna compra aun no existe en memoria, NO se marca: se reintenta en la proxima carga
+      if (objetivo.length===CORR.length) {
+        try {
+          // la transaccion devuelve SIEMPRE el valor efectivo en Firestore (haya escrito o
+          // no), asi la memoria queda consistente aunque otro dispositivo gane la carrera
+          const efectivo = await runTransaction(db, async tx => {
+            const mSnap = await tx.get(doc(db,'cartera','mercado'));
+            const yaHecho = mSnap.exists() && mSnap.data().seedAgo07 === true;
+            const snaps=[];
+            for (const x of objetivo) snaps.push(await tx.get(doc(db,'stocksOps',x.op.id)));
+            const res=[];
+            objetivo.forEach((x,i)=>{
+              const s=snaps[i]; if(!s.exists()) return;
+              const d=s.data();
+              let mUsd=(Number.isFinite(d.montoUsd)&&d.montoUsd>0)?d.montoUsd:null;
+              let acc=d.acciones;
+              if(!yaHecho){
+                const cambios={};
+                if(mUsd===null){ cambios.montoUsd=x.c.usd; mUsd=x.c.usd; }
+                // bajar las unidades solo si NO hay ventas de ese simbolo: si las hubiera,
+                // la posicion podria quedar negativa y el clamp a cero lo escondería.
+                // (se consulta el ledger en memoria, no la transaccion: basta para una
+                // siembra de un solo uso en una app de un usuario; si este patron se
+                // reutiliza para correcciones recurrentes, leer las ventas con tx.get)
+                if(x.c.accA&&Math.round(acc*1e8)===Math.round(x.c.accDe*1e8)
+                   &&!state.stocksOps.some(o=>o.simbolo===x.c.sim&&o.tipo==='venta')){ cambios.acciones=x.c.accA; acc=x.c.accA; }
+                if(Object.keys(cambios).length) tx.update(doc(db,'stocksOps',x.op.id), cambios);
+              }
+              res.push({id:x.op.id, montoUsd:mUsd, acciones:acc});
+            });
+            if(!yaHecho) tx.set(doc(db,'cartera','mercado'), {seedAgo07:true}, {merge:true});
+            return res;
+          });
+          if (efectivo) efectivo.forEach(r=>{
+            const o=state.stocksOps.find(op=>op.id===r.id);
+            if(o){ o.montoUsd=r.montoUsd; if(Number.isFinite(r.acciones)&&r.acciones>0) o.acciones=r.acciones; }
+          });
+        } catch(e) { console.error('seed ago07',e); }
+      }
     }
     derivarPosiciones();
     // doc canonico de posiciones: lo valida y actualiza la transaccion de compra/venta
@@ -2902,15 +2963,23 @@ function pedirDatosStock() {
   if(!Number.isFinite(acciones)||acciones<=0){ showToast('numero de acciones no valido'); return null; }
   const monto=Math.round(Number(document.getElementById('stock-monto').value.trim())*100)/100;
   if(!Number.isFinite(monto)||monto<=0){ showToast('monto en pesos no valido'); return null; }
+  // opcional: lo que costo en dolares. Permite separar cuanto gano el papel de cuanto
+  // movio el tipo de cambio; si se deja vacio, esa comparacion se declara no disponible
+  const usdRaw=(document.getElementById('stock-usd')||{value:''}).value.trim();
+  let montoUsd=null;
+  if(usdRaw){
+    montoUsd=Math.round(Number(usdRaw)*100)/100;
+    if(!Number.isFinite(montoUsd)||montoUsd<=0){ showToast('total en dolares no valido'); return null; }
+  }
   const cuenta=document.getElementById('stock-cuenta').value;
   if(!CTAS_STOCK_OP.includes(cuenta)){ showToast('cuenta no valida'); return null; }
   const fRaw=document.getElementById('stock-fecha').value.trim();
   const fecha=fRaw||hoyLocal();
   if(!fechaCalendarioValida(fecha)||fecha>hoyLocal()){ showToast('fecha no valida'); return null; }
-  return {simbolo,acciones,monto,cuenta,fecha};
+  return {simbolo,acciones,monto,montoUsd,cuenta,fecha};
 }
 function limpiarFormStock() {
-  ['stock-simbolo','stock-acciones','stock-monto','stock-fecha'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
+  ['stock-simbolo','stock-acciones','stock-monto','stock-usd','stock-fecha'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
 }
 async function operarStock(tipo) {
   if(stockOpOcupado) return;
@@ -2938,7 +3007,7 @@ async function operarStock(tipo) {
         if(tipo==='venta'&&opUnits>actUnits) return {error:'no tienes tantas acciones de '+d.simbolo};
         const nuevoUnits=tipo==='compra'?actUnits+opUnits:actUnits-opUnits;
         const nuevoSaldo=Math.round((saldoActual+(tipo==='compra'?-d.monto:d.monto))*100)/100;
-        const op={tipo,simbolo:d.simbolo,acciones:d.acciones,montoMxn:d.monto,cuenta:d.cuenta,fecha:d.fecha,creado:new Date().toISOString()};
+        const op={tipo,simbolo:d.simbolo,acciones:d.acciones,montoMxn:d.monto,montoUsd:d.montoUsd,cuenta:d.cuenta,fecha:d.fecha,creado:new Date().toISOString()};
         const opRef=doc(collection(db,'stocksOps'));
         const trFecha=d.fecha===hoyLocal()?new Date().toISOString():d.fecha+'T00:00:00Z';
         const tr=tipo==='compra'
@@ -3257,6 +3326,25 @@ function calcDecisiones() {
   }
   const aportado=compras.reduce((t,o)=>t+(Number.isFinite(o.montoMxn)&&o.montoMxn>0?o.montoMxn:0),0);
   const sinMonto=compras.some(o=>!(Number.isFinite(o.montoMxn)&&o.montoMxn>0));
+  // ¿POR QUE EL BROKER MUESTRA OTRO NUMERO? Porque mide en dolares y convierte al tipo de
+  // cambio de hoy; esta app mide los pesos que de verdad salieron de la cuenta. La diferencia
+  // es el movimiento del dolar entre la compra y hoy. Se descompone en dos sumandos exactos:
+  //   valorMXN − aportadoMXN = (valorUSD − costoUSD)·fx  +  (costoUSD·fx − aportadoMXN)
+  //                             \___ganancia del papel__/    \______efecto del dolar______/
+  let costoUsd=null, valorUsd=null, rendPapel=null, efectoFx=null, pctUsd=null;
+  const sinUsd=compras.some(o=>!(Number.isFinite(o.montoUsd)&&o.montoUsd>0));
+  if(!sinUsd&&!sinMonto&&!hayVentas&&!monedaRara.length&&dia&&real!==null){
+    const fx=fxEn(dia);
+    let v=0, ok=Number.isFinite(fx)&&fx>0;
+    syms.forEach(sy=>{ const p=precioEn(sy,dia); if(p===null) ok=false; else v+=state.posiciones[sy].acciones*p; });
+    if(ok){
+      costoUsd=compras.reduce((t,o)=>t+o.montoUsd,0);
+      valorUsd=v;
+      rendPapel=(valorUsd-costoUsd)*fx;
+      efectoFx=costoUsd*fx-aportado;
+      if(costoUsd>0) pctUsd=(valorUsd-costoUsd)/costoUsd*100;
+    }
+  }
   // ESCENARIO 1: el mismo dinero en la cuenta de ahorro. OJO: usa la tasa de HOY aplicada a
   // todo el periodo (no hay historial de tasas), por eso se presenta como escenario, no como hecho
   let escAhorro=null;
@@ -3304,6 +3392,7 @@ function calcDecisiones() {
   }
   const fechasDistintas=new Set(compras.map(o=>o.fecha)).size;
   return {real,aportado,escAhorro,escMercado,refMotivo,conc,tasa,dia,
+    costoUsd,valorUsd,rendPapel,efectoFx,pctUsd,sinUsd,
     mesesDesde,obs,conAporte,hayVentas,sinMonto,monedaRara,
     suficiente:mesesDesde>=6&&fechasDistintas>=3};
 }
@@ -3321,6 +3410,17 @@ function renderDecisiones() {
     // con ventas, el dinero que saliste ya no esta en las acciones: comparar el valor
     // actual contra todo lo aportado mostraria una perdida que no existe
     F.push(fila('·','frente a lo que aportaste','no disponible: al vender, parte de tu dinero ya salio de las acciones','—'));
+  // por que el broker muestra otro numero: aqui se separa lo que gano el papel
+  // de lo que movio el dolar. Las dos lineas suman exacto la de arriba.
+  if(d.rendPapel!==null){
+    const usd=v=>'US$'+v.toFixed(2);
+    F.push(fila(d.rendPapel>=0?'📊':'📉','de eso, lo que ganaron las acciones',
+      'en dolares: '+usd(d.valorUsd)+' hoy contra '+usd(d.costoUsd)+' que costaron ('+(d.pctUsd>=0?'+':'−')+Math.abs(d.pctUsd).toFixed(2)+'%) · es la cifra que ves en tu broker',
+      (d.rendPapel>=0?'+':'−')+fmt(Math.abs(d.rendPapel)),d.rendPapel>=0?'green':'red'));
+    F.push(fila(d.efectoFx>=0?'💱':'💱','y lo que movio el dolar',
+      d.efectoFx>=0?'el dolar subio desde que compraste y eso te sumo en pesos':'el dolar bajo desde que compraste: parte de la ganancia en dolares no llego a tus pesos',
+      (d.efectoFx>=0?'+':'−')+fmt(Math.abs(d.efectoFx)),d.efectoFx>=0?'green':'red'));
+  }
   if(d.escAhorro!==null&&d.real!==null){
     const dif=d.real-d.escAhorro;
     F.push(fila(dif>=0?'✅':'🏦','si lo hubieras dejado en tu ahorro','escenario con tu tasa de hoy ('+d.tasa+'%) aplicada a todo el periodo · habrias tenido '+fmt(d.escAhorro),(dif>=0?'+':'−')+fmt(Math.abs(dif)),dif>=0?'green':'red'));
@@ -3334,8 +3434,18 @@ function renderDecisiones() {
   const nota=d.suficiente
     ? 'Es una comparacion de resultado hasta hoy, no una calificacion de tu habilidad: el mercado se mueve por razones que nadie controla.'
     : 'Llevas '+d.mesesDesde+' mes(es) invirtiendo: es muy pronto para sacar conclusiones. A corto plazo el resultado depende mas del azar que de tus decisiones, asi que toma estos numeros como informacion, no como veredicto.';
+  // el broker convierte con su propio tipo de cambio (con su margen); esta app usa el de
+  // referencia del mercado. Decirlo antes evita que una diferencia de centavos parezca un error
+  // si la descomposicion no se puede hacer, se dice POR QUE: dos filas que desaparecen
+  // sin explicacion se leen como un error de la app
+  let porQueFx='';
+  if(d.rendPapel!==null) porQueFx='tu broker convierte con su propio tipo de cambio, asi que sus cifras pueden diferir de estas por unos centavos.';
+  else if(d.sinUsd) porQueFx='para separar cuanto ganaron las acciones de cuanto movio el dolar, captura el total en dolares al registrar cada compra.';
+  else if(d.hayVentas) porQueFx='con ventas registradas no se puede separar el efecto del dolar: parte del dinero ya salio de las acciones.';
+  else if(d.monedaRara.length) porQueFx='no se puede separar el efecto del dolar porque no todas tus posiciones cotizan en dolares.';
+  const notaFx=porQueFx?('<div class="item-meta" style="padding-top:6px">'+porQueFx+'</div>'):'';
   const aviso=d.monedaRara.length?('<div class="item-meta" style="padding-top:6px">ojo: '+escapeHtml(d.monedaRara.join(', '))+' no cotiza en dolares, su valor en pesos puede no ser exacto.</div>'):'';
-  el.innerHTML=F.join('')+aviso+'<div class="item-meta" style="padding-top:8px;line-height:1.45">'+nota+'</div>';
+  el.innerHTML=F.join('')+notaFx+aviso+'<div class="item-meta" style="padding-top:8px;line-height:1.45">'+nota+'</div>';
 }
 
 // ── SCORE Y PERFIL (pestana Metas) ────────────────────────────
