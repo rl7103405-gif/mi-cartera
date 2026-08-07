@@ -635,7 +635,7 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
   </div>
   </div>
   <div class="status" id="status-inicio">—</div>
-  <div class="status" style="margin-top:2px;padding-bottom:8px">version 2026-08-04.1</div>
+  <div class="status" style="margin-top:2px;padding-bottom:8px">version 2026-08-06.1</div>
 </div>
 
 <!-- MOVIMIENTOS (gastos + ingresos en una sola pestana) -->
@@ -737,6 +737,23 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
       <div class="item-meta" id="perfil-resumen">—</div>
       <div class="item-meta" style="margin-top:8px" id="perfil-fuente">—</div>
       <button type="button" class="btn btn-red" style="margin-top:12px" onclick="quitarFoto()">quitar foto de perfil</button>
+    </div>
+    <div class="section-title mt">tus datos y tu privacidad</div>
+    <div class="panel">
+      <div class="item-meta" style="line-height:1.5">
+        <b>Que se guarda:</b> lo que tu capturas — saldos, movimientos, deudas, metas, tu perfil y tu foto.
+        La app no pide claves de tu banco ni se conecta con el: todo lo escribes tu.<br><br>
+        <b>Donde:</b> en una base de datos de Google Firebase. Viaja cifrado y solo tu cuenta
+        puede leerlo desde la app.<br><br>
+        <b>Quien mas puede verlo:</b> quien administre el proyecto de Firebase donde vive esta
+        copia puede consultar los datos desde la consola de Google. Si esta app te la instalo
+        otra persona, esa persona tiene esa posibilidad tecnica.<br><br>
+        <b>Tus derechos:</b> puedes descargar todo lo tuyo cuando quieras con el boton de abajo,
+        y pedir que se borre por completo a quien administre la app.<br><br>
+        <b>Esto es una app casera</b>, no un servicio financiero: no guarda tu dinero, no mueve
+        fondos y no garantiza rendimientos. Verifica siempre contra las apps de tus bancos.
+      </div>
+      <button type="button" class="btn" style="margin-top:12px" onclick="exportarMisDatos()">descargar todos mis datos</button>
     </div>
   </div>
   </div>
@@ -3282,6 +3299,28 @@ async function guardarPerfil(cambios,msgOk) {
     return false;
   }finally{ perfilGuardando=false; }
 }
+// portabilidad: descarga en un archivo todo lo que la app guarda de esta persona
+window.exportarMisDatos = function() {
+  try{
+    const datos={
+      exportado:new Date().toISOString(),
+      perfil:state.perfil, saldos:saldosPayload(),
+      tarjetaNu:{deuda:state.tarjetaDeuda,movimientos:state.tarjetaMovimientos},
+      tarjetaRev:tarjetaRevPayload(),
+      gastos:state.gastos, ingresos:state.ingresos, transferencias:state.transferencias,
+      operacionesBolsa:state.stocksOps, personas:state.personas,
+      apartados:state.apartados, categorias:{gasto:state.catsGasto,ingreso:state.catsIngreso},
+      historial:state.snapshots
+    };
+    const blob=new Blob([JSON.stringify(datos,null,2)],{type:'application/json'});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');
+    a.href=url; a.download='mis-datos-'+hoyLocal()+'.json'; a.click();
+    setTimeout(()=>URL.revokeObjectURL(url),4000);
+    showToast('descargando tus datos...');
+  }catch(e){ console.error('exportarMisDatos',e); showToast('no se pudo generar el archivo'); }
+};
+
 window.editarPerfil = async function() {
   const p={...(state.perfil||{})};
   const anoAct=new Date().getFullYear();
