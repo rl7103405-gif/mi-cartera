@@ -635,7 +635,7 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
   </div>
   </div>
   <div class="status" id="status-inicio">—</div>
-  <div class="status" style="margin-top:2px;padding-bottom:8px">version 2026-08-06.1</div>
+  <div class="status" style="margin-top:2px;padding-bottom:8px">version 2026-08-06.2</div>
 </div>
 
 <!-- MOVIMIENTOS (gastos + ingresos en una sola pestana) -->
@@ -738,6 +738,8 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
       <div class="item-meta" style="margin-top:8px" id="perfil-fuente">—</div>
       <button type="button" class="btn btn-red" style="margin-top:12px" onclick="quitarFoto()">quitar foto de perfil</button>
     </div>
+    <div class="section-title mt">tus inversiones frente a otras opciones</div>
+    <div class="panel" id="decisiones-panel"><div class="empty-state">calculando...</div></div>
     <div class="section-title mt">tus datos y tu privacidad</div>
     <div class="panel">
       <div class="item-meta" style="line-height:1.5">
@@ -1645,7 +1647,7 @@ window.showPage = function(p) {
   if(p==='movimientos') renderMovimientos();
   if(p==='deudas') renderDeudas();
   if(p==='noticias') abrirNoticias(); // carga perezosa: cache primero, refresco si esta viejo
-  if(p==='perfil'){ renderPerfil(); renderScore(); }
+  if(p==='perfil'){ renderPerfil(); renderScore(); renderDecisiones(); }
 };
 window.togglePrivado = function() {
   modoPrivado=!modoPrivado;
@@ -2117,7 +2119,7 @@ function render() {
   renderApartados();
   renderStockDatalist();
   renderResumenCorto();
-  renderScore(); renderPerfil();
+  renderScore(); renderPerfil(); renderDecisiones();
   checkPremium();
   const now=new Date();
   document.getElementById('last-update').textContent='actualizado '+now.toLocaleDateString('es-MX',{day:'numeric',month:'short'})+' · '+now.toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'});
@@ -3206,6 +3208,136 @@ function renderDistribucion(ahorro, inversiones, disponible, garantia, nvdaPendi
 }
 
 // ── METAS Y AVISOS ────────────────────────────────────────────
+// ── TUS DECISIONES DE INVERSION FRENTE A OTRAS OPCIONES ───────
+// NO mide habilidad (a corto plazo manda el azar): compara tu resultado real contra
+// que habria pasado con el mismo dinero, en las mismas fechas, en dos alternativas.
+// Todo se valua en UNA fecha comun; si falta un dato, la comparacion se declara no disponible.
+const REF_MERCADO='VOO';
+function precioEn(sym,dia) { // cierre EXACTO de ese dia: rellenar con el anterior mentiria
+  const mk=state.accionesMkt[sym];
+  if(!mk||!Array.isArray(mk.hist)) return null;
+  const p=mk.hist.find(x=>x.t===dia);
+  return p?p.c:null;
+}
+function fxEn(dia) {
+  const f=(state.usdMxnHistory||[]).find(x=>x.t===dia);
+  return f?f.c:null;
+}
+// ultimo dia con cierre comun a todas las posiciones y al tipo de cambio.
+// Esta es la UNICA fecha de valuacion del panel: comparar cifras de dias distintos
+// (cartera de hoy vs referencia de ayer vs ahorro hasta este instante) daria diferencias falsas.
+function diaComun() {
+  const fx=(state.usdMxnHistory||[]).map(p=>p.t);
+  if(!fx.length) return null;
+  let comunes=fx.slice();
+  const syms=Object.keys(state.posiciones||{}).filter(k=>state.posiciones[k].acciones>0);
+  for(const sy of syms){
+    const mk=state.accionesMkt[sy];
+    if(!mk||!Array.isArray(mk.hist)||!mk.hist.length) return null;
+    const set=new Set(mk.hist.map(p=>p.t));
+    comunes=comunes.filter(t=>set.has(t));
+  }
+  comunes.sort();
+  return comunes.length?comunes[comunes.length-1]:null;
+}
+function calcDecisiones() {
+  const ops=(state.stocksOps||[]).slice().sort((a,b)=>a.fecha<b.fecha?-1:1);
+  const compras=ops.filter(o=>o.tipo==='compra');
+  if(!compras.length) return null;
+  const hayVentas=ops.some(o=>o.tipo==='venta');
+  const syms=Object.keys(state.posiciones||{}).filter(k=>state.posiciones[k].acciones>0);
+  // un ticker que no cotice en dolares falsearia el valor al multiplicarlo por el tipo de cambio
+  const monedaRara=syms.filter(sy=>{ const m=state.accionesMkt[sy]; return m&&m.moneda&&m.moneda!=='USD'; });
+  const dia=diaComun(); // unica fecha de valuacion para las tres cifras
+  let real=null;
+  if(dia){
+    const fx=fxEn(dia); let v=0, ok=!!fx;
+    syms.forEach(sy=>{ const p=precioEn(sy,dia); if(p===null||!ok) ok=false; else v+=state.posiciones[sy].acciones*p*fx; });
+    if(ok) real=v;
+  }
+  const aportado=compras.reduce((t,o)=>t+(Number.isFinite(o.montoMxn)&&o.montoMxn>0?o.montoMxn:0),0);
+  const sinMonto=compras.some(o=>!(Number.isFinite(o.montoMxn)&&o.montoMxn>0));
+  // ESCENARIO 1: el mismo dinero en la cuenta de ahorro. OJO: usa la tasa de HOY aplicada a
+  // todo el periodo (no hay historial de tasas), por eso se presenta como escenario, no como hecho
+  let escAhorro=null;
+  const tasa=state.revSavingsTasa||0;
+  // se corta en la MISMA fecha de valuacion: hasta hoy sumaria intereses que la
+  // cartera real (congelada en el ultimo cierre) todavia no refleja
+  if(!sinMonto&&tasa>0&&!hayVentas&&dia)
+    escAhorro=compras.reduce((t,o)=>t+calcCompoundAt(o.montoMxn,o.fecha,tasa,parseFechaLocal(dia).getTime()),0);
+  // ESCENARIO 2: el mismo dinero en el S&P 500, comprando en las mismas fechas
+  let escMercado=null, refMotivo='';
+  if(hayVentas) refMotivo='no disponible: tienes ventas registradas y la comparacion se vuelve ambigua';
+  else if(sinMonto) refMotivo='no disponible: hay compras sin monto en pesos capturado';
+  else if(!dia) refMotivo='no disponible: falta historial de precios o de tipo de cambio';
+  else {
+    // la referencia se valua en la MISMA fecha que la cartera; si ese dia no tiene
+    // cierre de VOO, se declara no disponible en vez de mezclar fechas
+    const pFin=precioEn(REF_MERCADO,dia), fxFin=fxEn(dia);
+    if(pFin===null||fxFin===null) refMotivo='no disponible: sin cotizacion de la referencia el '+dia;
+    else {
+      let unidades=0, ok=true;
+      for(const o of compras){
+        const p=precioEn(REF_MERCADO,o.fecha), f=fxEn(o.fecha);
+        if(p===null||f===null){ ok=false; refMotivo='no disponible: no hay precio de referencia del '+o.fecha; break; }
+        unidades+=o.montoMxn/(p*f);
+      }
+      if(ok) escMercado=unidades*pFin*fxFin;
+    }
+  }
+  // concentracion DENTRO de las acciones (no sobre el patrimonio)
+  let conc=null;
+  if(real!==null&&real>0&&dia){
+    const fx=fxEn(dia);
+    const vals=syms.map(sy=>({sy,v:state.posiciones[sy].acciones*(precioEn(sy,dia)||0)*fx})).sort((a,b)=>b.v-a.v);
+    if(vals.length) conc={sym:vals[0].sy,pct:vals[0].v/real*100,n:vals.length};
+  }
+  // constancia: meses OBSERVADOS (desde la primera compra, tope 6) con al menos una compra
+  const prim=parseFechaLocal(compras[0].fecha), hoyD=new Date();
+  const mesesDesde=Math.max(1,(hoyD.getFullYear()-prim.getFullYear())*12+(hoyD.getMonth()-prim.getMonth())+1);
+  const obs=Math.min(6,mesesDesde);
+  const mesesCompra=new Set(compras.map(o=>o.fecha.slice(0,7)));
+  let conAporte=0;
+  for(let i=0;i<obs;i++){
+    const d2=new Date(hoyD.getFullYear(),hoyD.getMonth()-i,1);
+    if(mesesCompra.has(d2.getFullYear()+'-'+String(d2.getMonth()+1).padStart(2,'0'))) conAporte++;
+  }
+  const fechasDistintas=new Set(compras.map(o=>o.fecha)).size;
+  return {real,aportado,escAhorro,escMercado,refMotivo,conc,tasa,dia,
+    mesesDesde,obs,conAporte,hayVentas,sinMonto,monedaRara,
+    suficiente:mesesDesde>=6&&fechasDistintas>=3};
+}
+function renderDecisiones() {
+  const el=document.getElementById('decisiones-panel'); if(!el) return;
+  const d=calcDecisiones();
+  if(!d){ el.innerHTML='<div class="empty-state">cuando registres tu primera compra de acciones, aqui comparamos como te fue frente a otras opciones</div>'; return; }
+  const fila=(ico,tit,meta,val,cls)=>`<div class="item-row"><div><div class="item-cat">${ico} ${escapeHtml(tit)}</div><div class="item-meta">${escapeHtml(meta)}</div></div><div style="font-size:14px;font-weight:600${cls?(';color:var(--'+cls+')'):''}">${escapeHtml(val)}</div></div>`;
+  const F=[];
+  F.push(fila('💼','valor de tus acciones hoy','aportaste '+fmt(d.aportado)+(d.dia?(' · al cierre del '+d.dia):''),d.real===null?'—':fmt(d.real)));
+  if(d.real!==null&&!d.hayVentas){
+    const dif=d.real-d.aportado;
+    F.push(fila(dif>=0?'📈':'📉','frente a lo que aportaste','tu dinero '+(dif>=0?'vale mas':'vale menos')+' que lo que metiste',(dif>=0?'+':'−')+fmt(Math.abs(dif)),dif>=0?'green':'red'));
+  } else if(d.hayVentas)
+    // con ventas, el dinero que saliste ya no esta en las acciones: comparar el valor
+    // actual contra todo lo aportado mostraria una perdida que no existe
+    F.push(fila('·','frente a lo que aportaste','no disponible: al vender, parte de tu dinero ya salio de las acciones','—'));
+  if(d.escAhorro!==null&&d.real!==null){
+    const dif=d.real-d.escAhorro;
+    F.push(fila(dif>=0?'✅':'🏦','si lo hubieras dejado en tu ahorro','escenario con tu tasa de hoy ('+d.tasa+'%) aplicada a todo el periodo · habrias tenido '+fmt(d.escAhorro),(dif>=0?'+':'−')+fmt(Math.abs(dif)),dif>=0?'green':'red'));
+  } else F.push(fila('🏦','si lo hubieras dejado en tu ahorro',d.hayVentas?'no disponible: tienes ventas registradas':'no disponible con los datos actuales','—'));
+  if(d.escMercado!==null&&d.real!==null){
+    const dif=d.real-d.escMercado;
+    F.push(fila(dif>=0?'✅':'📊','si hubieras comprado el S&P 500','mismas fechas y montos en VOO (por precio, sin dividendos) · habrias tenido '+fmt(d.escMercado),(dif>=0?'+':'−')+fmt(Math.abs(dif)),dif>=0?'green':'red'));
+  } else F.push(fila('📊','si hubieras comprado el S&P 500',d.refMotivo||'no disponible','—'));
+  if(d.conc) F.push(fila(d.conc.pct>50?'⚠️':'·','concentracion',d.conc.pct>50?('mas de la mitad esta en un solo papel, de '+d.conc.n+' que tienes'):('repartido en '+d.conc.n+' papel(es)'),d.conc.sym+' '+d.conc.pct.toFixed(0)+'%'));
+  F.push(fila('📅','constancia','meses en los que aportaste, de los '+d.obs+' que llevas invirtiendo',d.conAporte+' de '+d.obs));
+  const nota=d.suficiente
+    ? 'Es una comparacion de resultado hasta hoy, no una calificacion de tu habilidad: el mercado se mueve por razones que nadie controla.'
+    : 'Llevas '+d.mesesDesde+' mes(es) invirtiendo: es muy pronto para sacar conclusiones. A corto plazo el resultado depende mas del azar que de tus decisiones, asi que toma estos numeros como informacion, no como veredicto.';
+  const aviso=d.monedaRara.length?('<div class="item-meta" style="padding-top:6px">ojo: '+escapeHtml(d.monedaRara.join(', '))+' no cotiza en dolares, su valor en pesos puede no ser exacto.</div>'):'';
+  el.innerHTML=F.join('')+aviso+'<div class="item-meta" style="padding-top:8px;line-height:1.45">'+nota+'</div>';
+}
+
 // ── SCORE Y PERFIL (pestana Metas) ────────────────────────────
 function renderScore() {
   const el=document.getElementById('score-panel'); if(!el) return;
@@ -4189,7 +4321,7 @@ window.cambiarMes=d=>{state.mesOffset+=d;renderResumen();};
 // helper unico: baja la serie diaria de un simbolo con validacion completa
 // (HTTP, JSON del proxy, chart.error, timestamps y precios finitos positivos)
 async function fetchYahooSeries(symbol) {
-  const url=`https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?interval=1d&range=6mo`;
+  const url=`https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?interval=1d&range=1y`;
   const proxies=[u=>`https://api.allorigins.win/get?url=${encodeURIComponent(u)}`,u=>`https://corsproxy.io/?${encodeURIComponent(u)}`];
   for(const proxy of proxies){
     try{
@@ -4204,7 +4336,7 @@ async function fetchYahooSeries(symbol) {
       const closes=(res.indicators&&res.indicators.quote&&res.indicators.quote[0]&&res.indicators.quote[0].close)||[];
       const hist=[];
       for(let i=0;i<ts.length;i++){ if(Number.isFinite(closes[i])&&closes[i]>0) hist.push({t:new Date(ts[i]*1000).toISOString().split('T')[0], c:closes[i]}); }
-      if(hist.length) return hist;
+      if(hist.length){ hist.moneda=(res.meta&&res.meta.currency)||''; return hist; }
     }catch(e){ console.error('fetchYahooSeries '+symbol,e); }
   }
   return null;
@@ -4218,16 +4350,19 @@ async function fetchStocks() {
   if(!syms.length) return true;
   const prev={accionesMkt:state.accionesMkt,usdMxn:state.usdMxn,usdMxnPrev:state.usdMxnPrev,
     usdMxnFecha:state.usdMxnFecha,usdMxnHistory:state.usdMxnHistory};
-  const res=await Promise.allSettled([...syms.map(sm=>fetchYahooSeries(sm)),fetchYahooSeries('MXN=X')]);
+  // VOO (S&P 500) se baja siempre como referencia para comparar decisiones, aunque no se tenga
+  const REF=REF_MERCADO;
+  const pedir=[...syms,...(syms.includes(REF)?[]:[REF])];
+  const res=await Promise.allSettled([...pedir.map(sm=>fetchYahooSeries(sm)),fetchYahooSeries('MXN=X')]);
   const cambios={}; let algun=false, todo=true;
   const nuevoMkt={...state.accionesMkt};
-  syms.forEach((sm,i)=>{
+  pedir.forEach((sm,i)=>{
     const serie=res[i].status==='fulfilled'?res[i].value:null;
     if(serie&&serie.length){
       nuevoMkt[sm]={precio:serie[serie.length-1].c, prev:serie.length>=2?serie[serie.length-2].c:null,
-        fecha:serie[serie.length-1].t, hist:serie.map(p=>({t:p.t,c:+p.c.toFixed(2)}))};
+        fecha:serie[serie.length-1].t, moneda:serie.moneda||'', hist:serie.map(p=>({t:p.t,c:+p.c.toFixed(2)}))};
       algun=true;
-    } else todo=false;
+    } else if(syms.includes(sm)) todo=false; // si falla solo la referencia, no rompe el total
   });
   const fxRes=res[res.length-1]; const fxS=fxRes.status==='fulfilled'?fxRes.value:null;
   if(fxS&&fxS.length){
