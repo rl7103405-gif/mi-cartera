@@ -2,12 +2,14 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     // App personal de un solo usuario: solo la cuenta de Roberto puede leer/escribir.
-    // Fijada por UID inmutable (mas robusto que por email: el UID es unico, no reusable
-    // y no depende de que el correo este verificado ni de que nunca cambie).
-    // Cubre todo: cartera/*, gastos, ingresos, transferencias, stocksOps y futuras.
+    // Autoriza por email (regla probada en vivo: bloquea a anonimos y a otros correos).
+    // NOTA: se intento fijar por UID (commit f01f8da) pero el UID copiado a mano no
+    // coincidia con la sesion y bloqueaba al propio dueno; se revirtio a email, que es
+    // seguro y estable. Si algun dia se re-intenta el UID, leerlo desde la app (no
+    // copiarlo del panel) para no equivocar el caracter.
     match /{document=**} {
       allow read, write: if request.auth != null
-        && request.auth.uid == 'bafQTqrYdmhSYpPaRx3GfYyfuCj2';
+        && request.auth.token.email == 'rl7103405@gmail.com';
     }
   }
 }
