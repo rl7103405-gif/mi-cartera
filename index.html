@@ -13,9 +13,9 @@
 <script>
 // tema ANTES de pintar (evita el destello del tema anterior); allowlist estricta
 (function(){try{var t=localStorage.getItem('tema');
-  if(['azul','morado','arena','grafito'].indexOf(t)>=0){
+  if(['azul','morado','arena','grafito','rosa','fucsia'].indexOf(t)>=0){
     document.documentElement.setAttribute('data-tema',t);
-    var colores={azul:'#eaf0f7',morado:'#f1ecf7',arena:'#f6f1e7',grafito:'#14171a'};
+    var colores={azul:'#eaf0f7',morado:'#f1ecf7',arena:'#f6f1e7',grafito:'#14171a',rosa:'#f8ecf1',fucsia:'#fce9f1'};
     var meta=document.querySelector('meta[name="theme-color"]');
     if(meta) meta.setAttribute('content',colores[t]);
   }}catch(e){}})();
@@ -32,6 +32,8 @@ html[data-tema='morado']{--bg:#f1ecf7;--bg3:#f3eff9;--border:rgba(88,44,140,0.10
   --g1:rgba(255,255,255,0.55);--g2:rgba(107,63,160,0.10);--g3:#ece4f6;--g4:#f6f1fc;--g5:#eae2f5;--nav-bg:rgba(243,239,249,0.75);--tj1:#251437;--tj2:#6b3fa0;--tj-borde:rgba(107,63,160,0.35);--chip-r:rgba(107,63,160,0.10);--sup-borde:rgba(255,255,255,0.85)}
 html[data-tema='arena']{--bg:#f6f1e7;--bg3:#f8f4ec;--border:rgba(140,105,45,0.12);--border2:rgba(60,48,30,0.18);--text:#33291a;--muted:#7d715e;--green:#1d7d55;--red:#c04a3a;--accent:#a97c2f;--accent-dark:#7d5a1f;--sombra:0 1px 2px rgba(60,48,30,0.05),0 12px 36px rgba(140,105,45,0.12);
   --g1:rgba(255,255,255,0.55);--g2:rgba(169,124,47,0.10);--g3:#f2ebdd;--g4:#faf6ee;--g5:#efe7d8;--nav-bg:rgba(248,244,236,0.78);--tj1:#3a2c14;--tj2:#a97c2f;--tj-borde:rgba(169,124,47,0.35);--chip-r:rgba(169,124,47,0.12);--sup-borde:rgba(255,255,255,0.85)}
+html[data-tema='rosa']{--bg:#f8ecf1;--bg3:#faeff3;--border:rgba(150,50,95,0.10);--border2:rgba(60,26,40,0.18);--text:#3a1a29;--muted:#836170;--green:#1d7d55;--red:#c04a3a;--accent:#bf5388;--accent-dark:#8e3560;--sombra:0 1px 2px rgba(60,26,40,0.05),0 12px 36px rgba(150,50,95,0.12);}
+html[data-tema='fucsia']{--bg:#fce9f1;--bg3:#fdecf4;--border:rgba(190,35,110,0.10);--border2:rgba(70,20,48,0.18);--text:#3f1329;--muted:#8a5c70;--green:#1d7d55;--red:#c04a3a;--accent:#d42d80;--accent-dark:#a41f60;--sombra:0 1px 2px rgba(70,20,48,0.05),0 12px 36px rgba(190,35,110,0.12);}
 html[data-tema='grafito']{color-scheme:dark;--bg:#14171a;--bg2:rgba(32,36,40,0.85);--bg2s:#202428;--bg3:#1b1f23;--border:rgba(255,255,255,0.08);--border2:rgba(255,255,255,0.16);--text:#e9edf0;--muted:#95a0a8;--green:#39b98a;--red:#e2705f;--accent:#4fa882;--accent-dark:#6fc79f;--sombra:0 1px 2px rgba(0,0,0,0.4),0 12px 36px rgba(0,0,0,0.5);
   --g1:rgba(255,255,255,0.04);--g2:rgba(79,168,130,0.10);--g3:#131719;--g4:#181c20;--g5:#111417;--nav-bg:rgba(20,23,26,0.8);--tj1:#0f2a1d;--tj2:#2c6b4d;--tj-borde:rgba(79,168,130,0.35);--chip-r:rgba(79,168,130,0.14);--sup-borde:rgba(255,255,255,0.06)}
 /* selector de temas */
@@ -364,6 +366,8 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
         <button type="button" class="tema-chip" data-tema="morado" aria-label="morado" title="morado" style="background:linear-gradient(135deg,#6b3fa0,#ece4f6)" onclick="setTema('morado')"></button>
         <button type="button" class="tema-chip" data-tema="arena" aria-label="arena" title="arena" style="background:linear-gradient(135deg,#a97c2f,#f2ebdd)" onclick="setTema('arena')"></button>
         <button type="button" class="tema-chip" data-tema="grafito" aria-label="grafito oscuro" title="grafito oscuro" style="background:linear-gradient(135deg,#4fa882,#14171a)" onclick="setTema('grafito')"></button>
+        <button type="button" class="tema-chip" data-tema="rosa" aria-label="rosa" title="rosa" style="background:linear-gradient(135deg,#bf5388,#f5e2ea)" onclick="setTema('rosa')"></button>
+        <button type="button" class="tema-chip" data-tema="fucsia" aria-label="fucsia" title="fucsia" style="background:linear-gradient(135deg,#d42d80,#fbe0ec)" onclick="setTema('fucsia')"></button>
       </div>
       <div class="item-meta" style="margin-top:10px">se guarda en este dispositivo</div>
     </div>
@@ -638,7 +642,7 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
   </div>
   </div>
   <div class="status" id="status-inicio">—</div>
-  <div class="status" style="margin-top:2px;padding-bottom:8px">version 2026-08-09.1</div>
+  <div class="status" style="margin-top:2px;padding-bottom:8px">version 2026-08-11.1</div>
 </div>
 
 <!-- MOVIMIENTOS (gastos + ingresos en una sola pestana) -->
@@ -1879,8 +1883,8 @@ window.editarWatchlist = function() {
 };
 
 // ── TEMAS DE COLOR ────────────────────────────────────────────
-const TEMAS_OK=['','azul','morado','arena','grafito'];
-const TEMA_META={'':'#ecf2ea',azul:'#eaf0f7',morado:'#f1ecf7',arena:'#f6f1e7',grafito:'#14171a'};
+const TEMAS_OK=['','azul','morado','arena','grafito','rosa','fucsia'];
+const TEMA_META={'':'#ecf2ea',azul:'#eaf0f7',morado:'#f1ecf7',arena:'#f6f1e7',grafito:'#14171a',rosa:'#f8ecf1',fucsia:'#fce9f1'};
 window.setTema = t => {
   if(!TEMAS_OK.includes(t)) t='';
   if(t) document.documentElement.setAttribute('data-tema',t);
