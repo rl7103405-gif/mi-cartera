@@ -1,15 +1,15 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // App personal de un solo usuario: solo la cuenta de Roberto puede leer/escribir.
-    // Autoriza por email (regla probada en vivo: bloquea a anonimos y a otros correos).
-    // NOTA: se intento fijar por UID (commit f01f8da) pero el UID copiado a mano no
-    // coincidia con la sesion y bloqueaba al propio dueno; se revirtio a email, que es
-    // seguro y estable. Si algun dia se re-intenta el UID, leerlo desde la app (no
-    // copiarlo del panel) para no equivocar el caracter.
+    // DOS usuarios en el mismo proyecto Firebase, cada quien lleva su propia cartera:
+    // Roberto (rl7103405@gmail.com) y Zoe (zoe.frei@outlook.de). Ambas cuentas
+    // autorizadas. Regla probada en vivo: bloquea a anonimos y a cualquier otro correo.
+    // NOTA: hoy ambos correos pueden leer/escribir cualquier doc (no hay aislamiento por
+    // usuario a nivel reglas). Si se quiere que ninguno vea los datos del otro, hay que
+    // namespacar los documentos por UID y separarlos por regla — pendiente por mapear.
     match /{document=**} {
       allow read, write: if request.auth != null
-        && request.auth.token.email == 'rl7103405@gmail.com';
+        && request.auth.token.email in ['rl7103405@gmail.com', 'zoe.frei@outlook.de'];
     }
   }
 }
