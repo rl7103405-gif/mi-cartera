@@ -299,6 +299,7 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
 <div class="loading-overlay" id="loading-overlay">
   <div style="font-size:28px">&#128178;</div>
   <div class="loading-text">cargando tu cartera...</div>
+  <button type="button" id="reintentar-login" class="btn" style="display:none;margin-top:14px;max-width:240px" onclick="reintentarLogin()">volver a iniciar sesion</button>
 </div>
 
 <div class="safe-top"></div>
@@ -642,7 +643,7 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
   </div>
   </div>
   <div class="status" id="status-inicio">—</div>
-  <div class="status" style="margin-top:2px;padding-bottom:8px">version 2026-08-11.1</div>
+  <div class="status" style="margin-top:2px;padding-bottom:8px">version 2026-08-11.2</div>
 </div>
 
 <!-- MOVIMIENTOS (gastos + ingresos en una sola pestana) -->
@@ -1019,6 +1020,14 @@ window.doLogout = async function() {
   await signOut(auth);
 };
 
+// recuperacion: si la sesion guardada quedo en mal estado (token viejo tras un cambio
+// de reglas) y por eso no cargan los datos, cerrar sesion y recargar deja la pantalla
+// de login limpia para re-autenticar con un token fresco.
+window.reintentarLogin = async function() {
+  try { await signOut(auth); } catch(e) {}
+  location.reload();
+};
+
 // Enter key on login
 document.getElementById('login-pass').addEventListener('keydown', e => { if (e.key === 'Enter') window.doLogin(); });
 
@@ -1030,7 +1039,8 @@ onAuthStateChanged(auth, async user => {
     if (!ok) {
       // no se pudo cargar de Firebase: NO seguir con datos DEFAULT en memoria
       // (se sobreescribirian los datos reales en la siguiente escritura). Se bloquea la app.
-      document.querySelector('.loading-text').textContent = 'error al cargar tus datos — recarga la pagina';
+      document.querySelector('.loading-text').textContent = 'error al cargar tus datos';
+      const btnRe=document.getElementById('reintentar-login'); if(btnRe) btnRe.style.display='';
       showToast('ERROR al cargar datos de Firebase');
       return;
     }
