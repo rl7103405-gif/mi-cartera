@@ -1291,7 +1291,20 @@ async function loadFromFirebase() {
     }
     const pDoc = await getDoc(doc(db,'cartera','personas'));
     if (pDoc.exists()) {
-      state.personas = pDoc.data().data || state.personas;
+      // el campo data debe ser un MAP {clave:persona}. Si quedo como ARRAY (dato viejo
+      // de una version previa), Firestore descarta las claves nombradas al guardar y la
+      // persona nunca persiste: se normaliza a objeto, rescatando personas que hubieran
+      // quedado como elementos del array.
+      const _rawP = pDoc.data().data;
+      if (_rawP && typeof _rawP === 'object' && !Array.isArray(_rawP)) {
+        state.personas = _rawP;
+      } else if (Array.isArray(_rawP)) {
+        const _m = {};
+        _rawP.forEach((p,i) => { if (p && typeof p === 'object') { const k=String(p.nombre||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-zA-Z0-9]/g,'')||('persona'+i); _m[k]=p; } });
+        state.personas = _m;
+      } else {
+        state.personas = {};
+      }
       Object.values(state.personas).forEach(p => {
         if (!Array.isArray(p.movimientos)) p.movimientos = [];
         if (!Number.isFinite(p.saldo)) p.saldo = 0;
