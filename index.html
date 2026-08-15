@@ -2819,7 +2819,13 @@ let personaSelPrev='';
 function renderPersonaSelect() {
   const sel=document.getElementById('deuda-persona');
   const prev=Object.hasOwn(state.personas,sel.value)?sel.value:personaSelPrev;
-  sel.innerHTML=Object.entries(state.personas).map(([k,p])=>`<option value="${escapeHtml(k)}">${escapeHtml(p.nombre)}</option>`).join('')+'<option value="__nueva__">+ agregar persona...</option>';
+  const _opc=Object.entries(state.personas).map(([k,p])=>`<option value="${escapeHtml(k)}">${escapeHtml(p.nombre)}</option>`).join('');
+  // si la lista esta VACIA, "+ agregar persona" seria la unica opcion y ya estaria
+  // seleccionada; al pulsarla el valor NO cambia y el evento onchange NO dispara -> por
+  // eso "no pasaba nada". El placeholder deshabilitado garantiza que elegir "+ agregar"
+  // siempre cambie el valor y dispare handlePersonaChange.
+  const _ph=_opc?'':'<option value="" disabled selected>agrega tu primera persona…</option>';
+  sel.innerHTML=_ph+_opc+'<option value="__nueva__">+ agregar persona...</option>';
   if(Object.hasOwn(state.personas,prev)){ sel.value=prev; personaSelPrev=prev; }
 }
 window.handlePersonaChange = async function(sel) {
