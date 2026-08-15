@@ -38,6 +38,31 @@ html[data-tema='fucsia']{--bg:#fce9f1;--bg3:#fdecf4;--border:rgba(190,35,110,0.1
   --g1:rgba(255,255,255,0.55);--g2:rgba(212,45,128,0.10);--g3:#fbe0ec;--g4:#fef0f5;--g5:#f9dde9;--nav-bg:rgba(252,235,242,0.78);--tj1:#6d1443;--tj2:#d42d80;--tj-borde:rgba(212,45,128,0.35);--chip-r:rgba(212,45,128,0.12);--sup-borde:rgba(255,255,255,0.85)}
 html[data-tema='grafito']{color-scheme:dark;--bg:#14171a;--bg2:rgba(32,36,40,0.85);--bg2s:#202428;--bg3:#1b1f23;--border:rgba(255,255,255,0.08);--border2:rgba(255,255,255,0.16);--text:#e9edf0;--muted:#95a0a8;--green:#39b98a;--red:#e2705f;--accent:#4fa882;--accent-dark:#6fc79f;--sombra:0 1px 2px rgba(0,0,0,0.4),0 12px 36px rgba(0,0,0,0.5);
   --g1:rgba(255,255,255,0.04);--g2:rgba(79,168,130,0.10);--g3:#131719;--g4:#181c20;--g5:#111417;--nav-bg:rgba(20,23,26,0.8);--tj1:#0f2a1d;--tj2:#2c6b4d;--tj-borde:rgba(79,168,130,0.35);--chip-r:rgba(79,168,130,0.14);--sup-borde:rgba(255,255,255,0.06)}
+/* ESCALA DE DATOS (donut de distribucion + graficas): se DERIVA del acento del tema.
+   Antes eran verdes fijos en el JS, asi que al pasar a rosa/azul/arena el donut seguia
+   verde. Al definirla como tokens, cambiar de tema recolorea tambien las graficas —
+   y sin re-renderizar, porque el SVG consume var() en vivo.
+   d2 = mas oscuro (inversiones) · d1 = acento · d4 = medio · d3 = mas claro. */
+:root{
+  --d1:var(--accent);
+  --d2:color-mix(in srgb,var(--accent) 76%,#000);
+  --d3:color-mix(in srgb,var(--accent) 30%,#fff);
+  --d4:color-mix(in srgb,var(--accent) 58%,#fff);
+  /* texto de los chips de %: se deriva del ACENTO (no del tono claro) mezclado con
+     el color de texto del tema — si se derivara de d3/d4 el texto saldria lavado y
+     sin contraste sobre el chip. Asi queda legible en claros y en grafito. */
+  --d1t:color-mix(in srgb,var(--accent) 62%,var(--text));
+  --d2t:color-mix(in srgb,var(--d2) 78%,var(--text));
+  --d3t:color-mix(in srgb,var(--accent) 45%,var(--text));
+  --d4t:color-mix(in srgb,var(--accent) 60%,var(--text));
+  --sombra-acc:0 6px 18px color-mix(in srgb,var(--accent) 30%,transparent);
+  --sombra-acc-s:0 3px 10px color-mix(in srgb,var(--accent) 28%,transparent)}
+/* en grafito la escala se invierte: sobre fondo oscuro los tonos aclaran, nunca oscurecen */
+html[data-tema='grafito']{
+  --d1:color-mix(in srgb,var(--accent) 78%,#fff);
+  --d2:var(--accent);
+  --d3:color-mix(in srgb,var(--accent) 35%,#fff);
+  --d4:color-mix(in srgb,var(--accent) 55%,#fff)}
 /* selector de temas */
 /* PERFIL: avatar y encabezado */
 .perfil-hero{display:flex;align-items:center;gap:14px;margin-bottom:16px}
@@ -172,13 +197,13 @@ nav{position:sticky;top:0;z-index:100;background:var(--nav-bg);backdrop-filter:b
 .field select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23777' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;padding-right:32px}
 .btn{width:100%;padding:13px;background:var(--bg3);border:0.5px solid var(--border2);border-radius:var(--rs);color:var(--text);font-size:15px;font-weight:500;cursor:pointer;margin-top:4px}
 .btn:active{transform:scale(0.99)}
-.btn-purple{background:linear-gradient(115deg,#1c5c3f,#27794f);border:none;color:#fff;font-weight:600;box-shadow:0 6px 18px rgba(28,92,63,0.28)}
+.btn-purple{background:linear-gradient(115deg,var(--accent-dark),var(--accent));border:none;color:#fff;font-weight:600;box-shadow:var(--sombra-acc)}
 .btn-purple:active{opacity:0.9}
 .btn-green{background:rgba(29,125,85,0.08);border-color:var(--green);color:var(--green)}
 .btn-red{background:rgba(192,74,58,0.07);border-color:var(--red);color:var(--red)}
 .type-toggle{display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap}
 .type-opt{flex:1;min-width:calc(33% - 4px);padding:8px 4px;background:var(--bg3);border:0.5px solid var(--border);border-radius:var(--rs);color:var(--muted);font-size:12px;cursor:pointer;text-align:center;font-family:inherit}
-.type-opt.active{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600;box-shadow:0 3px 10px rgba(28,92,63,0.28)}
+.type-opt.active{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600;box-shadow:var(--sombra-acc-s)}
 
 /* ITEMS */
 .item-row{display:flex;justify-content:space-between;align-items:center;padding:11px 0;border-bottom:0.5px solid var(--border)}
@@ -235,7 +260,7 @@ nav{position:sticky;top:0;z-index:100;background:var(--nav-bg);backdrop-filter:b
 /* control segmentado: una capsula con la opcion activa rellena */
 .chart-ranges{display:flex;gap:2px;margin-bottom:12px;background:var(--bg3);border-radius:12px;padding:3px}
 .chart-range-btn{flex:1;padding:7px 0;background:transparent;border:none;border-radius:9px;color:var(--muted);font-size:11px;cursor:pointer;text-align:center;font-family:inherit;font-weight:500}
-.chart-range-btn.active{background:var(--accent);color:#fff;font-weight:600;box-shadow:0 2px 8px rgba(28,92,63,0.3)}
+.chart-range-btn.active{background:var(--accent);color:#fff;font-weight:600;box-shadow:var(--sombra-acc-s)}
 .chart-range-btn:disabled{opacity:0.3;cursor:default}
 .chart-last-pulse{transform-box:fill-box;transform-origin:center;animation:chartPulse 2s ease-out infinite}
 @keyframes chartPulse{0%{transform:scale(0.7);opacity:0.55}75%,100%{transform:scale(2.4);opacity:0}}
@@ -3182,18 +3207,18 @@ function chartBlock(chartId,data,color,deltaLabel) {
   return `${toolbar}<div class="chart-head"><div class="chart-val">${fmt(last)}</div><div class="chart-delta ${up?'pos':'neg'}">${deltaLabel?deltaLabel+' ':''}${up?'+':'−'}${fmt(Math.abs(delta))} · ${pctTxt}</div></div>
 <div class="chart-wrap"><svg viewBox="0 0 ${w} ${h}" style="width:100%;height:auto;display:block">
 <defs>
-<linearGradient id="${gid}" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="${color}" stop-opacity="0.28"/><stop offset="100%" stop-color="${color}" stop-opacity="0"/></linearGradient>
+<linearGradient id="${gid}" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" style="stop-color:${color};stop-opacity:0.28"/><stop offset="100%" style="stop-color:${color};stop-opacity:0"/></linearGradient>
 <clipPath id="${cid}"><rect x="${CH_PL}" y="0" width="${w-CH_PL-CH_PR}" height="${h}"/></clipPath>
 </defs>
 ${grid}
 <g clip-path="url(#${cid})">
 <path d="${area}" fill="url(#${gid})"/>
-<path d="${linea}" fill="none" stroke="${color}" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>
+<path d="${linea}" fill="none" style="stroke:${color}" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>
 </g>
-<circle class="chart-last-pulse" cx="${ult.x.toFixed(1)}" cy="${ult.y.toFixed(1)}" r="4" fill="${color}" opacity="0.4"/>
-<circle cx="${ult.x.toFixed(1)}" cy="${ult.y.toFixed(1)}" r="4" fill="${color}" class="ch-dot" stroke-width="1.5"/>
+<circle class="chart-last-pulse" cx="${ult.x.toFixed(1)}" cy="${ult.y.toFixed(1)}" r="4" style="fill:${color}" opacity="0.4"/>
+<circle cx="${ult.x.toFixed(1)}" cy="${ult.y.toFixed(1)}" r="4" style="fill:${color}" class="ch-dot" stroke-width="1.5"/>
 <line class="tip-line" x1="0" x2="0" y1="${CH_PT}" y2="${h-CH_PB}" stroke-width="1" visibility="hidden"/>
-<circle class="tip-dot" r="3.5" fill="${color}" stroke-width="1.5" visibility="hidden"/>
+<circle class="tip-dot" r="3.5" style="fill:${color}" stroke-width="1.5" visibility="hidden"/>
 </svg><div class="chart-tip"></div></div>
 <div class="chart-dates"><span style="margin-left:${(CH_PL/w*100).toFixed(0)}%">${fd(minX)}</span><span style="margin-right:${(CH_PR/w*100).toFixed(0)}%">${fd(maxX)}</span></div>`;
 }
@@ -3229,9 +3254,9 @@ function seriePortafolio() {
 
 function renderChart(chartId) {
   if(chartId==='gbm-chart')
-    document.getElementById('gbm-chart').innerHTML=chartBlock('gbm-chart',seriePortafolio(),'#2f6f4f');
+    document.getElementById('gbm-chart').innerHTML=chartBlock('gbm-chart',seriePortafolio(),'var(--accent)');
   else
-    document.getElementById('patrimonio-chart').innerHTML=chartBlock('patrimonio-chart',(state.snapshots||[]).map(s=>({x:parseFechaLocal(s.f).getTime(),y:s.total})),'#1c5c3f','cambio');
+    document.getElementById('patrimonio-chart').innerHTML=chartBlock('patrimonio-chart',(state.snapshots||[]).map(s=>({x:parseFechaLocal(s.f).getTime(),y:s.total})),'var(--d2)','cambio');
 }
 
 // interaccion: cursor/tap sobre la grafica muestra fecha y valor del punto mas cercano
@@ -3284,26 +3309,30 @@ function renderDistribucion(ahorro, inversiones, disponible, garantia, nvdaPendi
   const g1=Math.max(0,ahorro), g2=Math.max(0,inversiones), g3=Math.max(0,disponible), g4=Math.max(0,garantia||0);
   const total=g1+g2+g3+g4;
   if(!(total>0)){ el.innerHTML='<div class="empty-state">sin datos todavia</div>'; return; }
-  // escala monocromatica verde (paleta minima): oscuro=inversion, medio=ahorro, claro=disponible
+  // escala monocromatica DEL TEMA (tokens --d1..--d4, ver el CSS): oscuro=inversion,
+  // medio=ahorro, claro=disponible. Van como var() y no como hex fijo para que cambiar
+  // el color de la app recoloree tambien el donut, al instante y sin re-render.
   const grupos=[
-    {nombre:'Ahorro con rendimiento',sub:'cajita NU 1 + Revolut Savings',monto:g1,color:'#2f8f5f',txt:'#176a47'},
-    {nombre:'Inversiones',sub:'acciones (Revolut)'+(nvdaPendiente?' · precio pendiente':''),monto:g2,color:'#1c5c3f',txt:'#1c5c3f'},
-    {nombre:'Disponible',sub:'efectivo + NU + Revolut',monto:g3,color:'#a9c9b4',txt:'#4f7a5e'},
-    {nombre:'Garantia congelada',sub:'deposito TDC Revolut',monto:g4,color:'#6fae8a',txt:'#3d6b52'}
+    {nombre:'Ahorro con rendimiento',sub:'cajita NU 1 + Revolut Savings',monto:g1,color:'var(--d1)',txt:'var(--d1t)'},
+    {nombre:'Inversiones',sub:'acciones (Revolut)'+(nvdaPendiente?' · precio pendiente':''),monto:g2,color:'var(--d2)',txt:'var(--d2t)'},
+    {nombre:'Disponible',sub:'efectivo + NU + Revolut',monto:g3,color:'var(--d3)',txt:'var(--d3t)'},
+    {nombre:'Garantia congelada',sub:'deposito TDC Revolut',monto:g4,color:'var(--d4)',txt:'var(--d4t)'}
   ];
   const R=62,SW=16,rm=R-SW/2,C=2*Math.PI*rm;
   let off=0,circ='';
   grupos.forEach(g=>{
     if(g.monto<=0) return;
     const len=g.monto/total*C, gap=Math.min(3,len*0.15);
-    circ+=`<circle cx="70" cy="70" r="${rm}" fill="none" stroke="${g.color}" stroke-width="${SW}" stroke-dasharray="${Math.max(0.5,len-gap).toFixed(2)} ${(C-len+gap).toFixed(2)}" stroke-dashoffset="${(-off).toFixed(2)}" transform="rotate(-90 70 70)" stroke-linecap="round"/>`;
+    // el color va en style (no como atributo): los atributos de presentacion SVG no
+    // aceptan var(), la propiedad CSS si — y asi el arco sigue al tema en vivo
+    circ+=`<circle cx="70" cy="70" r="${rm}" fill="none" style="stroke:${g.color}" stroke-width="${SW}" stroke-dasharray="${Math.max(0.5,len-gap).toFixed(2)} ${(C-len+gap).toFixed(2)}" stroke-dashoffset="${(-off).toFixed(2)}" transform="rotate(-90 70 70)" stroke-linecap="round"/>`;
     off+=len;
   });
   const legend=grupos.map(g=>{
     const pct=g.monto/total*100;
     return `<div class="dist-row"><span class="dist-dot" style="background:${g.color}"></span>`+
       `<div class="dist-info"><div class="dist-name">${g.nombre}</div><div class="dist-sub">${g.sub}</div></div>`+
-      `<div class="dist-right"><div class="dist-amt">${fmt(g.monto)}</div><span class="dist-pct" style="background:${g.color}26;color:${g.txt}">${pct.toFixed(1)}%</span></div></div>`;
+      `<div class="dist-right"><div class="dist-amt">${fmt(g.monto)}</div><span class="dist-pct" style="background:color-mix(in srgb,${g.color} 16%,transparent);color:${g.txt}">${pct.toFixed(1)}%</span></div></div>`;
   }).join('');
   el.innerHTML=`<div class="dist-wrap"><div class="dist-donut"><svg viewBox="0 0 140 140" style="width:100%;height:100%">${circ}`+
     `<text x="70" y="64" text-anchor="middle" class="pie-c1" font-size="10">activos</text>`+
@@ -4251,20 +4280,26 @@ window.exportarCierre = function(ev) {
   // misma medicion que el dibujo: titulo(110) + preliminar(34) + coach(44/linea +24) + bloques + pie(90)
   const H=90+110+(preLinea?34:0)+(coachLineas.length?coachLineas.length*44+24:0)+altoBloques+90;
   cv.height=H; // redimensionar limpia el contexto: se re-declaran fuentes al dibujar
-  ctx.fillStyle='#ecf2ea'; ctx.fillRect(0,0,W,H);
-  ctx.fillStyle='#1c5c3f'; ctx.font=F_TIT; ctx.fillText('cierre de '+u.label,PADX,120);
+  // el canvas no entiende var(): se leen los tokens del tema activo y se pasan como
+  // color literal, con el verde salvia de respaldo si el navegador no los resuelve
+  const cs=getComputedStyle(document.documentElement);
+  const tok=(n,def)=>{ const v=cs.getPropertyValue(n).trim(); return v||def; };
+  const C_BG=tok('--bg','#ecf2ea'), C_TIT=tok('--accent-dark','#1c5c3f'),
+        C_TXT=tok('--text','#1a2e22'), C_MUT=tok('--muted','#64766b');
+  ctx.fillStyle=C_BG; ctx.fillRect(0,0,W,H);
+  ctx.fillStyle=C_TIT; ctx.font=F_TIT; ctx.fillText('cierre de '+u.label,PADX,120);
   let y=180;
-  if(preLinea){ ctx.fillStyle='#64766b'; ctx.font=F_META; ctx.fillText(preLinea,PADX,y); y+=34; }
-  if(coachLineas.length){ ctx.fillStyle='#1a2e22'; ctx.font=F_COACH;
+  if(preLinea){ ctx.fillStyle=C_MUT; ctx.font=F_META; ctx.fillText(preLinea,PADX,y); y+=34; }
+  if(coachLineas.length){ ctx.fillStyle=C_TXT; ctx.font=F_COACH;
     coachLineas.forEach(l=>{ ctx.fillText(l,PADX,y); y+=44; }); y+=24; }
   bloques.forEach(b=>{
-    ctx.fillStyle='#2b3f33'; ctx.font=F_LINEA;
+    ctx.fillStyle=C_TXT; ctx.font=F_LINEA;
     b.tit.forEach(l=>{ ctx.fillText(l,PADX,y); y+=46; });
-    ctx.fillStyle='#64766b'; ctx.font=F_META;
+    ctx.fillStyle=C_MUT; ctx.font=F_META;
     b.met.forEach(l=>{ ctx.fillText(l,PADX+30,y-8); y+=32; });
     y+=8;
   });
-  ctx.fillStyle='#64766b'; ctx.font=F_PIE;
+  ctx.fillStyle=C_MUT; ctx.font=F_PIE;
   ctx.fillText('mi cartera · '+new Date().toLocaleDateString('es-MX',{day:'numeric',month:'short',year:'numeric'}),PADX,H-40);
   cv.toBlob(async blob=>{
     try{
