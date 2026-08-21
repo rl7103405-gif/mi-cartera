@@ -101,6 +101,13 @@ body{font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI',Ro
 /* LOADING */
 .loading-overlay{position:fixed;inset:0;background:var(--bg);display:flex;align-items:center;justify-content:center;z-index:998;flex-direction:column;gap:12px}
 .loading-overlay.hidden{display:none}
+/* modal chico (editar movimiento): usa los tokens del tema, funciona en los 7 */
+.modal-back{position:fixed;inset:0;background:rgba(0,0,0,0.45);display:flex;align-items:center;justify-content:center;z-index:999;padding:20px}
+.modal-back.hidden{display:none}
+.modal-card{background:var(--bg2s);border:1px solid var(--sup-borde);border-radius:var(--r);padding:18px;width:100%;max-width:360px;box-shadow:var(--sombra)}
+.modal-tit{font-size:16px;font-weight:600;color:var(--text)}
+.modal-sub{font-size:13px;color:var(--muted);margin:2px 0 14px}
+.edit-btn{background:none;border:none;color:var(--muted);font-size:14px;padding:4px 0 4px 12px;cursor:pointer;line-height:1}
 .loading-text{font-size:14px;color:var(--muted)}
 
 /* NAV */
@@ -288,7 +295,10 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
 .pie-pct{color:var(--muted)}
 .pie-amt{font-weight:600}
 #res-periodo-toggle .type-opt,#mov-periodo-toggle .type-opt{min-width:calc(25% - 5px)}
-.del-btn{background:none;border:none;color:var(--muted);font-size:17px;padding:4px 0 4px 12px;cursor:pointer;line-height:1}
+.del-btn{background:none;border:none;color:var(--muted);font-size:17px;padding:4px 0 4px 12px;cursor:pointer;line-height:1;flex-shrink:0}
+/* con dos botones por fila (editar + borrar) el texto debe poder encogerse, no ellos */
+.item-row>div:first-child{min-width:0}
+.item-row>div:first-child>div{overflow:hidden;text-overflow:ellipsis}
 .del-btn:active{color:var(--red)}
 
 /* ESCRITORIO: layout ancho tipo portafolio (inicio y resumen); formularios se mantienen angostos */
@@ -670,7 +680,7 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
   </div>
   </div>
   <div class="status" id="status-inicio">—</div>
-  <div class="status" style="margin-top:2px;padding-bottom:8px">version 2026-08-11.3</div>
+  <div class="status" style="margin-top:2px;padding-bottom:8px">version 2026-08-21.1</div>
 </div>
 
 <!-- MOVIMIENTOS (gastos + ingresos en una sola pestana) -->
@@ -955,11 +965,22 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
   </div>
 </div>
 
+<!-- editar movimiento: solo categoria y nota (nunca monto/cuenta/fecha, para no mover dinero ni cambiarlo de mes) -->
+<div class="modal-back hidden" id="edit-mov-back" onclick="cerrarEdicionMov(event)">
+  <div class="modal-card" onclick="event.stopPropagation()">
+    <div class="modal-tit" id="edit-mov-tit">editar movimiento</div>
+    <div class="modal-sub" id="edit-mov-sub"></div>
+    <div class="field"><label>categoria</label><select id="edit-mov-cat"></select></div>
+    <div class="field"><label>nota</label><input type="text" id="edit-mov-nota" placeholder="opcional"></div>
+    <button type="button" class="btn btn-purple" id="edit-mov-btn" onclick="guardarEdicionMov()">guardar cambios</button>
+    <button type="button" class="btn" style="margin-top:8px" onclick="cerrarEdicionMov()">cancelar</button>
+  </div>
+</div>
 <div class="toast" id="toast"></div>
 
 <script type="module">
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
-import { getFirestore, doc, getDoc, setDoc, collection, getDocs, query, orderBy, writeBatch, runTransaction } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+import { getFirestore, doc, getDoc, setDoc, updateDoc, collection, getDocs, query, orderBy, writeBatch, runTransaction } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
 import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
 
 const firebaseConfig = {
@@ -2756,10 +2777,89 @@ function renderMovimientos() {
     // catalogo CUENTAS (nunca el valor crudo): el Atajo escribe por REST y el campo podria traer cualquier cosa
     const cuenta=CUENTAS[esGasto?it.fuente:it.destino]||'(cuenta desconocida)';
     const del=it.id?`<button class="del-btn" onclick="${esGasto?'eliminarGasto':'eliminarIngreso'}('${it.id}')">&times;</button>`:'';
+    // editar corrige la captura SIN mover dinero ni fecha: por eso no hace falta borrar y volver a registrar
+    const edit=it.id?`<button class="edit-btn" title="editar categoria o nota" aria-label="editar categoria o nota" onclick="editarMovimiento('${esGasto?'gasto':'ingreso'}','${it.id}')">&#9998;</button>`:'';
     const marca=it.pendiente===true?' · atajo: pendiente de aplicar':(it.porAtajo===true&&it.aplicadoSaldo===false?' · atajo: rechazado (no afecto saldos)':'');
-    return`<div class="item-row"><div><div class="item-cat">${escapeHtml(it.cat)}</div><div class="item-meta">${escapeHtml(it.nota||'')} · ${fecha} · ${cuenta}${marca}</div></div><div style="display:flex;align-items:center"><div class="${esGasto?'item-amt-neg':'item-amt-pos'}">${esGasto?'-':'+'}${fmt(it.monto)}</div>${del}</div></div>`;
+    return`<div class="item-row"><div><div class="item-cat">${escapeHtml(it.cat)}</div><div class="item-meta">${escapeHtml(it.nota||'')} · ${fecha} · ${cuenta}${marca}</div></div><div style="display:flex;align-items:center"><div class="${esGasto?'item-amt-neg':'item-amt-pos'}">${esGasto?'-':'+'}${fmt(it.monto)}</div>${edit}${del}</div></div>`;
   }).join('');
 }
+
+// ── EDITAR MOVIMIENTO (solo categoria y nota) ─────────────────
+// Corregir una captura vieja borrandola y volviendola a registrar la movia al mes
+// ACTUAL (la fecha se regeneraba), ensuciando los totales. Editar en su lugar conserva
+// fecha, monto y cuenta intactos: por eso esta edicion NUNCA toca saldos.
+let editMov=null, editandoMov=false;
+window.editarMovimiento = function(tipo, id) {
+  const arr = tipo==='gasto'?state.gastos:state.ingresos;
+  const it = arr.find(x=>x.id===id);
+  if(!it){ showToast('ese movimiento ya no existe — recarga la app'); return; }
+  editMov={tipo,id};
+  const cats = (tipo==='gasto'?state.catsGasto:state.catsIngreso)||[];
+  // si su categoria ya no esta en la lista (renombrada o borrada) se antepone, para
+  // no perderla en silencio al abrir el select
+  const historica = !cats.includes(it.cat);
+  const sel=document.getElementById('edit-mov-cat');
+  // la historica se marca como tal para que quede claro por que aparece una categoria
+  // que ya no esta en el catalogo (y para no cambiarla sin querer al guardar solo la nota)
+  sel.innerHTML=(historica?`<option value="${escapeHtml(it.cat)}">${escapeHtml(it.cat)} (categoria anterior)</option>`:'')
+    +cats.map(c=>`<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join('');
+  sel.value=it.cat;
+  document.getElementById('edit-mov-nota').value=it.nota||'';
+  document.getElementById('edit-mov-tit').textContent='editar '+tipo;
+  // el subtitulo recuerda lo que NO se puede cambiar aqui
+  const cuenta=CUENTAS[tipo==='gasto'?it.fuente:it.destino]||'(cuenta desconocida)';
+  document.getElementById('edit-mov-sub').textContent=
+    (tipo==='gasto'?'-':'+')+fmt(it.monto)+' · '+fmtFechaMov(it.fecha,{day:'numeric',month:'short',year:'numeric'})+' · '+cuenta;
+  document.getElementById('edit-mov-back').classList.remove('hidden');
+};
+window.cerrarEdicionMov = function(ev) {
+  if(ev && ev.target && ev.target.id!=='edit-mov-back') return; // clic dentro de la tarjeta: no cierra
+  if(editandoMov) return;
+  document.getElementById('edit-mov-back').classList.add('hidden');
+  editMov=null;
+};
+document.addEventListener('keydown', e => {
+  if(e.key==='Escape' && !document.getElementById('edit-mov-back').classList.contains('hidden')) window.cerrarEdicionMov();
+});
+window.guardarEdicionMov = async function() {
+  if(!editMov||editandoMov) return;
+  const {tipo,id}=editMov;
+  const arr = tipo==='gasto'?state.gastos:state.ingresos;
+  const it = arr.find(x=>x.id===id);
+  if(!it){ showToast('ese movimiento ya no existe — recarga la app'); window.cerrarEdicionMov(); return; }
+  const cat=document.getElementById('edit-mov-cat').value;
+  const nota=document.getElementById('edit-mov-nota').value.trim().slice(0,60);
+  if(!cat){ showToast('elige una categoria'); return; }
+  if(cat===it.cat && nota===(it.nota||'')){ window.cerrarEdicionMov(); return; } // sin cambios
+  const btn=document.getElementById('edit-mov-btn');
+  editandoMov=true; btn.disabled=true;
+  try{
+    // se escribe PRIMERO y solo despues se toca la memoria: si falla, el estado local
+    // nunca queda mintiendo. update PARCIAL de dos campos: nunca monto/fuente/destino/
+    // fecha, asi que tampoco se pisan las banderas del atajo (pendiente/aplicadoSaldo).
+    // updateDoc ademas FALLA si el doc ya no existe, en vez de resucitarlo.
+    await updateDoc(doc(db, tipo==='gasto'?'gastos':'ingresos', id), {cat, nota});
+    it.cat=cat; it.nota=nota;
+    setSyncDot('ok');
+    rerenderTodo(); // la categoria alimenta resumen, pastel, coach y el aviso de Premium
+    showToast('movimiento actualizado');
+    editandoMov=false; btn.disabled=false;
+    window.cerrarEdicionMov();
+  }catch(e){
+    console.error('guardarEdicionMov',e);
+    editandoMov=false; btn.disabled=false;
+    if(e && e.code==='not-found'){
+      // otro dispositivo ya lo elimino: se quita el fantasma de la lista y se cierra
+      const i=arr.findIndex(x=>x.id===id); if(i>=0) arr.splice(i,1);
+      window.cerrarEdicionMov(); rerenderTodo();
+      showToast('ese movimiento ya lo eliminaron en otro dispositivo');
+      return;
+    }
+    setSyncDot('err');
+    // el modal se queda abierto CON lo escrito, para reintentar sin recapturar
+    showToast('no se pudo guardar — revisa tu conexion y reintenta');
+  }
+};
 
 // ── INGRESOS ──────────────────────────────────────────────────
 // nucleo compartido (mismo esquema que altaGasto): formulario normal + registro rapido
