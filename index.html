@@ -107,7 +107,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI',Ro
 .modal-card{background:var(--bg2s);border:1px solid var(--sup-borde);border-radius:var(--r);padding:18px;width:100%;max-width:360px;box-shadow:var(--sombra)}
 .modal-tit{font-size:16px;font-weight:600;color:var(--text)}
 .modal-sub{font-size:13px;color:var(--muted);margin:2px 0 14px}
-.edit-btn{background:none;border:none;color:var(--muted);font-size:14px;padding:4px 0 4px 12px;cursor:pointer;line-height:1}
+.edit-btn{background:none;border:none;color:var(--muted);font-size:14px;padding:4px 0 4px 12px;cursor:pointer;line-height:1;flex-shrink:0}
 .loading-text{font-size:14px;color:var(--muted)}
 
 /* NAV */
@@ -296,9 +296,8 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
 .pie-amt{font-weight:600}
 #res-periodo-toggle .type-opt,#mov-periodo-toggle .type-opt{min-width:calc(25% - 5px)}
 .del-btn{background:none;border:none;color:var(--muted);font-size:17px;padding:4px 0 4px 12px;cursor:pointer;line-height:1;flex-shrink:0}
-/* con dos botones por fila (editar + borrar) el texto debe poder encogerse, no ellos */
+/* con dos botones por fila (editar + borrar) el texto se encoge (y hace wrap), no ellos */
 .item-row>div:first-child{min-width:0}
-.item-row>div:first-child>div{overflow:hidden;text-overflow:ellipsis}
 .del-btn:active{color:var(--red)}
 
 /* ESCRITORIO: layout ancho tipo portafolio (inicio y resumen); formularios se mantienen angostos */
@@ -680,7 +679,7 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
   </div>
   </div>
   <div class="status" id="status-inicio">—</div>
-  <div class="status" style="margin-top:2px;padding-bottom:8px">version 2026-08-21.1</div>
+  <div class="status" style="margin-top:2px;padding-bottom:8px">version 2026-08-21.2</div>
 </div>
 
 <!-- MOVIMIENTOS (gastos + ingresos en una sola pestana) -->
@@ -2828,7 +2827,7 @@ window.guardarEdicionMov = async function() {
   const it = arr.find(x=>x.id===id);
   if(!it){ showToast('ese movimiento ya no existe — recarga la app'); window.cerrarEdicionMov(); return; }
   const cat=document.getElementById('edit-mov-cat').value;
-  const nota=document.getElementById('edit-mov-nota').value.trim().slice(0,60);
+  const nota=document.getElementById('edit-mov-nota').value.trim();
   if(!cat){ showToast('elige una categoria'); return; }
   if(cat===it.cat && nota===(it.nota||'')){ window.cerrarEdicionMov(); return; } // sin cambios
   const btn=document.getElementById('edit-mov-btn');
