@@ -679,7 +679,7 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
   </div>
   </div>
   <div class="status" id="status-inicio">—</div>
-  <div class="status" style="margin-top:2px;padding-bottom:8px">version 2026-08-21.2</div>
+  <div class="status" style="margin-top:2px;padding-bottom:8px">version 2026-08-25.1</div>
 </div>
 
 <!-- MOVIMIENTOS (gastos + ingresos en una sola pestana) -->
@@ -997,7 +997,10 @@ const auth = getAuth(app);
 const ALLOWED_EMAIL = 'rl7103405@gmail.com';
 const TITULOS = 45;
 // metas de Roberto para el cierre de 2026 y cuota mensual del plan Premium de Revolut
-const META_SAVINGS = 25000, META_STOCKS = 12000, META_FECHA = '2026-12-31', PREMIUM_MONTO = 145;
+// Las metas YA NO se queman aqui: viven en el documento cartera/metas y se editan
+// desde la pestana metas (state.metas / editarMetas). Estos son solo los valores con
+// los que arranca la primera vez.
+const META_SAVINGS_DEF = 25000, META_STOCKS_DEF = 12000, META_FECHA_DEF = '2026-12-31', PREMIUM_MONTO = 145;
 // ── ESTANDAR PERSONAL ─────────────────────────────────────────
 // UNICA fuente de umbrales: coach, cierre, score y metas lo consumen. Cada uno declara
 // su procedencia para no vender como "oficial" lo que es criterio propio.
@@ -1204,6 +1207,7 @@ let state = {
   // perfil para el estandar personalizado (vacio = estandar generico, no bloquea nada)
   perfil:{anoNac:null, vivienda:'', dependientes:0, ingresoBase:null, nombre:'', foto:''},
   personas:JSON.parse(JSON.stringify(PERSONAS_DEFAULT)),
+  metas:{savings:META_SAVINGS_DEF, stocks:META_STOCKS_DEF, fecha:META_FECHA_DEF},
   gastos:[], ingresos:[], transferencias:[], snapshots:[]
 };
 
@@ -1393,6 +1397,16 @@ async function loadFromFirebase() {
         .map(a=>({id:a.id,nombre:String(a.nombre).slice(0,30),meta:a.meta,ahorrado:a.ahorrado,
           fechaLimite:(typeof a.fechaLimite==='string'&&/^\d{4}-(0[1-9]|1[0-2])$/.test(a.fechaLimite))?a.fechaLimite:'',
           creado:typeof a.creado==='string'?a.creado:''}));
+    }
+    // metas editables: montos finitos >=0 y fecha valida; si algo llega corrupto, se
+    // conserva el default en vez de dejar la pestana en blanco
+    const mtDoc = await getDoc(doc(db,'cartera','metas'));
+    if (mtDoc.exists()) {
+      const m=mtDoc.data()||{};
+      state.metas={
+        savings:(Number.isFinite(m.savings)&&m.savings>=0)?m.savings:META_SAVINGS_DEF,
+        stocks:(Number.isFinite(m.stocks)&&m.stocks>=0)?m.stocks:META_STOCKS_DEF,
+        fecha:(typeof m.fecha==='string'&&fechaCalendarioValida(m.fecha))?m.fecha:META_FECHA_DEF};
     }
     const cDoc = await getDoc(doc(db,'cartera','categorias'));
     if (cDoc.exists()) {
@@ -3761,7 +3775,9 @@ window.editarPerfil = async function() {
 
 function renderMetas(savings, stocks, nvdaPendiente) {
   const el=document.getElementById('metas-panel'); if(!el) return;
-  const dias=Math.ceil((parseFechaLocal(META_FECHA).getTime()-parseFechaLocal(hoyLocal()).getTime())/86400000);
+  const MT=state.metas||{savings:META_SAVINGS_DEF,stocks:META_STOCKS_DEF,fecha:META_FECHA_DEF};
+  const dias=Math.ceil((parseFechaLocal(MT.fecha).getTime()-parseFechaLocal(hoyLocal()).getTime())/86400000);
+  const fFin=parseFechaLocal(MT.fecha).toLocaleDateString('es-MX',{day:'numeric',month:'long'});
   const fila=(nombre,sub,actual,meta)=>{
     const pct=meta>0?actual/meta*100:0;
     const faltan=meta-actual;
@@ -3773,19 +3789,55 @@ function renderMetas(savings, stocks, nvdaPendiente) {
       `<div class="bar-track" style="height:6px"><div class="bar-fill" style="width:${Math.max(0,Math.min(100,pct)).toFixed(1)}%"></div></div>`+
       `<div class="item-meta" style="margin-top:4px">${txt}${sub?' · '+sub:''}</div></div>`;
   };
-  el.innerHTML=`<div class="item-meta" style="margin-bottom:10px">${dias>0?('quedan '+dias+' dias para el 31 de diciembre'):'fecha de la meta cumplida'}</div>`+
-    fila('Revolut Savings','',savings,META_SAVINGS)+
-    fila('invertido en bolsa','acciones en Revolut'+(nvdaPendiente?' · cotizacion pendiente':''),stocks,META_STOCKS);
+  el.innerHTML=`<div class="item-meta" style="margin-bottom:10px">${dias>0?('quedan '+dias+' dias para el '+fFin):'fecha de la meta cumplida'}</div>`+
+    fila('Revolut Savings','',savings,MT.savings)+
+    fila('invertido en bolsa','acciones en Revolut'+(nvdaPendiente?' · cotizacion pendiente':''),stocks,MT.stocks)+
+    '<button type="button" class="btn" style="margin-top:12px" onclick="editarMetas()">editar mis metas</button>';
   renderCamino(savings, stocks, nvdaPendiente);
 }
+
+// editar las metas: montos y fecha, guardados en cartera/metas
+let metasGuardando=false;
+window.editarMetas = async function() {
+  if(metasGuardando){ showToast('espera: se estan guardando las metas'); return; }
+  const MT=state.metas||{savings:META_SAVINGS_DEF,stocks:META_STOCKS_DEF,fecha:META_FECHA_DEF};
+  const pideMonto=(txt,actual)=>{
+    const raw=prompt(txt,actual>0?String(actual):''); if(raw===null) return null;
+    const t=raw.trim();
+    if(t!==''&&!/^\d+(\.\d{1,2})?$/.test(t)) return 'malo';
+    const n=t===''?0:Math.round(parseFloat(t)*100)/100;
+    return (Number.isFinite(n)&&n>=0)?n:'malo';
+  };
+  const sv=pideMonto('¿Cuanto quieres tener en Revolut Savings? (0 para quitar esa meta)',MT.savings);
+  if(sv===null) return; if(sv==='malo'){ showToast('monto no valido'); return; }
+  const st=pideMonto('¿Cuanto quieres tener invertido en bolsa? (0 para quitar esa meta)',MT.stocks);
+  if(st===null) return; if(st==='malo'){ showToast('monto no valido'); return; }
+  const fRaw=prompt('¿Para que fecha? (formato 2026-12-31)',MT.fecha); if(fRaw===null) return;
+  const fecha=fRaw.trim();
+  if(!fechaCalendarioValida(fecha)){ showToast('fecha no valida, usa el formato 2026-12-31'); return; }
+  if(fecha<hoyLocal()){ showToast('esa fecha ya paso'); return; }
+  metasGuardando=true;
+  try{
+    if(!datosCargados) throw new Error('datos no cargados');
+    await setDoc(doc(db,'cartera','metas'),{savings:sv,stocks:st,fecha},{merge:true});
+    state.metas={savings:sv,stocks:st,fecha}; // solo tras confirmar la escritura
+    setSyncDot('ok');
+    render();
+    showToast('metas actualizadas');
+  }catch(e){
+    console.error('editarMetas',e); setSyncDot('err');
+    showToast('no se pudo guardar — revisa tu conexion');
+  }finally{ metasGuardando=false; }
+};
 
 // proyeccion CONSERVADORA hacia la meta: solo aportaciones registradas (promedio de los
 // ultimos 3 meses completos, incluyendo meses en cero), sin contar rendimientos futuros
 function renderCamino(savings, stocks, nvdaPendiente) {
+  const MT=state.metas||{savings:META_SAVINGS_DEF,stocks:META_STOCKS_DEF,fecha:META_FECHA_DEF};
   const el=document.getElementById('camino-panel'); if(!el) return;
-  const hoyD=new Date(), metaD=parseFechaLocal(META_FECHA);
+  const hoyD=new Date(), metaD=parseFechaLocal(MT.fecha);
   // comparacion por fecha calendario: el propio 31-dic todavia cuenta como ultimo dia
-  if(hoyLocal()>META_FECHA){ el.innerHTML='<div class="empty-state">la fecha de la meta ya paso — hora de definir las de 2027</div>'; return; }
+  if(hoyLocal()>MT.fecha){ el.innerHTML='<div class="empty-state">la fecha de la meta ya paso — hora de definir las de 2027</div>'; return; }
   // meses COMPLETOS que faltan despues del actual (los aportes del mes en curso ya estan en el saldo)
   const mesesFut=Math.max(0,(metaD.getFullYear()-hoyD.getFullYear())*12+(metaD.getMonth()-hoyD.getMonth()));
   let sumS=0,sumSt=0,huboOp=false;
@@ -3809,8 +3861,8 @@ function renderCamino(savings, stocks, nvdaPendiente) {
         :('a tu ritmo (~'+promTxt+'/mes) llegarias a '+fmt(Math.max(0,proy))+' — sube tu aporte a '+fmt(nece)+'/mes')
     }</div></div></div>`;
   };
-  el.innerHTML=fila('Revolut Savings',savings,META_SAVINGS,sumS/3,false)+
-    fila('bolsa',stocks,META_STOCKS,sumSt/3,nvdaPendiente)+
+  el.innerHTML=fila('Revolut Savings',savings,MT.savings,sumS/3,false)+
+    fila('bolsa',stocks,MT.stocks,sumSt/3,nvdaPendiente)+
     `<div class="item-meta" style="text-align:center;padding-top:8px">${huboOp
       ?'proyeccion conservadora: solo tus aportaciones, sin contar rendimientos'
       :'aun no hay aportaciones registradas en los ultimos 3 meses — la proyeccion arranca cuando muevas dinero desde la app'}</div>`;
@@ -4121,16 +4173,17 @@ function calcularCierre(start,end,modo) {
   }
   // metas de diciembre: tras la fecha meta ya no se calcula ritmo, se informa el resultado
   let metas=null;
+  const MT=state.metas||{savings:META_SAVINGS_DEF,stocks:META_STOCKS_DEF,fecha:META_FECHA_DEF};
   if(esActual&&!esAno){
-    const metaPaso=hoyLocal()>META_FECHA;
-    const hoyD=new Date(), metaD=parseFechaLocal(META_FECHA);
+    const metaPaso=hoyLocal()>MT.fecha;
+    const hoyD=new Date(), metaD=parseFechaLocal(MT.fecha);
     const mesesRest=Math.max(1,(metaD.getFullYear()-hoyD.getFullYear())*12+(metaD.getMonth()-hoyD.getMonth())+1);
     const savActual=calcRevSavings().saldo;
     const posA=Object.entries(state.posiciones).filter(([k,p])=>p.acciones>0);
     let stVal=0, stCompleto=Number.isFinite(state.usdMxn);
     posA.forEach(([k,p])=>{ const mk=state.accionesMkt[k]; if(mk&&Number.isFinite(mk.precio)&&stCompleto) stVal+=p.acciones*mk.precio*state.usdMxn; else stCompleto=false; });
-    metas={vencida:metaPaso,mesesRest,savActual,faltaS:Math.max(0,META_SAVINGS-savActual),
-      stVal,stCompleto:stCompleto||posA.length===0,faltaSt:Math.max(0,META_STOCKS-stVal)};
+    metas={vencida:metaPaso,mesesRest,savActual,faltaS:Math.max(0,MT.savings-savActual),
+      stVal,stCompleto:stCompleto||posA.length===0,faltaSt:Math.max(0,MT.stocks-stVal)};
   }
   // "maduro": con menos de 15 dias corridos un veredicto seria ruido. Los consumidores
   // deciden que mostrar; el cierre de Resumen igual ensena las cifras, marcadas como parciales
