@@ -667,6 +667,7 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
           <option value="revolut">Revolut MXN</option>
           <option value="efectivo">efectivo</option>
           <option value="nu">NU saldo</option>
+          <option value="externo">externo · no toca mis cuentas</option>
         </select>
       </div>
       <div class="field"><label>fecha (YYYY-MM-DD, vacia = hoy)</label><input type="text" id="stock-fecha" placeholder="hoy"></div>
@@ -1030,7 +1031,7 @@ function estandarDe(p) {
   return {...base,ver:ESTANDAR_VER};
 }
 const CUENTAS = {efectivo:'efectivo', nu:'NU saldo', cajita1:'NU cajita 1', cajita2:'NU cajita 2', gbm:'GBM efectivo', revolut:'Revolut MXN', revSavings:'Revolut Savings', tarjeta:'tarjeta NU', tarjetaRev:'TDC Revolut', revTdcDep:'deposito TDC Revolut', stocks:'Stocks (bolsa)'};
-const CTAS_STOCK_OP=['efectivo','nu','revolut']; // cuentas desde las que se puede comprar/vender bolsa
+const CTAS_STOCK_OP=['efectivo','nu','revolut','externo']; // cuentas desde las que se puede comprar/vender bolsa ('externo' no toca saldos)
 const FUENTES_GASTO=['efectivo','nu','tarjeta','revolut','tarjetaRev'];
 const DESTINOS_INGRESO=['efectivo','nu','revolut']; // gbm retirado (los ingresos legados con gbm solo se muestran/deshacen)
 const CATS_GASTO_DEFAULT = ['Comida','Transporte','Salidas','Zoe','Ropa','Salud','Suscripciones','Educacion','Casa','Entretenimiento','Viajes','Regalos','Otros'];
@@ -3183,7 +3184,8 @@ async function operarStock(tipo) {
     if(!pos||pos.acciones<d.acciones-1e-8){ showToast('no tienes tantas acciones de '+d.simbolo); return; }
     if(accionesEnFecha(d.simbolo, parseFechaLocal(d.fecha).getTime())<d.acciones-1e-8){ showToast('en esa fecha no tenias tantas acciones de '+d.simbolo); return; }
   }
-  const campo={efectivo:'efectivo',nu:'nuSaldo',revolut:'revMXN'}[d.cuenta];
+  // 'externo' no tiene campo: la compra/venta no toca saldos (dinero fuera de la app)
+  const campo={efectivo:'efectivo',nu:'nuSaldo',revolut:'revMXN'}[d.cuenta]||null;
   const opBtn=document.getElementById('stock-op-btn');
   stockOpOcupado=true;
   if(opBtn) opBtn.disabled=true;
@@ -3193,25 +3195,27 @@ async function operarStock(tipo) {
       res=await runTransaction(db, async tx=>{
         const sSnap=await tx.get(doc(db,'cartera','saldos'));
         const pSnap=await tx.get(doc(db,'cartera','posiciones'));
-        const saldoActual=(sSnap.exists()&&Number.isFinite(sSnap.data()[campo]))?sSnap.data()[campo]:0;
-        if(tipo==='compra'&&Math.round(d.monto*100)>Math.round(saldoActual*100)) return {error:'saldo insuficiente en '+(CUENTAS[d.cuenta]||d.cuenta)};
+        const saldoActual=(campo&&sSnap.exists()&&Number.isFinite(sSnap.data()[campo]))?sSnap.data()[campo]:0;
+        if(tipo==='compra'&&campo&&Math.round(d.monto*100)>Math.round(saldoActual*100)) return {error:'saldo insuficiente en '+(CUENTAS[d.cuenta]||d.cuenta)};
         const posData=pSnap.exists()?pSnap.data():{};
         const actUnits=Math.round((Number.isFinite(posData[d.simbolo])?posData[d.simbolo]:0)*1e8);
         const opUnits=Math.round(d.acciones*1e8);
         if(tipo==='venta'&&opUnits>actUnits) return {error:'no tienes tantas acciones de '+d.simbolo};
         const nuevoUnits=tipo==='compra'?actUnits+opUnits:actUnits-opUnits;
-        const nuevoSaldo=Math.round((saldoActual+(tipo==='compra'?-d.monto:d.monto))*100)/100;
+        const nuevoSaldo=campo?Math.round((saldoActual+(tipo==='compra'?-d.monto:d.monto))*100)/100:null;
         const op={tipo,simbolo:d.simbolo,acciones:d.acciones,montoMxn:d.monto,montoUsd:d.montoUsd,cuenta:d.cuenta,fecha:d.fecha,creado:new Date().toISOString()};
         const opRef=doc(collection(db,'stocksOps'));
         const trFecha=d.fecha===hoyLocal()?new Date().toISOString():d.fecha+'T00:00:00Z';
-        const tr=tipo==='compra'
+        // con 'externo' no hay transferencia: el dinero nunca estuvo en una cuenta de la app
+        const tr=!campo?null:(tipo==='compra'
           ?{origen:d.cuenta,destino:'stocks',monto:d.monto,nota:'compra '+d.acciones+' '+d.simbolo,fecha:trFecha,opId:opRef.id}
-          :{origen:'stocks',destino:d.cuenta,monto:d.monto,nota:'venta '+d.acciones+' '+d.simbolo,fecha:trFecha,opId:opRef.id};
-        const trRef=doc(collection(db,'transferencias'));
-        tx.set(opRef,op); tx.set(trRef,tr);
-        tx.update(doc(db,'cartera','saldos'), {[campo]:nuevoSaldo});
+          :{origen:'stocks',destino:d.cuenta,monto:d.monto,nota:'venta '+d.acciones+' '+d.simbolo,fecha:trFecha,opId:opRef.id});
+        const trRef=tr?doc(collection(db,'transferencias')):null;
+        tx.set(opRef,op);
+        if(tr) tx.set(trRef,tr);
+        if(campo) tx.update(doc(db,'cartera','saldos'), {[campo]:nuevoSaldo});
         tx.set(doc(db,'cartera','posiciones'), {[d.simbolo]:nuevoUnits/1e8}, {merge:true});
-        return {op:{id:opRef.id,...op}, tr:{id:trRef.id,...tr}, nuevoSaldo};
+        return {op:{id:opRef.id,...op}, tr:tr?{id:trRef.id,...tr}:null, nuevoSaldo};
       });
     }catch(e){
       console.error('operarStock',e);
@@ -3225,8 +3229,8 @@ async function operarStock(tipo) {
       derivarPosiciones();
       if(d.cuenta==='efectivo') state.efectivo=res.nuevoSaldo;
       else if(d.cuenta==='nu') state.nuSaldo=res.nuevoSaldo;
-      else state.revMXN=res.nuevoSaldo;
-      state.transferencias.unshift(res.tr);
+      else if(d.cuenta==='revolut') state.revMXN=res.nuevoSaldo;
+      if(res.tr) state.transferencias.unshift(res.tr);
       limpiarFormStock(); // solo tras exito: ante error los valores capturados se conservan
       render(); renderTransferencias();
       const sinPrecio=!state.accionesMkt[d.simbolo];
@@ -3909,13 +3913,13 @@ function renderCamino(ctx) {
   const huboOp=huboOpRef.v;
   const fila=(nombre,actual,meta,prom,bloqueada)=>{
     if(prom===null&&meta-actual>0) return `<div class="item-row"><div><div class="item-cat">🎯 ${escapeHtml(nombre)}</div><div class="item-meta">te faltan ${fmt(meta-actual)} · esta cuenta no lleva registro de aportaciones, no se puede proyectar</div></div></div>`;
-    if(bloqueada) return `<div class="item-row"><div><div class="item-cat">${nombre}</div><div class="item-meta">cotizacion pendiente — proyeccion no disponible</div></div><span class="item-meta">—</span></div>`;
+    if(bloqueada) return `<div class="item-row"><div><div class="item-cat">${escapeHtml(nombre)}</div><div class="item-meta">cotizacion pendiente — proyeccion no disponible</div></div><span class="item-meta">—</span></div>`;
     const falta=Math.max(0,meta-actual);
-    if(falta<=0) return `<div class="item-row"><div><div class="item-cat">🏁 ${nombre}</div><div class="item-meta">meta lograda — todo lo demas es ventaja</div></div><div style="font-weight:600">${fmt(actual)}</div></div>`;
-    if(mesesFut<=0) return `<div class="item-row"><div><div class="item-cat">${nombre}</div><div class="item-meta">ultimo mes: te faltan ${fmt(falta)} para la meta</div></div><span class="item-meta">—</span></div>`;
+    if(falta<=0) return `<div class="item-row"><div><div class="item-cat">🏁 ${escapeHtml(nombre)}</div><div class="item-meta">meta lograda — todo lo demas es ventaja</div></div><div style="font-weight:600">${fmt(actual)}</div></div>`;
+    if(mesesFut<=0) return `<div class="item-row"><div><div class="item-cat">${escapeHtml(nombre)}</div><div class="item-meta">ultimo mes: te faltan ${fmt(falta)} para la meta</div></div><span class="item-meta">—</span></div>`;
     const proy=actual+prom*mesesFut, nece=falta/mesesFut, ok=proy>=meta-0.005;
     const promTxt=(prom<0?'−':'')+fmt(Math.abs(prom)); // signo manual: fmt pone el $ antes del -
-    return `<div class="item-row"><div><div class="item-cat">${ok?'✅':'🎯'} ${nombre}</div><div class="item-meta">${
+    return `<div class="item-row"><div><div class="item-cat">${ok?'✅':'🎯'} ${escapeHtml(nombre)}</div><div class="item-meta">${
       ok?('a tu ritmo (~'+promTxt+'/mes) llegas a diciembre con '+fmt(proy))
         :('a tu ritmo (~'+promTxt+'/mes) llegarias a '+fmt(Math.max(0,proy))+' — sube tu aporte a '+fmt(nece)+'/mes')
     }</div></div></div>`;
@@ -4237,7 +4241,7 @@ function calcularCierre(start,end,modo) {
   }
   // metas de diciembre: tras la fecha meta ya no se calcula ritmo, se informa el resultado
   let metas=null;
-  const MT=state.metas||{savings:META_SAVINGS_DEF,stocks:META_STOCKS_DEF,fecha:META_FECHA_DEF};
+  const MT=state.metas||{fecha:META_FECHA_DEF,items:[]};
   if(esActual&&!esAno){
     const metaPaso=hoyLocal()>MT.fecha;
     const hoyD=new Date(), metaD=parseFechaLocal(MT.fecha);
@@ -4245,7 +4249,10 @@ function calcularCierre(start,end,modo) {
     const posA=Object.entries(state.posiciones).filter(([k,p])=>p.acciones>0);
     let stVal=0, stCompleto=Number.isFinite(state.usdMxn);
     posA.forEach(([k,p])=>{ const mk=state.accionesMkt[k]; if(mk&&Number.isFinite(mk.precio)&&stCompleto) stVal+=p.acciones*mk.precio*state.usdMxn; else stCompleto=false; });
-    const ctxM={stocks:stVal, stocksPendiente:posA.length>0&&!stCompleto, patrimonio:total};
+    // patrimonio con la MISMA formula del total de inicio ('total' no existe en este
+    // scope: referirlo aqui tronaba calcularCierre y dejaba el coach en "calculando...")
+    const patTot=calcNu1().saldo+state.nuSaldo+state.efectivo+state.revMXN+calcRevSavings().saldo+stVal+(Number.isFinite(state.revTdcDeposito)?state.revTdcDeposito:0);
+    const ctxM={stocks:stVal, stocksPendiente:posA.length>0&&!stCompleto, patrimonio:patTot};
     // una entrada por meta: el coach las recorre en vez de hablar de dos cuentas fijas
     const lista=(MT.items||[]).map(m=>({
       nombre:METAS_CUENTAS[m.cuenta]||m.cuenta,
