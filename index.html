@@ -980,7 +980,7 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
 
 <script type="module">
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
-import { getFirestore, doc, getDoc, setDoc, updateDoc, collection, getDocs, query, orderBy, writeBatch, runTransaction } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+import { getFirestore, doc, getDoc, setDoc, updateDoc, collection, getDocs, query, orderBy, writeBatch, runTransaction, onSnapshot } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
 import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
 
 const firebaseConfig = {
@@ -1076,6 +1076,8 @@ window.doLogin = async function() {
 };
 
 window.doLogout = async function() {
+  desuscribir(); // cortar los listeners ANTES de perder el token, si no tiran permission-denied
+  datosCargados = false;
   await signOut(auth);
 };
 
@@ -1083,6 +1085,7 @@ window.doLogout = async function() {
 // de reglas) y por eso no cargan los datos, cerrar sesion y recargar deja la pantalla
 // de login limpia para re-autenticar con un token fresco.
 window.reintentarLogin = async function() {
+  desuscribir(); datosCargados = false;
   try { await signOut(auth); } catch(e) {}
   location.reload();
 };
@@ -1295,15 +1298,20 @@ async function loadFromFirebase() {
       const prevSeed={revMXN:state.revMXN,rsb:state.revSavingsBase,rsf:state.revSavingsFecha,
         rst:state.revSavingsTasa,nvs:state.revNvdaShares};
       let cambio=false;
-      if (state.revMXN===0 || Math.abs(state.revMXN-(-86.42))<0.01) { state.revMXN=9.26; cambio=true; }
+      // SOLO los campos que esta siembra toca: escribir el documento completo pisaria
+      // cualquier saldo cambiado entre la lectura inicial y este commit
+      const sembrado={};
+      if (state.revMXN===0 || Math.abs(state.revMXN-(-86.42))<0.01) { state.revMXN=9.26; sembrado.revMXN=9.26; cambio=true; }
       if (state.revSavingsBase===0 && !state.revSavingsFecha) {
-        state.revSavingsBase=2000.79; state.revSavingsFecha='2026-07-23'; state.revSavingsTasa=15; cambio=true;
+        state.revSavingsBase=2000.79; state.revSavingsFecha='2026-07-23'; state.revSavingsTasa=15;
+        sembrado.revSavingsBase=2000.79; sembrado.revSavingsFecha='2026-07-23'; sembrado.revSavingsTasa=15;
+        cambio=true;
       }
       if (state.revNvdaShares===0) { state.revNvdaShares=0.19; cambio=true; }
       try {
         if (cambio) {
           const batch=writeBatch(db);
-          batch.set(doc(db,'cartera','saldos'),saldosPayload());
+          if(Object.keys(sembrado).length) batch.set(doc(db,'cartera','saldos'),sembrado,{merge:true});
           batch.set(doc(db,'cartera','mercado'),{seedJul26V3:true},{merge:true});
           await batch.commit();
         } else {
@@ -1636,6 +1644,7 @@ async function loadFromFirebase() {
     const resAtajo = await procesarPendientesAtajo();
     setSyncDot('ok');
     datosCargados = true;
+    suscribirEnVivo(); // desde aqui la pantalla ya no se queda con saldos viejos
     if (resAtajo) {
       if (resAtajo.error) { setSyncDot('err'); showToast('movimientos del atajo sin aplicar — se reintentara'); }
       else if (resAtajo.aplicados||resAtajo.rechazados)
@@ -1742,6 +1751,336 @@ function movSinEfecto(m) { return m.pendiente===true || (m.porAtajo===true && m.
 // los rechazados no cuentan en resumen ni en totales (nunca fueron dinero real validado)
 function movValido(m) { return Number.isFinite(m.monto) && !(m.porAtajo===true && m.aplicadoSaldo===false); }
 
+// ── SINCRONIZACION EN VIVO ────────────────────────────────────
+// Sin esto, una pestana abierta se queda con los saldos congelados: no se entera de lo
+// que se registro desde el telefono ni de lo que aplico el Atajo. Ese fue justamente el
+// desconcierto del 27-ago ("se registro 10 veces pero el efectivo no subia").
+// Solo se escuchan los 4 DOCUMENTOS de saldos/tarjetas/personas, NO las colecciones de
+// movimientos: escuchar colecciones enteras dispararia relecturas y el limite gratis de
+// Firestore (50k/dia) ya se midio como el cuello de botella real.
+let unsubs=[];
+const snapsPendientes=new Map(); // ruta -> ultimo snapshot llegado durante una operacion
+function aplicarSaldosRemotos(d) {
+  if(!d) return;
+  const num=(k,cur)=>Number.isFinite(d[k])?d[k]:cur;
+  state.nuCajita1Base=num('nuCajita1Base',state.nuCajita1Base);
+  state.nuCajita1Tasa=num('nuCajita1Tasa',state.nuCajita1Tasa);
+  if(typeof d.nuCajita1Fecha==='string') state.nuCajita1Fecha=d.nuCajita1Fecha;
+  state.nuCajita2Base=num('nuCajita2Base',state.nuCajita2Base);
+  state.nuCajita2Tasa=num('nuCajita2Tasa',state.nuCajita2Tasa);
+  if(typeof d.nuCajita2Fecha==='string') state.nuCajita2Fecha=d.nuCajita2Fecha;
+  state.revSavingsBase=num('revSavingsBase',state.revSavingsBase);
+  state.revSavingsTasa=num('revSavingsTasa',state.revSavingsTasa);
+  if(typeof d.revSavingsFecha==='string') state.revSavingsFecha=d.revSavingsFecha;
+  state.nuSaldo=num('nuSaldo',state.nuSaldo);
+  state.efectivo=num('efectivo',state.efectivo);
+  state.reporto=num('reporto',state.reporto);
+  state.efectivoGBM=num('efectivoGBM',state.efectivoGBM);
+  state.revMXN=num('revMXN',state.revMXN);
+}
+function aplicarTarjetaRemota(d) {
+  if(!d) return;
+  if(Number.isFinite(d.deuda)) state.tarjetaDeuda=d.deuda;
+  if(Array.isArray(d.movimientos)) state.tarjetaMovimientos=d.movimientos;
+}
+function aplicarTarjetaRevRemota(d) {
+  if(!d) return;
+  if(Number.isFinite(d.deuda)) state.revTdcDeuda=d.deuda;
+  if(Number.isFinite(d.deposito)) state.revTdcDeposito=d.deposito;
+  if(Array.isArray(d.movimientos)) state.revTdcMovs=d.movimientos;
+}
+function aplicarPersonasRemotas(d) {
+  const raw=d&&d.data;
+  if(!raw||typeof raw!=='object'||Array.isArray(raw)) return;
+  Object.values(raw).forEach(p=>{
+    if(p&&typeof p==='object'){ if(!Array.isArray(p.movimientos)) p.movimientos=[]; if(!Number.isFinite(p.saldo)) p.saldo=0; }
+  });
+  state.personas=raw;
+}
+function suscribirEnVivo() {
+  desuscribir();
+  const pares=[
+    [doc(db,'cartera','saldos'),     aplicarSaldosRemotos,     ()=>refrescar(render)],
+    [doc(db,'cartera','tarjeta'),    aplicarTarjetaRemota,     ()=>refrescar(render)],
+    [doc(db,'cartera','tarjetaRev'), aplicarTarjetaRevRemota,  ()=>refrescar(render)],
+    [doc(db,'cartera','personas'),   aplicarPersonasRemotas,   ()=>refrescar(render,renderDeudas,renderPersonaSelect)]
+  ];
+  pares.forEach(([ref,aplica,pinta])=>{
+    const u=onSnapshot(ref, snap=>{
+      if(!datosCargados) return; // la carga inicial ya trae todo
+      const datos=snap.exists()?snap.data():null;
+      // Si hay una operacion de dinero en vuelo NO se puede aplicar ahora (pisaria lo que
+      // aplicarRes va a dejar), pero tampoco se puede DESCARTAR: Firestore no reemite un
+      // snapshot solo porque el callback lo ignoro. Si el cambio remoto fue en un
+      // documento que esta operacion no toca, no habria ningun evento posterior que lo
+      // recupere y la pantalla quedaria vieja hasta recargar. Se encola y se drena al
+      // soltar el candado; solo se guarda el ULTIMO por documento, que es el vigente.
+      if(dineroOcupado){ snapsPendientes.set(ref.path,{datos,aplica,pinta}); return; }
+      try { aplica(datos); pinta(); setSyncDot('ok'); }
+      catch(e) { console.error('snapshot',e); }
+    }, err=>{ console.error('onSnapshot',err); setSyncDot('err'); });
+    unsubs.push(u);
+  });
+}
+// se vacia al liberar el candado (ver liberarDinero)
+function drenarSnapshots() {
+  if(!snapsPendientes.size) return;
+  const items=[...snapsPendientes.values()];
+  snapsPendientes.clear();
+  items.forEach(it=>{ try{ it.aplica(it.datos); it.pinta(); }catch(e){ console.error('drenarSnapshots',e); } });
+}
+function desuscribir() { unsubs.forEach(u=>{ try{ u(); }catch(e){} }); unsubs=[]; }
+
+// ── DINERO TRANSACCIONAL ──────────────────────────────────────
+// TODO movimiento de dinero pasa por txDinero(). Antes cada flujo guardaba con
+//     batch.set(doc(db,'cartera','saldos'), saldosPayload())
+// que es un overwrite COMPLETO del documento con lo que esta pantalla tenia en
+// memoria. Eso destruia cualquier cambio hecho desde otro dispositivo, otra
+// pestana o por el Atajo de iOS; y como esos batch.set NO exigian datosCargados,
+// pulsar "registrar" antes de que terminara la carga escribia los DEFAULTS encima
+// de los saldos reales. (Bug real del 27-ago-2026: 10 altas que no sumaron y 10
+// bajas que si restaron, efectivo a -$1,380.)
+// Aqui se releen los valores CANONICOS dentro de la transaccion y se escriben
+// DELTAS parciales con merge: nunca se toca un campo que este flujo no cambio.
+const nFin = (v,d=0) => Number.isFinite(v) ? v : d;   // lo que llegue corrupto vale 0
+const c2   = n => Math.round(n*100)/100;              // corta el ruido de punto flotante
+const cent = n => Math.round(n*100);                  // comparaciones exactas, en centavos
+let dineroOcupado=false; // guard de doble toque: UNA sola operacion de dinero a la vez
+// soltar el candado SIEMPRE por aqui: al liberar hay que aplicar los cambios remotos
+// que llegaron durante la operacion y se dejaron en espera
+function liberarDinero() { dineroOcupado=false; drenarSnapshots(); }
+
+// cuentas de saldo simple: slot -> campo en cartera/saldos
+const CAMPO_SIMPLE={efectivo:'efectivo', nu:'nuSaldo', revolut:'revMXN', gbm:'efectivoGBM'};
+// cuentas de interes compuesto: su saldo es DERIVADO (base+interes hasta hoy), asi que
+// un delta se aplica consolidando el interes: base = saldoHoy + delta, fecha = hoy
+const CAMPO_COMP={
+  cajita1:   {base:'nuCajita1Base', fecha:'nuCajita1Fecha', tasa:'nuCajita1Tasa'},
+  cajita2:   {base:'nuCajita2Base', fecha:'nuCajita2Fecha', tasa:'nuCajita2Tasa'},
+  revSavings:{base:'revSavingsBase',fecha:'revSavingsFecha',tasa:'revSavingsTasa'}
+};
+
+// plan: {
+//   deltas:{slot:monto,...}      slots de CAMPO_SIMPLE/CAMPO_COMP y 'revTdcDep'
+//   absolutos:{campo:valor}      captura MANUAL: fija ese campo tal cual (no delta)
+//   cristalizar:['cajita1',..]   consolida el interes canonico (base=saldoHoy, fecha=hoy)
+//                                ANTES de aplicar absolutos; para cambiar la tasa sin
+//                                que la nueva se aplique retroactivamente
+//   tdcRevDeposito:valor         deposito absoluto de la TDC Revolut
+//   permitirNegativo:bool        por defecto una SALIDA que deja la cuenta en rojo se rechaza
+//   tarjetaDelta, tarjetaMovAdd, tarjetaMovDelId      -> cartera/tarjeta
+//   tdcRevDelta,  tdcRevMovAdd,  tdcRevMovDelId       -> cartera/tarjetaRev
+//   persona:{key,nombre,crear,deltaSaldo,movAdd,movDelId}
+//   crear:[{ref,data}] borrar:[ref] requerirDocs:[ref]
+//   movBorrar:{ref,slot,signo,monto}  borra un gasto/ingreso Y decide DENTRO de la
+//                                transaccion si revierte el saldo, releyendo las
+//                                banderas pendiente/aplicadoSaldo del propio documento
+//                                (la copia en memoria puede estar vieja: las colecciones
+//                                no estan suscritas a onSnapshot)
+// }
+async function txDinero(plan) {
+  if (!datosCargados) throw new Error('datos no cargados');
+  const deltasPlan = plan.deltas || {};   // SOLO para decidir que documentos leer
+  const slotsSal = Object.keys(deltasPlan).filter(s => CAMPO_SIMPLE[s] || CAMPO_COMP[s]);
+  const absolutos  = plan.absolutos || {};
+  const cristal    = plan.cristalizar || [];
+  const usaSaldos  = slotsSal.length > 0 || Object.keys(absolutos).length > 0 || cristal.length > 0;
+  const usaDep     = deltasPlan.revTdcDep !== undefined || plan.tdcRevDeposito !== undefined;
+  const usaTarjeta = plan.tarjetaDelta !== undefined || !!plan.tarjetaMovAdd || !!plan.tarjetaMovDelId;
+  const usaTdcRev  = plan.tdcRevDelta !== undefined || !!plan.tdcRevMovAdd || !!plan.tdcRevMovDelId || usaDep;
+  const usaPersona = !!plan.persona;
+  const mb = plan.movBorrar || null;
+  // instante FIJO: los reintentos de la transaccion deben calcular el mismo interes
+  const ahora = Date.now(), hoy = hoyLocal();
+  try {
+    const res = await runTransaction(db, async tx => {
+      // COPIA FRESCA en cada intento. Firestore puede reejecutar este callback (maxAttempts:8)
+      // y mas abajo movBorrar SUMA sobre deltas[slot]: si fuera el objeto del plan, el
+      // segundo intento partiria del valor del primero y revertiria el DOBLE. Es el mismo
+      // bug que este refactor vino a matar, reencarnado. No mutar NADA de fuera aqui.
+      const deltas = {...deltasPlan};
+      // ── FASE 1: TODAS las lecturas (Firestore exige leer antes de escribir) ──
+      const sSnap  = usaSaldos || usaDep || mb ? await tx.get(doc(db,'cartera','saldos')) : null;
+      const tSnap  = usaTarjeta          ? await tx.get(doc(db,'cartera','tarjeta'))  : null;
+      const rSnap  = usaTdcRev           ? await tx.get(doc(db,'cartera','tarjetaRev')): null;
+      const pSnap  = usaPersona          ? await tx.get(doc(db,'cartera','personas')) : null;
+      const req = [];
+      for (const r of (plan.requerirDocs||[])) req.push(await tx.get(r));
+      const mbSnap = mb ? await tx.get(mb.ref) : null;
+      // ── FASE 2: validar contra lo LEIDO. Cualquier return aborta sin escribir nada ──
+      for (const s of req) if (!s.exists()) return {error:'ese movimiento ya lo elimino alguien mas — recarga la app'};
+      // el movimiento a borrar: si otro dispositivo ya lo aplico (o lo rechazo), lo que
+      // manda es SU documento, no lo que esta pantalla creia
+      let aplicaMov = true;
+      if (mb) {
+        if (!mbSnap.exists()) return {error:'ese movimiento ya lo elimino alguien mas — recarga la app'};
+        // lo que manda es SU documento: si otro dispositivo lo dejo pendiente o rechazado,
+        // ese movimiento nunca fue dinero y borrarlo no debe mover nada
+        aplicaMov = !movSinEfecto(mbSnap.data());
+        if (aplicaMov && mb.slot) deltas[mb.slot] = c2(nFin(deltas[mb.slot]) + mb.signo * mb.monto);
+      }
+      const tjDelta = (mb && !aplicaMov) ? 0 : nFin(plan.tarjetaDelta);
+      const trDelta = (mb && !aplicaMov) ? 0 : nFin(plan.tdcRevDelta);
+      const slotsAplicar = (mb && !aplicaMov) ? [] :
+        Object.keys(deltas).filter(k => (CAMPO_SIMPLE[k] || CAMPO_COMP[k]) && cent(deltas[k]) !== 0);
+      const sal = (sSnap && sSnap.exists()) ? sSnap.data() : {};
+      const campos = {};      // lo que se escribira en cartera/saldos
+      const saldosFinales = {}; // slot -> saldo resultante (para avisar y refrescar memoria)
+      // CRISTALIZAR: consolida el interes ya generado con la tasa VIEJA sobre el valor
+      // canonico del servidor. Sin esto, una tasa nueva se aplicaria hacia atras a dias
+      // que ya generaron interes con la anterior.
+      for (const slot of cristal) {
+        const cfg = CAMPO_COMP[slot]; if (!cfg) continue;
+        const b = nFin(sal[cfg.base]);
+        if (!(b > 0) || !sal[cfg.fecha]) continue;
+        campos[cfg.base]  = c2(calcCompoundAt(b, sal[cfg.fecha], nFin(sal[cfg.tasa]), ahora));
+        campos[cfg.fecha] = hoy;
+      }
+      // ABSOLUTOS: captura manual. Van DESPUES de cristalizar (lo que el usuario teclea
+      // manda) y ANTES de los deltas, que se calculan sobre el valor ya fijado.
+      for (const k in absolutos) campos[k] = absolutos[k];
+      for (const slot of slotsAplicar) {
+        const d = deltas[slot];
+        let nuevo;
+        if (CAMPO_SIMPLE[slot]) {
+          const campo = CAMPO_SIMPLE[slot];
+          // si un absoluto ya fijo este campo en esta misma operacion, el delta parte de ahi
+          const partida = campos[campo] !== undefined ? campos[campo] : nFin(sal[campo]);
+          nuevo = c2(partida + d);
+          campos[campo] = nuevo;
+        } else {
+          const cfg = CAMPO_COMP[slot];
+          const bPart = campos[cfg.base]  !== undefined ? campos[cfg.base]  : nFin(sal[cfg.base]);
+          const fPart = campos[cfg.fecha] !== undefined ? campos[cfg.fecha] : sal[cfg.fecha];
+          const saldoHoy = calcCompoundAt(bPart, fPart, nFin(sal[cfg.tasa]), ahora);
+          nuevo = clampCero(c2(saldoHoy + d));
+          campos[cfg.base] = nuevo; campos[cfg.fecha] = hoy;
+        }
+        // solo una SALIDA puede quedar bloqueada: si la cuenta ya estaba en rojo,
+        // una entrada nunca debe fallar por seguir siendo negativa
+        if (d < 0 && plan.permitirNegativo !== true && cent(nuevo) < 0)
+          return {error:'saldo insuficiente en '+(CUENTAS[slot]||slot)};
+        saldosFinales[slot] = nuevo;
+      }
+      // tarjeta NU
+      let tarjeta = null;
+      if (usaTarjeta) {
+        const tj = (tSnap && tSnap.exists()) ? tSnap.data() : {};
+        const deuda = c2(nFin(tj.deuda) + tjDelta);
+        // borrar un cargo puede dejar la tarjeta con saldo a FAVOR: eso se avisa, no se
+        // bloquea (permitirDeudaNegativa). Un PAGO mayor a la deuda si se rechaza.
+        if (tjDelta < 0 && plan.permitirDeudaNegativa !== true && cent(deuda) < 0)
+          return {error:'el pago excede la deuda de la tarjeta'};
+        let movs = Array.isArray(tj.movimientos) ? tj.movimientos : [];
+        if (plan.tarjetaMovDelId) {
+          if (!movs.some(m => m && m.id === plan.tarjetaMovDelId))
+            return {error:'ese movimiento ya lo elimino alguien mas — recarga la app'};
+          movs = movs.filter(m => !(m && m.id === plan.tarjetaMovDelId));
+        }
+        if (plan.tarjetaMovAdd) movs = [plan.tarjetaMovAdd, ...movs];
+        tarjeta = {deuda, movimientos: movs};
+      }
+      // TDC Revolut: deuda, deposito y movimientos viven JUNTOS en cartera/tarjetaRev
+      let tdcRev = null;
+      if (usaTdcRev) {
+        const tv = (rSnap && rSnap.exists()) ? rSnap.data() : {};
+        const deuda = c2(nFin(tv.deuda) + trDelta);
+        if (trDelta < 0 && plan.permitirDeudaNegativa !== true && cent(deuda) < 0)
+          return {error:'el pago excede la deuda de la TDC Revolut'};
+        const depBase = nFin(tv.deposito, nFin(state.revTdcDeposito));
+        const deposito = plan.tdcRevDeposito !== undefined
+          ? c2(plan.tdcRevDeposito)                                        // captura manual
+          : c2(depBase + (deltas.revTdcDep !== undefined ? deltas.revTdcDep : 0));
+        // el limite es el deposito: un cargo no puede dejar la deuda por encima
+        if (cent(deuda) > cent(deposito))
+          return {error:'excede el limite de la TDC Revolut'};
+        if (deltas.revTdcDep !== undefined && deltas.revTdcDep < 0 && cent(deposito) < 0)
+          return {error:'saldo insuficiente en el deposito de la TDC Revolut'};
+        // tope oficial del deposito de garantia de Revolut
+        if (usaDep && cent(deposito) > 7500000)
+          return {error:'el deposito no puede exceder $75,000'};
+        // piso oficial de Revolut: el deposito nunca baja de $250 mientras exista la
+        // tarjeta. Se revalida aqui porque el retirable solo se calculaba en memoria.
+        if (usaDep && cent(deposito) > 0 && cent(deposito) < 25000)
+          return {error:'el deposito de la TDC Revolut no puede bajar de $250'};
+        let movs = Array.isArray(tv.movimientos) ? tv.movimientos : [];
+        if (plan.tdcRevMovDelId) {
+          if (!movs.some(m => m && m.id === plan.tdcRevMovDelId))
+            return {error:'ese movimiento ya lo elimino alguien mas — recarga la app'};
+          movs = movs.filter(m => !(m && m.id === plan.tdcRevMovDelId));
+        }
+        if (plan.tdcRevMovAdd) movs = [plan.tdcRevMovAdd, ...movs];
+        tdcRev = {deuda, deposito, movimientos: movs};
+      }
+      // personas (deudas)
+      let persona = null;
+      if (usaPersona) {
+        const raw = pSnap.exists() ? pSnap.data().data : null;
+        const data = (raw && typeof raw === 'object' && !Array.isArray(raw)) ? raw : {};
+        if (plan.persona.crear) {
+          if (Object.keys(data).some(k => k.toLowerCase() === plan.persona.key.toLowerCase()))
+            return {error:'esa persona ya existe — recarga la app para verla'};
+          persona = {nombre:plan.persona.nombre, saldo:0, movimientos:[]};
+        } else {
+          const p = data[plan.persona.key];
+          if (!p) return {error:'esa persona ya no existe — recarga la app'};
+          let movs = Array.isArray(p.movimientos) ? p.movimientos : [];
+          if (plan.persona.movDelId) {
+            if (!movs.some(m => m && m.id === plan.persona.movDelId))
+              return {error:'ese movimiento ya lo elimino alguien mas — recarga la app'};
+            movs = movs.filter(m => !(m && m.id === plan.persona.movDelId));
+          }
+          if (plan.persona.movAdd) movs = [plan.persona.movAdd, ...movs];
+          persona = {nombre:(typeof p.nombre==='string'&&p.nombre)?p.nombre:plan.persona.key,
+                     saldo:c2(nFin(p.saldo) + nFin(plan.persona.deltaSaldo)), movimientos:movs};
+        }
+      }
+      // ── FASE 3: escrituras, SOLO los campos afectados ──
+      if (Object.keys(campos).length) tx.set(doc(db,'cartera','saldos'), campos, {merge:true});
+      if (mb) tx.delete(mb.ref);
+      if (usaTarjeta) tx.set(doc(db,'cartera','tarjeta'), tarjeta, {merge:true});
+      if (usaTdcRev)  tx.set(doc(db,'cartera','tarjetaRev'), tdcRev, {merge:true});
+      // merge profundo de mapas: toca UNICAMENTE a esa persona, las otras quedan intactas
+      if (usaPersona) tx.set(doc(db,'cartera','personas'), {data:{[plan.persona.key]:persona}}, {merge:true});
+      for (const c of (plan.crear||[])) tx.set(c.ref, c.data);
+      for (const r of (plan.borrar||[])) tx.delete(r);
+      return {ok:true, saldos:saldosFinales, campos, tarjeta, tdcRev, persona,
+              movAplicaba: mb ? !movSinEfecto(mbSnap.data()) : undefined};
+    }, {maxAttempts:8});
+    setSyncDot('ok'); // la transaccion llego al servidor (aunque haya devuelto {error})
+    return res;
+  } catch(e) { setSyncDot('err'); throw e; }
+}
+
+// aplica a memoria el resultado CANONICO que devolvio la transaccion (post-commit).
+// Se usa lo que quedo en el servidor, NO lo que esta pantalla creia tener.
+function aplicarRes(res) {
+  if (res.campos) {
+    const cp = res.campos;
+    if (cp.efectivo   !== undefined) state.efectivo    = cp.efectivo;
+    if (cp.nuSaldo    !== undefined) state.nuSaldo     = cp.nuSaldo;
+    if (cp.revMXN     !== undefined) state.revMXN      = cp.revMXN;
+    if (cp.efectivoGBM!== undefined) state.efectivoGBM = cp.efectivoGBM;
+    if (cp.nuCajita1Base !== undefined) { state.nuCajita1Base = cp.nuCajita1Base; state.nuCajita1Fecha = cp.nuCajita1Fecha; }
+    if (cp.nuCajita2Base !== undefined) { state.nuCajita2Base = cp.nuCajita2Base; state.nuCajita2Fecha = cp.nuCajita2Fecha; }
+    if (cp.revSavingsBase!== undefined) { state.revSavingsBase= cp.revSavingsBase;state.revSavingsFecha= cp.revSavingsFecha; }
+    // las TASAS tambien: al cambiarlas en "actualizar saldos" se escriben en Firestore, y
+    // sin esto calcNu1()/calcRevSavings() pintarian el saldo con la tasa VIEJA hasta que
+    // llegara el snapshot (que puede tardar con mala senal o la pestana en segundo plano)
+    if (cp.nuCajita1Tasa  !== undefined) state.nuCajita1Tasa  = cp.nuCajita1Tasa;
+    if (cp.nuCajita2Tasa  !== undefined) state.nuCajita2Tasa  = cp.nuCajita2Tasa;
+    if (cp.revSavingsTasa !== undefined) state.revSavingsTasa = cp.revSavingsTasa;
+    if (cp.reporto        !== undefined) state.reporto        = cp.reporto;
+  }
+  if (res.tarjeta) { state.tarjetaDeuda = res.tarjeta.deuda; state.tarjetaMovimientos = res.tarjeta.movimientos; }
+  if (res.tdcRev)  { state.revTdcDeuda = res.tdcRev.deuda; state.revTdcDeposito = res.tdcRev.deposito; state.revTdcMovs = res.tdcRev.movimientos; }
+}
+// un fallo pintando la pantalla NO debe reportarse como "no se guardo": ya se guardo
+function refrescar(...fns) { for (const f of fns) { try { f(); } catch(e) { console.error('render',e); } } }
+const nuevoId = () => (crypto.randomUUID?crypto.randomUUID():String(Date.now())+Math.random().toString(36).slice(2));
+
+// SOLO para exportar. NUNCA se escribe este payload completo a Firestore: pisaria lo que
+// hayan guardado el Atajo u otro dispositivo. Para escribir saldos se usa txDinero().
 function saldosPayload() {
   // OJO: las cotizaciones (ivv*, nvda*, usdMxn*) NO van aqui: viven en cartera/mercado
   return {
@@ -1753,21 +2092,9 @@ function saldosPayload() {
     revSavingsTasa:state.revSavingsTasa
   };
 }
-async function saveSaldos() {
-  if (!datosCargados) throw new Error('datos no cargados');
-  try {
-    await setDoc(doc(db,'cartera','saldos'), saldosPayload());
-    setSyncDot('ok');
-  } catch(e) { setSyncDot('err'); throw e; }
-}
-async function savePersonas() {
-  if (!datosCargados) throw new Error('datos no cargados');
-  try { await setDoc(doc(db,'cartera','personas'),{data:state.personas}); setSyncDot('ok'); } catch(e) { setSyncDot('err'); throw e; }
-}
-async function saveTarjeta() {
-  if (!datosCargados) throw new Error('datos no cargados');
-  try { await setDoc(doc(db,'cartera','tarjeta'),{deuda:state.tarjetaDeuda, movimientos:state.tarjetaMovimientos}); setSyncDot('ok'); } catch(e) { setSyncDot('err'); throw e; }
-}
+// saveSaldos() se elimino el 27-ago-2026: era el ultimo setDoc COMPLETO del documento
+// de saldos. Para fijar un saldo a mano se usa txDinero({absolutos:{...}}), que escribe
+// solo los campos capturados y no pisa lo que otro dispositivo haya registrado.
 function tarjetaRevPayload() {
   return {deuda:state.revTdcDeuda, deposito:state.revTdcDeposito, movimientos:state.revTdcMovs};
 }
@@ -2368,58 +2695,47 @@ window.guardarManuales = async function() {
   // fecha sin base reancla la base vieja e inventa/borra rendimiento: se rechaza
   if(vals.c1f!==null&&vals.c1b===null){ showToast('captura tambien el saldo base de cajita 1'); return; }
   if(vals.rsf!==null&&vals.rsb===null){ showToast('captura tambien el saldo base de Revolut Savings'); return; }
-  // tasa nueva SIN saldo base: cristaliza el saldo actual (con la tasa vieja) como nueva base
-  // antes de aplicar la tasa nueva; si no, la tasa nueva se aplicaria retroactivamente
-  // a dias que ya generaron interes con la tasa anterior
-  if(vals.c1t!==null&&vals.c1b===null&&state.nuCajita1Base>0&&state.nuCajita1Fecha){ vals.c1b=calcNu1().saldo; vals.c1f=hoyLocal(); }
-  if(vals.rst!==null&&vals.rsb===null&&state.revSavingsBase>0&&state.revSavingsFecha){ vals.rsb=calcRevSavings().saldo; vals.rsf=hoyLocal(); }
+  // tasa nueva SIN saldo base: hay que consolidar el saldo actual (con la tasa vieja)
+  // como nueva base antes de aplicar la tasa nueva; si no, la tasa nueva se aplicaria
+  // retroactivamente a dias que ya generaron interes con la anterior. Se hace DENTRO de
+  // la transaccion (plan.cristalizar) para que parta del valor canonico, no de esta pantalla.
+  const cristalizar=[];
+  if(vals.c1t!==null&&vals.c1b===null) cristalizar.push('cajita1');
+  if(vals.rst!==null&&vals.rsb===null) cristalizar.push('revSavings');
   // base sin fecha: la base capturada es el saldo observado HOY; sin esto la fecha
   // queda vacia (la cajita nunca crece) o vieja (genera de golpe interes ya contado)
   if(vals.c1b!==null&&vals.c1f===null) vals.c1f=hoyLocal();
   if(vals.rsb!==null&&vals.rsf===null) vals.rsf=hoyLocal();
   const btn=document.getElementById('manuales-btn');
-  // respaldo para revertir el estado optimista si falla la escritura
-  const prev={c1b:state.nuCajita1Base,c1f:state.nuCajita1Fecha,c1t:state.nuCajita1Tasa,
-    ns:state.nuSaldo,ef:state.efectivo,
-    rvm:state.revMXN,rsb:state.revSavingsBase,rsf:state.revSavingsFecha,rst:state.revSavingsTasa,
-    rtd:state.revTdcDeposito};
-  if(vals.c1b!==null) state.nuCajita1Base=vals.c1b;
-  if(vals.c1f!==null) state.nuCajita1Fecha=vals.c1f;
-  if(vals.c1t!==null) state.nuCajita1Tasa=vals.c1t;
-  if(vals.ns!==null) state.nuSaldo=vals.ns;
-  if(vals.ef!==null) state.efectivo=vals.ef;
-  if(vals.rvm!==null) state.revMXN=vals.rvm;
-  if(vals.rsb!==null) state.revSavingsBase=vals.rsb;
-  if(vals.rsf!==null) state.revSavingsFecha=vals.rsf;
-  if(vals.rst!==null) state.revSavingsTasa=vals.rst;
-  if(vals.rtd!==null) state.revTdcDeposito=vals.rtd;
-  btn.disabled=true;
-  try {
-    if (!datosCargados) throw new Error('datos no cargados');
-    // el deposito vive en cartera/tarjetaRev: si se capturo, va en batch atomico con saldos
-    if(vals.rtd!==null){
-      const batch=writeBatch(db);
-      batch.set(doc(db,'cartera','saldos'),saldosPayload());
-      batch.set(doc(db,'cartera','tarjetaRev'),tarjetaRevPayload());
-      await batch.commit();
-      setSyncDot('ok');
-    } else {
-      await saveSaldos();
-    }
-    Object.values(ids).forEach(id=>document.getElementById(id).value='');
-    render();
-    showToast('guardado y sincronizado');
-  } catch(e) {
-    state.nuCajita1Base=prev.c1b;state.nuCajita1Fecha=prev.c1f;state.nuCajita1Tasa=prev.c1t;
-    state.nuSaldo=prev.ns;state.efectivo=prev.ef;
-    state.revMXN=prev.rvm;state.revSavingsBase=prev.rsb;state.revSavingsFecha=prev.rsf;state.revSavingsTasa=prev.rst;
-    state.revTdcDeposito=prev.rtd;
-    setSyncDot('err');
-    console.error('guardarManuales',e);
-    showToast('ERROR: no se guardo, revisa tu conexion');
-  } finally {
-    btn.disabled=false;
-  }
+  if(dineroOcupado){showToast('espera, hay otra operacion en curso');return;}
+  // SOLO los campos que el usuario realmente tecleo. Antes se escribia el documento
+  // COMPLETO desde memoria (saldosPayload), asi que actualizar la cajita borraba el
+  // efectivo que otro dispositivo hubiera registrado. Ese era el bug del 27-ago.
+  const absolutos={};
+  if(vals.c1b!==null) absolutos.nuCajita1Base=vals.c1b;
+  if(vals.c1f!==null) absolutos.nuCajita1Fecha=vals.c1f;
+  if(vals.c1t!==null) absolutos.nuCajita1Tasa=vals.c1t;
+  if(vals.ns!==null)  absolutos.nuSaldo=vals.ns;
+  if(vals.ef!==null)  absolutos.efectivo=vals.ef;
+  if(vals.rvm!==null) absolutos.revMXN=vals.rvm;
+  if(vals.rsb!==null) absolutos.revSavingsBase=vals.rsb;
+  if(vals.rsf!==null) absolutos.revSavingsFecha=vals.rsf;
+  if(vals.rst!==null) absolutos.revSavingsTasa=vals.rst;
+  if(!Object.keys(absolutos).length&&!cristalizar.length&&vals.rtd===null){ showToast('no capturaste ningun dato'); return; }
+  const plan={absolutos,cristalizar};
+  if(vals.rtd!==null) plan.tdcRevDeposito=vals.rtd; // vive en cartera/tarjetaRev
+  let res=null,err=null;
+  btn.disabled=true; dineroOcupado=true;
+  try{ res=await txDinero(plan); }
+  catch(e){ err=e; }
+  finally{ btn.disabled=false; liberarDinero(); }
+  if(err){ console.error('guardarManuales',err); showToast('no se pudo confirmar — recarga la app antes de reintentar'); return; }
+  if(res.error){ showToast(res.error); return; }
+  // -- post-commit: se refleja lo que quedo en el SERVIDOR --
+  aplicarRes(res);
+  Object.values(ids).forEach(id=>document.getElementById(id).value='');
+  refrescar(render);
+  showToast('guardado y sincronizado');
 };
 
 // ── TARJETA ───────────────────────────────────────────────────
@@ -2432,48 +2748,40 @@ window.registrarTarjeta = async function(tipo) {
   if(tipo==='pago') {
     fuente=document.getElementById('tarjeta-pago-fuente').value;
     if(!['efectivo','nu','cajita1','revolut','revSavings','externo'].includes(fuente)){showToast('cuenta no valida');return;}
+    // el monto contra la deuda y contra el saldo lo revalida txDinero con los valores
+    // de la nube; esto es solo un aviso temprano para no mandar una transaccion inutil
     if(monto>state.tarjetaDeuda+0.01){showToast('el pago excede la deuda de la tarjeta');return;}
     if(fuente!=='externo'&&monto>getSaldoCuenta(fuente)+0.01){showToast('saldo insuficiente en '+CUENTAS[fuente]);return;}
   }
-  // respaldo para revertir el estado optimista si falla la escritura
-  const prev={...backupCuentas(),tarjetaDeuda:state.tarjetaDeuda};
-  let tr=null;
-  if(tipo==='cargo') {
-    state.tarjetaDeuda+=monto;
-  } else {
+  if(dineroOcupado){showToast('espera, hay otra operacion en curso');return;}
+  const m=c2(monto), ahora=new Date().toISOString();
+  const plan={tarjetaMovAdd:{id:nuevoId(),tipo,monto:m,nota,fecha:ahora}};
+  let tr=null, ref=null;
+  if(tipo==='cargo') plan.tarjetaDelta=m;
+  else {
+    plan.tarjetaDelta=-m; // txDinero rechaza si excede la deuda canonica
     // el pago sale de una cuenta: se descuenta y queda registrado como transferencia
     if(fuente!=='externo'){
-      aplicarDelta(fuente,-monto);
-      tr={origen:fuente,destino:'tarjeta',monto,nota:nota||'pago tarjeta NU',fecha:new Date().toISOString()};
-      state.transferencias.unshift(tr);
+      plan.deltas={[fuente]:-m};   // sin permitirNegativo: un pago sin fondos se rechaza
+      tr={origen:fuente,destino:'tarjeta',monto:m,nota:nota||'pago tarjeta NU',fecha:ahora};
+      ref=doc(collection(db,'transferencias'));
+      plan.crear=[{ref,data:tr}];
     }
-    state.tarjetaDeuda-=monto; // ya se valido arriba que no excede la deuda
   }
-  state.tarjetaMovimientos.unshift({tipo,monto,nota,fecha:new Date().toISOString()});
-  btnCargo.disabled=true;btnPago.disabled=true;
-  try{
-    // batch atomico: transferencia (si aplica), saldos y tarjeta se guardan juntos o ninguno
-    const batch=writeBatch(db);
-    let ref=null;
-    if(tr){ ref=doc(collection(db,'transferencias')); batch.set(ref,tr); }
-    batch.set(doc(db,'cartera','saldos'),saldosPayload());
-    batch.set(doc(db,'cartera','tarjeta'),{deuda:state.tarjetaDeuda,movimientos:state.tarjetaMovimientos});
-    await batch.commit();
-    if(tr) tr.id=ref.id;
-    setSyncDot('ok');
-    document.getElementById('tarjeta-cargo-monto').value='';
-    document.getElementById('tarjeta-cargo-nota').value='';
-    render();renderTransferencias();
-    showToast(tipo==='cargo'?'+'+fmt(monto)+' a la tarjeta':'pago de '+fmt(monto)+' registrado');
-  }catch(e){
-    restoreCuentas(prev);
-    state.tarjetaDeuda=prev.tarjetaDeuda;
-    state.tarjetaMovimientos.shift();
-    if(tr) state.transferencias.splice(state.transferencias.indexOf(tr),1);
-    setSyncDot('err');
-    console.error('registrarTarjeta',e);
-    showToast('ERROR: no se guardo, revisa tu conexion');
-  }finally{btnCargo.disabled=false;btnPago.disabled=false;}
+  let res=null,err=null;
+  btnCargo.disabled=true;btnPago.disabled=true; dineroOcupado=true;
+  try{ res=await txDinero(plan); }
+  catch(e){ err=e; }
+  finally{ btnCargo.disabled=false;btnPago.disabled=false; liberarDinero(); }
+  if(err){ console.error('registrarTarjeta',err); showToast('no se pudo confirmar — recarga la app antes de reintentar'); return; }
+  if(res.error){ showToast(res.error); return; }
+  // -- post-commit --
+  aplicarRes(res);
+  if(tr){ tr.id=ref.id; state.transferencias.unshift(tr); }
+  document.getElementById('tarjeta-cargo-monto').value='';
+  document.getElementById('tarjeta-cargo-nota').value='';
+  refrescar(render,renderTransferencias);
+  showToast(tipo==='cargo'?'+'+fmt(m)+' a la tarjeta':'pago de '+fmt(m)+' registrado');
 };
 
 // ── TDC REVOLUT (garantizada: limite = deposito 1:1) ──────────
@@ -2483,10 +2791,8 @@ window.registrarTarjetaRev = async function(tipo) {
   const nota=document.getElementById('tarjeta-rev-nota').value.trim();
   if(!Number.isFinite(monto)||monto<=0){showToast('ingresa un monto valido');return;}
   let fuente=null;
+  // avisos tempranos con el estado en pantalla; txDinero revalida TODO contra la nube
   if(tipo==='cargo') {
-    // limite = deposito, bloqueante en centavos. Se valida contra estado en memoria
-    // DELIBERADAMENTE (mismo patron que tarjeta NU; el unico flujo concurrente real,
-    // el atajo de iOS, valida contra valores canonicos en su transaccion)
     if(Math.round((Math.max(0,state.revTdcDeuda)+monto)*100)>Math.round((state.revTdcDeposito||0)*100)){
       showToast('el cargo excede el limite (deposito de garantia) — actualiza primero el deposito');return;
     }
@@ -2496,44 +2802,34 @@ window.registrarTarjetaRev = async function(tipo) {
     if(monto>state.revTdcDeuda+0.01){showToast('el pago excede la deuda de la TDC Revolut');return;}
     if(fuente!=='externo'&&monto>getSaldoCuenta(fuente)+0.01){showToast('saldo insuficiente en '+CUENTAS[fuente]);return;}
   }
-  // respaldo para revertir el estado optimista si falla la escritura
-  const prev={...backupCuentas(),revTdcDeuda:state.revTdcDeuda};
-  let tr=null;
-  if(tipo==='cargo') {
-    state.revTdcDeuda+=monto;
-  } else {
+  if(dineroOcupado){showToast('espera, hay otra operacion en curso');return;}
+  const m=c2(monto), ahora=new Date().toISOString();
+  const plan={tdcRevMovAdd:{id:nuevoId(),tipo,monto:m,nota,fecha:ahora}};
+  let tr=null, ref=null;
+  if(tipo==='cargo') plan.tdcRevDelta=m;   // txDinero rechaza si excede el deposito canonico
+  else {
+    plan.tdcRevDelta=-m;                   // txDinero rechaza si excede la deuda canonica
     if(fuente!=='externo'){
-      aplicarDelta(fuente,-monto);
-      tr={origen:fuente,destino:'tarjetaRev',monto,nota:nota||'pago TDC Revolut',fecha:new Date().toISOString()};
-      state.transferencias.unshift(tr);
+      plan.deltas={[fuente]:-m};           // sin permitirNegativo: un pago sin fondos se rechaza
+      tr={origen:fuente,destino:'tarjetaRev',monto:m,nota:nota||'pago TDC Revolut',fecha:ahora};
+      ref=doc(collection(db,'transferencias'));
+      plan.crear=[{ref,data:tr}];
     }
-    state.revTdcDeuda-=monto; // ya se valido arriba que no excede la deuda
   }
-  state.revTdcMovs.unshift({tipo,monto,nota,fecha:new Date().toISOString()});
-  btnCargo.disabled=true;btnPago.disabled=true;
-  try{
-    // batch atomico: transferencia (si aplica), saldos y tarjetaRev se guardan juntos o ninguno
-    const batch=writeBatch(db);
-    let ref=null;
-    if(tr){ ref=doc(collection(db,'transferencias')); batch.set(ref,tr); }
-    batch.set(doc(db,'cartera','saldos'),saldosPayload());
-    batch.set(doc(db,'cartera','tarjetaRev'),tarjetaRevPayload());
-    await batch.commit();
-    if(tr) tr.id=ref.id;
-    setSyncDot('ok');
-    document.getElementById('tarjeta-rev-monto').value='';
-    document.getElementById('tarjeta-rev-nota').value='';
-    render();renderTransferencias();
-    showToast(tipo==='cargo'?'+'+fmt(monto)+' a la TDC Revolut':'pago de '+fmt(monto)+' registrado');
-  }catch(e){
-    restoreCuentas(prev);
-    state.revTdcDeuda=prev.revTdcDeuda;
-    state.revTdcMovs.shift();
-    if(tr){ const i=state.transferencias.indexOf(tr); if(i>=0) state.transferencias.splice(i,1); }
-    setSyncDot('err');
-    console.error('registrarTarjetaRev',e);
-    showToast('ERROR: no se guardo, revisa tu conexion');
-  }finally{btnCargo.disabled=false;btnPago.disabled=false;}
+  let res=null,err=null;
+  btnCargo.disabled=true;btnPago.disabled=true; dineroOcupado=true;
+  try{ res=await txDinero(plan); }
+  catch(e){ err=e; }
+  finally{ btnCargo.disabled=false;btnPago.disabled=false; liberarDinero(); }
+  if(err){ console.error('registrarTarjetaRev',err); showToast('no se pudo confirmar — recarga la app antes de reintentar'); return; }
+  if(res.error){ showToast(res.error); return; }
+  // -- post-commit --
+  aplicarRes(res);
+  if(tr){ tr.id=ref.id; state.transferencias.unshift(tr); }
+  document.getElementById('tarjeta-rev-monto').value='';
+  document.getElementById('tarjeta-rev-nota').value='';
+  refrescar(render,renderTransferencias);
+  showToast(tipo==='cargo'?'+'+fmt(m)+' a la TDC Revolut':'pago de '+fmt(m)+' registrado');
 };
 
 // ── TRANSFERENCIAS ────────────────────────────────────────────
@@ -2551,29 +2847,11 @@ function getSaldoCuenta(c) {
   return 0;
 }
 function clampCero(v) { return Math.abs(v)<0.005?0:v; } // al vaciar una cajita no quedan residuos de centavos
-function aplicarDelta(c,d) {
-  const hoy=hoyLocal();
-  if(c==='efectivo') state.efectivo+=d;
-  else if(c==='nu') state.nuSaldo+=d;
-  else if(c==='cajita1'){ state.nuCajita1Base=clampCero(calcNu1().saldo+d); state.nuCajita1Fecha=hoy; }
-  else if(c==='cajita2'){ state.nuCajita2Base=clampCero(calcNu2().saldo+d); state.nuCajita2Fecha=hoy; }
-  else if(c==='gbm') state.efectivoGBM+=d;
-  else if(c==='revolut') state.revMXN+=d;
-  else if(c==='revSavings'){ state.revSavingsBase=clampCero(calcRevSavings().saldo+d); state.revSavingsFecha=hoy; }
-  else if(c==='revTdcDep') state.revTdcDeposito=Math.round(((state.revTdcDeposito||0)+d)*100)/100;
-}
-// respaldo centralizado de TODAS las cuentas que aplicarDelta puede tocar: cualquier
-// funcion de mutacion lo usa para revertir el estado optimista si falla la escritura
-function backupCuentas() {
-  return {efectivo:state.efectivo,nuSaldo:state.nuSaldo,efectivoGBM:state.efectivoGBM,revMXN:state.revMXN,
-    c1b:state.nuCajita1Base,c1f:state.nuCajita1Fecha,c2b:state.nuCajita2Base,c2f:state.nuCajita2Fecha,
-    rsb:state.revSavingsBase,rsf:state.revSavingsFecha,rtdDep:state.revTdcDeposito};
-}
-function restoreCuentas(p) {
-  state.efectivo=p.efectivo;state.nuSaldo=p.nuSaldo;state.efectivoGBM=p.efectivoGBM;state.revMXN=p.revMXN;
-  state.nuCajita1Base=p.c1b;state.nuCajita1Fecha=p.c1f;state.nuCajita2Base=p.c2b;state.nuCajita2Fecha=p.c2f;
-  state.revSavingsBase=p.rsb;state.revSavingsFecha=p.rsf;state.revTdcDeposito=p.rtdDep;
-}
+// NOTA: aqui vivian aplicarDelta/backupCuentas/restoreCuentas — el patron VIEJO de
+// mutar el estado en memoria y despues escribir el documento de saldos COMPLETO.
+// Se eliminaron a proposito el 27-ago-2026: todo movimiento de dinero pasa ahora por
+// txDinero(), que relee los valores canonicos y escribe deltas parciales. Si algun dia
+// hace falta mover una cuenta, se hace con un delta en txDinero, NUNCA regresando a esto.
 window.registrarTransferencia = async function() {
   const btn=document.getElementById('transfer-btn');
   const origen=document.getElementById('transfer-origen').value;
@@ -2584,51 +2862,40 @@ window.registrarTransferencia = async function() {
   const CTAS_TRANSFER=['efectivo','nu','cajita1','revolut','revSavings','revTdcDep'];
   if(!CTAS_TRANSFER.includes(origen)||!(CTAS_TRANSFER.includes(destino)||destino==='tarjeta'||destino==='tarjetaRev')){showToast('cuenta no valida');return;}
   if(origen===destino){showToast('elige cuentas distintas');return;}
+  // avisos tempranos con el estado en pantalla; txDinero revalida TODO contra la nube.
+  // El retirable del deposito (piso $250 y deuda usada) solo se puede calcular aqui.
   const saldoOrigen=getSaldoCuenta(origen);
   if(Math.round(monto*100)>Math.round(saldoOrigen*100)){showToast(origen==='revTdcDep'?'solo puedes retirar '+fmt(saldoOrigen)+' del deposito (piso $250 y deuda usada quedan bloqueados)':'saldo insuficiente en '+CUENTAS[origen]);return;}
   if(destino==='tarjeta'&&monto>state.tarjetaDeuda+0.01){showToast('el pago excede la deuda de la tarjeta');return;}
   if(destino==='tarjetaRev'&&monto>state.revTdcDeuda+0.01){showToast('el pago excede la deuda de la TDC Revolut');return;}
-  // tope oficial del deposito de garantia: $75,000
   if(destino==='revTdcDep'&&Math.round(((state.revTdcDeposito||0)+monto)*100)>7500000){showToast('el deposito no puede exceder $75,000');return;}
-  // respaldo para revertir el estado optimista si falla la escritura
-  const prev={...backupCuentas(),tarjetaDeuda:state.tarjetaDeuda,revTdcDeuda:state.revTdcDeuda};
-  aplicarDelta(origen,-monto);
+  if(dineroOcupado){showToast('espera, hay otra operacion en curso');return;}
+  const m=c2(monto), ahora=new Date().toISOString();
+  const tr={origen,destino,monto:m,nota,fecha:ahora};
+  const ref=doc(collection(db,'transferencias'));
+  const plan={deltas:{[origen]:-m}, crear:[{ref,data:tr}]};
   if(destino==='tarjeta'){
-    state.tarjetaDeuda-=monto; // ya validado arriba que no excede
-    state.tarjetaMovimientos.unshift({tipo:'pago',monto,nota:nota||('pago desde '+CUENTAS[origen]),fecha:new Date().toISOString()});
+    plan.tarjetaDelta=-m;
+    plan.tarjetaMovAdd={id:nuevoId(),tipo:'pago',monto:m,nota:nota||('pago desde '+CUENTAS[origen]),fecha:ahora};
   } else if(destino==='tarjetaRev'){
-    state.revTdcDeuda-=monto; // ya validado arriba que no excede
-    state.revTdcMovs.unshift({tipo:'pago',monto,nota:nota||('pago desde '+CUENTAS[origen]),fecha:new Date().toISOString()});
+    plan.tdcRevDelta=-m;
+    plan.tdcRevMovAdd={id:nuevoId(),tipo:'pago',monto:m,nota:nota||('pago desde '+CUENTAS[origen]),fecha:ahora};
   } else {
-    aplicarDelta(destino,monto);
+    plan.deltas[destino]=m;
   }
-  const tr={origen,destino,monto,nota,fecha:new Date().toISOString()};
-  state.transferencias.unshift(tr);
-  btn.disabled=true;
-  try{
-    const ref=doc(collection(db,'transferencias'));
-    const batch=writeBatch(db);
-    batch.set(ref,tr);
-    batch.set(doc(db,'cartera','saldos'),saldosPayload());
-    if(destino==='tarjeta') batch.set(doc(db,'cartera','tarjeta'),{deuda:state.tarjetaDeuda,movimientos:state.tarjetaMovimientos});
-    if(destino==='tarjetaRev'||destino==='revTdcDep'||origen==='revTdcDep') batch.set(doc(db,'cartera','tarjetaRev'),tarjetaRevPayload());
-    await batch.commit();
-    tr.id=ref.id;
-    setSyncDot('ok');
-    document.getElementById('transfer-monto').value='';document.getElementById('transfer-nota').value='';
-    render();renderTransferencias();
-    showToast(fmt(monto)+' · '+CUENTAS[origen]+' → '+CUENTAS[destino]);
-  }catch(e){
-    restoreCuentas(prev);
-    state.tarjetaDeuda=prev.tarjetaDeuda;
-    state.revTdcDeuda=prev.revTdcDeuda;
-    if(destino==='tarjeta') state.tarjetaMovimientos.shift();
-    if(destino==='tarjetaRev') state.revTdcMovs.shift();
-    state.transferencias.splice(state.transferencias.indexOf(tr),1);
-    setSyncDot('err');
-    console.error('registrarTransferencia',e);
-    showToast('ERROR: no se guardo, revisa tu conexion');
-  }finally{btn.disabled=false;}
+  let res=null,err=null;
+  btn.disabled=true; dineroOcupado=true;
+  try{ res=await txDinero(plan); }
+  catch(e){ err=e; }
+  finally{ btn.disabled=false; liberarDinero(); }
+  if(err){ console.error('registrarTransferencia',err); showToast('no se pudo confirmar — recarga la app antes de reintentar'); return; }
+  if(res.error){ showToast(res.error); return; }
+  // -- post-commit --
+  aplicarRes(res);
+  tr.id=ref.id; state.transferencias.unshift(tr);
+  document.getElementById('transfer-monto').value='';document.getElementById('transfer-nota').value='';
+  refrescar(render,renderTransferencias);
+  showToast(fmt(m)+' · '+CUENTAS[origen]+' → '+CUENTAS[destino]);
 };
 window.eliminarTransferencia = async function(id) {
   const idx=state.transferencias.findIndex(t=>t.id===id); if(idx<0)return;
@@ -2639,31 +2906,27 @@ window.eliminarTransferencia = async function(id) {
   // si la transferencia toca una cajita/savings, el interes que ese dinero ya genero no se revierte al deshacer
   const CTAS_INTERES=['cajita1','cajita2','revSavings'];
   const tocaCajitaTr=CTAS_INTERES.includes(t.origen)||CTAS_INTERES.includes(t.destino);
+  if(dineroOcupado){showToast('espera, hay otra operacion en curso');return;}
   if(!confirm('¿Deshacer transferencia de '+fmt(t.monto)+' ('+(CUENTAS[t.origen]||t.origen)+' → '+(CUENTAS[t.destino]||t.destino)+')? El dinero regresa a su cuenta original'+(tocaCajitaTr?' (el rendimiento que ese dinero ya genero no se revierte)':'')))return;
+  if(dineroOcupado){showToast('espera, hay otra operacion en curso');return;} // el confirm bloquea: revalidar al volver
   if(Math.round(getSaldoCuenta(t.destino)*100)<Math.round(t.monto*100)){showToast('no se puede deshacer: ya no hay saldo suficiente en la cuenta destino');return;}
-  // deshacer un retiro del deposito re-mete dinero: no puede rebasar el tope de $75,000
-  if(t.origen==='revTdcDep'&&Math.round(((state.revTdcDeposito||0)+t.monto)*100)>7500000){showToast('no se puede deshacer: el deposito excederia $75,000');return;}
-  // respaldo para revertir el estado optimista si falla la escritura
-  const prev=backupCuentas();
-  aplicarDelta(t.destino,-t.monto);
-  aplicarDelta(t.origen,t.monto);
-  state.transferencias.splice(idx,1);
-  try{
-    const batch=writeBatch(db);
-    batch.delete(doc(db,'transferencias',id));
-    batch.set(doc(db,'cartera','saldos'),saldosPayload());
-    if(t.origen==='revTdcDep'||t.destino==='revTdcDep') batch.set(doc(db,'cartera','tarjetaRev'),tarjetaRevPayload());
-    await batch.commit();
-    setSyncDot('ok');
-    render();renderTransferencias();
-    showToast('transferencia deshecha');
-  }catch(e){
-    restoreCuentas(prev);
-    state.transferencias.splice(idx,0,t);
-    setSyncDot('err');
-    console.error('eliminarTransferencia',e);
-    showToast('ERROR: no se guardo, revisa tu conexion');
-  }
+  const m=c2(nFin(t.monto));
+  const ref=doc(db,'transferencias',id);
+  // requerirDocs: si otro dispositivo ya la deshizo, aborta en vez de mover el dinero
+  // dos veces. Sin permitirNegativo: sacar del destino se rechaza si ya no alcanza.
+  const plan={requerirDocs:[ref], borrar:[ref], deltas:{[t.destino]:-m, [t.origen]:m}};
+  let res=null,err=null;
+  dineroOcupado=true;
+  try{ res=await txDinero(plan); }
+  catch(e){ err=e; }
+  finally{ liberarDinero(); }
+  if(err){ console.error('eliminarTransferencia',err); showToast('no se pudo confirmar — recarga la app antes de reintentar'); return; }
+  if(res.error){ showToast(res.error); return; }
+  // -- post-commit --
+  aplicarRes(res);
+  const i2=state.transferencias.findIndex(x=>x.id===id); if(i2>=0) state.transferencias.splice(i2,1);
+  refrescar(render,renderTransferencias);
+  showToast('transferencia deshecha');
 };
 function renderTransferencias() {
   const c=document.getElementById('transfer-historial');
@@ -2682,46 +2945,32 @@ function renderTransferencias() {
 async function altaGasto(cat,monto,nota,fuente,btn) {
   if(!Number.isFinite(monto)||monto<=0){showToast('ingresa un monto valido');return false;}
   if(!FUENTES_GASTO.includes(fuente)){showToast('fuente no valida');return false;}
-  // TDC Revolut: limite = deposito, bloqueante en centavos (validacion en memoria deliberada,
-  // mismo patron que tarjeta NU; el atajo valida canonico en su transaccion)
-  if(fuente==='tarjetaRev'&&Math.round((Math.max(0,state.revTdcDeuda)+monto)*100)>Math.round((state.revTdcDeposito||0)*100)){
-    showToast('el cargo excede el limite de la TDC Revolut (deposito de garantia)');return false;
-  }
-  const prev={...backupCuentas(),tarjetaDeuda:state.tarjetaDeuda,revTdcDeuda:state.revTdcDeuda};
-  let quedoNegativo=false;
-  if(fuente==='efectivo'){ state.efectivo-=monto; if(state.efectivo<0) quedoNegativo=true; }
-  else if(fuente==='nu'){ state.nuSaldo-=monto; if(state.nuSaldo<0) quedoNegativo=true; }
-  else if(fuente==='revolut'){ state.revMXN-=monto; if(state.revMXN<0) quedoNegativo=true; }
-  else if(fuente==='tarjeta') state.tarjetaDeuda+=monto;
-  else if(fuente==='tarjetaRev') state.revTdcDeuda+=monto;
-  const gasto={cat,monto,nota,fuente,fecha:new Date().toISOString()};
-  state.gastos.unshift(gasto);
-  if(btn) btn.disabled=true;
-  try{
-    // batch atomico: gasto, saldos y tarjeta (si aplica) se guardan juntos o ninguno
-    const ref=doc(collection(db,'gastos'));
-    const batch=writeBatch(db);
-    batch.set(ref,gasto);
-    batch.set(doc(db,'cartera','saldos'),saldosPayload());
-    if(fuente==='tarjeta') batch.set(doc(db,'cartera','tarjeta'),{deuda:state.tarjetaDeuda,movimientos:state.tarjetaMovimientos});
-    if(fuente==='tarjetaRev') batch.set(doc(db,'cartera','tarjetaRev'),tarjetaRevPayload());
-    await batch.commit();
-    gasto.id=ref.id;
-    setSyncDot('ok');
-    render();renderMovimientos();
-    showToast(quedoNegativo?('-'+fmt(monto)+' registrado · ojo: SALDO quedo negativo'):('-'+fmt(monto)+' registrado'));
-    avisoCategoria(cat); // aviso diferido si este mes ya va muy arriba del promedio
-    return true;
-  }catch(e){
-    restoreCuentas(prev);
-    state.tarjetaDeuda=prev.tarjetaDeuda;
-    state.revTdcDeuda=prev.revTdcDeuda;
-    state.gastos.splice(state.gastos.indexOf(gasto),1);
-    setSyncDot('err');
-    console.error('altaGasto',e);
-    showToast('ERROR: no se guardo, revisa tu conexion');
-    return false;
-  }finally{if(btn) btn.disabled=false;}
+  if(dineroOcupado){showToast('espera, hay otra operacion en curso');return false;}
+  const m=c2(monto);
+  const ref=doc(collection(db,'gastos'));
+  const gasto={cat,monto:m,nota,fuente,fecha:new Date().toISOString()};
+  // el gasto YA OCURRIO en la vida real: si el saldo registrado no alcanza se avisa,
+  // pero no se bloquea — perder el registro es peor que quedar en rojo. El limite de
+  // la TDC Revolut SI es bloqueante y lo valida txDinero contra el deposito canonico.
+  const plan={crear:[{ref,data:gasto}], permitirNegativo:true};
+  if(fuente==='tarjeta') plan.tarjetaDelta=m;
+  else if(fuente==='tarjetaRev') plan.tdcRevDelta=m;
+  else plan.deltas={[fuente]:-m};
+  let res=null,err=null;
+  if(btn) btn.disabled=true; dineroOcupado=true;
+  try{ res=await txDinero(plan); }
+  catch(e){ err=e; }
+  finally{ if(btn) btn.disabled=false; liberarDinero(); }
+  if(err){ console.error('altaGasto',err); showToast('no se pudo confirmar — recarga la app antes de reintentar'); return false; }
+  if(res.error){ showToast(res.error); return false; }
+  // -- post-commit: se refleja lo que quedo en el SERVIDOR, no lo que creia la pantalla --
+  aplicarRes(res);
+  gasto.id=ref.id; state.gastos.unshift(gasto);
+  const quedoNegativo=!!plan.deltas && res.saldos[fuente]<0;
+  refrescar(render,renderMovimientos);
+  showToast(quedoNegativo?('-'+fmt(m)+' registrado · ojo: SALDO quedo negativo'):('-'+fmt(m)+' registrado'));
+  avisoCategoria(cat); // aviso diferido si este mes ya va muy arriba del promedio
+  return true;
 }
 window.registrarGasto = async function() {
   const ok=await altaGasto(
@@ -2737,39 +2986,34 @@ window.eliminarGasto = async function(id) {
   const idx=state.gastos.findIndex(g=>g.id===id); if(idx<0)return;
   const g=state.gastos[idx];
   const sinEfecto=movSinEfecto(g); // capturado por atajo y nunca aplicado: borrar no toca cuentas
+  if(dineroOcupado){showToast('espera, hay otra operacion en curso');return;}
   if(!confirm('¿Eliminar gasto de '+fmt(g.monto)+' en '+g.cat+'? '+(sinEfecto?'(no afecta saldos: no estaba aplicado)':'El dinero se devuelve a '+(g.fuente==='tarjeta'||g.fuente==='tarjetaRev'?'la tarjeta':CUENTAS[g.fuente]||g.fuente))))return;
-  // respaldo para revertir el estado optimista si falla la escritura
-  const prev={...backupCuentas(),tarjetaDeuda:state.tarjetaDeuda,revTdcDeuda:state.revTdcDeuda};
-  if(!sinEfecto){
-    if(g.fuente==='efectivo') state.efectivo+=g.monto;
-    else if(g.fuente==='nu') state.nuSaldo+=g.monto;
-    else if(g.fuente==='revolut') state.revMXN+=g.monto;
-    else if(g.fuente==='tarjeta') state.tarjetaDeuda-=g.monto;
-    else if(g.fuente==='tarjetaRev') state.revTdcDeuda-=g.monto;
-  }
-  state.gastos.splice(idx,1);
-  try{
-    const batch=writeBatch(db);
-    batch.delete(doc(db,'gastos',id));
-    if(!sinEfecto){
-      batch.set(doc(db,'cartera','saldos'),saldosPayload());
-      if(g.fuente==='tarjeta') batch.set(doc(db,'cartera','tarjeta'),{deuda:state.tarjetaDeuda,movimientos:state.tarjetaMovimientos});
-      if(g.fuente==='tarjetaRev') batch.set(doc(db,'cartera','tarjetaRev'),tarjetaRevPayload());
-    }
-    await batch.commit();
-    setSyncDot('ok');
-    render();renderMovimientos();
-    // no se recorta a 0: si el gasto eliminado deja la tarjeta con saldo a favor, se avisa en vez de ocultarlo
-    showToast(((g.fuente==='tarjeta'&&state.tarjetaDeuda<0)||(g.fuente==='tarjetaRev'&&state.revTdcDeuda<0))?'gasto eliminado · ojo: la tarjeta quedo con saldo a favor':'gasto eliminado');
-  }catch(e){
-    restoreCuentas(prev);
-    state.tarjetaDeuda=prev.tarjetaDeuda;
-    state.revTdcDeuda=prev.revTdcDeuda;
-    state.gastos.splice(idx,0,g);
-    setSyncDot('err');
-    console.error('eliminarGasto',e);
-    showToast('ERROR: no se guardo, revisa tu conexion');
-  }
+  if(dineroOcupado){showToast('espera, hay otra operacion en curso');return;} // el confirm bloquea: revalidar al volver
+  const m=c2(nFin(g.monto));
+  const ref=doc(db,'gastos',id);
+  // movBorrar aborta si otro dispositivo ya lo borro (no se devuelve el dinero dos veces)
+  // y decide si revertir releyendo las banderas CANONICAS del documento, no la copia de
+  // esta pantalla. permitirDeudaNegativa: quitar un cargo puede dejar la tarjeta con
+  // saldo a favor — se avisa, no se oculta recortando a cero.
+  const enCuenta=CAMPO_SIMPLE[g.fuente]||CAMPO_COMP[g.fuente];
+  const plan={permitirNegativo:true, permitirDeudaNegativa:true,
+    movBorrar:{ref, slot:enCuenta?g.fuente:null, signo:1, monto:m}};
+  if(g.fuente==='tarjeta') plan.tarjetaDelta=-m;
+  else if(g.fuente==='tarjetaRev') plan.tdcRevDelta=-m;
+  let res=null,err=null;
+  dineroOcupado=true;
+  try{ res=await txDinero(plan); }
+  catch(e){ err=e; }
+  finally{ liberarDinero(); }
+  if(err){ console.error('eliminarGasto',err); showToast('no se pudo confirmar — recarga la app antes de reintentar'); return; }
+  if(res.error){ showToast(res.error); return; }
+  // -- post-commit --
+  aplicarRes(res);
+  const i2=state.gastos.findIndex(x=>x.id===id); if(i2>=0) state.gastos.splice(i2,1);
+  refrescar(render,renderMovimientos);
+  // no se recorta a 0: si el gasto eliminado deja la tarjeta con saldo a favor, se avisa en vez de ocultarlo
+  const aFavor=(res.tarjeta&&res.tarjeta.deuda<0)||(res.tdcRev&&res.tdcRev.deuda<0);
+  showToast(aFavor?'gasto eliminado · ojo: la tarjeta quedo con saldo a favor':'gasto eliminado');
 };
 
 // historial combinado de gastos e ingresos con filtro de periodo (dia/semana/mes/ano)
@@ -2901,33 +3145,23 @@ window.guardarEdicionMov = async function() {
 async function altaIngreso(cat,monto,nota,destino,btn) {
   if(!Number.isFinite(monto)||monto<=0){showToast('ingresa un monto valido');return false;}
   if(!DESTINOS_INGRESO.includes(destino)){showToast('destino no valido');return false;}
-  const prev=backupCuentas();
-  if(destino==='efectivo') state.efectivo+=monto;
-  else if(destino==='nu') state.nuSaldo+=monto;
-  else if(destino==='gbm') state.efectivoGBM+=monto;
-  else if(destino==='revolut') state.revMXN+=monto;
-  const ingreso={cat,monto,nota,destino,fecha:new Date().toISOString()};
-  state.ingresos.unshift(ingreso);
-  if(btn) btn.disabled=true;
-  try{
-    const ref=doc(collection(db,'ingresos'));
-    const batch=writeBatch(db);
-    batch.set(ref,ingreso);
-    batch.set(doc(db,'cartera','saldos'),saldosPayload());
-    await batch.commit();
-    ingreso.id=ref.id;
-    setSyncDot('ok');
-    render();renderMovimientos();
-    showToast('+'+fmt(monto)+' ingresado');
-    return true;
-  }catch(e){
-    restoreCuentas(prev);
-    state.ingresos.splice(state.ingresos.indexOf(ingreso),1);
-    setSyncDot('err');
-    console.error('altaIngreso',e);
-    showToast('ERROR: no se guardo, revisa tu conexion');
-    return false;
-  }finally{if(btn) btn.disabled=false;}
+  if(dineroOcupado){showToast('espera, hay otra operacion en curso');return false;}
+  const m=c2(monto);
+  const ref=doc(collection(db,'ingresos'));
+  const ingreso={cat,monto:m,nota,destino,fecha:new Date().toISOString()};
+  let res=null,err=null;
+  if(btn) btn.disabled=true; dineroOcupado=true;
+  try{ res=await txDinero({deltas:{[destino]:m}, crear:[{ref,data:ingreso}]}); }
+  catch(e){ err=e; }
+  finally{ if(btn) btn.disabled=false; liberarDinero(); }
+  if(err){ console.error('altaIngreso',err); showToast('no se pudo confirmar — recarga la app antes de reintentar'); return false; }
+  if(res.error){ showToast(res.error); return false; }
+  // -- post-commit --
+  aplicarRes(res);
+  ingreso.id=ref.id; state.ingresos.unshift(ingreso);
+  refrescar(render,renderMovimientos);
+  showToast('+'+fmt(m)+' ingresado');
+  return true;
 }
 window.registrarIngreso = async function() {
   const ok=await altaIngreso(
@@ -2943,32 +3177,30 @@ window.eliminarIngreso = async function(id) {
   const idx=state.ingresos.findIndex(g=>g.id===id); if(idx<0)return;
   const g=state.ingresos[idx];
   const sinEfecto=movSinEfecto(g);
+  if(dineroOcupado){showToast('espera, hay otra operacion en curso');return;}
   if(!confirm('¿Eliminar ingreso de '+fmt(g.monto)+' ('+g.cat+')? '+(sinEfecto?'(no afecta saldos: no estaba aplicado)':'Se resta de '+(CUENTAS[g.destino]||g.destino))))return;
-  // respaldo para revertir el estado optimista si falla la escritura
-  const prev=backupCuentas();
-  let quedoNegativo=false;
-  if(!sinEfecto){
-    if(g.destino==='efectivo'){ state.efectivo-=g.monto; if(state.efectivo<0) quedoNegativo=true; }
-    else if(g.destino==='nu'){ state.nuSaldo-=g.monto; if(state.nuSaldo<0) quedoNegativo=true; }
-    else if(g.destino==='gbm'){ state.efectivoGBM-=g.monto; if(state.efectivoGBM<0) quedoNegativo=true; }
-    else if(g.destino==='revolut'){ state.revMXN-=g.monto; if(state.revMXN<0) quedoNegativo=true; }
-  }
-  state.ingresos.splice(idx,1);
-  try{
-    const batch=writeBatch(db);
-    batch.delete(doc(db,'ingresos',id));
-    if(!sinEfecto) batch.set(doc(db,'cartera','saldos'),saldosPayload());
-    await batch.commit();
-    setSyncDot('ok');
-    render();renderMovimientos();
-    showToast(quedoNegativo?'ingreso eliminado · ojo: SALDO quedo negativo':'ingreso eliminado');
-  }catch(e){
-    restoreCuentas(prev);
-    state.ingresos.splice(idx,0,g);
-    setSyncDot('err');
-    console.error('eliminarIngreso',e);
-    showToast('ERROR: no se guardo, revisa tu conexion');
-  }
+  if(dineroOcupado){showToast('espera, hay otra operacion en curso');return;} // el confirm bloquea: revalidar al volver
+  const m=c2(nFin(g.monto));
+  const ref=doc(db,'ingresos',id);
+  // permitirNegativo: quitar un ingreso YA GASTADO puede dejar la cuenta en rojo; se
+  // avisa, no se bloquea. movBorrar aborta si otro dispositivo ya lo borro (no se resta
+  // dos veces) y decide si revertir releyendo las banderas del propio documento: la copia
+  // en memoria puede decir "pendiente" cuando el Atajo ya lo aplico desde otro telefono.
+  const plan={permitirNegativo:true,
+    movBorrar:{ref, slot:(CAMPO_SIMPLE[g.destino]||CAMPO_COMP[g.destino])?g.destino:null, signo:-1, monto:m}};
+  let res=null,err=null;
+  dineroOcupado=true;
+  try{ res=await txDinero(plan); }
+  catch(e){ err=e; }
+  finally{ liberarDinero(); }
+  if(err){ console.error('eliminarIngreso',err); showToast('no se pudo confirmar — recarga la app antes de reintentar'); return; }
+  if(res.error){ showToast(res.error); return; }
+  // -- post-commit --
+  aplicarRes(res);
+  const i2=state.ingresos.findIndex(x=>x.id===id); if(i2>=0) state.ingresos.splice(i2,1);
+  const quedoNegativo=res.movAplicaba && res.saldos[g.destino]<0;
+  refrescar(render,renderMovimientos);
+  showToast(quedoNegativo?'ingreso eliminado · ojo: SALDO quedo negativo':'ingreso eliminado');
 };
 
 
@@ -2998,19 +3230,22 @@ window.handlePersonaChange = async function(sel) {
   // colision sin distinguir mayusculas: "papa" y "Papá" son la misma persona
   const existente=Object.keys(state.personas).find(k=>k.toLowerCase()===key.toLowerCase());
   if(existente){ renderPersonaSelect(); sel.value=existente; personaSelPrev=existente; showToast('esa persona ya existe'); return; }
-  state.personas[key]={nombre,saldo:0,movimientos:[]};
-  sel.disabled=true;
-  try{
-    await savePersonas();
-    renderPersonaSelect(); sel.value=key; personaSelPrev=key;
-    renderDeudas();
-    showToast('persona "'+nombre+'" agregada');
-  }catch(e){
-    delete state.personas[key];
-    setSyncDot('err');console.error('handlePersonaChange',e);
-    renderPersonaSelect();
-    showToast('ERROR: no se guardo, revisa tu conexion');
-  }finally{sel.disabled=false;}
+  if(dineroOcupado){ showToast('espera, hay otra operacion en curso'); renderPersonaSelect(); return; }
+  // el alta va por transaccion con merge de UNA sola clave: dos altas simultaneas desde
+  // dos dispositivos ya no se borran entre si (antes se escribia el mapa COMPLETO de
+  // personas desde memoria), y la colision de nombre se revisa contra la nube
+  let res=null,err=null;
+  sel.disabled=true; dineroOcupado=true;
+  try{ res=await txDinero({persona:{key,nombre,crear:true}}); }
+  catch(e){ err=e; }
+  finally{ sel.disabled=false; liberarDinero(); }
+  if(err){ console.error('handlePersonaChange',err); refrescar(renderPersonaSelect); showToast('no se pudo confirmar — recarga la app antes de reintentar'); return; }
+  if(res.error){ refrescar(renderPersonaSelect); showToast(res.error); return; }
+  // -- post-commit --
+  state.personas[key]=res.persona;
+  refrescar(renderPersonaSelect,renderDeudas);
+  sel.value=key; personaSelPrev=key;
+  showToast('persona "'+nombre+'" agregada');
 };
 // efecto de cada tipo: deuda = saldo de la persona, cuenta = mi cuenta elegida
 // cargo (me deben +): preste dinero, SALE de mi cuenta
@@ -3034,35 +3269,28 @@ window.registrarDeuda = async function() {
   if(!DEUDA_CUENTAS_ALTA.includes(cuenta)){showToast('cuenta no valida');return;}
   if(!Number.isFinite(monto)||monto<=0){showToast('ingresa un monto valido');return;}
   const ef=DEUDA_TIPOS[tipo];
+  // aviso temprano; el saldo suficiente lo revalida txDinero contra la nube
   if(cuenta!=='externo'&&ef.cuenta<0&&monto>getSaldoCuenta(cuenta)+0.01){showToast('saldo insuficiente en '+CUENTAS[cuenta]);return;}
-  // respaldo para revertir el estado optimista si falla la escritura
-  const prev={...backupCuentas(),saldo:state.personas[persona].saldo};
-  state.personas[persona].saldo+=ef.deuda*monto;
-  const mov={id:(crypto.randomUUID?crypto.randomUUID():String(Date.now())+Math.random().toString(36).slice(2)),
-    subcat,monto,tipo,nota,cuenta,v:2,fecha:new Date().toISOString()};
-  state.personas[persona].movimientos.unshift(mov);
-  if(cuenta!=='externo') aplicarDelta(cuenta,ef.cuenta*monto);
-  btn.disabled=true;
-  try{
-    // batch atomico: personas y saldos se guardan juntos o ninguno
-    const batch=writeBatch(db);
-    batch.set(doc(db,'cartera','personas'),{data:state.personas});
-    if(cuenta!=='externo') batch.set(doc(db,'cartera','saldos'),saldosPayload());
-    await batch.commit();
-    setSyncDot('ok');
-    document.getElementById('deuda-monto').value='';document.getElementById('deuda-nota').value='';
-    renderDeudas();
-    render(); // el saldo de la persona afecta el patrimonio neto aunque la cuenta sea externo
-    showToast('movimiento registrado');
-  }catch(e){
-    restoreCuentas(prev);
-    state.personas[persona].saldo=prev.saldo;
-    state.personas[persona].movimientos=state.personas[persona].movimientos.filter(m=>m.id!==mov.id);
-    setSyncDot('err');
-    console.error('registrarDeuda',e);
-    renderDeudas();
-    showToast('ERROR: no se guardo, revisa tu conexion');
-  }finally{btn.disabled=false;}
+  if(dineroOcupado){showToast('espera, hay otra operacion en curso');return;}
+  const m=c2(monto);
+  // el id se genera ANTES de la transaccion: un reintento no debe crear dos movimientos
+  const mov={id:nuevoId(),subcat,monto:m,tipo,nota,cuenta,v:2,fecha:new Date().toISOString()};
+  const plan={persona:{key:persona, deltaSaldo:ef.deuda*m, movAdd:mov}};
+  if(cuenta!=='externo'&&(CAMPO_SIMPLE[cuenta]||CAMPO_COMP[cuenta])) plan.deltas={[cuenta]:ef.cuenta*m};
+  let res=null,err=null;
+  btn.disabled=true; dineroOcupado=true;
+  try{ res=await txDinero(plan); }
+  catch(e){ err=e; }
+  finally{ btn.disabled=false; liberarDinero(); }
+  if(err){ console.error('registrarDeuda',err); showToast('no se pudo confirmar — recarga la app antes de reintentar'); return; }
+  if(res.error){ showToast(res.error); return; }
+  // -- post-commit --
+  aplicarRes(res);
+  state.personas[persona]=res.persona; // saldo y movimientos canonicos de esa persona
+  document.getElementById('deuda-monto').value='';document.getElementById('deuda-nota').value='';
+  // el saldo de la persona afecta el patrimonio neto aunque la cuenta sea externo
+  refrescar(renderDeudas,render);
+  showToast('movimiento registrado');
 };
 
 function renderDeudas() {
@@ -3090,9 +3318,8 @@ function renderDeudas() {
 }
 window.toggleDeuda=id=>document.getElementById(id).classList.toggle('open');
 
-let borrandoDeuda=false;
 window.eliminarDeuda = async function(personaKey, movId) {
-  if(borrandoDeuda) return;
+  if(dineroOcupado) return;
   const p=state.personas[personaKey];
   if(!p){showToast('persona no valida');return;}
   const idx=p.movimientos.findIndex(m=>m.id===movId);
@@ -3104,36 +3331,34 @@ window.eliminarDeuda = async function(personaKey, movId) {
   const cuenta=m.cuenta;
   if(!DEUDA_CUENTAS.includes(cuenta)){showToast('este movimiento no tiene cuenta valida, no se puede eliminar');return;}
   if(!Number.isFinite(m.monto)||m.monto<=0){showToast('monto no valido');return;}
-  // al revertir, el dinero hace el movimiento contrario: si habia entrado, ahora sale
+  // al revertir, el dinero hace el movimiento contrario: si habia entrado, ahora sale.
+  // Aviso temprano; que alcance lo decide la transaccion con el valor de la nube
   if(cuenta!=='externo'&&ef.cuenta>0&&m.monto>getSaldoCuenta(cuenta)+0.01){showToast('no se puede deshacer: saldo insuficiente en '+CUENTAS[cuenta]);return;}
   // si el movimiento toca una cajita/savings, el interes que ese dinero ya genero no se revierte al eliminar
   const tocaCajitaDeuda=cuenta==='cajita1'||cuenta==='cajita2'||cuenta==='revSavings';
   if(!confirm('¿Eliminar movimiento de '+fmt(m.monto)+' ('+m.subcat+')? Se revierte el saldo de '+p.nombre+(cuenta!=='externo'?' y el dinero en '+CUENTAS[cuenta]:'')+(tocaCajitaDeuda?' (el rendimiento que ese dinero ya genero no se revierte)':'')))return;
-  const prev={...backupCuentas(),saldo:p.saldo};
-  p.saldo-=ef.deuda*m.monto;
-  p.movimientos.splice(idx,1);
-  if(cuenta!=='externo') aplicarDelta(cuenta,-ef.cuenta*m.monto);
-  borrandoDeuda=true;
-  try{
-    const batch=writeBatch(db);
-    batch.set(doc(db,'cartera','personas'),{data:state.personas});
-    if(cuenta!=='externo') batch.set(doc(db,'cartera','saldos'),saldosPayload());
-    await batch.commit();
-    setSyncDot('ok');
-    renderDeudas(); render();
-    showToast('movimiento eliminado');
-  }catch(e){
-    restoreCuentas(prev);
-    p.saldo=prev.saldo;
-    p.movimientos.splice(idx,0,m);
-    setSyncDot('err');console.error('eliminarDeuda',e);
-    renderDeudas();
-    showToast('ERROR: no se guardo, revisa tu conexion');
-  }finally{borrandoDeuda=false;}
+  if(dineroOcupado){showToast('espera, hay otra operacion en curso');return;} // el confirm bloquea: revalidar al volver
+  const monto=c2(nFin(m.monto));
+  // movDelId: si otro dispositivo ya borro este movimiento, la transaccion aborta en vez
+  // de revertir el saldo por segunda vez
+  const plan={persona:{key:personaKey, deltaSaldo:-ef.deuda*monto, movDelId:movId}};
+  if(cuenta!=='externo'&&(CAMPO_SIMPLE[cuenta]||CAMPO_COMP[cuenta])) plan.deltas={[cuenta]:-ef.cuenta*monto};
+  let res=null,err=null;
+  dineroOcupado=true;
+  try{ res=await txDinero(plan); }
+  catch(e){ err=e; }
+  finally{ liberarDinero(); }
+  if(err){ console.error('eliminarDeuda',err); showToast('no se pudo confirmar — recarga la app antes de reintentar'); return; }
+  if(res.error){ showToast(res.error); return; }
+  // -- post-commit --
+  aplicarRes(res);
+  state.personas[personaKey]=res.persona;
+  refrescar(renderDeudas,render);
+  showToast('movimiento eliminado');
 };
 
 // ── COMPRA/VENTA DE ACCIONES (ledger stocksOps) ───────────────
-let stockOpOcupado=false;
+let stockOpOcupado=false; // ademas se toma dineroOcupado: comprar/vender TAMBIEN mueve dinero
 let stockTipoSel='compra';
 window.setStockTipo = t => {
   if(stockOpOcupado) return;
@@ -3177,7 +3402,7 @@ function limpiarFormStock() {
   ['stock-simbolo','stock-acciones','stock-monto','stock-usd','stock-fecha'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
 }
 async function operarStock(tipo) {
-  if(stockOpOcupado) return;
+  if(stockOpOcupado||dineroOcupado) return;
   const d=pedirDatosStock(); if(!d) return;
   if(tipo==='venta'){
     const pos=state.posiciones[d.simbolo];
@@ -3187,7 +3412,7 @@ async function operarStock(tipo) {
   // 'externo' no tiene campo: la compra/venta no toca saldos (dinero fuera de la app)
   const campo={efectivo:'efectivo',nu:'nuSaldo',revolut:'revMXN'}[d.cuenta]||null;
   const opBtn=document.getElementById('stock-op-btn');
-  stockOpOcupado=true;
+  stockOpOcupado=true; dineroOcupado=true;
   if(opBtn) opBtn.disabled=true;
   try{
     let res;
@@ -3240,7 +3465,7 @@ async function operarStock(tipo) {
       console.error('operarStock post-commit',e);
       showToast('operacion guardada · recarga la app si no la ves');
     }
-  }finally{ stockOpOcupado=false; if(opBtn) opBtn.disabled=false; }
+  }finally{ stockOpOcupado=false; liberarDinero(); if(opBtn) opBtn.disabled=false; }
 }
 window.enviarOpStock=()=>operarStock(stockTipoSel);
 // los botones de la tarjeta solo preseleccionan el tipo y llevan al formulario
