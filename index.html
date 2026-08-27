@@ -680,7 +680,7 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
   </div>
   </div>
   <div class="status" id="status-inicio">—</div>
-  <div class="status" style="margin-top:2px;padding-bottom:8px">version 2026-08-25.2</div>
+  <div class="status" id="version-app" style="margin-top:2px;padding-bottom:8px">—</div>
 </div>
 
 <!-- MOVIMIENTOS (gastos + ingresos en una sola pestana) -->
@@ -1060,6 +1060,21 @@ function escapeHtml(s) { return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;
 function toggleDetail(id) { document.getElementById(id).classList.toggle('open'); }
 window.toggleDetail = toggleDetail;
 function setSyncDot(s) { document.getElementById('sync-dot').className = 'sync-dot ' + (s === 'ok' ? 'ok' : s === 'err' ? 'err' : ''); }
+// Version de la app. NO es un texto escrito a mano: sale de document.lastModified, o sea
+// del Last-Modified con que el servidor entrego este mismo index.html. Asi el letrero no
+// puede quedarse viejo porque alguien olvidara subirlo, y dice la verdad sobre lo que
+// ESTE dispositivo tiene cargado: si el celular se quedo con una copia vieja en cache,
+// se ve la fecha vieja y se sabe que hay que recargar.
+function mostrarVersion() {
+  const el = document.getElementById('version-app');
+  if (!el) return;
+  const d = new Date(document.lastModified);
+  el.textContent = isNaN(d.getTime())
+    ? 'version desconocida'
+    : 'version del ' + d.toLocaleDateString('es-MX',{day:'numeric',month:'short',year:'numeric'})
+      + ' · ' + d.toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'});
+}
+mostrarVersion();
 
 // ── AUTH ──────────────────────────────────────────────────────
 window.doLogin = async function() {
