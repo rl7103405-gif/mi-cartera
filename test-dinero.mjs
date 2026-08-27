@@ -71,6 +71,11 @@ function calcCompoundAt(base, fechaStr, tasaPct, ms) {
 }
 const clampCero = v => Math.abs(v) < 0.005 ? 0 : v;
 const state = { revTdcDeposito: 0 };
+// La tarjeta 2 puede ser normal o garantizada en las copias de Eli y Tono; esa
+// decision vive fuera del bloque de txDinero que se extrae abajo, asi que hay que
+// inyectarla. En la app de Roberto siempre es garantizada, que es el valor por defecto.
+let MODO_TDC = 'garantizada';
+const tdcGarantizada = () => MODO_TDC === 'garantizada';
 const movSinEfecto = m => m.pendiente === true || (m.porAtajo === true && m.aplicadoSaldo !== true);
 
 // ── extraer txDinero y sus constantes del index.html real ────
@@ -83,9 +88,9 @@ function extrae(desde, hasta) {
 }
 const fuente = extrae('const nFin = (v,d=0)', '// aplica a memoria el resultado CANONICO');
 const txDinero = new Function('db','datosCargados','doc','collection','runTransaction','setSyncDot',
-  'hoyLocal','calcCompoundAt','clampCero','CUENTAS','state','movSinEfecto','NS','C_GASTOS','C_INGRESOS','C_TRANSF','C_OPS',
+  'hoyLocal','calcCompoundAt','clampCero','CUENTAS','state','movSinEfecto','NS','C_GASTOS','C_INGRESOS','C_TRANSF','C_OPS','tdcGarantizada',
   fuente + '\nreturn txDinero;')(db, datosCargados, doc, collection, runTransaction, setSyncDot,
-  hoyLocal, calcCompoundAt, clampCero, CUENTAS, state, movSinEfecto, NS, PFX+'gastos', PFX+'ingresos', PFX+'transferencias', PFX+'stocksOps');
+  hoyLocal, calcCompoundAt, clampCero, CUENTAS, state, movSinEfecto, NS, PFX+'gastos', PFX+'ingresos', PFX+'transferencias', PFX+'stocksOps', tdcGarantizada);
 
 // ── utilidades de prueba ─────────────────────────────────────
 let fallos = 0, pruebas = 0;
@@ -250,6 +255,26 @@ chk('no deja pasar de $75,000', !!rP3.error, JSON.stringify(rP3));
 // El callback de runTransaction puede correr varias veces. movBorrar SUMA sobre
 // deltas[slot]; si ese objeto viniera del plan (y no fuera copia fresca por intento),
 // el segundo intento partiria del valor del primero y revertiria el DOBLE.
+// Solo en las copias donde la tarjeta 2 se configura (Eli y Tono). En la app de Roberto
+// la condicion de limite se evalua siempre y este bloque se salta.
+if (HTML.includes('tdcGarantizada()')) {
+  console.log('\n13b. Tarjeta 2 en modo NORMAL: el limite del deposito no aplica');
+  MODO_TDC = 'normal';
+  SERVIDOR = { [R('cartera/saldos')]: { efectivo: 1000 },
+               [R('cartera/tarjetaRev')]: { deuda: 0, deposito: 0, movimientos: [] } };
+  let rn = await txDinero({ tdcRevDelta: 100 });
+  chk('un cargo de $100 sin deposito SI pasa (antes daba "excede el limite")', !rn.error, rn.error || '');
+  chk('y la deuda queda registrada', SERVIDOR[R('cartera/tarjetaRev')].deuda === 100);
+
+  console.log('\n13c. Y en modo GARANTIZADA el limite sigue vigente');
+  MODO_TDC = 'garantizada';
+  SERVIDOR = { [R('cartera/saldos')]: { efectivo: 1000 },
+               [R('cartera/tarjetaRev')]: { deuda: 0, deposito: 50, movimientos: [] } };
+  rn = await txDinero({ tdcRevDelta: 100 });
+  chk('un cargo de $100 con deposito de $50 se rechaza', !!rn.error, 'no se rechazo');
+  chk('y la deuda NO se movio', SERVIDOR[R('cartera/tarjetaRev')].deuda === 0);
+}
+
 console.log('\n14. Borrar un movimiento CON reintentos de la transaccion');
 SERVIDOR = { [R('cartera/saldos')]: { efectivo: 1000 },
              [R('ingresos/r1')]: { monto: 200, destino: 'efectivo' } };
