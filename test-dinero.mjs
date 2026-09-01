@@ -64,11 +64,8 @@ const hoyLocal = () => '2026-08-27';
 const parseFechaLocal = f => { const [a, m, d] = f.split('-').map(Number); return new Date(a, m - 1, d); };
 const CUENTAS = { efectivo: 'efectivo', nu: 'NU saldo', cajita1: 'NU cajita 1', cajita2: 'NU cajita 2',
   gbm: 'GBM efectivo', revolut: 'Revolut MXN', revSavings: 'Revolut Savings' };
-function calcCompoundAt(base, fechaStr, tasaPct, ms) {
-  if (!base || !fechaStr) return base || 0;
-  const dias = Math.max(0, Math.floor((ms - parseFechaLocal(fechaStr).getTime()) / 86400000));
-  return base * Math.pow(1 + (tasaPct || 0) / 100 / 365, dias);
-}
+// calcCompoundAt y modeloComp se extraen del index.html REAL mas abajo (nucleoInteres):
+// duplicarlos aqui haria que la prueba validara una copia y no el codigo publicado
 const clampCero = v => Math.abs(v) < 0.005 ? 0 : v;
 const state = { revTdcDeposito: 0 };
 // La tarjeta 2 puede ser normal o garantizada en las copias de Eli y Tono; esa
@@ -86,11 +83,16 @@ function extrae(desde, hasta) {
   if (j < 0) throw new Error('fin no encontrado: ' + hasta);
   return HTML.slice(i, j);
 }
+// nucleo del interes por bandas, extraido del HTML real
+const nucleoInteres = extrae('// modelo por bandas de saldo', 'function descModelo');
+const { calcCompoundAt, modeloComp } = new Function('parseFechaLocal',
+  nucleoInteres + '\nreturn { calcCompoundAt, modeloComp };')(parseFechaLocal);
+
 const fuente = extrae('const nFin = (v,d=0)', '// aplica a memoria el resultado CANONICO');
-const txDinero = new Function('db','datosCargados','doc','collection','runTransaction','setSyncDot',
-  'hoyLocal','calcCompoundAt','clampCero','CUENTAS','state','movSinEfecto','NS','C_GASTOS','C_INGRESOS','C_TRANSF','C_OPS','tdcGarantizada',
-  fuente + '\nreturn txDinero;')(db, datosCargados, doc, collection, runTransaction, setSyncDot,
-  hoyLocal, calcCompoundAt, clampCero, CUENTAS, state, movSinEfecto, NS, PFX+'gastos', PFX+'ingresos', PFX+'transferencias', PFX+'stocksOps', tdcGarantizada);
+const { txDinero, CAMPO_COMP } = new Function('db','datosCargados','doc','collection','runTransaction','setSyncDot',
+  'hoyLocal','calcCompoundAt','modeloComp','clampCero','CUENTAS','state','movSinEfecto','NS','C_GASTOS','C_INGRESOS','C_TRANSF','C_OPS','tdcGarantizada',
+  fuente + '\nreturn { txDinero, CAMPO_COMP };')(db, datosCargados, doc, collection, runTransaction, setSyncDot,
+  hoyLocal, calcCompoundAt, modeloComp, clampCero, CUENTAS, state, movSinEfecto, NS, PFX+'gastos', PFX+'ingresos', PFX+'transferencias', PFX+'stocksOps', tdcGarantizada);
 
 // ── utilidades de prueba ─────────────────────────────────────
 let fallos = 0, pruebas = 0;
@@ -151,7 +153,7 @@ chk('con la cuenta en rojo, una ENTRADA nunca se bloquea', rEntra.ok === true &&
 console.log('\n5. Cajita: el delta se aplica sobre el saldo CON interes, y consolida');
 const base = 25000, tasa = 13;
 SERVIDOR = { [R('cartera/saldos')]: { nuCajita1Base: base, nuCajita1Fecha: '2026-08-01', nuCajita1Tasa: tasa } };
-const esperado = calcCompoundAt(base, '2026-08-01', tasa, Date.now());
+const esperado = calcCompoundAt(base, '2026-08-01', Date.now(), modeloComp(SERVIDOR[R('cartera/saldos')], CAMPO_COMP.cajita1));
 await txDinero({ deltas: { cajita1: 1000 } });
 const s5 = SERVIDOR[R('cartera/saldos')];
 chk('la base nueva = saldo con interes + delta', Math.abs(s5.nuCajita1Base - (Math.round((esperado + 1000) * 100) / 100)) < 0.01,
@@ -211,7 +213,7 @@ chk('NO pisa revMXN', SERVIDOR[R('cartera/saldos')].revMXN === 300);
 // ═══════════════ 11. CRISTALIZAR AL CAMBIAR LA TASA ═══════════════
 console.log('\n11. Cambiar la tasa sin dar saldo base consolida el interes viejo');
 SERVIDOR = { [R('cartera/saldos')]: { nuCajita1Base: 25000, nuCajita1Fecha: '2026-08-01', nuCajita1Tasa: 13 } };
-const conTasaVieja = calcCompoundAt(25000, '2026-08-01', 13, Date.now());
+const conTasaVieja = calcCompoundAt(25000, '2026-08-01', Date.now(), modeloComp(SERVIDOR[R('cartera/saldos')], CAMPO_COMP.cajita1));
 await txDinero({ cristalizar: ['cajita1'], absolutos: { nuCajita1Tasa: 9 } });
 const s11 = SERVIDOR[R('cartera/saldos')];
 chk('la base se consolida con la tasa VIEJA', Math.abs(s11.nuCajita1Base - Math.round(conTasaVieja * 100) / 100) < 0.01,
@@ -298,6 +300,36 @@ await txDinero({ deltas: { efectivo: -100, nu: 100 } });
 chk('una transferencia con 4 reintentos mueve el monto UNA vez',
     ef() === 900 && SERVIDOR[R('cartera/saldos')].nuSaldo === 600,
     'efectivo ' + ef() + ' nu ' + SERVIDOR[R('cartera/saldos')].nuSaldo);
+
+// =============== 15. INTERES POR BANDAS (caso real 1-sep-2026) ===============
+console.log('\n15. Modelo por bandas: Nu 13%/360 con tope, Revolut neto de ISR');
+{
+  const unDia = parseFechaLocal('2026-08-02').getTime();
+  // Nu Cajita Turbo: $25,000 al 13%/360 = +$9.03 el primer dia (captura de Roberto)
+  const nu1 = calcCompoundAt(25000, '2026-08-01', unDia, modeloComp({}, CAMPO_COMP.cajita1));
+  chk('Nu: $25,000 gana $9.03 en un dia (13%/360)', Math.abs(nu1 - 25009.03) < 0.005, 'dio ' + nu1);
+  const dosDias = parseFechaLocal('2026-08-03').getTime();
+  const nu2 = calcCompoundAt(25000, '2026-08-01', dosDias, modeloComp({}, CAMPO_COMP.cajita1));
+  chk('Nu: el excedente del tope gana la tasa baja (dia 2 = +$9.03)', Math.abs(nu2 - 25018.06) < 0.005, 'dio ' + nu2);
+  // Revolut Savings: saldo real 22,254.95 -> interes del 1-sep +8.72 (15% - 0.90% ISR, /360)
+  const rev = calcCompoundAt(22254.95, '2026-08-01', unDia, modeloComp({}, CAMPO_COMP.revSavings));
+  chk('Revolut: $22,254.95 gana $8.72 en un dia (neto de ISR)', Math.abs(rev - 22263.67) < 0.005, 'dio ' + rev);
+  const sinTope = modeloComp({ nuCajita1Tope: 0 }, CAMPO_COMP.cajita1);
+  chk('tope 0 en el doc significa SIN tope', sinTope.tope === null, JSON.stringify(sinTope));
+  const defs = modeloComp({}, CAMPO_COMP.revSavings);
+  chk('doc viejo sin campos -> defaults (tope 25000, exc 7.3, ret 0.9)',
+      defs.tope === 25000 && defs.tasaExc === 7.3 && defs.ret === 0.9 && defs.dias === 360, JSON.stringify(defs));
+}
+
+// =============== 16. CRISTALIZAR AL CAMBIAR EL TOPE ===============
+console.log('\n16. Cambiar tope/tasa excedente consolida con el modelo viejo');
+SERVIDOR = { [R('cartera/saldos')]: { nuCajita1Base: 26000, nuCajita1Fecha: '2026-08-01', nuCajita1Tasa: 13 } };
+const conModeloViejo = calcCompoundAt(26000, '2026-08-01', Date.now(), modeloComp(SERVIDOR[R('cartera/saldos')], CAMPO_COMP.cajita1));
+await txDinero({ cristalizar: ['cajita1'], absolutos: { nuCajita1Tope: 30000, nuCajita1TasaExc: 5 } });
+const s16 = SERVIDOR[R('cartera/saldos')];
+chk('la base se consolida con el tope VIEJO (default 25000)', Math.abs(s16.nuCajita1Base - Math.round(conModeloViejo * 100) / 100) < 0.01,
+    'esperado ' + conModeloViejo.toFixed(2) + ' obtuvo ' + s16.nuCajita1Base);
+chk('el tope y la tasa excedente nuevos quedan guardados', s16.nuCajita1Tope === 30000 && s16.nuCajita1TasaExc === 5);
 
 console.log('\n' + '='.repeat(58));
 console.log(fallos === 0 ? `TODO PASA — ${pruebas}/${pruebas}` : `${fallos} FALLAS de ${pruebas}`);

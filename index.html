@@ -528,6 +528,10 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
       <div class="field"><label>cajita NU 1 — fecha base (YYYY-MM-DD)</label><input type="text" id="input-cajita1-fecha" placeholder="ej. 2026-07-09"></div>
       <div class="field"><label>cajita NU 1 — tasa anual %</label><input type="number" id="input-cajita1-tasa" placeholder="ej. 13" step="0.01" inputmode="decimal"></div>
     </div>
+    <div class="row2" style="gap:8px">
+      <div class="field"><label>cajita NU 1 — tope de la tasa (0 = sin tope)</label><input type="number" id="input-cajita1-tope" placeholder="ej. 25000" step="0.01" inputmode="decimal"></div>
+      <div class="field"><label>cajita NU 1 — tasa % sobre el excedente</label><input type="number" id="input-cajita1-tasa-exc" placeholder="ej. 6.5" step="0.01" inputmode="decimal"></div>
+    </div>
     <div class="field"><label>NU saldo disponible</label><input type="number" id="input-nu-saldo" placeholder="ej. 360.59" step="0.01" inputmode="decimal"></div>
     <div class="field"><label>efectivo en pesos</label><input type="number" id="input-efectivo" placeholder="ej. 2200" step="1" inputmode="decimal"></div>
     <div class="field"><label>Revolut MXN (saldo de la cuenta)</label><input type="number" id="input-rev-mxn" placeholder="ej. 9.26" step="0.01" inputmode="decimal"></div>
@@ -537,6 +541,11 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
       <div class="field"><label>Revolut Savings — fecha base (YYYY-MM-DD)</label><input type="text" id="input-rev-savings-fecha" placeholder="vacia = hoy"></div>
       <div class="field"><label>Revolut Savings — tasa anual %</label><input type="number" id="input-rev-savings-tasa" placeholder="ej. 15" step="0.01" inputmode="decimal"></div>
     </div>
+    <div class="row2" style="gap:8px">
+      <div class="field"><label>Rev Savings — tope de la tasa (0 = sin tope)</label><input type="number" id="input-rev-savings-tope" placeholder="ej. 25000" step="0.01" inputmode="decimal"></div>
+      <div class="field"><label>Rev Savings — tasa % sobre el excedente</label><input type="number" id="input-rev-savings-tasa-exc" placeholder="ej. 7.3" step="0.01" inputmode="decimal"></div>
+    </div>
+    <div class="field"><label>Rev Savings — retencion ISR anual % (2026: 0.90, se resta del interes)</label><input type="number" id="input-rev-savings-ret" placeholder="ej. 0.90" step="0.01" inputmode="decimal"></div>
     <button class="btn btn-purple" id="manuales-btn" onclick="guardarManuales()">guardar</button>
   </div>
   </div>
@@ -577,6 +586,7 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
     </div>
     <div class="field"><label>monto</label><input type="number" id="transfer-monto" placeholder="ej. 4000" step="0.01" inputmode="decimal"></div>
     <div class="field"><label>nota (opcional)</label><input type="text" id="transfer-nota" placeholder="ej. deposito en cajero"></div>
+    <div class="field"><label>fecha (YYYY-MM-DD, vacia = hoy)</label><input type="text" id="transfer-fecha" placeholder="hoy"></div>
     <button class="btn btn-purple" id="transfer-btn" onclick="registrarTransferencia()">transferir</button>
   </div>
   <div class="section-title">ultimas transferencias</div>
@@ -595,6 +605,7 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
   <div class="panel">
     <div class="field"><label>monto</label><input type="number" id="tarjeta-cargo-monto" placeholder="ej. 350" step="0.01" inputmode="decimal"></div>
     <div class="field"><label>nota</label><input type="text" id="tarjeta-cargo-nota" placeholder="ej. spotify, gasolina..."></div>
+    <div class="field"><label>fecha (YYYY-MM-DD, vacia = hoy)</label><input type="text" id="tarjeta-fecha" placeholder="hoy"></div>
     <div class="field"><label>si pagas, el dinero sale de</label>
       <select id="tarjeta-pago-fuente">
         <option value="nu">NU saldo</option>
@@ -624,6 +635,7 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
   <div class="panel">
     <div class="field"><label>monto</label><input type="number" id="tarjeta-rev-monto" placeholder="ej. 120" step="0.01" inputmode="decimal"></div>
     <div class="field"><label>nota</label><input type="text" id="tarjeta-rev-nota" placeholder="ej. uber, super..."></div>
+    <div class="field"><label>fecha (YYYY-MM-DD, vacia = hoy)</label><input type="text" id="tarjeta-rev-fecha" placeholder="hoy"></div>
     <div class="field"><label>si pagas, el dinero sale de</label>
       <select id="tarjeta-rev-pago-fuente">
         <option value="revolut">Revolut MXN</option>
@@ -700,6 +712,7 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
       </div>
       <div class="field"><label>monto</label><input type="number" id="gasto-monto" placeholder="ej. 150" step="1" inputmode="decimal"></div>
       <div class="field"><label>nota (opcional)</label><input type="text" id="gasto-nota" placeholder="ej. taqueria"></div>
+      <div class="field"><label>fecha (YYYY-MM-DD, vacia = hoy)</label><input type="text" id="gasto-fecha" placeholder="hoy"></div>
       <div class="field"><label>pagado con</label>
         <div class="type-toggle" id="gasto-fuente-toggle">
           <div class="type-opt active" onclick="setFuente('efectivo')">efectivo</div>
@@ -719,6 +732,7 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
       </div>
       <div class="field"><label>monto</label><input type="number" id="ingreso-monto" placeholder="ej. 5000" step="1" inputmode="decimal"></div>
       <div class="field"><label>nota (opcional)</label><input type="text" id="ingreso-nota" placeholder="ej. pago proyecto"></div>
+      <div class="field"><label>fecha (YYYY-MM-DD, vacia = hoy)</label><input type="text" id="ingreso-fecha" placeholder="hoy"></div>
       <div class="field"><label>entra a</label>
         <div class="type-toggle" id="ingreso-destino-toggle">
           <div class="type-opt active" onclick="setDestinoIngreso('efectivo')">efectivo</div>
@@ -884,6 +898,7 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
       </div>
       <div class="field"><label>monto</label><input type="number" id="deuda-monto" placeholder="ej. 500" step="0.01" inputmode="decimal"></div>
       <div class="field"><label>nota (opcional)</label><input type="text" id="deuda-nota" placeholder="ej. licencia, medicina..."></div>
+      <div class="field"><label>fecha (YYYY-MM-DD, vacia = hoy)</label><input type="text" id="deuda-fecha" placeholder="hoy"></div>
       <button class="btn btn-purple" id="deuda-btn" onclick="registrarDeuda()">registrar</button>
     </div>
   </div>
@@ -1216,6 +1231,11 @@ const PERSONAS_DEFAULT = {
 // ── STATE ─────────────────────────────────────────────────────
 let state = {
   nuCajita1Base:25000, nuCajita1Fecha:hoyLocal(), nuCajita1Tasa:13,
+  // bandas de saldo: tasa normal hasta el tope, tasaExc sobre el excedente; ret =
+  // retencion ISR anual sobre capital (0 = el banco muestra el interes bruto).
+  // tope 0 significa "sin tope" (ver modeloComp)
+  nuCajita1Tope:25000, nuCajita1TasaExc:6.5, nuCajita1Ret:0,
+  revSavingsTope:25000, revSavingsTasaExc:7.3, revSavingsRet:0.9,
   nuCajita2Base:0, nuCajita2Fecha:'', nuCajita2Tasa:6.5,
   nuSaldo:523.58, efectivo:2200,
   reporto:99.74, efectivoGBM:46.16,
@@ -1459,12 +1479,16 @@ async function loadFromFirebase() {
       if (Array.isArray(cd.catsGasto) && cd.catsGasto.length) state.catsGasto = cd.catsGasto;
       if (Array.isArray(cd.catsIngreso) && cd.catsIngreso.length) state.catsIngreso = cd.catsIngreso;
     }
+    // Firestore no garantiza el orden relativo de docs con la misma fecha exacta
+    // (retrofechados al mismo dia): se reordena localmente con el mismo criterio
+    // de insertarPorFecha (fecha|creado desc) para que el mas nuevo quede arriba.
+    const ordFecha=(a,b)=>(String(b.fecha||'')+'|'+String(b.creado||'')).localeCompare(String(a.fecha||'')+'|'+String(a.creado||''));
     const gSnap = await getDocs(query(collection(db,'gastos'), orderBy('fecha','desc')));
-    state.gastos = gSnap.docs.map(d => ({id:d.id, ...d.data()}));
+    state.gastos = gSnap.docs.map(d => ({id:d.id, ...d.data()})).sort(ordFecha);
     const iSnap = await getDocs(query(collection(db,'ingresos'), orderBy('fecha','desc')));
-    state.ingresos = iSnap.docs.map(d => ({id:d.id, ...d.data()}));
+    state.ingresos = iSnap.docs.map(d => ({id:d.id, ...d.data()})).sort(ordFecha);
     const trSnap = await getDocs(query(collection(db,'transferencias'), orderBy('fecha','desc')));
-    state.transferencias = trSnap.docs.map(d => ({id:d.id, ...d.data()}));
+    state.transferencias = trSnap.docs.map(d => ({id:d.id, ...d.data()})).sort(ordFecha);
     const opSnap = await getDocs(query(collection(db,'stocksOps'), orderBy('fecha','asc')));
     const opsCrudas = opSnap.docs.map(d => ({id:d.id, ...d.data()}));
     state.stocksOps = opsCrudas.filter(o=>o&&typeof o.simbolo==='string'&&/^[A-Z][A-Z0-9.\-]{0,9}$/.test(o.simbolo)
@@ -1787,6 +1811,8 @@ function aplicarSaldosRemotos(d) {
   state.revSavingsBase=num('revSavingsBase',state.revSavingsBase);
   state.revSavingsTasa=num('revSavingsTasa',state.revSavingsTasa);
   if(typeof d.revSavingsFecha==='string') state.revSavingsFecha=d.revSavingsFecha;
+  ['nuCajita1Tope','nuCajita1TasaExc','nuCajita1Ret','revSavingsTope','revSavingsTasaExc','revSavingsRet']
+    .forEach(k=>{ state[k]=num(k,state[k]); });
   state.nuSaldo=num('nuSaldo',state.nuSaldo);
   state.efectivo=num('efectivo',state.efectivo);
   state.reporto=num('reporto',state.reporto);
@@ -1869,10 +1895,19 @@ function liberarDinero() { dineroOcupado=false; drenarSnapshots(); }
 const CAMPO_SIMPLE={efectivo:'efectivo', nu:'nuSaldo', revolut:'revMXN', gbm:'efectivoGBM'};
 // cuentas de interes compuesto: su saldo es DERIVADO (base+interes hasta hoy), asi que
 // un delta se aplica consolidando el interes: base = saldoHoy + delta, fecha = hoy
+// def: convencion del producto cuando el doc no trae el campo. dias=360 (regulacion
+// mexicana), tope/tasaExc = banda de saldo, ret = retencion ISR anual sobre capital
+// (Revolut abona neto; Nu muestra bruto). Cajita 2 no tiene campos propios de banda:
+// usa sus defaults fijos.
 const CAMPO_COMP={
-  cajita1:   {base:'nuCajita1Base', fecha:'nuCajita1Fecha', tasa:'nuCajita1Tasa'},
-  cajita2:   {base:'nuCajita2Base', fecha:'nuCajita2Fecha', tasa:'nuCajita2Tasa'},
-  revSavings:{base:'revSavingsBase',fecha:'revSavingsFecha',tasa:'revSavingsTasa'}
+  cajita1:   {base:'nuCajita1Base', fecha:'nuCajita1Fecha', tasa:'nuCajita1Tasa',
+              tope:'nuCajita1Tope', tasaExc:'nuCajita1TasaExc', ret:'nuCajita1Ret',
+              def:{dias:360,tasa:13,tope:25000,tasaExc:6.5,ret:0}},
+  cajita2:   {base:'nuCajita2Base', fecha:'nuCajita2Fecha', tasa:'nuCajita2Tasa',
+              def:{dias:360,tasa:6.5,tope:null,tasaExc:0,ret:0}},
+  revSavings:{base:'revSavingsBase',fecha:'revSavingsFecha',tasa:'revSavingsTasa',
+              tope:'revSavingsTope',tasaExc:'revSavingsTasaExc',ret:'revSavingsRet',
+              def:{dias:360,tasa:15,tope:25000,tasaExc:7.3,ret:0.9}}
 };
 
 // plan: {
@@ -1948,7 +1983,7 @@ async function txDinero(plan) {
         const cfg = CAMPO_COMP[slot]; if (!cfg) continue;
         const b = nFin(sal[cfg.base]);
         if (!(b > 0) || !sal[cfg.fecha]) continue;
-        campos[cfg.base]  = c2(calcCompoundAt(b, sal[cfg.fecha], nFin(sal[cfg.tasa]), ahora));
+        campos[cfg.base]  = c2(calcCompoundAt(b, sal[cfg.fecha], ahora, modeloComp(sal,cfg)));
         campos[cfg.fecha] = hoy;
       }
       // ABSOLUTOS: captura manual. Van DESPUES de cristalizar (lo que el usuario teclea
@@ -1967,7 +2002,7 @@ async function txDinero(plan) {
           const cfg = CAMPO_COMP[slot];
           const bPart = campos[cfg.base]  !== undefined ? campos[cfg.base]  : nFin(sal[cfg.base]);
           const fPart = campos[cfg.fecha] !== undefined ? campos[cfg.fecha] : sal[cfg.fecha];
-          const saldoHoy = calcCompoundAt(bPart, fPart, nFin(sal[cfg.tasa]), ahora);
+          const saldoHoy = calcCompoundAt(bPart, fPart, ahora, modeloComp(sal,cfg));
           nuevo = clampCero(c2(saldoHoy + d));
           campos[cfg.base] = nuevo; campos[cfg.fecha] = hoy;
         }
@@ -2085,6 +2120,8 @@ function aplicarRes(res) {
     if (cp.nuCajita1Tasa  !== undefined) state.nuCajita1Tasa  = cp.nuCajita1Tasa;
     if (cp.nuCajita2Tasa  !== undefined) state.nuCajita2Tasa  = cp.nuCajita2Tasa;
     if (cp.revSavingsTasa !== undefined) state.revSavingsTasa = cp.revSavingsTasa;
+    ['nuCajita1Tope','nuCajita1TasaExc','nuCajita1Ret','revSavingsTope','revSavingsTasaExc','revSavingsRet']
+      .forEach(k=>{ if (cp[k] !== undefined) state[k]=cp[k]; });
     if (cp.reporto        !== undefined) state.reporto        = cp.reporto;
   }
   if (res.tarjeta) { state.tarjetaDeuda = res.tarjeta.deuda; state.tarjetaMovimientos = res.tarjeta.movimientos; }
@@ -2104,7 +2141,9 @@ function saldosPayload() {
     nuSaldo:state.nuSaldo, efectivo:state.efectivo,
     reporto:state.reporto, efectivoGBM:state.efectivoGBM,
     revMXN:state.revMXN, revSavingsBase:state.revSavingsBase, revSavingsFecha:state.revSavingsFecha,
-    revSavingsTasa:state.revSavingsTasa
+    revSavingsTasa:state.revSavingsTasa,
+    nuCajita1Tope:state.nuCajita1Tope, nuCajita1TasaExc:state.nuCajita1TasaExc, nuCajita1Ret:state.nuCajita1Ret,
+    revSavingsTope:state.revSavingsTope, revSavingsTasaExc:state.revSavingsTasaExc, revSavingsRet:state.revSavingsRet
   };
 }
 // saveSaldos() se elimino el 27-ago-2026: era el ultimo setDoc COMPLETO del documento
@@ -2423,6 +2462,27 @@ function fmtFechaMov(f, opts) {
   const d = m ? parseFechaLocal(m[1]) : new Date(f);
   return d.toLocaleDateString('es-MX', opts);
 }
+// fecha OPCIONAL al registrar un movimiento: vacia = ahora mismo; una fecha pasada se
+// guarda como 'YYYY-MM-DDT00:00:00Z' (el patron que msFechaMov/fmtFechaMov ya tratan
+// como dia local). El dinero se aplica al saldo de HOY aunque la fecha sea pasada:
+// las cuentas de interes no recalculan rendimiento retroactivo. Devuelve null si la
+// fecha tecleada es invalida o futura (ya aviso con toast).
+function fechaMovOpcional(inputId) {
+  const el=document.getElementById(inputId);
+  const raw=el?el.value.trim():'';
+  if(!raw) return new Date().toISOString();
+  if(!fechaCalendarioValida(raw)){ showToast('fecha no valida, usa el formato 2026-08-15'); return null; }
+  if(raw>hoyLocal()){ showToast('la fecha no puede ser futura'); return null; }
+  return raw===hoyLocal()?new Date().toISOString():raw+'T00:00:00Z';
+}
+// insercion ordenada por fecha (desc) en la lista en memoria: un movimiento retrofechado
+// no debe quedarse arriba como si fuera el mas reciente. Ambos formatos de fecha son ISO,
+// asi que comparar strings ordena bien; 'creado' desempata movimientos del mismo dia.
+function insertarPorFecha(arr, item) {
+  const k=x=>String(x.fecha||'')+'|'+String(x.creado||'');
+  const idx=arr.findIndex(x=>k(x)<=k(item));
+  if(idx<0) arr.push(item); else arr.splice(idx,0,item);
+}
 // mes 'YYYY-MM' y dia LOCALES de un timestamp de movimiento (mismo trato de legados UTC)
 function mesLocalDe(f) {
   const m = /^(\d{4}-\d{2})-\d{2}T00:00:00(\.000)?Z$/.exec(f);
@@ -2464,29 +2524,68 @@ function derivarPosiciones() {
   Object.keys(pos).forEach(k=>{ pos[k].acciones=Math.max(0,Math.round(pos[k].acciones*1e8)/1e8); });
   state.posiciones=pos; // las cerradas (0 acciones) se conservan: su historia sigue en la grafica
 }
-function calcCompoundAt(base, fechaStr, tasaPct, ms) {
+// modelo por bandas de saldo: tasa normal hasta el tope, tasaExc sobre el excedente,
+// menos la retencion de ISR (0.90% anual en 2026 sobre TODO el capital, LIF art. 24).
+// dias: la banca mexicana calcula el interes diario con base 360 por regulacion
+// (saldo * tasa / 360), no 365. Nu muestra el interes BRUTO (ret 0); Revolut lo
+// abona NETO de retencion (ret 0.90). mod viene de modeloComp(); sin tope se usa
+// pow (mismo resultado, sin loop).
+function calcCompoundAt(base, fechaStr, ms, mod) {
   if(!base||!fechaStr) return base||0;
-  // dias calendario COMPLETOS: Nu abona una vez al dia; con dias fraccionarios
-  // la app inventaria rendimiento parcial el mismo dia de actualizar el saldo
-  const dias=Math.max(0,Math.floor((ms-parseFechaLocal(fechaStr).getTime())/86400000));
-  // tasa nominal anual / 365 compuesta diario sobre el saldo acumulado
-  // (modelo real de Nu: 13% nominal ~ 13.88% GAT efectiva; antes se usaba la
-  // efectiva repartida, que daba ~$0.54/dia menos con $25k al 13%)
-  const dailyRate=(tasaPct||0)/100/365;
-  return base*Math.pow(1+dailyRate,dias);
+  const t0=parseFechaLocal(fechaStr).getTime();
+  if(!Number.isFinite(t0)) return base;
+  // dias calendario COMPLETOS: los bancos abonan una vez al dia; con dias fraccionarios
+  // la app inventaria rendimiento parcial el mismo dia de actualizar el saldo.
+  // cap de 100 anos: una fecha corrupta no debe colgar el render con millones de vueltas
+  const dias=Math.max(0,Math.min(36600,Math.floor((ms-t0)/86400000)));
+  const m=mod||{dias:365,tasa:0,tope:null,tasaExc:0,ret:0};
+  const rDia=((m.tasa||0)-(m.ret||0))/100/(m.dias||365);
+  if(m.tope==null) return base*Math.pow(1+rDia,dias);
+  const rExc=((m.tasaExc||0)-(m.ret||0))/100/(m.dias||365);
+  let s=base;
+  for(let i=0;i<dias;i++){
+    // se conserva la precision completa dia a dia; el redondeo a centavos ocurre
+    // al mostrar/consolidar (ver c2 en los llamadores), no aqui, para no distorsionar
+    // saldos chicos con el redondeo diario
+    s=s+Math.min(s,m.tope)*rDia+Math.max(0,s-m.tope)*rExc;
+  }
+  return s;
 }
-function calcNu1At(ms) { return calcCompoundAt(state.nuCajita1Base, state.nuCajita1Fecha, state.nuCajita1Tasa, ms); }
+// modelo canonico de una cuenta compuesta leyendo del doc de saldos (o de state, que
+// usa los mismos nombres de campo). Defaults cuando el campo no existe o viene corrupto;
+// tope guardado como 0 significa "sin tope" (null); un tope negativo se descarta.
+function modeloComp(src, cfg) {
+  const d=cfg.def;
+  const nv=(v,x)=>(Number.isFinite(v)&&v>-100)?v:x;
+  const rawTope=src[cfg.tope];
+  return {
+    dias:d.dias,
+    tasa:nv(src[cfg.tasa],d.tasa),
+    tope:Number.isFinite(rawTope)?(rawTope>0?rawTope:(rawTope===0?null:d.tope)):d.tope,
+    tasaExc:nv(src[cfg.tasaExc],d.tasaExc),
+    ret:Math.max(0,nv(src[cfg.ret],d.ret))
+  };
+}
+// descripcion corta del modelo de una cuenta para las etiquetas de la UI
+function descModelo(slot) {
+  const m=modeloComp(state,CAMPO_COMP[slot]);
+  let t=m.tasa+'% anual';
+  if(m.tope!=null) t+=' hasta '+fmt(m.tope)+' · '+m.tasaExc+'% excedente';
+  if(m.ret>0) t+=' · neto de ISR '+m.ret+'%';
+  return t;
+}
+function calcNu1At(ms) { return calcCompoundAt(state.nuCajita1Base, state.nuCajita1Fecha, ms, modeloComp(state,CAMPO_COMP.cajita1)); }
 function calcNu1() {
   const saldo=calcNu1At(Date.now());
   return {saldo, rend:saldo-(state.nuCajita1Base||0)};
 }
-function calcNu2At(ms) { return calcCompoundAt(state.nuCajita2Base, state.nuCajita2Fecha, state.nuCajita2Tasa, ms); }
+function calcNu2At(ms) { return calcCompoundAt(state.nuCajita2Base, state.nuCajita2Fecha, ms, modeloComp(state,CAMPO_COMP.cajita2)); }
 function calcNu2() {
   const saldo=calcNu2At(Date.now());
   return {saldo, rend:saldo-(state.nuCajita2Base||0)};
 }
-// Revolut Savings paga interes diario igual que Nu: mismo modelo base+fecha+tasa nominal/365
-function calcRevSavingsAt(ms) { return calcCompoundAt(state.revSavingsBase, state.revSavingsFecha, state.revSavingsTasa, ms); }
+// Revolut Savings: mismo esquema base+fecha, pero abona el interes NETO de ISR
+function calcRevSavingsAt(ms) { return calcCompoundAt(state.revSavingsBase, state.revSavingsFecha, ms, modeloComp(state,CAMPO_COMP.revSavings)); }
 function calcRevSavings() {
   const saldo=calcRevSavingsAt(Date.now());
   return {saldo, rend:saldo-(state.revSavingsBase||0)};
@@ -2516,7 +2615,7 @@ function cicloTdcRev() {
 function render() {
   const nu1=calcNu1();
   document.getElementById('nu-cajita1-display').textContent=fmt(nu1.saldo);
-  document.getElementById('nu1-sub').textContent=(state.nuCajita1Tasa||0)+'% anual';
+  document.getElementById('nu1-sub').textContent=descModelo('cajita1');
   document.getElementById('nu1-rend').textContent=nu1.rend>0?'+'+fmt(nu1.rend):fmt(0);
   document.getElementById('nu1-base-val').textContent=fmt(state.nuCajita1Base);
   document.getElementById('nu1-rend-val').textContent='+'+fmt(nu1.rend);
@@ -2527,7 +2626,7 @@ function render() {
   document.getElementById('rev-mxn-display').textContent=fmt(state.revMXN);
   const rs=calcRevSavings();
   document.getElementById('rev-savings-display').textContent=fmt(rs.saldo);
-  document.getElementById('rev-savings-sub').textContent=(state.revSavingsTasa||0)+'% anual · interes diario';
+  document.getElementById('rev-savings-sub').textContent=descModelo('revSavings');
   document.getElementById('rev-savings-rend').textContent=rs.rend>0?'+'+fmt(rs.rend):fmt(0);
   document.getElementById('rev-savings-base-val').textContent=fmt(state.revSavingsBase);
   document.getElementById('rev-savings-rend-val').textContent='+'+fmt(rs.rend);
@@ -2598,7 +2697,8 @@ function render() {
   const pct=Math.max(0,Math.min(100,((30-dias)/30)*100));
   document.getElementById('corte-fill').style.width=pct.toFixed(1)+'%';
   if(state.tarjetaMovimientos.length>0) {
-    const ult=state.tarjetaMovimientos[0];
+    // el mas RECIENTE por registro (no [0]: un movimiento retrofechado entra al frente del array)
+    const ult=state.tarjetaMovimientos.reduce((a,b)=>((b.creado||b.fecha||'')>(a.creado||a.fecha||'')?b:a));
     document.getElementById('tarjeta-ultimo').textContent=(ult.tipo==='cargo'?'+':'-')+fmt(ult.monto)+' · '+fmtFechaMov(ult.fecha,{day:'numeric',month:'short'});
   }
 
@@ -2615,7 +2715,7 @@ function render() {
   document.getElementById('tarjeta-rev-dias').textContent=cicloTdc.dias+' dias';
   document.getElementById('tarjeta-rev-pago-limite').textContent=cicloTdc.pagoLimite.toLocaleDateString('es-MX',{day:'numeric',month:'short'})+' (corte del '+cicloTdc.ultimo.toLocaleDateString('es-MX',{day:'numeric',month:'short'})+')';
   if(state.revTdcMovs.length>0) {
-    const ultR=state.revTdcMovs[0];
+    const ultR=state.revTdcMovs.reduce((a,b)=>((b.creado||b.fecha||'')>(a.creado||a.fecha||'')?b:a));
     document.getElementById('tarjeta-rev-ultimo').textContent=(ultR.tipo==='cargo'?'+':'-')+fmt(ultR.monto)+' · '+fmtFechaMov(ultR.fecha,{day:'numeric',month:'short'});
   }
 
@@ -2667,12 +2767,16 @@ function maybeSnapshot(total,gbm) {
 
 window.guardarManuales = async function() {
   const ids={c1b:'input-cajita1-base',c1f:'input-cajita1-fecha',c1t:'input-cajita1-tasa',
+    c1tope:'input-cajita1-tope',c1exc:'input-cajita1-tasa-exc',
     ns:'input-nu-saldo',ef:'input-efectivo',
     rvm:'input-rev-mxn',rsb:'input-rev-savings-base',rsf:'input-rev-savings-fecha',rst:'input-rev-savings-tasa',
+    rstope:'input-rev-savings-tope',rsexc:'input-rev-savings-tasa-exc',rsret:'input-rev-savings-ret',
     rtd:'input-rev-tdc-dep'};
   const labels={c1b:'cajita 1 - saldo base',c1f:'cajita 1 - fecha base',c1t:'cajita 1 - tasa',
+    c1tope:'cajita 1 - tope',c1exc:'cajita 1 - tasa excedente',
     ns:'NU saldo',ef:'efectivo',
     rvm:'Revolut MXN',rsb:'Revolut Savings - saldo base',rsf:'Revolut Savings - fecha base',rst:'Revolut Savings - tasa',
+    rstope:'Rev Savings - tope',rsexc:'Rev Savings - tasa excedente',rsret:'Rev Savings - retencion ISR',
     rtd:'deposito TDC Revolut'};
   const raw={}; Object.keys(ids).forEach(k=>raw[k]=document.getElementById(ids[k]).value.trim());
   const vals={};
@@ -2682,11 +2786,24 @@ window.guardarManuales = async function() {
     if(!Number.isFinite(n)){ showToast('monto invalido en '+labels[k]); return; }
     vals[k]=n;
   }
-  for(const k of ['c1t','rst']) {
+  for(const k of ['c1t','rst','c1exc','rsexc']) {
     if(raw[k]===''){ vals[k]=null; continue; }
     const n=parseFloat(raw[k]);
     if(!Number.isFinite(n)||n<=-100){ showToast('tasa invalida en '+labels[k]); return; }
     vals[k]=n;
+  }
+  // tope: 0 explicito = quitar el tope (se guarda 0, modeloComp lo lee como "sin tope")
+  for(const k of ['c1tope','rstope']) {
+    if(raw[k]===''){ vals[k]=null; continue; }
+    const n=parseFloat(raw[k]);
+    if(!Number.isFinite(n)||n<0){ showToast('tope invalido en '+labels[k]); return; }
+    vals[k]=n;
+  }
+  if(raw.rsret===''){ vals.rsret=null; }
+  else {
+    const n=parseFloat(raw.rsret);
+    if(!Number.isFinite(n)||n<0||n>10){ showToast('retencion invalida en '+labels.rsret+' (0 a 10%)'); return; }
+    vals.rsret=n;
   }
   // deposito TDC Revolut: limite = deposito (regla del producto); rango oficial $250-$75,000
   // y nunca por debajo de la deuda usada (Revolut no permite bajar el limite bajo el saldo)
@@ -2714,9 +2831,11 @@ window.guardarManuales = async function() {
   // como nueva base antes de aplicar la tasa nueva; si no, la tasa nueva se aplicaria
   // retroactivamente a dias que ya generaron interes con la anterior. Se hace DENTRO de
   // la transaccion (plan.cristalizar) para que parta del valor canonico, no de esta pantalla.
+  // cualquier cambio del MODELO (tasa, tope, tasa excedente, retencion) sin saldo base
+  // nuevo consolida primero el interes generado con el modelo viejo
   const cristalizar=[];
-  if(vals.c1t!==null&&vals.c1b===null) cristalizar.push('cajita1');
-  if(vals.rst!==null&&vals.rsb===null) cristalizar.push('revSavings');
+  if((vals.c1t!==null||vals.c1tope!==null||vals.c1exc!==null)&&vals.c1b===null) cristalizar.push('cajita1');
+  if((vals.rst!==null||vals.rstope!==null||vals.rsexc!==null||vals.rsret!==null)&&vals.rsb===null) cristalizar.push('revSavings');
   // base sin fecha: la base capturada es el saldo observado HOY; sin esto la fecha
   // queda vacia (la cajita nunca crece) o vieja (genera de golpe interes ya contado)
   if(vals.c1b!==null&&vals.c1f===null) vals.c1f=hoyLocal();
@@ -2736,6 +2855,11 @@ window.guardarManuales = async function() {
   if(vals.rsb!==null) absolutos.revSavingsBase=vals.rsb;
   if(vals.rsf!==null) absolutos.revSavingsFecha=vals.rsf;
   if(vals.rst!==null) absolutos.revSavingsTasa=vals.rst;
+  if(vals.c1tope!==null) absolutos.nuCajita1Tope=vals.c1tope;
+  if(vals.c1exc!==null)  absolutos.nuCajita1TasaExc=vals.c1exc;
+  if(vals.rstope!==null) absolutos.revSavingsTope=vals.rstope;
+  if(vals.rsexc!==null)  absolutos.revSavingsTasaExc=vals.rsexc;
+  if(vals.rsret!==null)  absolutos.revSavingsRet=vals.rsret;
   if(!Object.keys(absolutos).length&&!cristalizar.length&&vals.rtd===null){ showToast('no capturaste ningun dato'); return; }
   const plan={absolutos,cristalizar};
   if(vals.rtd!==null) plan.tdcRevDeposito=vals.rtd; // vive en cartera/tarjetaRev
@@ -2769,8 +2893,9 @@ window.registrarTarjeta = async function(tipo) {
     if(fuente!=='externo'&&monto>getSaldoCuenta(fuente)+0.01){showToast('saldo insuficiente en '+CUENTAS[fuente]);return;}
   }
   if(dineroOcupado){showToast('espera, hay otra operacion en curso');return;}
+  const fechaMov=fechaMovOpcional('tarjeta-fecha'); if(fechaMov===null) return;
   const m=c2(monto), ahora=new Date().toISOString();
-  const plan={tarjetaMovAdd:{id:nuevoId(),tipo,monto:m,nota,fecha:ahora}};
+  const plan={tarjetaMovAdd:{id:nuevoId(),tipo,monto:m,nota,fecha:fechaMov,creado:ahora}};
   let tr=null, ref=null;
   if(tipo==='cargo') plan.tarjetaDelta=m;
   else {
@@ -2778,7 +2903,7 @@ window.registrarTarjeta = async function(tipo) {
     // el pago sale de una cuenta: se descuenta y queda registrado como transferencia
     if(fuente!=='externo'){
       plan.deltas={[fuente]:-m};   // sin permitirNegativo: un pago sin fondos se rechaza
-      tr={origen:fuente,destino:'tarjeta',monto:m,nota:nota||'pago tarjeta NU',fecha:ahora};
+      tr={origen:fuente,destino:'tarjeta',monto:m,nota:nota||'pago tarjeta NU',fecha:fechaMov,creado:ahora};
       ref=doc(collection(db,'transferencias'));
       plan.crear=[{ref,data:tr}];
     }
@@ -2792,9 +2917,8 @@ window.registrarTarjeta = async function(tipo) {
   if(res.error){ showToast(res.error); return; }
   // -- post-commit --
   aplicarRes(res);
-  if(tr){ tr.id=ref.id; state.transferencias.unshift(tr); }
-  document.getElementById('tarjeta-cargo-monto').value='';
-  document.getElementById('tarjeta-cargo-nota').value='';
+  if(tr){ tr.id=ref.id; insertarPorFecha(state.transferencias,tr); }
+  ['tarjeta-cargo-monto','tarjeta-cargo-nota','tarjeta-fecha'].forEach(id=>document.getElementById(id).value='');
   refrescar(render,renderTransferencias);
   showToast(tipo==='cargo'?'+'+fmt(m)+' a la tarjeta':'pago de '+fmt(m)+' registrado');
 };
@@ -2818,15 +2942,16 @@ window.registrarTarjetaRev = async function(tipo) {
     if(fuente!=='externo'&&monto>getSaldoCuenta(fuente)+0.01){showToast('saldo insuficiente en '+CUENTAS[fuente]);return;}
   }
   if(dineroOcupado){showToast('espera, hay otra operacion en curso');return;}
+  const fechaMov=fechaMovOpcional('tarjeta-rev-fecha'); if(fechaMov===null) return;
   const m=c2(monto), ahora=new Date().toISOString();
-  const plan={tdcRevMovAdd:{id:nuevoId(),tipo,monto:m,nota,fecha:ahora}};
+  const plan={tdcRevMovAdd:{id:nuevoId(),tipo,monto:m,nota,fecha:fechaMov,creado:ahora}};
   let tr=null, ref=null;
   if(tipo==='cargo') plan.tdcRevDelta=m;   // txDinero rechaza si excede el deposito canonico
   else {
     plan.tdcRevDelta=-m;                   // txDinero rechaza si excede la deuda canonica
     if(fuente!=='externo'){
       plan.deltas={[fuente]:-m};           // sin permitirNegativo: un pago sin fondos se rechaza
-      tr={origen:fuente,destino:'tarjetaRev',monto:m,nota:nota||'pago TDC Revolut',fecha:ahora};
+      tr={origen:fuente,destino:'tarjetaRev',monto:m,nota:nota||'pago TDC Revolut',fecha:fechaMov,creado:ahora};
       ref=doc(collection(db,'transferencias'));
       plan.crear=[{ref,data:tr}];
     }
@@ -2840,9 +2965,8 @@ window.registrarTarjetaRev = async function(tipo) {
   if(res.error){ showToast(res.error); return; }
   // -- post-commit --
   aplicarRes(res);
-  if(tr){ tr.id=ref.id; state.transferencias.unshift(tr); }
-  document.getElementById('tarjeta-rev-monto').value='';
-  document.getElementById('tarjeta-rev-nota').value='';
+  if(tr){ tr.id=ref.id; insertarPorFecha(state.transferencias,tr); }
+  ['tarjeta-rev-monto','tarjeta-rev-nota','tarjeta-rev-fecha'].forEach(id=>document.getElementById(id).value='');
   refrescar(render,renderTransferencias);
   showToast(tipo==='cargo'?'+'+fmt(m)+' a la TDC Revolut':'pago de '+fmt(m)+' registrado');
 };
@@ -2885,16 +3009,17 @@ window.registrarTransferencia = async function() {
   if(destino==='tarjetaRev'&&monto>state.revTdcDeuda+0.01){showToast('el pago excede la deuda de la TDC Revolut');return;}
   if(destino==='revTdcDep'&&Math.round(((state.revTdcDeposito||0)+monto)*100)>7500000){showToast('el deposito no puede exceder $75,000');return;}
   if(dineroOcupado){showToast('espera, hay otra operacion en curso');return;}
+  const fechaTr=fechaMovOpcional('transfer-fecha'); if(fechaTr===null) return;
   const m=c2(monto), ahora=new Date().toISOString();
-  const tr={origen,destino,monto:m,nota,fecha:ahora};
+  const tr={origen,destino,monto:m,nota,fecha:fechaTr,creado:ahora};
   const ref=doc(collection(db,'transferencias'));
   const plan={deltas:{[origen]:-m}, crear:[{ref,data:tr}]};
   if(destino==='tarjeta'){
     plan.tarjetaDelta=-m;
-    plan.tarjetaMovAdd={id:nuevoId(),tipo:'pago',monto:m,nota:nota||('pago desde '+CUENTAS[origen]),fecha:ahora};
+    plan.tarjetaMovAdd={id:nuevoId(),tipo:'pago',monto:m,nota:nota||('pago desde '+CUENTAS[origen]),fecha:fechaTr,creado:ahora};
   } else if(destino==='tarjetaRev'){
     plan.tdcRevDelta=-m;
-    plan.tdcRevMovAdd={id:nuevoId(),tipo:'pago',monto:m,nota:nota||('pago desde '+CUENTAS[origen]),fecha:ahora};
+    plan.tdcRevMovAdd={id:nuevoId(),tipo:'pago',monto:m,nota:nota||('pago desde '+CUENTAS[origen]),fecha:fechaTr,creado:ahora};
   } else {
     plan.deltas[destino]=m;
   }
@@ -2907,8 +3032,8 @@ window.registrarTransferencia = async function() {
   if(res.error){ showToast(res.error); return; }
   // -- post-commit --
   aplicarRes(res);
-  tr.id=ref.id; state.transferencias.unshift(tr);
-  document.getElementById('transfer-monto').value='';document.getElementById('transfer-nota').value='';
+  tr.id=ref.id; insertarPorFecha(state.transferencias,tr);
+  ['transfer-monto','transfer-nota','transfer-fecha'].forEach(id=>document.getElementById(id).value='');
   refrescar(render,renderTransferencias);
   showToast(fmt(m)+' · '+CUENTAS[origen]+' → '+CUENTAS[destino]);
 };
@@ -2947,7 +3072,7 @@ function renderTransferencias() {
   const c=document.getElementById('transfer-historial');
   if(!state.transferencias.length){c.innerHTML='<div class="empty-state">sin transferencias</div>';return;}
   c.innerHTML=state.transferencias.slice(0,20).map(t=>{
-    const fecha=new Date(t.fecha).toLocaleDateString('es-MX',{day:'numeric',month:'short'});
+    const fecha=fmtFechaMov(t.fecha,{day:'numeric',month:'short'});
     const del=(t.id&&t.destino!=='tarjeta'&&t.destino!=='tarjetaRev'&&t.origen!=='stocks'&&t.destino!=='stocks'&&!t.opId)?`<button class="del-btn" onclick="eliminarTransferencia('${t.id}')">&times;</button>`:'';
     return`<div class="item-row"><div><div class="item-cat">${escapeHtml(CUENTAS[t.origen]||t.origen)} → ${escapeHtml(CUENTAS[t.destino]||t.destino)}</div><div class="item-meta">${escapeHtml(t.nota||'')} · ${fecha}</div></div><div style="display:flex;align-items:center"><div style="font-size:14px;font-weight:600;color:var(--purple)">${fmt(t.monto)}</div>${del}</div></div>`;
   }).join('');
@@ -2957,13 +3082,16 @@ function renderTransferencias() {
 // nucleo compartido: lo usan el formulario normal y el registro rapido del movil.
 // Valida, muta, guarda con batch atomico y revierte si falla. Cada formulario
 // limpia sus propios inputs SOLO si esta funcion regresa true.
-async function altaGasto(cat,monto,nota,fuente,btn) {
+async function altaGasto(cat,monto,nota,fuente,btn,fecha) {
   if(!Number.isFinite(monto)||monto<=0){showToast('ingresa un monto valido');return false;}
   if(!FUENTES_GASTO.includes(fuente)){showToast('fuente no valida');return false;}
   if(dineroOcupado){showToast('espera, hay otra operacion en curso');return false;}
   const m=c2(monto);
   const ref=doc(collection(db,'gastos'));
-  const gasto={cat,monto:m,nota,fuente,fecha:new Date().toISOString()};
+  // fecha = cuando OCURRIO (puede ser retro); creado = cuando se registro. El saldo
+  // se afecta hoy en ambos casos (ver fechaMovOpcional)
+  const creado=new Date().toISOString();
+  const gasto={cat,monto:m,nota,fuente,fecha:fecha||creado,creado};
   // el gasto YA OCURRIO en la vida real: si el saldo registrado no alcanza se avisa,
   // pero no se bloquea — perder el registro es peor que quedar en rojo. El limite de
   // la TDC Revolut SI es bloqueante y lo valida txDinero contra el deposito canonico.
@@ -2980,21 +3108,22 @@ async function altaGasto(cat,monto,nota,fuente,btn) {
   if(res.error){ showToast(res.error); return false; }
   // -- post-commit: se refleja lo que quedo en el SERVIDOR, no lo que creia la pantalla --
   aplicarRes(res);
-  gasto.id=ref.id; state.gastos.unshift(gasto);
+  gasto.id=ref.id; insertarPorFecha(state.gastos,gasto);
   const quedoNegativo=!!plan.deltas && res.saldos[fuente]<0;
   refrescar(render,renderMovimientos);
   showToast(quedoNegativo?('-'+fmt(m)+' registrado · ojo: SALDO quedo negativo'):('-'+fmt(m)+' registrado'));
-  avisoCategoria(cat); // aviso diferido si este mes ya va muy arriba del promedio
+  avisoCategoria(cat,gasto.fecha); // aviso diferido si ese mes ya va muy arriba del promedio
   return true;
 }
 window.registrarGasto = async function() {
+  const fecha=fechaMovOpcional('gasto-fecha'); if(fecha===null) return;
   const ok=await altaGasto(
     document.getElementById('gasto-cat').value,
     parseFloat(document.getElementById('gasto-monto').value),
     document.getElementById('gasto-nota').value.trim(),
     state.fuenteGasto,
-    document.getElementById('gasto-btn'));
-  if(ok){ document.getElementById('gasto-monto').value='';document.getElementById('gasto-nota').value=''; }
+    document.getElementById('gasto-btn'),fecha);
+  if(ok){ ['gasto-monto','gasto-nota','gasto-fecha'].forEach(id=>document.getElementById(id).value=''); }
 };
 
 window.eliminarGasto = async function(id) {
@@ -3157,13 +3286,14 @@ window.guardarEdicionMov = async function() {
 
 // ── INGRESOS ──────────────────────────────────────────────────
 // nucleo compartido (mismo esquema que altaGasto): formulario normal + registro rapido
-async function altaIngreso(cat,monto,nota,destino,btn) {
+async function altaIngreso(cat,monto,nota,destino,btn,fecha) {
   if(!Number.isFinite(monto)||monto<=0){showToast('ingresa un monto valido');return false;}
   if(!DESTINOS_INGRESO.includes(destino)){showToast('destino no valido');return false;}
   if(dineroOcupado){showToast('espera, hay otra operacion en curso');return false;}
   const m=c2(monto);
   const ref=doc(collection(db,'ingresos'));
-  const ingreso={cat,monto:m,nota,destino,fecha:new Date().toISOString()};
+  const creado=new Date().toISOString();
+  const ingreso={cat,monto:m,nota,destino,fecha:fecha||creado,creado};
   let res=null,err=null;
   if(btn) btn.disabled=true; dineroOcupado=true;
   try{ res=await txDinero({deltas:{[destino]:m}, crear:[{ref,data:ingreso}]}); }
@@ -3173,19 +3303,20 @@ async function altaIngreso(cat,monto,nota,destino,btn) {
   if(res.error){ showToast(res.error); return false; }
   // -- post-commit --
   aplicarRes(res);
-  ingreso.id=ref.id; state.ingresos.unshift(ingreso);
+  ingreso.id=ref.id; insertarPorFecha(state.ingresos,ingreso);
   refrescar(render,renderMovimientos);
   showToast('+'+fmt(m)+' ingresado');
   return true;
 }
 window.registrarIngreso = async function() {
+  const fecha=fechaMovOpcional('ingreso-fecha'); if(fecha===null) return;
   const ok=await altaIngreso(
     document.getElementById('ingreso-cat').value,
     parseFloat(document.getElementById('ingreso-monto').value),
     document.getElementById('ingreso-nota').value.trim(),
     state.destinoIngreso,
-    document.getElementById('ingreso-btn'));
-  if(ok){ document.getElementById('ingreso-monto').value='';document.getElementById('ingreso-nota').value=''; }
+    document.getElementById('ingreso-btn'),fecha);
+  if(ok){ ['ingreso-monto','ingreso-nota','ingreso-fecha'].forEach(id=>document.getElementById(id).value=''); }
 };
 
 window.eliminarIngreso = async function(id) {
@@ -3287,9 +3418,10 @@ window.registrarDeuda = async function() {
   // aviso temprano; el saldo suficiente lo revalida txDinero contra la nube
   if(cuenta!=='externo'&&ef.cuenta<0&&monto>getSaldoCuenta(cuenta)+0.01){showToast('saldo insuficiente en '+CUENTAS[cuenta]);return;}
   if(dineroOcupado){showToast('espera, hay otra operacion en curso');return;}
+  const fechaMov=fechaMovOpcional('deuda-fecha'); if(fechaMov===null) return;
   const m=c2(monto);
   // el id se genera ANTES de la transaccion: un reintento no debe crear dos movimientos
-  const mov={id:nuevoId(),subcat,monto:m,tipo,nota,cuenta,v:2,fecha:new Date().toISOString()};
+  const mov={id:nuevoId(),subcat,monto:m,tipo,nota,cuenta,v:2,fecha:fechaMov,creado:new Date().toISOString()};
   const plan={persona:{key:persona, deltaSaldo:ef.deuda*m, movAdd:mov}};
   if(cuenta!=='externo'&&(CAMPO_SIMPLE[cuenta]||CAMPO_COMP[cuenta])) plan.deltas={[cuenta]:ef.cuenta*m};
   let res=null,err=null;
@@ -3302,7 +3434,7 @@ window.registrarDeuda = async function() {
   // -- post-commit --
   aplicarRes(res);
   state.personas[persona]=res.persona; // saldo y movimientos canonicos de esa persona
-  document.getElementById('deuda-monto').value='';document.getElementById('deuda-nota').value='';
+  ['deuda-monto','deuda-nota','deuda-fecha'].forEach(id=>document.getElementById(id).value='');
   // el saldo de la persona afecta el patrimonio neto aunque la cuenta sea externo
   refrescar(renderDeudas,render);
   showToast('movimiento registrado');
@@ -3316,7 +3448,7 @@ function renderDeudas() {
   document.getElementById('deuda-grand-sub').textContent=gt>=0?'te deben en total':'debes en total';
   document.getElementById('personas-container').innerHTML=Object.entries(personas).map(([key,p])=>{
     const isPos=p.saldo>=0;
-    const movs=p.movimientos.map(m=>{
+    const movs=p.movimientos.slice().sort((a,b)=>(String(b.fecha||'')+'|'+String(b.creado||'')).localeCompare(String(a.fecha||'')+'|'+String(a.creado||''))).map(m=>{
       const fecha=fmtFechaMov(m.fecha,{day:'numeric',month:'short',year:'numeric'});
       const isNeg=(DEUDA_TIPOS[m.tipo]||{deuda:-1}).deuda<0;
       // movimientos nuevos traen cuenta; los viejos no la tienen (dato legado, se distingue de 'externo')
@@ -3794,7 +3926,10 @@ function calcDecisiones() {
   // se corta en la MISMA fecha de valuacion: hasta hoy sumaria intereses que la
   // cartera real (congelada en el ultimo cierre) todavia no refleja
   if(!sinMonto&&tasa>0&&!hayVentas&&dia)
-    escAhorro=compras.reduce((t,o)=>t+calcCompoundAt(o.montoMxn,o.fecha,tasa,parseFechaLocal(dia).getTime()),0);
+    // tasa plana hipotetica SIN tope (cada aportacion por separado no puede respetar la
+    // banda de $25k de la cuenta real): es un escenario de referencia, no el producto real
+    escAhorro=compras.reduce((t,o)=>t+calcCompoundAt(o.montoMxn,o.fecha,parseFechaLocal(dia).getTime(),
+      {...modeloComp(state,CAMPO_COMP.revSavings),tasa,tope:null}),0);
   // ESCENARIO 2: el mismo dinero en el S&P 500, comprando en las mismas fechas
   let escMercado=null, refMotivo='';
   if(hayVentas) refMotivo='no disponible: tienes ventas registradas y la comparacion se vuelve ambigua';
@@ -3865,7 +4000,7 @@ function renderDecisiones() {
   }
   if(d.escAhorro!==null&&d.real!==null){
     const dif=d.real-d.escAhorro;
-    F.push(fila(dif>=0?'✅':'🏦','si lo hubieras dejado en tu ahorro','escenario con tu tasa de hoy ('+d.tasa+'%) aplicada a todo el periodo · habrias tenido '+fmt(d.escAhorro),(dif>=0?'+':'−')+fmt(Math.abs(dif)),dif>=0?'green':'red'));
+    F.push(fila(dif>=0?'✅':'🏦','si lo hubieras dejado en tu ahorro','escenario hipotetico: tasa plana de hoy ('+d.tasa+'%, sin tope de banda) todo el periodo · habrias tenido '+fmt(d.escAhorro),(dif>=0?'+':'−')+fmt(Math.abs(dif)),dif>=0?'green':'red'));
   } else F.push(fila('🏦','si lo hubieras dejado en tu ahorro',d.hayVentas?'no disponible: tienes ventas registradas':'no disponible con los datos actuales','—'));
   if(d.escMercado!==null&&d.real!==null){
     const dif=d.real-d.escMercado;
@@ -4291,7 +4426,10 @@ window.descartarPremium = function() {
 
 // aviso SIN tope: solo avisa si el mes actual ya supera claramente el promedio historico
 let avisoCatTimer=null;
-function avisoCategoria(cat) {
+function avisoCategoria(cat,fechaMov) {
+  // solo tiene sentido para gastos del mes EN CURSO: un gasto retrofechado a otro mes
+  // dispararia una alerta sobre un mes que ya paso
+  if(fechaMov&&mesLocalDe(fechaMov)!==hoyLocal().slice(0,7)) return;
   const mesKey=hoyLocal().slice(0,7);
   const totalMes=state.gastos.filter(g=>g.cat===cat&&mesLocalDe(g.fecha)===mesKey).reduce((s,g)=>s+g.monto,0);
   const hoy=new Date(); const claves=[];
@@ -4904,7 +5042,9 @@ function renderUtilidades(start,end) {
   const flujos=[];
   (state.transferencias||[]).forEach(t=>{
     if(!t||!Number.isFinite(t.monto)||t.monto<=0) return;
-    const ms=msFechaMov(t.fecha); if(ms===null||ms<start.getTime()||ms>=endC.getTime()) return;
+    // para ponderar capital manda CUANDO se movio el dinero de verdad (creado), no la
+    // fecha economica: una transferencia retrofechada aplico su delta el dia del registro
+    const ms=msFechaMov(t.creado||t.fecha); if(ms===null||ms<start.getTime()||ms>=endC.getTime()) return;
     const dentro=['cajita1','revSavings'];
     const sgn=(dentro.includes(t.destino)?1:0)-(dentro.includes(t.origen)?1:0);
     if(sgn!==0) flujos.push({monto:sgn*t.monto,ms});
@@ -4950,10 +5090,10 @@ function renderRendimientos(start, end, balance) {
   const sgn=(v,cls)=>`<span class="${v>=0?'item-amt-pos':'item-amt-neg'}"${cls?' style="font-size:15px"':''}>${v>=0?'+':'−'}${fmt(Math.abs(v))}</span>`;
   const rowC1=sinDatosC1
     ?`<div class="item-row"><div><div class="item-cat">NU cajita 1</div><div class="item-meta">sin datos anteriores a la fecha base</div></div><span class="item-meta">—</span></div>`
-    :`<div class="item-row"><div><div class="item-cat">NU cajita 1</div><div class="item-meta">${(state.nuCajita1Tasa||0)}% anual${parcialC1?' · desde el '+fd(parseFechaLocal(state.nuCajita1Fecha))+' (parcial)':' compuesto'}</div></div>${sgn(rend1)}</div>`;
+    :`<div class="item-row"><div><div class="item-cat">NU cajita 1</div><div class="item-meta">${descModelo('cajita1')}${parcialC1?' · desde el '+fd(parseFechaLocal(state.nuCajita1Fecha))+' (parcial)':''}</div></div>${sgn(rend1)}</div>`;
   const rowRS=sinDatosRS
     ?`<div class="item-row"><div><div class="item-cat">Revolut Savings</div><div class="item-meta">sin datos anteriores a la fecha base</div></div><span class="item-meta">—</span></div>`
-    :`<div class="item-row"><div><div class="item-cat">Revolut Savings</div><div class="item-meta">${(state.revSavingsTasa||0)}% anual${parcialRS?' · desde el '+fd(parseFechaLocal(state.revSavingsFecha))+' (parcial)':' compuesto'}</div></div>${sgn(rendRS)}</div>`;
+    :`<div class="item-row"><div><div class="item-cat">Revolut Savings</div><div class="item-meta">${descModelo('revSavings')}${parcialRS?' · desde el '+fd(parseFechaLocal(state.revSavingsFecha))+' (parcial)':''}</div></div>${sgn(rendRS)}</div>`;
   document.getElementById('res-rendimientos').innerHTML=
     rowC1+rowRS+
     `<div class="item-row"><div class="item-cat" style="font-weight:600">total rendimientos</div>${sgn(rendTotal,1)}</div>`+
