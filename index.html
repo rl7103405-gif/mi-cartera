@@ -869,7 +869,10 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
     <div class="section-title">registrar movimiento</div>
     <div class="panel">
       <div class="field"><label>persona</label>
-        <select id="deuda-persona" onchange="handlePersonaChange(this)"></select>
+        <div style="display:flex;gap:8px;align-items:stretch">
+          <select id="deuda-persona" onchange="handlePersonaChange(this)" style="flex:1;min-width:0"></select>
+          <button type="button" class="btn btn-purple" id="deuda-persona-add" style="width:auto;margin-top:0;padding:0 16px;white-space:nowrap;flex-shrink:0" onclick="abrirModalPersona()">+ persona</button>
+        </div>
       </div>
       <div class="field"><label>subcategoria</label>
         <select id="deuda-subcat">
@@ -990,6 +993,25 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
     <button type="button" class="btn btn-purple" id="edit-mov-btn" onclick="guardarEdicionMov()">guardar cambios</button>
     <button type="button" class="btn" style="margin-top:8px" onclick="cerrarEdicionMov()">cancelar</button>
   </div>
+</div>
+<!-- nueva persona: modal PROPIO en vez de prompt(). prompt() puede devolver null sin
+     mostrar nada (politica del navegador; se ha visto con la app instalada en la pantalla
+     de inicio) y el codigo lo tomaba como "cancelo", saliendo SIN AVISAR -> "no pasaba
+     nada". Es un <form> para que Enter (y la tecla "listo" del teclado movil) tengan UNA
+     sola ruta. El input va a 16px: por debajo de eso iOS hace zoom al enfocar. -->
+<div class="modal-back hidden" id="persona-back" onclick="cerrarModalPersona(event)">
+  <form class="modal-card" role="dialog" aria-modal="true" aria-labelledby="persona-tit"
+        style="max-height:calc(100dvh - 40px);overflow:auto" onclick="event.stopPropagation()"
+        onsubmit="event.preventDefault();confirmarNuevaPersona()">
+    <div class="modal-tit" id="persona-tit">nueva persona</div>
+    <div class="modal-sub">quien te debe, o a quien le debes</div>
+    <div class="field"><label for="persona-nombre">nombre</label>
+      <input type="text" id="persona-nombre" placeholder="ej. Mama" maxlength="30"
+             autocomplete="off" autocapitalize="words" enterkeyhint="done" style="font-size:16px">
+    </div>
+    <button type="submit" class="btn btn-purple" id="persona-btn">agregar</button>
+    <button type="button" class="btn" id="persona-cancelar" style="margin-top:8px" onclick="cerrarModalPersona()">cancelar</button>
+  </form>
 </div>
 <div class="toast" id="toast"></div>
 
@@ -3242,7 +3264,10 @@ window.cerrarEdicionMov = function(ev) {
   editMov=null;
 };
 document.addEventListener('keydown', e => {
-  if(e.key==='Escape' && !document.getElementById('edit-mov-back').classList.contains('hidden')) window.cerrarEdicionMov();
+  if(e.key!=='Escape') return;
+  // solo un modal puede estar abierto a la vez: se cierra ESE, no los dos
+  if(!document.getElementById('persona-back').classList.contains('hidden')) window.cerrarModalPersona();
+  else if(!document.getElementById('edit-mov-back').classList.contains('hidden')) window.cerrarEdicionMov();
 });
 window.guardarEdicionMov = async function() {
   if(!editMov||editandoMov) return;
@@ -3351,45 +3376,84 @@ window.eliminarIngreso = async function(id) {
 
 
 // ── DEUDAS ────────────────────────────────────────────────────
-// ultima persona valida seleccionada: al elegir '+ agregar...' el select ya vale
-// __nueva__, asi que sin esto un prompt cancelado regresaria a la primera de la lista
+// ultima persona valida seleccionada: se conserva para restaurar la eleccion cuando
+// el select se vuelve a pintar (al agregar una persona o al llegar cambios de la nube)
 let personaSelPrev='';
 function renderPersonaSelect() {
   const sel=document.getElementById('deuda-persona');
   const prev=Object.hasOwn(state.personas,sel.value)?sel.value:personaSelPrev;
   const _opc=Object.entries(state.personas).map(([k,p])=>`<option value="${escapeHtml(k)}">${escapeHtml(p.nombre)}</option>`).join('');
-  // si la lista esta VACIA, "+ agregar persona" seria la unica opcion y ya estaria
-  // seleccionada; al pulsarla el valor NO cambia y el evento onchange NO dispara -> por
-  // eso "no pasaba nada". El placeholder deshabilitado garantiza que elegir "+ agregar"
-  // siempre cambie el valor y dispare handlePersonaChange.
+  // el select SOLO lista personas: agregar es una accion y vive en el boton "+ persona"
+  // de al lado. Mezclarla como una opcion mas hacia que, con la lista vacia, fuera la
+  // unica opcion, ya estuviera seleccionada, y al pulsarla el valor no cambiara: el
+  // evento change no disparaba y "no pasaba nada".
   const _ph=_opc?'':'<option value="" disabled selected>agrega tu primera persona…</option>';
-  sel.innerHTML=_ph+_opc+'<option value="__nueva__">+ agregar persona...</option>';
+  sel.innerHTML=_ph+_opc;
   if(Object.hasOwn(state.personas,prev)){ sel.value=prev; personaSelPrev=prev; }
 }
-window.handlePersonaChange = async function(sel) {
-  if(sel.value!=='__nueva__'){ if(Object.hasOwn(state.personas,sel.value)) personaSelPrev=sel.value; return; }
-  const nombre=(prompt('Nombre de la nueva persona:')||'').trim().slice(0,30);
-  if(!nombre){ renderPersonaSelect(); return; }
+// El alta de persona ya NO usa prompt(): si el navegador lo suprime (devuelve null sin
+// mostrar nada, reportado con la app instalada en la pantalla de inicio), el codigo viejo
+// lo interpretaba como "cancelo" y regresaba EN SILENCIO -> "no pasa nada". Ahora el
+// nombre se captura en un modal propio, y ademas hay un boton "+ persona" que no depende
+// del evento change de un <select> (fragil con la lista vacia y en moviles).
+// REGLA: ningun camino de esta funcion puede terminar sin avisar al usuario.
+let altaPersonaEnVuelo=false; // guard de doble toque; tambien impide cerrar a media transaccion
+window.abrirModalPersona = function() {
+  const inp=document.getElementById('persona-nombre');
+  inp.value='';
+  document.getElementById('persona-back').classList.remove('hidden');
+  // el foco va en el siguiente frame: enfocar dentro del mismo evento que abre el modal
+  // no siempre levanta el teclado en movil
+  requestAnimationFrame(()=>{ try{ inp.focus(); }catch(e){} });
+};
+window.cerrarModalPersona = function(ev) {
+  if(ev && ev.target!==ev.currentTarget) return;   // click DENTRO de la tarjeta: no cierra
+  // no cerrar a media transaccion; se AVISA, no se ignora en silencio
+  if(altaPersonaEnVuelo){ showToast('espera, se esta guardando'); return; }
+  document.getElementById('persona-back').classList.add('hidden');
+  const b=document.getElementById('deuda-persona-add'); if(b){ try{ b.focus(); }catch(e){} }
+};
+window.handlePersonaChange = function(sel) {
+  // el select ya solo contiene personas: aqui unicamente se recuerda la elegida
+  if(Object.hasOwn(state.personas,sel.value)) personaSelPrev=sel.value;
+};
+window.confirmarNuevaPersona = async function() {
+  if(altaPersonaEnVuelo) return;
+  const inp=document.getElementById('persona-nombre');
+  const btn=document.getElementById('persona-btn');
+  const nombre=(inp.value||'').trim().slice(0,30);
+  if(!nombre){ showToast('escribe un nombre'); try{ inp.focus(); }catch(e){} return; }
   // la key se usa en ids del DOM y en onclick: solo letras/numeros, sin acentos
-  const key=nombre.normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^a-zA-Z0-9]/g,'');
-  if(!key){ showToast('usa un nombre con letras o numeros'); renderPersonaSelect(); return; }
-  // colision sin distinguir mayusculas: "papa" y "Papá" son la misma persona
+  const key=nombre.normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-zA-Z0-9]/g,'');
+  if(!key){ showToast('usa un nombre con letras o numeros'); return; }
+  // colision sin distinguir mayusculas: "papa" y "Papa" son la misma persona
   const existente=Object.keys(state.personas).find(k=>k.toLowerCase()===key.toLowerCase());
-  if(existente){ renderPersonaSelect(); sel.value=existente; personaSelPrev=existente; showToast('esa persona ya existe'); return; }
-  if(dineroOcupado){ showToast('espera, hay otra operacion en curso'); renderPersonaSelect(); return; }
+  if(existente){
+    showToast('esa persona ya existe');
+    window.cerrarModalPersona();
+    refrescar(renderPersonaSelect);
+    const s0=document.getElementById('deuda-persona'); s0.value=existente; personaSelPrev=existente;
+    return;
+  }
+  if(dineroOcupado){ showToast('espera, hay otra operacion en curso'); return; }
   // el alta va por transaccion con merge de UNA sola clave: dos altas simultaneas desde
-  // dos dispositivos ya no se borran entre si (antes se escribia el mapa COMPLETO de
-  // personas desde memoria), y la colision de nombre se revisa contra la nube
+  // dos dispositivos ya no se borran entre si, y la colision se revisa contra la nube
   let res=null,err=null;
-  sel.disabled=true; dineroOcupado=true;
+  const cancel=document.getElementById('persona-cancelar');
+  altaPersonaEnVuelo=true; btn.disabled=true; inp.disabled=true; dineroOcupado=true;
+  if(cancel) cancel.disabled=true;
   try{ res=await txDinero({persona:{key,nombre,crear:true}}); }
   catch(e){ err=e; }
-  finally{ sel.disabled=false; liberarDinero(); }
-  if(err){ console.error('handlePersonaChange',err); refrescar(renderPersonaSelect); showToast('no se pudo confirmar — recarga la app antes de reintentar'); return; }
-  if(res.error){ refrescar(renderPersonaSelect); showToast(res.error); return; }
-  // -- post-commit --
+  finally{ altaPersonaEnVuelo=false; btn.disabled=false; inp.disabled=false;
+           if(cancel) cancel.disabled=false; liberarDinero(); }
+  // en error el modal se queda ABIERTO con lo escrito, para reintentar sin recapturar
+  if(err){ console.error('confirmarNuevaPersona',err); showToast('no se pudo confirmar — recarga la app antes de reintentar'); return; }
+  if(res.error){ showToast(res.error); return; }
+  // -- post-commit: SOLO aqui se cierra --
   state.personas[key]=res.persona;
+  document.getElementById('persona-back').classList.add('hidden');
   refrescar(renderPersonaSelect,renderDeudas);
+  const sel=document.getElementById('deuda-persona');
   sel.value=key; personaSelPrev=key;
   showToast('persona "'+nombre+'" agregada');
 };
