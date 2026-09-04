@@ -691,6 +691,11 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
   </details>
   </div>
   </div>
+  <!-- solo aparece si el service worker bajo una version distinta a la que se esta viendo -->
+  <div id="aviso-version" hidden style="margin:12px 0 0;padding:10px 14px;border-radius:var(--rs);background:var(--bg3);border:0.5px solid var(--border2);font-size:13px;text-align:center">
+    hay una versión nueva de la app
+    <button type="button" class="btn btn-purple" style="margin-top:8px" onclick="location.reload()">recargar</button>
+  </div>
   <div class="status" id="status-inicio">—</div>
   <div class="status" id="version-app" style="margin-top:2px;padding-bottom:8px">—</div>
 </div>
@@ -1017,7 +1022,7 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
 
 <script type="module">
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
-import { getFirestore, doc, getDoc, setDoc, updateDoc, collection, getDocs, query, orderBy, writeBatch, runTransaction, onSnapshot } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+import { getFirestore, initializeFirestore, persistentLocalCache, persistentMultipleTabManager, doc, getDoc, setDoc, updateDoc, collection, getDocs, query, orderBy, writeBatch, runTransaction, onSnapshot } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
 import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
 
 const firebaseConfig = {
@@ -1029,7 +1034,22 @@ const firebaseConfig = {
   appId: "1:31404911125:web:7d01272350b6a2271bbc1c"
 };
 const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
+// CACHE PERSISTENTE (IndexedDB): sin esto, cada apertura releia TODO de la red y en el
+// telefono con senal mala eso eran varios segundos de pantalla de carga. Con la cache,
+// si la red tarda o no hay, Firestore responde con lo ultimo guardado en el aparato.
+// OJO: esto NO vuelve instantaneo un getDoc por si solo (getDoc espera al servidor y
+// solo cae a cache si falla); lo que lo acelera de verdad es que las 14 lecturas del
+// arranque ahora van en PARALELO (ver loadFromFirebase).
+// Puede fallar en modo privado o si el navegador no da IndexedDB: ahi se sigue sin cache.
+let db;
+try {
+  db = initializeFirestore(app, {
+    localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() })
+  });
+} catch (e) {
+  console.error('cache persistente no disponible, se sigue sin ella', e);
+  db = getFirestore(app);
+}
 const auth = getAuth(app);
 
 const ALLOWED_EMAIL = 'rl7103405@gmail.com';
@@ -1284,7 +1304,35 @@ let state = {
 let datosCargados = false; // true solo cuando loadFromFirebase termina con exito (evita sobreescribir datos reales con defaults)
 async function loadFromFirebase() {
   try {
-    const sDoc = await getDoc(doc(db,'cartera','saldos'));
+    // ARRANQUE EN PARALELO. Antes estas 14 lecturas iban una tras otra, cada una
+    // esperando a que volviera la anterior: en el telefono, con la latencia de la red
+    // celular, eran 14 viajes encadenados y la pantalla de carga se eternizaba. Ahora
+    // salen TODAS juntas y se espera una sola vez. El procesamiento de abajo conserva
+    // exactamente el mismo orden, asi que nada cambia de semantica.
+    const [
+      sDoc, mDoc, pDoc, perDoc, tDoc,
+      trvDoc, hDoc, aDoc, mtDoc, cDoc,
+      gSnap, iSnap, trSnap, opSnap
+    ] = await Promise.all([
+      getDoc(doc(db,'cartera','saldos')),
+      getDoc(doc(db,'cartera','mercado')),
+      getDoc(doc(db,'cartera','personas')),
+      getDoc(doc(db,'cartera','perfil')),
+      getDoc(doc(db,'cartera','tarjeta')),
+      getDoc(doc(db,'cartera','tarjetaRev')),
+      getDoc(doc(db,'cartera','historial')),
+      getDoc(doc(db,'cartera','apartados')),
+      getDoc(doc(db,'cartera','metas')),
+      getDoc(doc(db,'cartera','categorias')),
+      getDocs(query(collection(db,'gastos'), orderBy('fecha','desc'))),
+      getDocs(query(collection(db,'ingresos'), orderBy('fecha','desc'))),
+      getDocs(query(collection(db,'transferencias'), orderBy('fecha','desc'))),
+      getDocs(query(collection(db,'stocksOps'), orderBy('fecha','asc'))),
+    ]);
+    // si los datos vinieron de la cache local (red caida o lentisima) NO se corren
+    // las siembras/migraciones: decidirian sobre un estado viejo y podrian reaplicar
+    // correcciones ya hechas. Se saltan y se reintentan en la proxima apertura con red.
+    const desdeCache = !!(sDoc && sDoc.metadata && sDoc.metadata.fromCache);
     if (sDoc.exists()) {
       const d = sDoc.data();
       // respaldo de todos los campos numericos/fecha antes de sobreescribir: si algo llega
@@ -1309,7 +1357,6 @@ async function loadFromFirebase() {
     }
     // cotizaciones viven en su propio doc (cartera/mercado) para que un guardado de
     // saldos nunca pise precios y viceversa; si aun no existe, quedan los legados de saldos
-    const mDoc = await getDoc(doc(db,'cartera','mercado'));
     if (mDoc.exists()) {
       const m = mDoc.data();
       if (Number.isFinite(m.ivvPrecio)) state.ivvPrecio = m.ivvPrecio;
@@ -1340,8 +1387,10 @@ async function loadFromFirebase() {
       }
     } else {
       // migracion unica: persistir en mercado las cotizaciones legadas de saldos
-      // (la proxima escritura de saldos ya no las incluye y se perderian si Yahoo falla)
-      try { await setDoc(doc(db,'cartera','mercado'), {ivvPrecio:state.ivvPrecio, ivvVar:state.ivvVar, ivvHistory:state.ivvHistory}, {merge:true}); }
+      // (la proxima escritura de saldos ya no las incluye y se perderian si Yahoo falla).
+      // Con datos de cache no se escribe: 'mercado' podria existir en el servidor y solo
+      // faltar en la copia local, y esto lo pisaria con cotizaciones viejas.
+      try { if (!desdeCache) await setDoc(doc(db,'cartera','mercado'), {ivvPrecio:state.ivvPrecio, ivvVar:state.ivvVar, ivvHistory:state.ivvHistory}, {merge:true}); }
       catch(e) { console.error('migracion mercado',e); }
     }
     // REPARACION UNICA jul-2026 (v3): los saldos Revolut quedaron mal por el hueco de
@@ -1351,7 +1400,9 @@ async function loadFromFirebase() {
     // batch atomico con su marcador. Guardas por valor: no toca nada ya corregido ni
     // valores que Roberto cambie a mano; NU y GBM no se tocan (peticion explicita).
     const seedV3Hecha = mDoc.exists() && mDoc.data().seedJul26V3 === true;
-    if (!seedV3Hecha) {
+    // esta siembra escribe con writeBatch, sin releer el marcador dentro de una
+    // transaccion: con datos de cache podria reaplicarse. Se salta si vino de cache.
+    if (!desdeCache && !seedV3Hecha) {
       const prevSeed={revMXN:state.revMXN,rsb:state.revSavingsBase,rsf:state.revSavingsFecha,
         rst:state.revSavingsTasa,nvs:state.revNvdaShares};
       let cambio=false;
@@ -1383,7 +1434,7 @@ async function loadFromFirebase() {
     // SIEMBRA 28-jul-2026 (transaccion con update PARCIAL: no pisa nada concurrente):
     // GBM vendido -> el dinero migro a Revolut. Anclas absolutas del dia (sin guardas por
     // valor): NU saldo 51.03, Savings 9,007.46 al 28-jul, GBM en 0. Marcador seedJul28.
-    if (!(mDoc.exists() && mDoc.data().seedJul28 === true)) {
+    if (!desdeCache && !(mDoc.exists() && mDoc.data().seedJul28 === true)) {
       try {
         const aplico = await runTransaction(db, async tx => {
           const mSnap = await tx.get(doc(db,'cartera','mercado'));
@@ -1400,7 +1451,7 @@ async function loadFromFirebase() {
     }
     // SIEMBRA 28-jul-b: acciones NVDA exactas segun el recibo de Revolut de Roberto
     // (compra 23-jul-2026 9:43am: $40 USD que compraron 0.19306994 acciones)
-    if (!(mDoc.exists() && mDoc.data().seedJul28b === true)) {
+    if (!desdeCache && !(mDoc.exists() && mDoc.data().seedJul28b === true)) {
       try {
         const aplico = await runTransaction(db, async tx => {
           const mSnap = await tx.get(doc(db,'cartera','mercado'));
@@ -1412,7 +1463,6 @@ async function loadFromFirebase() {
         if (aplico) state.revNvdaShares=0.19306994;
       } catch(e) { console.error('seed jul28b',e); }
     }
-    const pDoc = await getDoc(doc(db,'cartera','personas'));
     if (pDoc.exists()) {
       // el campo data debe ser un MAP {clave:persona}. Si quedo como ARRAY (dato viejo
       // de una version previa), Firestore descarta las claves nombradas al guardar y la
@@ -1433,9 +1483,10 @@ async function loadFromFirebase() {
         if (!Number.isFinite(p.saldo)) p.saldo = 0;
       });
     }
-    else await setDoc(doc(db,'cartera','personas'), {data:state.personas});
+    // sin red confirmada NO se siembra: un exists()==false que venga de la cache local
+    // pisaria con los defaults el historial de deudas real que si esta en el servidor
+    else if (!desdeCache) await setDoc(doc(db,'cartera','personas'), {data:state.personas});
     // perfil: campos corruptos caen al default sin bloquear la carga
-    const perDoc = await getDoc(doc(db,'cartera','perfil'));
     if (perDoc.exists()) {
       const pf=perDoc.data()||{};
       const anoAct=new Date().getFullYear();
@@ -1448,11 +1499,9 @@ async function loadFromFirebase() {
         // solo se acepta un dataURL jpeg/png generado por la propia app
         foto:(typeof pf.foto==='string'&&/^data:image\/(?:jpeg|png);base64,[A-Za-z0-9+/]+={0,2}$/.test(pf.foto)&&pf.foto.length<900000)?pf.foto:''};
     }
-    const tDoc = await getDoc(doc(db,'cartera','tarjeta'));
     if (tDoc.exists()) { state.tarjetaDeuda = Number.isFinite(tDoc.data().deuda) ? tDoc.data().deuda : state.tarjetaDeuda; state.tarjetaMovimientos = Array.isArray(tDoc.data().movimientos) ? tDoc.data().movimientos : []; }
     // TDC Revolut: {deuda, deposito, movimientos} viven JUNTOS en su doc (el deposito NO va
     // en saldos: un cliente viejo con setDoc completo de saldosPayload lo borraria)
-    const trvDoc = await getDoc(doc(db,'cartera','tarjetaRev'));
     if (trvDoc.exists()) {
       const tv = trvDoc.data();
       if (Number.isFinite(tv.deuda)) state.revTdcDeuda = tv.deuda;
@@ -1460,9 +1509,7 @@ async function loadFromFirebase() {
       state.revTdcMovs = Array.isArray(tv.movimientos) ? tv.movimientos.filter(m=>m&&(m.tipo==='cargo'||m.tipo==='pago')
         &&Number.isFinite(m.monto)&&m.monto>0&&typeof m.fecha==='string') : [];
     }
-    const hDoc = await getDoc(doc(db,'cartera','historial'));
     if (hDoc.exists()) state.snapshots = Array.isArray(hDoc.data().snapshots) ? hDoc.data().snapshots : [];
-    const aDoc = await getDoc(doc(db,'cartera','apartados'));
     if (aDoc.exists() && Array.isArray(aDoc.data().items)) {
       // normalizacion por item: se descartan elementos corruptos (id/nombre/montos invalidos)
       state.apartados = aDoc.data().items.filter(a=>a&&typeof a.id==='string'&&/^[A-Za-z0-9-]+$/.test(a.id)
@@ -1474,7 +1521,6 @@ async function loadFromFirebase() {
     }
     // metas editables: montos finitos >=0 y fecha valida; si algo llega corrupto, se
     // conserva el default en vez de dejar la pestana en blanco
-    const mtDoc = await getDoc(doc(db,'cartera','metas'));
     {
       const m=mtDoc.exists()?(mtDoc.data()||{}):{};
       const fecha=(typeof m.fecha==='string'&&fechaCalendarioValida(m.fecha))?m.fecha:META_FECHA_DEF;
@@ -1495,7 +1541,6 @@ async function loadFromFirebase() {
       }
       state.metas={fecha,items};
     }
-    const cDoc = await getDoc(doc(db,'cartera','categorias'));
     if (cDoc.exists()) {
       const cd = cDoc.data();
       if (Array.isArray(cd.catsGasto) && cd.catsGasto.length) state.catsGasto = cd.catsGasto;
@@ -1505,13 +1550,9 @@ async function loadFromFirebase() {
     // (retrofechados al mismo dia): se reordena localmente con el mismo criterio
     // de insertarPorFecha (fecha|creado desc) para que el mas nuevo quede arriba.
     const ordFecha=(a,b)=>(String(b.fecha||'')+'|'+String(b.creado||'')).localeCompare(String(a.fecha||'')+'|'+String(a.creado||''));
-    const gSnap = await getDocs(query(collection(db,'gastos'), orderBy('fecha','desc')));
     state.gastos = gSnap.docs.map(d => ({id:d.id, ...d.data()})).sort(ordFecha);
-    const iSnap = await getDocs(query(collection(db,'ingresos'), orderBy('fecha','desc')));
     state.ingresos = iSnap.docs.map(d => ({id:d.id, ...d.data()})).sort(ordFecha);
-    const trSnap = await getDocs(query(collection(db,'transferencias'), orderBy('fecha','desc')));
     state.transferencias = trSnap.docs.map(d => ({id:d.id, ...d.data()})).sort(ordFecha);
-    const opSnap = await getDocs(query(collection(db,'stocksOps'), orderBy('fecha','asc')));
     const opsCrudas = opSnap.docs.map(d => ({id:d.id, ...d.data()}));
     state.stocksOps = opsCrudas.filter(o=>o&&typeof o.simbolo==='string'&&/^[A-Z][A-Z0-9.\-]{0,9}$/.test(o.simbolo)
         &&Number.isFinite(o.acciones)&&o.acciones>0&&(o.tipo==='compra'||o.tipo==='venta')
@@ -1523,7 +1564,7 @@ async function loadFromFirebase() {
     // SIEMBRA 30-jul (ledger inicial): las dos compras reales de Roberto segun sus recibos
     // de Revolut. cuenta 'externo': el efectivo de esas compras YA quedo anclado en las
     // siembras de saldos anteriores (no se descuenta doble). QQQ: monto MXN pendiente.
-    if (!(mDoc.exists() && mDoc.data().seedJul28c === true)) {
+    if (!desdeCache && !(mDoc.exists() && mDoc.data().seedJul28c === true)) {
       try {
         const nuevos = await runTransaction(db, async tx => {
           const mSnap = await tx.get(doc(db,'cartera','mercado'));
@@ -1542,7 +1583,7 @@ async function loadFromFirebase() {
     // del saldo Revolut MXN en 962.06 (el fondeo de esa compra no paso por la app).
     // Solo corrige datos: NO genera movimientos. Si la op QQQ aun no existe (p.ej.
     // seedJul28c fallo en esta carga), NO se marca: se reintenta en la proxima.
-    if (!(mDoc.exists() && mDoc.data().seedJul30 === true)) {
+    if (!desdeCache && !(mDoc.exists() && mDoc.data().seedJul30 === true)) {
       const qqqOp = state.stocksOps.find(o=>o.id&&o.simbolo==='QQQ'&&o.tipo==='compra'&&o.fecha==='2026-07-28'&&!(o.montoMxn>0));
       if (qqqOp) {
         try {
@@ -1565,7 +1606,7 @@ async function loadFromFirebase() {
     // ($30 USD a $448.60 -> 0.06687472 acciones, fee $0). cuenta 'externo': Roberto
     // ajusta el saldo Revolut MXN a mano; montoMxn pendiente (el recibo esta en USD).
     // ID determinista: la transaccion relee ese doc y no puede duplicar la op.
-    if (!(mDoc.exists() && mDoc.data().seedJul31 === true)) {
+    if (!desdeCache && !(mDoc.exists() && mDoc.data().seedJul31 === true)) {
       try {
         const msftRef = doc(db,'stocksOps','seed-msft-2026-07-30');
         const nueva = await runTransaction(db, async tx => {
@@ -1593,7 +1634,7 @@ async function loadFromFirebase() {
     // devuelve el monto EFECTIVO que quedo en Firestore (el propio si escribio, el existente si
     // otro dispositivo ya lo puso, o null si el doc no existe); en memoria solo se asigna ese
     // monto efectivo (nunca el literal), y si el doc no existe no se marca y se reintenta.
-    if (!(mDoc.exists() && mDoc.data().seedJul31b === true)) {
+    if (!desdeCache && !(mDoc.exists() && mDoc.data().seedJul31b === true)) {
       const msftOp = state.stocksOps.find(o=>o.id==='seed-msft-2026-07-30'&&!(o.montoMxn>0));
       if (msftOp) {
         try {
@@ -1620,7 +1661,7 @@ async function loadFromFirebase() {
     // compraron 0.47468805 acciones; la transferencia real fue de M$1,040.81 desde
     // Revolut MXN. cuenta 'externo': Roberto ajusta ese saldo a mano (igual que las
     // siembras anteriores, para no descontar dos veces si ya lo corrigio).
-    if (!(mDoc.exists() && mDoc.data().seedAgo04 === true)) {
+    if (!desdeCache && !(mDoc.exists() && mDoc.data().seedAgo04 === true)) {
       try {
         const spcxRef = doc(db,'stocksOps','seed-spcx-2026-08-04');
         const nueva = await runTransaction(db, async tx => {
@@ -1648,7 +1689,7 @@ async function loadFromFirebase() {
     //     cuanto gano la accion de cuanto movio el tipo de cambio, que es exactamente la
     //     diferencia entre lo que muestra esta app (pesos reales) y lo que muestra el broker.
     // Cada op se corrige SOLO si conserva el valor viejo: una edicion manual posterior manda.
-    if (!(mDoc.exists() && mDoc.data().seedAgo07 === true)) {
+    if (!desdeCache && !(mDoc.exists() && mDoc.data().seedAgo07 === true)) {
       const CORR=[
         {sim:'NVDA', fecha:'2026-07-23', usd:40},
         {sim:'QQQ',  fecha:'2026-07-28', usd:400.01},
@@ -5276,7 +5317,18 @@ initPieInteraccion('res-pie-ingresos');
 actualizarOjo();
 marcarTemaActivo();
 
-if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(()=>{});
+if('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js').catch(()=>{});
+  // La app ahora se pinta desde la copia guardada en el aparato (arranque instantaneo) y
+  // la version fresca se baja por detras. Si la que acaba de bajar es distinta a la que
+  // estas viendo, el service worker avisa para poder recargar cuando convenga.
+  navigator.serviceWorker.addEventListener('message', e => {
+    if(e.data && e.data.tipo==='version-nueva') {
+      const el=document.getElementById('aviso-version');
+      if(el) el.hidden=false; else showToast('hay una version nueva — cierra y vuelve a abrir');
+    }
+  });
+}
 </script>
 </body>
 </html>
