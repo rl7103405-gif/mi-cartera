@@ -31,14 +31,10 @@ Lo hecho hoy (paralelizar las 14 lecturas, cache persistente, service worker
 stale-while-revalidate + SDK precacheado) ya deja la app abriendo al instante y
 sin red. Lo que queda, en orden de valor, para cuando la app crezca:
 
-1. **Pintar desde la cache ANTES de que conteste el servidor.** Hoy el
-   Promise.all todavia espera a que las 14 lecturas vuelvan. Firestore permite
-   leer explicitamente de la copia local (`getDocFromCache`/`getDocsFromCache`)
-   y sincronizar despues. Lo señalo Codex: `getDoc` normal espera al servidor y
-   solo cae a cache si falla, o sea que la mejora de hoy es "un viaje en vez de
-   14", no "cero viajes". Requiere separar dos banderas: una que permita PINTAR
-   datos posiblemente viejos (solo lectura) y otra que habilite escribir dinero.
-   Sin esa separacion no se debe hacer: `datosCargados` hoy autoriza escrituras.
+1. ~~**Pintar desde la cache ANTES de que conteste el servidor.**~~ HECHO el
+   4-sep-2026 (`pintarDesdeCache`, commit 68db956). Es todo-o-nada, de solo
+   lectura, y no marca `datosCargados`: mover dinero sigue esperando al servidor.
+   Una banda avisa que se ve la copia local y ofrece reintentar.
 2. **Paginar gastos/ingresos/transferencias.** Se leen COMPLETAS en cada
    apertura, sin `limit()`. Hoy no duele, pero crece sin tope y son lecturas
    facturables. Ojo: un `limit()` a secas romperia el Resumen de meses viejos —
