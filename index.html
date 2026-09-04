@@ -691,6 +691,9 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
   </details>
   </div>
   </div>
+  <!-- avisa, con todas sus letras, que lo que se ve es la copia guardada en el aparato
+       y todavia no esta confirmada con el servidor -->
+  <div id="banda-cache" hidden style="margin:12px 0 0;padding:9px 14px;border-radius:var(--rs);background:var(--bg3);border:0.5px solid var(--border2);font-size:12px;color:var(--muted);text-align:center"></div>
   <!-- solo aparece si el service worker bajo una version distinta a la que se esta viendo -->
   <div id="aviso-version" hidden style="margin:12px 0 0;padding:10px 14px;border-radius:var(--rs);background:var(--bg3);border:0.5px solid var(--border2);font-size:13px;text-align:center">
     hay una versión nueva de la app
@@ -1022,7 +1025,7 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
 
 <script type="module">
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
-import { getFirestore, initializeFirestore, persistentLocalCache, persistentMultipleTabManager, doc, getDoc, setDoc, updateDoc, collection, getDocs, query, orderBy, writeBatch, runTransaction, onSnapshot } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+import { getFirestore, initializeFirestore, persistentLocalCache, persistentMultipleTabManager, doc, getDoc, getDocFromCache, getDocsFromCache, setDoc, updateDoc, collection, getDocs, query, orderBy, writeBatch, runTransaction, onSnapshot } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
 import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
 
 const firebaseConfig = {
@@ -1169,15 +1172,35 @@ onAuthStateChanged(auth, async user => {
   if (user && user.email === ALLOWED_EMAIL) {
     document.getElementById('login-screen').classList.add('hidden');
     document.getElementById('loading-overlay').classList.remove('hidden');
+    // PRIMERO la copia local: si el aparato ya tiene los datos guardados, la pantalla
+    // sale de una vez y no hay que esperar a la red. Es provisional y de solo lectura:
+    // no habilita mover dinero (eso sigue esperando a datosCargados).
+    const hayCopiaLocal = await pintarDesdeCache();
+    if (hayCopiaLocal) {
+      document.getElementById('loading-overlay').classList.add('hidden');
+      renderCatSelect('gasto-cat', state.catsGasto);
+      renderCatSelect('ingreso-cat', state.catsIngreso);
+      refrescar(renderPersonaSelect, render, renderMovimientos, renderTransferencias);
+      marcarCopiaLocal(true);
+    }
+    // y ahora la verdad del servidor, que reemplaza el estado completo
     const ok = await loadFromFirebase();
     if (!ok) {
-      // no se pudo cargar de Firebase: NO seguir con datos DEFAULT en memoria
+      if (hayCopiaLocal) {
+        // ya hay algo util en pantalla: no se bloquea la app, pero se deja MUY claro
+        // que esos numeros no estan confirmados y que no se puede registrar nada
+        marcarCopiaLocal(true, true);
+        showToast('sin conexion: ves tu copia local y no puedes registrar movimientos');
+        return;
+      }
+      // sin copia local no hay nada que enseñar: NO seguir con datos DEFAULT en memoria
       // (se sobreescribirian los datos reales en la siguiente escritura). Se bloquea la app.
       document.querySelector('.loading-text').textContent = 'error al cargar tus datos';
       const btnRe=document.getElementById('reintentar-login'); if(btnRe) btnRe.style.display='';
       showToast('ERROR al cargar datos de Firebase');
       return;
     }
+    marcarSincronizado();
     document.getElementById('loading-overlay').classList.add('hidden');
     renderCatSelect('gasto-cat', state.catsGasto);
     renderCatSelect('ingreso-cat', state.catsIngreso);
@@ -1302,6 +1325,142 @@ let state = {
 
 // ── FIREBASE ──────────────────────────────────────────────────
 let datosCargados = false; // true solo cuando loadFromFirebase termina con exito (evita sobreescribir datos reales con defaults)
+// ── ARRANQUE INSTANTANEO: pintar con la copia local ───────────────────────────
+// Tras el login, esperar al servidor es justo lo que se siente lento en el telefono.
+// Estas lecturas van SOLO a la copia guardada en el aparato (IndexedDB): contestan en
+// milisegundos y sin tocar la red, asi que la pantalla aparece de inmediato mientras
+// loadFromFirebase trae por detras la version del servidor y REEMPLAZA el estado entero.
+//
+// REGLAS de esta funcion (no aflojarlas):
+//  - SOLO LECTURA: no escribe nada, no corre ninguna siembra ni migracion.
+//  - TODO O NADA: si falta cualquier pieza en la copia local no se pinta nada y se
+//    espera al servidor como siempre. Media pantalla rellenada con los valores por
+//    defecto enseñaria saldos y deudas que no son ciertos.
+//  - NO marca datosCargados: hasta que el servidor confirme no se puede mover dinero.
+//  - Lo que se pinta aqui es PROVISIONAL: la copia local puede no traer un movimiento
+//    hecho en otro aparato, o conservar uno ya borrado. Por eso el servidor reemplaza,
+//    nunca mezcla.
+let mostrandoCopiaLocal = false;
+async function pintarDesdeCache() {
+  let r;
+  try {
+    r = await Promise.allSettled([
+      getDocFromCache(doc(db,'cartera','saldos')),
+      getDocFromCache(doc(db,'cartera','tarjeta')),
+      getDocFromCache(doc(db,'cartera','tarjetaRev')),
+      getDocFromCache(doc(db,'cartera','personas')),
+      getDocFromCache(doc(db,'cartera','categorias')),
+      getDocFromCache(doc(db,'cartera','historial')),
+      getDocFromCache(doc(db,'cartera','mercado')),
+      getDocsFromCache(query(collection(db,'gastos'), orderBy('fecha','desc'))),
+      getDocsFromCache(query(collection(db,'ingresos'), orderBy('fecha','desc'))),
+      getDocsFromCache(query(collection(db,'transferencias'), orderBy('fecha','desc'))),
+      getDocsFromCache(query(collection(db,'stocksOps'), orderBy('fecha','asc'))),
+    ]);
+  } catch(e) { return false; }
+  // getDocFromCache/getDocsFromCache LANZAN si eso no esta guardado en el aparato:
+  // si alguna falto, la copia local no alcanza para una pantalla coherente
+  if (r.some(x => x.status !== 'fulfilled')) return false;
+  const [sD,tD,trvD,pD,cD,hD,mD,gS,iS,trS,opS] = r.map(x => x.value);
+  // sin saldos, personas o tarjeta no alcanza para una pantalla coherente: pintar
+  // personas vacio enseñaria los PERSONAS_DEFAULT del codigo como si fueran deudas reales
+  if (!sD.exists() || !pD.exists() || !tD.exists()) return false;
+  try {
+    // conservador a proposito: solo se copian campos que existan Y sean del tipo que
+    // el estado ya tiene. Un campo raro se ignora y queda el default hasta que llegue
+    // el servidor, que es quien manda.
+    const d = sD.data();
+    Object.keys(d).forEach(k => {
+      if (!(k in state)) return;
+      const v = d[k];
+      if (typeof state[k] === 'number' && Number.isFinite(v)) state[k] = v;
+      else if (typeof state[k] === 'string' && typeof v === 'string') state[k] = v;
+      else if (Array.isArray(state[k]) && Array.isArray(v)) state[k] = v;
+    });
+    if (tD.exists()) { const t = tD.data();
+      if (Number.isFinite(t.deuda)) state.tarjetaDeuda = t.deuda;
+      state.tarjetaMovimientos = Array.isArray(t.movimientos) ? t.movimientos : []; }
+    if (trvD.exists()) { const t = trvD.data();
+      if (Number.isFinite(t.deuda)) state.revTdcDeuda = t.deuda;
+      if (Number.isFinite(t.deposito)) state.revTdcDeposito = t.deposito;
+      state.revTdcMovs = Array.isArray(t.movimientos) ? t.movimientos : []; }
+    if (pD.exists()) {
+      const raw = pD.data().data;
+      // formato viejo (array) no se intenta migrar aqui: eso lo hace la carga del
+      // servidor, que si puede escribir la correccion
+      if (raw && typeof raw === 'object' && !Array.isArray(raw)) {
+        Object.values(raw).forEach(x => { if (x && typeof x === 'object') {
+          if (!Array.isArray(x.movimientos)) x.movimientos = [];
+          if (!Number.isFinite(x.saldo)) x.saldo = 0; } });
+        state.personas = raw;
+      }
+    }
+    if (cD.exists()) { const c = cD.data();
+      if (Array.isArray(c.catsGasto) && c.catsGasto.length) state.catsGasto = c.catsGasto;
+      if (Array.isArray(c.catsIngreso) && c.catsIngreso.length) state.catsIngreso = c.catsIngreso; }
+    if (hD.exists() && Array.isArray(hD.data().snapshots)) state.snapshots = hD.data().snapshots;
+    // las cotizaciones: sin ellas la bolsa valdria 0 y el patrimonio total saldria
+    // MAS BAJO de lo real, que es justo el susto que hay que evitar
+    if (mD.exists()) { const m = mD.data();
+      if (Number.isFinite(m.ivvPrecio)) state.ivvPrecio = m.ivvPrecio;
+      if (Number.isFinite(m.usdMxn)) state.usdMxn = m.usdMxn;
+      if (m.accionesMkt && typeof m.accionesMkt === 'object' && !Array.isArray(m.accionesMkt))
+        state.accionesMkt = m.accionesMkt; }
+    const ord = (a,b) => (String(b.fecha||'')+'|'+String(b.creado||'')).localeCompare(String(a.fecha||'')+'|'+String(a.creado||''));
+    state.gastos         = gS.docs.map(x => ({id:x.id, ...x.data()})).sort(ord);
+    state.ingresos       = iS.docs.map(x => ({id:x.id, ...x.data()})).sort(ord);
+    state.transferencias = trS.docs.map(x => ({id:x.id, ...x.data()})).sort(ord);
+    state.stocksOps = opS.docs.map(x => ({id:x.id, ...x.data()}))
+      .filter(o => o && typeof o.simbolo==='string' && Number.isFinite(o.acciones) && o.acciones>0
+                && (o.tipo==='compra'||o.tipo==='venta') && typeof o.fecha==='string');
+    derivarPosiciones();
+  } catch(e) { console.error('pintarDesdeCache',e); return false; }
+  return true;
+}
+// la banda avisa, con todas sus letras, que lo que se ve es la copia guardada y todavia
+// no esta confirmada con el servidor. Sin esto Roberto podria ver un saldo viejo y creer
+// que perdio dinero.
+function marcarCopiaLocal(activo, falloSync) {
+  mostrandoCopiaLocal = !!activo;
+  const el = document.getElementById('banda-cache');
+  if (!el) return;
+  el.hidden = !activo;
+  if (activo) {
+    const ult = (()=>{ try { return localStorage.getItem('ultimaSync'); } catch(e) { return null; } })();
+    const txt = (falloSync ? 'copia local SIN confirmar — no hay conexion' : 'mostrando tu copia local · sincronizando…')
+      + (ult ? ' · ultima vez al dia: ' + ult : '');
+    el.textContent = txt;
+    if (falloSync) {
+      const b = document.createElement('button');
+      b.type = 'button'; b.id = 'banda-cache-btn'; b.className = 'btn';
+      b.style.marginTop = '8px'; b.textContent = 'reintentar';
+      b.onclick = () => window.reintentarSync();
+      el.appendChild(b);
+    }
+  }
+}
+// Sin esto, si la sincronizacion falla el usuario se queda con la banda para siempre y
+// sin ninguna forma de reintentar salvo cerrar la app entera.
+window.reintentarSync = async function() {
+  const b = document.getElementById('banda-cache-btn');
+  if (b) { b.disabled = true; b.textContent = 'reintentando…'; }
+  let ok = false;
+  try { ok = await loadFromFirebase(); } catch(e) { console.error('reintentarSync', e); }
+  if (b) { b.disabled = false; b.textContent = 'reintentar'; }
+  if (!ok) { showToast('sigue sin conexion'); return; }
+  marcarSincronizado();
+  renderCatSelect('gasto-cat', state.catsGasto);
+  renderCatSelect('ingreso-cat', state.catsIngreso);
+  refrescar(renderPersonaSelect, render, renderMovimientos, renderTransferencias);
+  showToast('datos actualizados');
+};
+// y si el telefono recupera la senal, se reintenta solo
+window.addEventListener('online', () => { if (mostrandoCopiaLocal && !datosCargados) window.reintentarSync(); });
+function marcarSincronizado() {
+  try { localStorage.setItem('ultimaSync', new Date().toLocaleString('es-MX',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})); } catch(e) {}
+  marcarCopiaLocal(false);
+}
+
 async function loadFromFirebase() {
   try {
     // ARRANQUE EN PARALELO. Antes estas 14 lecturas iban una tras otra, cada una
@@ -2165,6 +2324,14 @@ async function txDinero(plan) {
   } catch(e) { setSyncDot('err'); throw e; }
 }
 
+// Mensaje de fallo de una operacion de dinero. Mientras no haya confirmacion del
+// servidor la causa REAL es que se esta sincronizando, no un error raro: decirle
+// "recarga la app" ahi solo confunde y no arregla nada.
+function msgFalloDinero() {
+  return datosCargados
+    ? 'no se pudo confirmar — recarga la app antes de reintentar'
+    : 'espera: todavia estoy sincronizando tus datos';
+}
 // aplica a memoria el resultado CANONICO que devolvio la transaccion (post-commit).
 // Se usa lo que quedo en el servidor, NO lo que esta pantalla creia tener.
 function aplicarRes(res) {
@@ -2931,7 +3098,7 @@ window.guardarManuales = async function() {
   try{ res=await txDinero(plan); }
   catch(e){ err=e; }
   finally{ btn.disabled=false; liberarDinero(); }
-  if(err){ console.error('guardarManuales',err); showToast('no se pudo confirmar — recarga la app antes de reintentar'); return; }
+  if(err){ console.error('guardarManuales',err); showToast(msgFalloDinero()); return; }
   if(res.error){ showToast(res.error); return; }
   // -- post-commit: se refleja lo que quedo en el SERVIDOR --
   aplicarRes(res);
@@ -2976,7 +3143,7 @@ window.registrarTarjeta = async function(tipo) {
   try{ res=await txDinero(plan); }
   catch(e){ err=e; }
   finally{ btnCargo.disabled=false;btnPago.disabled=false; liberarDinero(); }
-  if(err){ console.error('registrarTarjeta',err); showToast('no se pudo confirmar — recarga la app antes de reintentar'); return; }
+  if(err){ console.error('registrarTarjeta',err); showToast(msgFalloDinero()); return; }
   if(res.error){ showToast(res.error); return; }
   // -- post-commit --
   aplicarRes(res);
@@ -3024,7 +3191,7 @@ window.registrarTarjetaRev = async function(tipo) {
   try{ res=await txDinero(plan); }
   catch(e){ err=e; }
   finally{ btnCargo.disabled=false;btnPago.disabled=false; liberarDinero(); }
-  if(err){ console.error('registrarTarjetaRev',err); showToast('no se pudo confirmar — recarga la app antes de reintentar'); return; }
+  if(err){ console.error('registrarTarjetaRev',err); showToast(msgFalloDinero()); return; }
   if(res.error){ showToast(res.error); return; }
   // -- post-commit --
   aplicarRes(res);
@@ -3091,7 +3258,7 @@ window.registrarTransferencia = async function() {
   try{ res=await txDinero(plan); }
   catch(e){ err=e; }
   finally{ btn.disabled=false; liberarDinero(); }
-  if(err){ console.error('registrarTransferencia',err); showToast('no se pudo confirmar — recarga la app antes de reintentar'); return; }
+  if(err){ console.error('registrarTransferencia',err); showToast(msgFalloDinero()); return; }
   if(res.error){ showToast(res.error); return; }
   // -- post-commit --
   aplicarRes(res);
@@ -3123,7 +3290,7 @@ window.eliminarTransferencia = async function(id) {
   try{ res=await txDinero(plan); }
   catch(e){ err=e; }
   finally{ liberarDinero(); }
-  if(err){ console.error('eliminarTransferencia',err); showToast('no se pudo confirmar — recarga la app antes de reintentar'); return; }
+  if(err){ console.error('eliminarTransferencia',err); showToast(msgFalloDinero()); return; }
   if(res.error){ showToast(res.error); return; }
   // -- post-commit --
   aplicarRes(res);
@@ -3167,7 +3334,7 @@ async function altaGasto(cat,monto,nota,fuente,btn,fecha) {
   try{ res=await txDinero(plan); }
   catch(e){ err=e; }
   finally{ if(btn) btn.disabled=false; liberarDinero(); }
-  if(err){ console.error('altaGasto',err); showToast('no se pudo confirmar — recarga la app antes de reintentar'); return false; }
+  if(err){ console.error('altaGasto',err); showToast(msgFalloDinero()); return false; }
   if(res.error){ showToast(res.error); return false; }
   // -- post-commit: se refleja lo que quedo en el SERVIDOR, no lo que creia la pantalla --
   aplicarRes(res);
@@ -3212,7 +3379,7 @@ window.eliminarGasto = async function(id) {
   try{ res=await txDinero(plan); }
   catch(e){ err=e; }
   finally{ liberarDinero(); }
-  if(err){ console.error('eliminarGasto',err); showToast('no se pudo confirmar — recarga la app antes de reintentar'); return; }
+  if(err){ console.error('eliminarGasto',err); showToast(msgFalloDinero()); return; }
   if(res.error){ showToast(res.error); return; }
   // -- post-commit --
   aplicarRes(res);
@@ -3312,6 +3479,9 @@ document.addEventListener('keydown', e => {
 });
 window.guardarEdicionMov = async function() {
   if(!editMov||editandoMov) return;
+  // mientras no haya confirmacion del servidor no se toca nada: la carga que viene
+  // en camino reemplaza el estado entero y se comeria la edicion sin avisar
+  if(!datosCargados){ showToast(msgFalloDinero()); return; }
   const {tipo,id}=editMov;
   const arr = tipo==='gasto'?state.gastos:state.ingresos;
   const it = arr.find(x=>x.id===id);
@@ -3365,7 +3535,7 @@ async function altaIngreso(cat,monto,nota,destino,btn,fecha) {
   try{ res=await txDinero({deltas:{[destino]:m}, crear:[{ref,data:ingreso}]}); }
   catch(e){ err=e; }
   finally{ if(btn) btn.disabled=false; liberarDinero(); }
-  if(err){ console.error('altaIngreso',err); showToast('no se pudo confirmar — recarga la app antes de reintentar'); return false; }
+  if(err){ console.error('altaIngreso',err); showToast(msgFalloDinero()); return false; }
   if(res.error){ showToast(res.error); return false; }
   // -- post-commit --
   aplicarRes(res);
@@ -3405,7 +3575,7 @@ window.eliminarIngreso = async function(id) {
   try{ res=await txDinero(plan); }
   catch(e){ err=e; }
   finally{ liberarDinero(); }
-  if(err){ console.error('eliminarIngreso',err); showToast('no se pudo confirmar — recarga la app antes de reintentar'); return; }
+  if(err){ console.error('eliminarIngreso',err); showToast(msgFalloDinero()); return; }
   if(res.error){ showToast(res.error); return; }
   // -- post-commit --
   aplicarRes(res);
@@ -3488,7 +3658,7 @@ window.confirmarNuevaPersona = async function() {
   finally{ altaPersonaEnVuelo=false; btn.disabled=false; inp.disabled=false;
            if(cancel) cancel.disabled=false; liberarDinero(); }
   // en error el modal se queda ABIERTO con lo escrito, para reintentar sin recapturar
-  if(err){ console.error('confirmarNuevaPersona',err); showToast('no se pudo confirmar — recarga la app antes de reintentar'); return; }
+  if(err){ console.error('confirmarNuevaPersona',err); showToast(msgFalloDinero()); return; }
   if(res.error){ showToast(res.error); return; }
   // -- post-commit: SOLO aqui se cierra --
   state.personas[key]=res.persona;
@@ -3534,7 +3704,7 @@ window.registrarDeuda = async function() {
   try{ res=await txDinero(plan); }
   catch(e){ err=e; }
   finally{ btn.disabled=false; liberarDinero(); }
-  if(err){ console.error('registrarDeuda',err); showToast('no se pudo confirmar — recarga la app antes de reintentar'); return; }
+  if(err){ console.error('registrarDeuda',err); showToast(msgFalloDinero()); return; }
   if(res.error){ showToast(res.error); return; }
   // -- post-commit --
   aplicarRes(res);
@@ -3600,7 +3770,7 @@ window.eliminarDeuda = async function(personaKey, movId) {
   try{ res=await txDinero(plan); }
   catch(e){ err=e; }
   finally{ liberarDinero(); }
-  if(err){ console.error('eliminarDeuda',err); showToast('no se pudo confirmar — recarga la app antes de reintentar'); return; }
+  if(err){ console.error('eliminarDeuda',err); showToast(msgFalloDinero()); return; }
   if(res.error){ showToast(res.error); return; }
   // -- post-commit --
   aplicarRes(res);
