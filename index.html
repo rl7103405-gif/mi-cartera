@@ -354,6 +354,8 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
 <div class="tabs">
   <div class="tab active" data-page="inicio" onclick="showPage('inicio')">inicio</div>
   <div class="tab" data-page="movimientos" onclick="showPage('movimientos')">movimientos</div>
+  <!-- solo se ve si esta encendido en el perfil (ver aplicarVisibilidadDashboard) -->
+  <div class="tab" data-page="dashboard" id="tab-dashboard" hidden onclick="showPage('dashboard')">inversiones</div>
   <div class="tab" data-page="metas" onclick="showPage('metas')">metas</div>
   <div class="tab" data-page="perfil" onclick="showPage('perfil')">perfil</div>
   <div class="tab" data-page="noticias" onclick="showPage('noticias')">noticias</div>
@@ -807,6 +809,20 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
     </div>
     <div class="section-title mt">tus inversiones frente a otras opciones</div>
     <div class="panel" id="decisiones-panel"><div class="empty-state">calculando...</div></div>
+    <!-- interruptor del tablero de inversiones: no todo el mundo invierte, y a quien no
+         lo hace una pestaña llena de graficas vacias solo le estorba -->
+    <div class="section-title mt">tablero de inversiones</div>
+    <div class="panel">
+      <div class="item-meta" style="line-height:1.5;margin-bottom:10px">
+        Enciendelo si compras acciones y quieres una pestaña con el detalle: cuanto llevas
+        invertido, cuanto vale hoy, como va cada posicion y a que le estas apostando.
+        Si no inviertes, dejalo apagado y la pestaña ni aparece.
+      </div>
+      <div class="type-toggle" id="dashboard-toggle">
+        <div class="type-opt" id="dash-off" onclick="setDashboard(false)">apagado</div>
+        <div class="type-opt" id="dash-on" onclick="setDashboard(true)">encendido</div>
+      </div>
+    </div>
     <div class="section-title mt">tus datos y tu privacidad</div>
     <div class="panel">
       <div class="item-meta" style="line-height:1.5">
@@ -916,6 +932,85 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
 </div>
 
 <!-- RESUMEN -->
+<!-- TABLERO DE INVERSIONES (opcional: se enciende en el perfil) -->
+<div class="page" id="page-dashboard">
+  <div class="mt">
+  <div class="inicio-grid">
+
+  <div class="sec">
+    <div class="section-title">tu portafolio hoy</div>
+    <div class="panel" id="dash-resumen"><div class="empty-state">calculando...</div></div>
+
+    <div class="section-title mt">acciones</div>
+    <div class="panel" id="dash-acciones"><div class="empty-state">calculando...</div></div>
+
+    <div class="section-title mt">efectivo disponible</div>
+    <div class="panel" id="dash-efectivo"><div class="empty-state">calculando...</div></div>
+
+    <div class="section-title mt">como se mueve el mercado</div>
+    <div class="panel" id="dash-mercado"><div class="empty-state">calculando...</div></div>
+  </div>
+
+  <div class="sec">
+    <div class="section-title">en que esta tu dinero</div>
+    <div class="panel" id="dash-asignacion"><div class="empty-state">calculando...</div></div>
+
+    <div class="section-title mt">lo que pusiste vs lo que vale</div>
+    <div class="panel" id="dash-costo-valor"><div class="empty-state">calculando...</div></div>
+
+    <div class="section-title mt">como va cada posicion</div>
+    <div class="panel" id="dash-crecimiento"><div class="empty-state">calculando...</div></div>
+
+    <div class="section-title mt">quien te esta dando la ganancia</div>
+    <div class="panel" id="dash-contribucion"><div class="empty-state">calculando...</div></div>
+  </div>
+
+  <div class="sec">
+    <div class="section-title">por sector</div>
+    <div class="panel" id="dash-sector"><div class="empty-state">calculando...</div></div>
+
+    <div class="section-title mt">si esto sigue asi</div>
+    <div class="panel" id="dash-proyeccion"><div class="empty-state">calculando...</div></div>
+
+    <details class="acc">
+    <summary>
+      <div class="acc-icon chip-oro"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M4 12h16M4 17h10"/></svg></div>
+      <div><div class="acc-tit">datos de cada accion</div><div class="acc-sub">sector y dividendo — se capturan a mano</div></div>
+    </summary>
+    <div class="acc-body">
+      <div class="panel">
+        <div class="item-meta" style="line-height:1.5;margin-bottom:10px">
+          Ninguna fuente gratis da el sector ni el dividendo de una accion. El tablero del
+          video los saca de un complemento de paga. Aqui se capturan a mano: son pocas
+          posiciones y esto cambia dos veces al año. Lo que dejes vacio simplemente no se
+          muestra — nada se inventa.
+        </div>
+        <div class="field"><label>accion</label><select id="tk-simbolo" onchange="cargarTickerEnForm()"></select></div>
+        <div class="field"><label>sector</label>
+          <select id="tk-sector">
+            <option value="">(sin capturar)</option>
+            <option>Tecnologia</option><option>Salud</option><option>Financiero</option>
+            <option>Consumo basico</option><option>Consumo discrecional</option>
+            <option>Industrial</option><option>Energia</option><option>Materiales</option>
+            <option>Servicios publicos</option><option>Inmobiliario</option>
+            <option>Comunicaciones</option><option>ETF / indice</option><option>Otro</option>
+          </select>
+        </div>
+        <div class="row2" style="gap:8px">
+          <div class="field"><label>dividendo anual por accion (USD)</label><input type="number" id="tk-div" placeholder="ej. 2.36" step="0.01" inputmode="decimal"></div>
+          <div class="field"><label>crece al año (%)</label><input type="number" id="tk-crec" placeholder="ej. 12" step="0.1" inputmode="decimal"></div>
+        </div>
+        <button class="btn btn-purple" id="tk-btn" onclick="guardarTicker()">guardar</button>
+        <div id="tk-lista" style="margin-top:12px"></div>
+      </div>
+    </div>
+    </details>
+  </div>
+
+  </div>
+  </div>
+</div>
+
 <div class="page" id="page-resumen">
   <div class="mt">
     <div class="type-toggle" id="res-periodo-toggle">
@@ -1181,6 +1276,8 @@ onAuthStateChanged(auth, async user => {
       renderCatSelect('gasto-cat', state.catsGasto);
       renderCatSelect('ingreso-cat', state.catsIngreso);
       refrescar(renderPersonaSelect, render, renderMovimientos, renderTransferencias);
+      aplicarVisibilidadDashboard();
+      if (dashboardEncendido()) refrescar(renderDashboard);
       marcarCopiaLocal(true);
     }
     // y ahora la verdad del servidor, que reemplaza el estado completo
@@ -1208,6 +1305,8 @@ onAuthStateChanged(auth, async user => {
     render();
     renderMovimientos();
     renderTransferencias();
+    aplicarVisibilidadDashboard();
+    if (dashboardEncendido()) refrescar(renderDashboard);
     fetchAll();
   } else {
     document.getElementById('login-screen').classList.remove('hidden');
@@ -1312,6 +1411,11 @@ let state = {
   nvdaPrecio:null, nvdaPrev:null, nvdaFecha:'', usdMxn:null, usdMxnPrev:null, usdMxnFecha:'',
   nvdaHistory:[], usdMxnHistory:[],
   stocksOps:[], posiciones:{}, accionesMkt:{}, // ledger de operaciones de bolsa, posiciones derivadas y cotizaciones por simbolo
+  // datos por ticker que NINGUNA API gratis da (el tablero del video los saca de un
+  // complemento de paga): sector y dividendo anual por accion, en dolares. Se capturan
+  // a mano desde el tablero — son pocas posiciones y esto cambia dos veces al año.
+  // {AVGO:{sector:'Tecnologia', divAnual:2.36, crecDiv:12}}
+  tickers:{},
   fuenteGasto:'efectivo', destinoIngreso:'efectivo', tipoDeuda:'cargo',
   mesOffset:0, resPeriodo:'mes',
   catsGasto:[...CATS_GASTO_DEFAULT], catsIngreso:[...CATS_INGRESO_DEFAULT],
@@ -1470,7 +1574,7 @@ async function loadFromFirebase() {
     // exactamente el mismo orden, asi que nada cambia de semantica.
     const [
       sDoc, mDoc, pDoc, perDoc, tDoc,
-      trvDoc, hDoc, aDoc, mtDoc, cDoc,
+      trvDoc, hDoc, aDoc, mtDoc, cDoc, tkDoc,
       gSnap, iSnap, trSnap, opSnap
     ] = await Promise.all([
       getDoc(doc(db,'cartera','saldos')),
@@ -1483,6 +1587,7 @@ async function loadFromFirebase() {
       getDoc(doc(db,'cartera','apartados')),
       getDoc(doc(db,'cartera','metas')),
       getDoc(doc(db,'cartera','categorias')),
+      getDoc(doc(db,'cartera','tickers')),
       getDocs(query(collection(db,'gastos'), orderBy('fecha','desc'))),
       getDocs(query(collection(db,'ingresos'), orderBy('fecha','desc'))),
       getDocs(query(collection(db,'transferencias'), orderBy('fecha','desc'))),
@@ -1656,6 +1761,8 @@ async function loadFromFirebase() {
         ingresoBase:(Number.isFinite(pf.ingresoBase)&&pf.ingresoBase>0)?pf.ingresoBase:null,
         nombre:(typeof pf.nombre==='string')?pf.nombre.slice(0,40):'',
         // solo se acepta un dataURL jpeg/png generado por la propia app
+        // el tablero de inversiones: solo cuenta si esta guardado como true (lista blanca)
+        dashboard: pf.dashboard === true,
         foto:(typeof pf.foto==='string'&&/^data:image\/(?:jpeg|png);base64,[A-Za-z0-9+/]+={0,2}$/.test(pf.foto)&&pf.foto.length<900000)?pf.foto:''};
     }
     if (tDoc.exists()) { state.tarjetaDeuda = Number.isFinite(tDoc.data().deuda) ? tDoc.data().deuda : state.tarjetaDeuda; state.tarjetaMovimientos = Array.isArray(tDoc.data().movimientos) ? tDoc.data().movimientos : []; }
@@ -1700,6 +1807,9 @@ async function loadFromFirebase() {
       }
       state.metas={fecha,items};
     }
+    // datos por ticker capturados a mano (sector y dividendo): se sanean uno por uno
+    // para que un valor raro no ensucie el tablero entero
+    if (tkDoc.exists()) state.tickers = saneaTickers(tkDoc.data());
     if (cDoc.exists()) {
       const cd = cDoc.data();
       if (Array.isArray(cd.catsGasto) && cd.catsGasto.length) state.catsGasto = cd.catsGasto;
@@ -2425,6 +2535,7 @@ window.showPage = function(p) {
   document.querySelectorAll('.page').forEach(el => el.classList.remove('active'));
   document.querySelectorAll('.tab').forEach(el => el.classList.toggle('active', el.dataset.page===p));
   document.getElementById('page-'+p).classList.add('active');
+  if(p==='dashboard') renderDashboard();
   if(p==='resumen') renderResumen();
   if(p==='movimientos') renderMovimientos();
   if(p==='deudas') renderDeudas();
@@ -2625,7 +2736,7 @@ function actualizarOjo() {
 }
 // re-renderiza TODAS las paginas (tambien las inactivas, para no dejar montos viejos en el DOM)
 function rerenderTodo() {
-  render(); renderTransferencias(); renderMovimientos(); renderDeudas(); renderResumen();
+  render(); renderTransferencias(); renderMovimientos(); renderDeudas(); renderResumen(); if(dashboardEncendido()) renderDashboard();
   renderNoticias(); // el modo privado tambien oculta los tickers de las noticias
 }
 // detalle por cuenta: al tocar una tarjeta de inicio se listan sus movimientos del ultimo
@@ -4337,10 +4448,37 @@ function renderPerfil() {
   const av=document.getElementById('perfil-avatar'), ini=document.getElementById('avatar-inicial');
   if(av){
     // la foto se asigna por style (nunca interpolada en HTML)
+    // el interruptor del tablero refleja lo que hay guardado en el perfil
+    aplicarVisibilidadDashboard();
     av.style.backgroundImage=p.foto?('url("'+p.foto+'")'):'';
     if(ini) ini.textContent=p.foto?'':((nom?nom[0]:'·').toUpperCase());
   }
 }
+// ── TABLERO DE INVERSIONES: encendido/apagado desde el perfil ─────────────────
+// Vive en el perfil (cartera/perfil.dashboard) y no en un ajuste local, para que la
+// decision viaje con la cuenta y no haya que repetirla en cada aparato.
+function dashboardEncendido() { return !!(state.perfil && state.perfil.dashboard); }
+function aplicarVisibilidadDashboard() {
+  const on = dashboardEncendido();
+  const tab = document.getElementById('tab-dashboard');
+  if (tab) tab.hidden = !on;
+  // si lo apagas estando parado en esa pestaña, no puedes quedarte en una pagina
+  // que ya no existe en la barra
+  if (!on && document.getElementById('page-dashboard') &&
+      document.getElementById('page-dashboard').classList.contains('active')) {
+    showPage('inicio');
+  }
+  const off = document.getElementById('dash-off'), onEl = document.getElementById('dash-on');
+  if (off && onEl) { off.classList.toggle('active', !on); onEl.classList.toggle('active', on); }
+}
+window.setDashboard = async function(valor) {
+  if (dashboardEncendido() === !!valor) return;      // ya esta asi: no escribir por gusto
+  const ok = await guardarPerfil({dashboard: !!valor},
+    valor ? 'tablero de inversiones encendido' : 'tablero de inversiones apagado');
+  if (!ok) return;                                    // guardarPerfil ya aviso del error
+  aplicarVisibilidadDashboard();
+  if (valor) refrescar(renderDashboard);
+};
 window.cambiarFoto = () => { const i=document.getElementById('perfil-foto-input'); if(i){ i.value=''; i.click(); } };
 // comprime a 300x300 recortando al centro; baja calidad hasta caber en el doc de Firestore
 window.subirFoto = function(ev) {
@@ -4398,7 +4536,7 @@ window.exportarMisDatos = function() {
   try{
     const datos={
       exportado:new Date().toISOString(),
-      perfil:state.perfil, saldos:saldosPayload(),
+      perfil:state.perfil, tickers:state.tickers, saldos:saldosPayload(),
       tarjetaNu:{deuda:state.tarjetaDeuda,movimientos:state.tarjetaMovimientos},
       tarjetaRev:tarjetaRevPayload(),
       gastos:state.gastos, ingresos:state.ingresos, transferencias:state.transferencias,
@@ -4717,6 +4855,449 @@ function avisoCategoria(cat,fechaMov) {
     avisoCatTimer=setTimeout(()=>{ avisoCatTimer=null; showToast('ojo: ya gastaste mucho en '+cat+' este mes ('+fmt(totalMes)+')'); },2400);
   }
 }
+
+// ══ TABLERO DE INVERSIONES ═══════════════════════════════════════════════════
+// Replica el tablero de Google Sheets que pidio Roberto, con una diferencia de fondo:
+// aqui NADA se inventa. Si falta un precio, el tipo de cambio o el costo de una compra,
+// se dice "pendiente" en vez de sumar cero — un cero se lee como un hecho y no lo es.
+
+// El doc cartera/tickers lo teclea el usuario: se sanea campo por campo para que un
+// valor raro no ensucie el tablero entero.
+function saneaTickers(d) {
+  const out = {};
+  if (!d || typeof d !== 'object') return out;
+  Object.entries(d).forEach(([sym, v]) => {
+    if (!/^[A-Z][A-Z0-9.\-]{0,9}$/.test(sym) || !v || typeof v !== 'object') return;
+    const t = {};
+    if (typeof v.sector === 'string' && v.sector.trim()) t.sector = v.sector.trim().slice(0, 30);
+    if (Number.isFinite(v.divAnual) && v.divAnual >= 0) t.divAnual = v.divAnual;
+    if (Number.isFinite(v.crecDiv) && v.crecDiv > -100 && v.crecDiv < 100) t.crecDiv = v.crecDiv;
+    if (Object.keys(t).length) out[sym] = t;
+  });
+  return out;
+}
+
+// COSTO PROMEDIO PONDERADO — es el metodo que usa la propia Ley del ISR mexicana para el
+// costo por accion, asi que ademas de ser el estandar contable es el que cuadra con el
+// fisco. Cada venta se lleva su parte proporcional del costo base; la diferencia contra
+// lo que se recibio es la ganancia REALIZADA.
+function calcCartera() {
+  const fx = state.usdMxn, fxOk = Number.isFinite(fx) && fx > 0;
+  // filtrar ANTES de ordenar: un registro corrupto (null, sin simbolo, sin acciones) haria
+  // tronar la propia comparacion del sort y con ella el tablero entero
+  const ops = (state.stocksOps || [])
+    .filter(o => o && typeof o.simbolo === 'string' && Number.isFinite(o.acciones) && o.acciones > 0)
+    .sort((a, b) => (a.fecha < b.fecha ? -1 : a.fecha > b.fecha ? 1 :
+                     String(a.creado || '') < String(b.creado || '') ? -1 : 1));
+  const acc = {};                 // simbolo -> {acciones, costo, costoPendiente}
+  let realizado = 0, realizadoPendiente = false;
+  ops.forEach(o => {
+    const t = acc[o.simbolo] || (acc[o.simbolo] = {acciones: 0, costo: 0, costoPendiente: false});
+    // un montoMxn en 0 NO es "costo cero": es una compra registrada desde otra cuenta a la
+    // que todavia le falta el monto. Se marca pendiente y no se cuenta como ganancia.
+    const monto = (Number.isFinite(o.montoMxn) && o.montoMxn > 0) ? o.montoMxn : null;
+    if (o.tipo === 'compra') {
+      t.acciones += o.acciones;
+      if (monto === null) t.costoPendiente = true; else t.costo += monto;
+    } else if (o.tipo === 'venta') {
+      // defensivo: nunca vender mas de lo que hay. El alta ya lo valida, pero un dato
+      // viejo o corrupto no debe producir un costo negativo.
+      const vendidas = Math.min(o.acciones, t.acciones);
+      const prop = t.acciones > 0 ? vendidas / t.acciones : 0;
+      const costoVendido = t.costo * prop;
+      if (monto === null || t.costoPendiente) realizadoPendiente = true;
+      else realizado += monto - costoVendido;
+      t.costo = Math.max(0, t.costo - costoVendido);
+      t.acciones = Math.max(0, t.acciones - vendidas);
+      if (t.acciones <= 1e-8) { t.acciones = 0; t.costo = 0; }  // cerrada: una recompra empieza de cero
+    }
+  });
+
+  const pos = [];
+  let valor = 0, costo = 0, divAnual = 0;
+  let faltaPrecio = false, faltaCosto = false, faltaDiv = false;
+  Object.entries(acc).forEach(([sym, t]) => {
+    if (t.acciones <= 0) return;
+    const mk = state.accionesMkt[sym];
+    // un ticker que no cotiza en dolares se falsearia al multiplicarlo por el tipo de cambio
+    const monedaRara = !!(mk && mk.moneda && mk.moneda !== 'USD');
+    const precioOk = !!(mk && Number.isFinite(mk.precio) && mk.precio > 0 && fxOk && !monedaRara);
+    const val = precioOk ? t.acciones * mk.precio * fx : null;
+    if (val === null) faltaPrecio = true;
+    if (t.costoPendiente) faltaCosto = true;
+    const tk = (state.tickers || {})[sym] || {};
+    const dv = (Number.isFinite(tk.divAnual) && fxOk) ? t.acciones * tk.divAnual * fx : null;
+    if (dv === null) faltaDiv = true;
+    const p = {
+      simbolo: sym, acciones: t.acciones,
+      precio: precioOk ? mk.precio : null,
+      valor: val,
+      costo: t.costoPendiente ? null : t.costo,
+      ganancia: (val !== null && !t.costoPendiente) ? val - t.costo : null,
+      gananciaPct: (val !== null && !t.costoPendiente && t.costo > 0) ? (val - t.costo) / t.costo * 100 : null,
+      divAnual: dv,
+      sector: tk.sector || null,
+      crecDiv: Number.isFinite(tk.crecDiv) ? tk.crecDiv : null
+    };
+    pos.push(p);
+    if (val !== null) valor += val;
+    if (!t.costoPendiente) costo += t.costo;
+    if (dv !== null) divAnual += dv;
+  });
+  pos.sort((a, b) => (b.valor || 0) - (a.valor || 0));
+
+  const completo = !faltaPrecio && !faltaCosto;
+  return {
+    pos, valor, costo, divAnual,
+    ganancia: completo ? valor - costo : null,
+    gananciaPct: (completo && costo > 0) ? (valor - costo) / costo * 100 : null,
+    realizado: realizadoPendiente ? null : realizado,
+    // yield ACTUAL (sobre lo que vale hoy). El yield sobre costo va aparte y en chico:
+    // se ve mas alto porque usa precios viejos, y para decidir HOY no sirve.
+    yieldActual: (valor > 0 && divAnual > 0) ? divAnual / valor * 100 : null,
+    yieldCosto: (costo > 0 && divAnual > 0) ? divAnual / costo * 100 : null,
+    faltaPrecio, faltaCosto, faltaDiv, completo, fxOk
+  };
+}
+
+// efectivo que de verdad podria invertirse hoy (no cuenta cajitas, metas ni deudas)
+function efectivoDisponible() {
+  const n = v => Number.isFinite(v) ? v : 0;
+  return n(state.efectivo) + n(state.nuSaldo) + n(state.revMXN);
+}
+
+// ── graficas propias del tablero ──────────────────────────────────────────────
+// barras pareadas: lo que pusiste contra lo que vale hoy, posicion por posicion
+function barrasCostoValor(items) {
+  const max = Math.max(...items.map(i => Math.max(i.costo || 0, i.valor || 0)), 1);
+  const filas = items.map(i => {
+    const c = Math.max(0, ((i.costo || 0) / max) * 100), v = Math.max(0, ((i.valor || 0) / max) * 100);
+    const sinDato = i.costo === null || i.valor === null;
+    return '<div style="margin-bottom:10px">' +
+      '<div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px">' +
+        '<span style="font-weight:600">' + escapeHtml(i.simbolo) + '</span>' +
+        '<span class="item-meta">' + (sinDato ? 'pendiente' : fmt(i.costo) + ' → ' + fmt(i.valor)) + '</span></div>' +
+      '<div style="height:8px;background:var(--bg3);border-radius:4px;overflow:hidden;margin-bottom:2px">' +
+        '<div style="height:100%;width:' + c.toFixed(1) + '%;background:var(--muted)"></div></div>' +
+      '<div style="height:8px;background:var(--bg3);border-radius:4px;overflow:hidden">' +
+        '<div style="height:100%;width:' + v.toFixed(1) + '%;background:var(--purple)"></div></div></div>';
+  }).join('');
+  return filas + '<div class="item-meta" style="text-align:center;padding-top:4px">' +
+    'barra gris: lo que pusiste · barra morada: lo que vale hoy</div>';
+}
+
+// barras con signo: crecimiento de cada posicion, a la derecha si gana, a la izquierda si pierde
+function barrasSigno(items) {
+  const max = Math.max(...items.map(i => Math.abs(i.pct === null ? 0 : i.pct)), 1);
+  return items.map(i => {
+    if (i.pct === null) {
+      return '<div class="item-row"><div class="item-cat">' + escapeHtml(i.simbolo) +
+             '</div><span class="item-meta">pendiente</span></div>';
+    }
+    const w = (Math.abs(i.pct) / max) * 50, pos = i.pct >= 0;
+    return '<div style="margin-bottom:8px">' +
+      '<div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px">' +
+        '<span style="font-weight:600">' + escapeHtml(i.simbolo) + '</span>' +
+        '<span class="' + (pos ? 'item-amt-pos' : 'item-amt-neg') + '">' +
+        (pos ? '+' : '−') + Math.abs(i.pct).toFixed(1) + '%</span></div>' +
+      '<div style="height:10px;background:var(--bg3);border-radius:5px;position:relative">' +
+        '<div style="position:absolute;left:50%;top:0;bottom:0;width:1px;background:var(--border2)"></div>' +
+        '<div style="position:absolute;top:0;bottom:0;' + (pos ? 'left:50%' : 'right:50%') +
+        ';width:' + w.toFixed(1) + '%;background:var(--' + (pos ? 'green' : 'red') + ');border-radius:5px"></div>' +
+      '</div></div>';
+  }).join('');
+}
+
+// ── pintar el tablero ─────────────────────────────────────────────────────────
+const DASH_SUP = {retorno: 8, crecDiv: 6};   // supuestos por defecto de la proyeccion
+let dashReinvertir = true;
+
+function renderDashboard() {
+  if (!document.getElementById('page-dashboard')) return;
+  const c = calcCartera();
+  const fila = (etq, val, cls, meta) =>
+    '<div class="item-row"><div><div class="item-cat">' + escapeHtml(etq) + '</div>' +
+    (meta ? '<div class="item-meta">' + escapeHtml(meta) + '</div>' : '') + '</div>' +
+    '<div style="font-size:14px;font-weight:600' + (cls ? ';color:var(--' + cls + ')' : '') + '">' +
+    escapeHtml(val) + '</div></div>';
+  const sgn = v => (v >= 0 ? '+' : '−') + fmt(Math.abs(v));
+  const vacio = m => '<div class="empty-state">' + m + '</div>';
+  const set = (id, html) => { const el = document.getElementById(id); if (el) el.innerHTML = html; };
+
+  if (!c.pos.length) {
+    ['dash-resumen','dash-acciones','dash-asignacion','dash-costo-valor','dash-crecimiento',
+     'dash-contribucion','dash-sector','dash-proyeccion']
+      .forEach(id => set(id, vacio('todavia no tienes acciones — registralas en inicio')));
+    set('dash-efectivo', fila('efectivo disponible', fmt(efectivoDisponible())));
+    renderMercadoHoy(); renderTickerUI();
+    return;
+  }
+
+  // ── 1. el portafolio de un vistazo ──
+  const efe = efectivoDisponible(), total = c.valor + efe;
+  let r = fila('valor de tus acciones', c.valor > 0 ? fmt(c.valor) : '—',
+               null, c.faltaPrecio ? 'falta el precio de alguna: no esta completo' : '');
+  r += fila('lo que llevas puesto', c.faltaCosto ? 'pendiente' : fmt(c.costo),
+            null, c.faltaCosto ? 'a alguna compra le falta el monto en pesos' : '');
+  if (c.ganancia !== null) {
+    r += fila('ganancia sobre lo invertido', sgn(c.ganancia), c.ganancia >= 0 ? 'green' : 'red',
+              c.gananciaPct !== null ? (c.gananciaPct >= 0 ? '+' : '−') + Math.abs(c.gananciaPct).toFixed(2) + '%' : '');
+  } else {
+    r += fila('ganancia sobre lo invertido', 'pendiente', null, 'faltan datos para calcularla sin inventar');
+  }
+  if (c.realizado !== null && Math.abs(c.realizado) > 0.005) {
+    r += fila('ya realizado (vendido)', sgn(c.realizado), c.realizado >= 0 ? 'green' : 'red',
+              'ganancia de lo que ya vendiste');
+  }
+  r += fila('patrimonio invertible', fmt(total), null, 'acciones + efectivo disponible');
+  set('dash-resumen', r);
+
+  // ── 2. acciones (con dividendos si estan capturados) ──
+  let a = fila('posiciones abiertas', String(c.pos.length));
+  if (c.divAnual > 0) {
+    a += fila('dividendos al año', fmt(c.divAnual), 'green',
+              c.faltaDiv ? 'solo de las acciones con dividendo capturado' : 'segun lo que capturaste');
+    if (c.yieldActual !== null) {
+      a += fila('rinde al año', c.yieldActual.toFixed(2) + '%', null,
+                'sobre lo que valen HOY' + (c.yieldCosto !== null
+                  ? ' · sobre lo que pagaste: ' + c.yieldCosto.toFixed(2) + '%' : ''));
+    }
+  } else {
+    a += '<div class="item-meta" style="padding:8px 0">Para ver dividendos, capturalos abajo en ' +
+         '"datos de cada accion". Ninguna fuente gratis los da.</div>';
+  }
+  a += c.pos.map(p =>
+    '<div class="item-row"><div><div class="item-cat">' + escapeHtml(p.simbolo) + '</div>' +
+    '<div class="item-meta">' + p.acciones.toFixed(4) + ' acc' +
+    (p.precio !== null ? ' · US$' + p.precio.toFixed(2) : ' · precio pendiente') + '</div></div>' +
+    '<div style="font-size:14px;font-weight:600">' + (p.valor !== null ? fmt(p.valor) : '—') + '</div></div>'
+  ).join('');
+  set('dash-acciones', a);
+
+  // ── 3. efectivo ──
+  set('dash-efectivo',
+    fila('efectivo disponible', fmt(efe), null, 'efectivo + NU saldo + Revolut MXN') +
+    fila('parte del total', total > 0 ? (efe / total * 100).toFixed(1) + '%' : '—', null,
+         'lo liquido frente a lo invertido'));
+
+  // ── 4. asignacion: efectivo contra bolsa, y despues posicion por posicion ──
+  if (c.valor > 0 || efe > 0) {
+    let as = pieChart([['acciones', c.valor], ['efectivo', efe]].filter(x => x[1] > 0));
+    if (c.pos.filter(p => p.valor !== null).length > 1) {
+      as += '<div class="section-title" style="margin-top:14px">reparto entre tus acciones</div>' +
+            pieChart(c.pos.filter(p => p.valor !== null).map(p => [p.simbolo, p.valor]));
+      const mayor = c.pos[0];
+      if (mayor && mayor.valor !== null && c.valor > 0) {
+        const conc = mayor.valor / c.valor * 100;
+        if (conc >= 40) {
+          as += '<div class="item-meta" style="text-align:center;padding-top:8px">' +
+                'ojo: ' + escapeHtml(mayor.simbolo) + ' es el ' + conc.toFixed(0) +
+                '% de tu bolsa. Si le va mal a esa sola, te pega fuerte.</div>';
+        }
+      }
+    }
+    set('dash-asignacion', as);
+  } else set('dash-asignacion', vacio('sin datos suficientes'));
+
+  // ── 5. lo que pusiste contra lo que vale ──
+  set('dash-costo-valor', barrasCostoValor(c.pos));
+
+  // ── 6. como va cada posicion ──
+  set('dash-crecimiento', barrasSigno(c.pos.map(p => ({simbolo: p.simbolo, pct: p.gananciaPct}))));
+
+  // ── 7. quien esta dando la ganancia. Sustituye al "ganadoras vs perdedoras" del
+  //       video, que con pocas posiciones no dice nada: lo util es CUANTO aporta cada
+  //       una a la ganancia total, no cuantas van arriba y cuantas abajo.
+  const conG = c.pos.filter(p => p.ganancia !== null);
+  if (conG.length) {
+    const tot = conG.reduce((t, p) => t + p.ganancia, 0);
+    const orden = conG.slice().sort((a, b) => b.ganancia - a.ganancia);
+    let ct = orden.map(p =>
+      '<div class="item-row"><div><div class="item-cat">' + escapeHtml(p.simbolo) + '</div>' +
+      // con perdida total, "-96% de tu ganancia" desorienta: se dice quien la CAUSA y
+      // quien la COMPENSA, en proporcion al tamaño de la perdida
+      '<div class="item-meta">' + (Math.abs(tot) > 0.005
+        ? (tot >= 0
+            ? (p.ganancia / tot * 100).toFixed(0) + '% de tu ganancia total'
+            : (p.ganancia < 0 ? 'causa el ' : 'compensa el ') + (Math.abs(p.ganancia) / Math.abs(tot) * 100).toFixed(0) + '% de tu perdida')
+        : 'sin ganancia todavia') +
+      '</div></div><span class="' + (p.ganancia >= 0 ? 'item-amt-pos' : 'item-amt-neg') + '">' +
+      sgn(p.ganancia) + '</span></div>').join('');
+    ct += '<div class="item-row"><div class="item-cat" style="font-weight:600">total</div>' +
+          '<span class="' + (tot >= 0 ? 'item-amt-pos' : 'item-amt-neg') +
+          '" style="font-size:15px">' + sgn(tot) + '</span></div>';
+    set('dash-contribucion', ct);
+  } else set('dash-contribucion', vacio('faltan datos de costo para calcularlo'));
+
+  // ── 8. sector ──
+  const conSec = c.pos.filter(p => p.sector && p.valor !== null);
+  if (conSec.length) {
+    const porSec = {};
+    conSec.forEach(p => { porSec[p.sector] = (porSec[p.sector] || 0) + p.valor; });
+    let sec = pieChart(Object.entries(porSec).sort((a, b) => b[1] - a[1]));
+    // aviso honesto: repartir 5 acciones en 5 sectores NO es estar diversificado
+    sec += '<div class="item-meta" style="text-align:center;padding-top:8px">' +
+           'son ' + c.pos.length + ' empresa(s) en ' + Object.keys(porSec).length + ' sector(es). ' +
+           'Repartir pocas acciones en varios sectores no es lo mismo que estar diversificado.</div>';
+    if (conSec.length < c.pos.length) {
+      sec += '<div class="item-meta" style="text-align:center">faltan ' +
+             (c.pos.length - conSec.length) + ' por capturar su sector</div>';
+    }
+    set('dash-sector', sec);
+  } else set('dash-sector', vacio('captura el sector de tus acciones abajo para ver este reparto'));
+
+  renderProyeccion(c);
+  renderMercadoHoy();
+  renderTickerUI();
+}
+
+// ── proyeccion: es una CUENTA, no un pronostico. Se presenta como escenario editable ──
+function renderProyeccion(c) {
+  if (!(c.valor > 0)) { const e = document.getElementById('dash-proyeccion');
+    if (e) e.innerHTML = '<div class="empty-state">sin valor de mercado no hay nada que proyectar</div>'; return; }
+  const r = DASH_SUP.retorno / 100, g = DASH_SUP.crecDiv / 100;
+  const divIni = c.divAnual > 0 ? c.divAnual : 0;
+  let filas = '';
+  [5, 10, 15, 20, 25, 30].forEach(n => {
+    // el retorno supuesto es de PRECIO. Los dividendos se suman aparte solo si se
+    // reinvierten, para no contarlos dos veces.
+    let valor = c.valor * Math.pow(1 + r, n);
+    let divAcum = 0, divN = divIni;
+    for (let i = 1; i <= n; i++) {
+      divN = divIni * Math.pow(1 + g, i);
+      divAcum += divN;
+      if (dashReinvertir) valor += divN * Math.pow(1 + r, n - i);
+    }
+    filas += '<div class="item-row"><div><div class="item-cat">' + n + ' años</div>' +
+      (divIni > 0 ? '<div class="item-meta">dividendos ese año: ' + fmt(divN) +
+                    ' · acumulados: ' + fmt(divAcum) + '</div>' : '') +
+      '</div><div style="font-size:14px;font-weight:600">' + fmt(valor) + '</div></div>';
+  });
+  const el = document.getElementById('dash-proyeccion');
+  if (!el) return;
+  el.innerHTML =
+    '<div class="item-meta" style="line-height:1.5;margin-bottom:10px">' +
+      '<b>Escenario, no promesa.</b> Es una cuenta con los supuestos de abajo. No predice nada: ' +
+      'el mercado y los dividendos pueden subir, bajar o quedarse en cero. No descuenta ' +
+      'impuestos, comisiones ni inflación.</div>' +
+    '<div class="type-toggle">' +
+      '<div class="type-opt' + (dashReinvertir ? ' active' : '') + '" onclick="setReinvertir(true)">reinvirtiendo dividendos</div>' +
+      '<div class="type-opt' + (!dashReinvertir ? ' active' : '') + '" onclick="setReinvertir(false)">sin reinvertir</div>' +
+    '</div>' +
+    '<div class="row2" style="gap:8px">' +
+      '<div class="field"><label>sube al año (%)</label><input type="number" id="dash-sup-ret" value="' +
+        DASH_SUP.retorno + '" step="0.5" inputmode="decimal" onchange="setSupuesto(\'retorno\',this.value)"></div>' +
+      '<div class="field"><label>dividendo crece (%)</label><input type="number" id="dash-sup-div" value="' +
+        DASH_SUP.crecDiv + '" step="0.5" inputmode="decimal" onchange="setSupuesto(\'crecDiv\',this.value)"></div>' +
+    '</div>' + filas +
+    '<div class="item-meta" style="text-align:center;padding-top:8px">' +
+      'Cambia los dos números y compara escenarios. El 8% de referencia es parecido al ' +
+      'promedio histórico del S&P 500 ya descontada la inflación — el pasado no obliga al futuro.</div>';
+}
+window.setReinvertir = function(v) { dashReinvertir = !!v; refrescar(renderDashboard); };
+window.setSupuesto = function(cual, valor) {
+  const n = parseFloat(valor);
+  if (!Number.isFinite(n) || n < -50 || n > 50) { showToast('pon un porcentaje entre -50 y 50'); return; }
+  DASH_SUP[cual] = n;
+  refrescar(renderDashboard);
+};
+
+// ── como se mueve el mercado hoy ──
+function renderMercadoHoy() {
+  const el = document.getElementById('dash-mercado');
+  if (!el) return;
+  const filas = [];
+  const f = (etq, precio, prev, suf) => {
+    if (!Number.isFinite(precio)) return;
+    const cam = Number.isFinite(prev) && prev > 0 ? (precio - prev) / prev * 100 : null;
+    filas.push('<div class="item-row"><div><div class="item-cat">' + escapeHtml(etq) + '</div>' +
+      (cam !== null ? '<div class="item-meta ' + (cam >= 0 ? 'item-amt-pos' : 'item-amt-neg') + '">' +
+        (cam >= 0 ? '+' : '−') + Math.abs(cam).toFixed(2) + '% hoy</div>' : '') +
+      '</div><div style="font-size:14px;font-weight:600">' + (suf || '') + precio.toFixed(2) + '</div></div>');
+  };
+  f('S&P 500 (IVVPESO)', state.ivvPrecio, Number.isFinite(state.ivvVar) && state.ivvVar !== 0
+      ? state.ivvPrecio / (1 + state.ivvVar / 100) : null, '$');
+  f('dólar', state.usdMxn, state.usdMxnPrev, '$');
+  Object.entries(state.accionesMkt || {}).forEach(([sym, mk]) => {
+    if (mk && Number.isFinite(mk.precio)) f(sym, mk.precio, mk.prev, 'US$');
+  });
+  el.innerHTML = filas.length ? filas.join('') :
+    '<div class="empty-state">sin cotizaciones todavia — se jalan solas al abrir</div>';
+}
+
+// ── captura de sector y dividendo por accion ──
+function renderTickerUI() {
+  const sel = document.getElementById('tk-simbolo');
+  if (!sel) return;
+  const syms = Object.keys(state.posiciones || {}).filter(k => state.posiciones[k].acciones > 0).sort();
+  const prev = sel.value;
+  sel.innerHTML = syms.length
+    ? syms.map(x => '<option value="' + escapeHtml(x) + '">' + escapeHtml(x) + '</option>').join('')
+    : '<option value="">(sin acciones)</option>';
+  if (syms.includes(prev)) sel.value = prev;
+  cargarTickerEnForm();
+  const lista = document.getElementById('tk-lista');
+  if (lista) {
+    lista.innerHTML = syms.map(x => {
+      const t = state.tickers[x] || {};
+      const partes = [];
+      if (t.sector) partes.push(t.sector);
+      if (Number.isFinite(t.divAnual)) partes.push('US$' + t.divAnual.toFixed(2) + '/acc al año');
+      if (Number.isFinite(t.crecDiv)) partes.push('crece ' + t.crecDiv + '%');
+      return '<div class="item-row"><div class="item-cat">' + escapeHtml(x) + '</div>' +
+             '<span class="item-meta">' + (partes.length ? escapeHtml(partes.join(' · ')) : 'sin capturar') +
+             '</span></div>';
+    }).join('');
+  }
+}
+function cargarTickerEnForm() {
+  const sel = document.getElementById('tk-simbolo');
+  if (!sel || !sel.value) return;
+  const t = state.tickers[sel.value] || {};
+  const g = id => document.getElementById(id);
+  if (g('tk-sector')) g('tk-sector').value = t.sector || '';
+  if (g('tk-div'))    g('tk-div').value    = Number.isFinite(t.divAnual) ? t.divAnual : '';
+  if (g('tk-crec'))   g('tk-crec').value   = Number.isFinite(t.crecDiv) ? t.crecDiv : '';
+}
+let tickerGuardando = false;
+window.guardarTicker = async function() {
+  if (tickerGuardando) return;
+  if (!datosCargados) { showToast(msgFalloDinero()); return; }
+  const sym = (document.getElementById('tk-simbolo') || {}).value;
+  if (!sym) { showToast('no tienes acciones que capturar'); return; }
+  const sector = (document.getElementById('tk-sector') || {}).value || '';
+  const divRaw = (document.getElementById('tk-div') || {}).value.trim();
+  const crecRaw = (document.getElementById('tk-crec') || {}).value.trim();
+  // Un campo que se deja VACIO se escribe como null a proposito: con merge:true Firestore
+  // hace merge recursivo y un campo simplemente omitido NO se borra — el dato viejo
+  // "resucitaria" al recargar. null si sobrescribe, y saneaTickers lo lee como ausente.
+  const dato = {sector: sector || null, divAnual: null, crecDiv: null};
+  if (divRaw !== '') {
+    const n = parseFloat(divRaw);
+    if (!Number.isFinite(n) || n < 0) { showToast('dividendo no valido'); return; }
+    dato.divAnual = n;
+  }
+  if (crecRaw !== '') {
+    const n = parseFloat(crecRaw);
+    if (!Number.isFinite(n) || n <= -100 || n >= 100) { showToast('crecimiento no valido'); return; }
+    dato.crecDiv = n;
+  }
+  const btn = document.getElementById('tk-btn');
+  tickerGuardando = true; if (btn) btn.disabled = true;
+  const prev = state.tickers[sym];
+  try {
+    // se escribe SOLO ese ticker: dos aparatos capturando distintas acciones no se pisan
+    await setDoc(doc(db,'cartera','tickers'), {[sym]: dato}, {merge: true});
+    state.tickers = saneaTickers({...state.tickers, [sym]: dato});   // en memoria, ya limpio de nulls
+    setSyncDot('ok');
+    refrescar(renderDashboard);
+    showToast('datos de ' + sym + ' guardados');
+  } catch (e) {
+    if (prev) state.tickers = {...state.tickers, [sym]: prev};
+    setSyncDot('err'); console.error('guardarTicker', e);
+    showToast('no se pudo guardar — revisa tu conexion');
+  } finally { tickerGuardando = false; if (btn) btn.disabled = false; }
+};
 
 // ── RESUMEN ───────────────────────────────────────────────────
 // paleta ajustada a fondo claro (tonos fuertes, distinguibles sobre blanco)
@@ -5472,6 +6053,7 @@ window.fetchAll = async function() {
     if(document.getElementById('page-movimientos').classList.contains('active')) renderMovimientos();
     if(document.getElementById('page-deudas').classList.contains('active')) renderDeudas();
     if(document.getElementById('page-resumen').classList.contains('active')) renderResumen();
+    if(dashboardEncendido() && document.getElementById('page-dashboard')?.classList.contains('active')) renderDashboard();
     // el coach de noticias tambien depende de gastos/ingresos: se refresca si esta visible
     if(document.getElementById('page-noticias').classList.contains('active')) abrirNoticias();
   }finally{

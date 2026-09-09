@@ -51,7 +51,7 @@ sin red. Lo que queda, en orden de valor, para cuando la app crezca:
 
 ---
 
-# PLAN — Investment Dashboard (pestaña nueva) · 9-sep-2026
+# ~~PLAN~~ HECHO — Investment Dashboard · 9-sep-2026 (pestaña opcional 'inversiones', se enciende en el perfil; commit del mismo dia)
 
 Roberto lo pidió tras ver el dashboard de Google Sheets de **Dividendology**
 (video "I Just Bought 2 Undervalued Dividend Growth Stocks!"). Quiere una
