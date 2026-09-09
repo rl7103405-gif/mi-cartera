@@ -48,3 +48,72 @@ sin red. Lo que queda, en orden de valor, para cuando la app crezca:
 4. **El HTML son ~335KB en un solo archivo.** Con la cache ya no se baja en
    cada apertura, pero el telefono si lo parsea entero cada vez. Solo vale la
    pena tocarlo si se nota; partirlo romperia el modelo de "un solo archivo".
+
+---
+
+# PLAN — Investment Dashboard (pestaña nueva) · 9-sep-2026
+
+Roberto lo pidió tras ver el dashboard de Google Sheets de **Dividendology**
+(video "I Just Bought 2 Undervalued Dividend Growth Stocks!"). Quiere una
+pestaña propia entre **movimientos** y **metas**. Aquí queda planeado, NO
+implementado.
+
+## De dónde sale cada cosa (lo que YA se puede vs lo que NO)
+
+La app ya tiene el ledger `stocksOps` ({tipo, simbolo, acciones, montoMxn,
+montoUsd, cuenta, fecha}), las `posiciones` derivadas, precios de Yahoo en
+`accionesMkt` con un año de histórico, y `pieChart()` para donas.
+
+**Se puede hoy, sin fuentes nuevas:**
+- Valor de mercado, costo, ganancia en $ y en %  (posiciones × precio).
+- Ganancias realizadas (de las ventas del ledger).
+- Dona de asignación efectivo vs bolsa (`pieChart` ya existe).
+- Barras costo vs valor de mercado por ticker.
+- Barras de crecimiento % por ticker.
+- Barra de ganadoras contra perdedoras.
+- Total de posiciones.
+- "Cómo se mueven los mercados hoy": ya se jala el S&P; se puede añadir el
+  cambio del día.
+
+**NO se puede sin resolver una fuente de datos:**
+- **Dividendos** (ingreso anual, yield sobre costo, calendario). El dashboard
+  del video los saca del add-on **tickerdata.com, que es DE PAGO**. La API
+  pública de Yahoo que usa la app (`chart`) no trae dividendos; `quoteSummary`
+  sí, pero suele tronar por CORS y límites de tasa.
+- **Sector / industria** por ticker: misma historia.
+- **Proyección a 5/10/…/30 años**: el cálculo es trivial, pero necesita una
+  tasa de crecimiento de dividendos que hay que sacar de algún lado.
+
+**Salida propuesta para los tres huecos:** capturarlos A MANO por ticker, en
+un documento `cartera/tickers` ({AVGO:{sector:'Tecnologia', divAnual:2.36,
+crecimientoDiv:12}}). Son 5-6 posiciones, no 27: se teclea una vez y se
+corrige cuando cambie. Nada de meter una fuente de pago ni un scraper frágil
+por una tabla que cambia dos veces al año.
+
+## Fase 1 — lo que se puede hoy (una sesión)
+
+Pestaña nueva con: tarjeta de resumen (valor, costo, ganancia $ y %,
+realizadas), dona de asignación, barras costo vs valor por ticker, barras de
+crecimiento %, ganadoras vs perdedoras, y total de posiciones. Todo con datos
+que ya existen. **Sin dividendos y sin sectores** — esos van en la fase 2, y
+la pestaña debe verse completa y honesta sin ellos, no con huecos vacíos.
+
+## Fase 2 — dividendos y sectores (otra sesión)
+
+Documento `cartera/tickers` capturado a mano, más: ingreso por dividendos,
+yield sobre costo, dona por sector, y la tabla de proyección a 30 años con el
+interruptor de reinvertir. La proyección DEBE decir en pantalla que es un
+escenario con supuestos, no una promesa — es exactamente el tipo de cifra que
+se lee como si fuera un hecho.
+
+## Dos advertencias de diseño, no de código
+
+1. **Ya hay 7 pestañas** (inicio, movimientos, resumen, deudas, metas, perfil,
+   noticias). Una octava no cabe cómoda en la barra del teléfono. O el
+   dashboard **absorbe la pestaña "resumen"** (que ya trae rendimientos y
+   gráficas y se traslapa bastante), o la navegación necesita otra solución.
+   Recomendación: fusionar con "resumen", no sumar una octava.
+2. **El dashboard del video tiene 27 posiciones; Roberto tiene ~5.** Las donas
+   y las barras de ese video se ven bien porque hay con qué llenarlas. Con 5
+   posiciones, media pantalla se ve vacía. Conviene diseñarlo para lo que hay,
+   no calcarlo.
