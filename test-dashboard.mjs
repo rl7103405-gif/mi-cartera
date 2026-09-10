@@ -179,6 +179,66 @@ chk('null explicito en un campo = campo ausente, sin tumbar los demas',
 console.log('\n11. Efectivo disponible');
 chk('suma efectivo + NU + Revolut', cerca(efectivoDisponible(), 1800), 'da=' + efectivoDisponible());
 
+// ═══ 12. proyeccion: modelo de unidades con tope de yield ═══
+console.log('\n12. Proyeccion: una cuenta acotada, no una que explota');
+{
+  const src = extrae('// ── proyeccion: cuenta PURA', '// ── proyeccion: es una CUENTA');
+  const { proyectarCartera } = new Function(src + '\nreturn { proyectarCartera };')();
+  const ult = f => f[f.length - 1];
+  const a = proyectarCartera(100, 3, 0.08, 0.06, true), b = proyectarCartera(100, 3, 0.08, 0.06, false);
+  chk('30 años al 8%: crece, y reinvirtiendo mas que sin reinvertir', ult(a).valor > ult(b).valor && ult(b).valor > 100,
+      'con=' + ult(a).valor.toFixed(0) + ' sin=' + ult(b).valor.toFixed(0));
+  chk('sin reinvertir el valor es exactamente V0(1+r)^30', Math.abs(ult(b).valor - 100 * Math.pow(1.08, 30)) < 0.01);
+  chk('reinvertir SI cambia los dividendos del año (mas unidades pagan mas)', ult(a).divN > ult(b).divN,
+      'con=' + ult(a).divN.toFixed(2) + ' sin=' + ult(b).divN.toFixed(2));
+  // el caso que explotaba: -10% anual 30 años con reinversion -> antes daba 9x
+  const m = proyectarCartera(100, 0.75, -0.10, 0.06, true);
+  chk('-10% anual 30 años reinvirtiendo NO explota: termina por DEBAJO de V0', ult(m).valor < 100, 'dio ' + ult(m).valor.toFixed(2));
+  const peor = proyectarCartera(100, 3, -0.50, 0.06, true);
+  chk('-50% anual: tampoco (antes daba 5.9e102)', ult(peor).valor < 100 && Number.isFinite(ult(peor).valor), 'dio ' + ult(peor).valor);
+  const sinDiv = proyectarCartera(100, 0, 0.08, 0.06, true);
+  chk('sin dividendos: valor = V0(1+r)^n y dividendos en 0', Math.abs(ult(sinDiv).valor - 100 * Math.pow(1.08, 30)) < 0.01 && ult(sinDiv).divAcum === 0);
+  chk('el tope de yield no toca un caso normal (yield 3%, g 6%, r 8%)',
+      Math.abs(ult(b).divN - 3 * Math.pow(1.06, 30)) < 0.01, 'divN=' + ult(b).divN.toFixed(2) + ' esperado=' + (3 * Math.pow(1.06, 30)).toFixed(2));
+  chk('seis filas: 5,10,...,30', a.length === 6 && a[0].n === 5 && ult(a).n === 30);
+  chk('V0 = 0 -> sin filas, sin tronar', proyectarCartera(0, 3, 0.08, 0.06, true).length === 0);
+}
+
+// ═══ 13. mesBueno: "cerrar bien" incluye el gasto, no solo la aportacion ═══
+console.log('\n13. Mes cerrado bien: gasto Y aportacion contra TU estandar');
+{
+  const src = extrae('function mesBueno(st)', '// racha de meses buenos');
+  const est = {ahorroObj: 20, gastoMax: 75};
+  const mesBueno = new Function('estandarDe', 'state', src + '\nreturn mesBueno;')(() => est, {perfil: {}});
+  const m = (i, g, a) => ({totalI: i, totalG: g, aporte: a, tieneDatos: true});
+  chk('gasto 25% y aporte 25%: cuenta', mesBueno(m(12000, 3000, 3000)) === true);
+  // el caso exacto que reporto el usuario-real: 92% de gasto con tope de 75%
+  chk('gasto 92% (tope 75%) aunque aporte bien: NO cuenta', mesBueno(m(12000, 11000, 3000)) === false);
+  chk('justo en el tope de gasto (75%) y aporte justo (20%): cuenta', mesBueno(m(1000, 750, 200)) === true);
+  chk('un peso arriba del tope: no cuenta', mesBueno(m(1000, 751, 200)) === false);
+  chk('gasto bien pero aporte corto: no cuenta', mesBueno(m(12000, 3000, 1000)) === false);
+  chk('sin ingresos: no cuenta', mesBueno(m(0, 0, 5000)) === false);
+  chk('sin datos: no cuenta', mesBueno({totalI: 12000, totalG: 100, aporte: 5000, tieneDatos: false}) === false);
+}
+
+// ═══ 14. porQueNoConto: la razon REAL, no una generica ═══
+console.log('\n14. Cuando la constancia es 0, decir por que');
+{
+  const src = extrae('function porQueNoConto(m)', 'function calcScore(m)');
+  const porQueNoConto = new Function(src + '\nreturn porQueNoConto;')();
+  const est = {ahorroObj: 20, gastoMax: 75};
+  const m = (gPct, aPct) => ({gPct, aPct, est});
+  chk('sin ingresos lo dice', /no hay ingresos/.test(porQueNoConto(m(null, 0))));
+  chk('gastar mas de lo que entra lo dice con el %', /115/.test(porQueNoConto(m(115, 25))));
+  // el caso del usuario-real: 92% con tope 75% caia en el generico
+  const r = porQueNoConto(m(92, 25));
+  chk('gasto arriba del tope: dice el gasto Y el tope, no un generico',
+      /92/.test(r) && /75/.test(r) && !/sin movimientos/.test(r), r);
+  chk('aportacion corta lo dice con ambos numeros', /7/.test(porQueNoConto(m(50, 7))) && /20/.test(porQueNoConto(m(50, 7))));
+  chk('el gasto se reporta ANTES que la aportacion (es la razon mas comun)',
+      /92/.test(porQueNoConto(m(92, 5))), porQueNoConto(m(92, 5)));
+}
+
 console.log('\n' + '='.repeat(58));
 console.log(fallos === 0 ? `TODO PASA — ${pruebas}/${pruebas}` : `${fallos} FALLAS de ${pruebas}`);
 process.exit(fallos === 0 ? 0 : 1);

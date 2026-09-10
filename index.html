@@ -941,6 +941,8 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
     <div class="section-title">tu portafolio hoy</div>
     <div class="panel" id="dash-resumen"><div class="empty-state">calculando...</div></div>
 
+    <div class="section-title mt">quien mueve tu resultado</div>
+    <div class="panel" id="dash-contribucion"><div class="empty-state">calculando...</div></div>
     <div class="section-title mt">acciones</div>
     <div class="panel" id="dash-acciones"><div class="empty-state">calculando...</div></div>
 
@@ -961,8 +963,6 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
     <div class="section-title mt">como va cada posicion</div>
     <div class="panel" id="dash-crecimiento"><div class="empty-state">calculando...</div></div>
 
-    <div class="section-title mt">quien te esta dando la ganancia</div>
-    <div class="panel" id="dash-contribucion"><div class="empty-state">calculando...</div></div>
   </div>
 
   <div class="sec">
@@ -2984,7 +2984,7 @@ function render() {
   document.getElementById('rev-stocks-display').textContent=posAbiertas.length?(stocksCompleto?fmt(nvdaVal):(nvdaVal>0?fmt(nvdaVal):'$—')):fmt(0);
   // en modo privado tampoco se muestran las posiciones (con acciones y precio publico se reconstruye el monto)
   document.getElementById('rev-stocks-sub').textContent=modoPrivado?'posiciones ocultas':(posAbiertas.length
-    ?(posAbiertas.map(([k,p])=>p.acciones.toFixed(4)+' '+k).join(' · ')+(stocksCompleto?'':' · precio pendiente'))
+    ?(posAbiertas.map(([k,p])=>p.acciones.toFixed(4)+' '+k).join(' · ')+(stocksCompleto?'':' · precio pendiente')+(dashboardEncendido()?'':' · hay un tablero de inversiones: enciendelo en perfil'))
     :'sin posiciones — registra tu primera compra');
   const detEl=document.getElementById('stocks-detalle');
   if(detEl){
@@ -4956,6 +4956,10 @@ function calcCartera() {
     // se ve mas alto porque usa precios viejos, y para decidir HOY no sirve.
     yieldActual: (valor > 0 && divAnual > 0) ? divAnual / valor * 100 : null,
     yieldCosto: (costo > 0 && divAnual > 0) ? divAnual / costo * 100 : null,
+    // para poder decir CUAL falta y dar un veredicto parcial honesto en vez de 'pendiente'
+    sinCosto: pos.filter(p => p.costo === null).map(p => p.simbolo),
+    sinPrecio: pos.filter(p => p.valor === null).map(p => p.simbolo),
+    gananciaParcial: pos.some(p => p.ganancia !== null) ? pos.reduce((t, p) => t + (p.ganancia || 0), 0) : null,
     faltaPrecio, faltaCosto, faltaDiv, completo, fxOk
   };
 }
@@ -5035,13 +5039,34 @@ function renderDashboard() {
 
   // ── 1. el portafolio de un vistazo ──
   const efe = efectivoDisponible(), total = c.valor + efe;
-  let r = fila('valor de tus acciones', c.valor > 0 ? fmt(c.valor) : '—',
+  // EL numero que se busca al abrir: lo que llevas ganado o perdido en total, sin que
+  // Roberto tenga que restar de cabeza lo vendido de lo no vendido
+  const noReal = c.ganancia !== null ? c.ganancia : c.gananciaParcial;
+  const totalReal = (noReal !== null && c.realizado !== null) ? noReal + c.realizado : null;
+  let r = '';
+  if (totalReal !== null) {
+    r += '<div class="item-row" style="align-items:baseline"><div><div class="item-cat" style="font-weight:600">' +
+      (totalReal >= 0 ? 'vas ganando' : 'vas perdiendo') + '</div>' +
+      '<div class="item-meta">lo que tienes' + (Math.abs(c.realizado) > 0.005 ? ' mas lo que ya vendiste' : '') +
+      (c.completo ? '' : ' · solo con lo capturado') + '</div></div>' +
+      '<div style="font-size:20px;font-weight:700;color:var(--' + (totalReal >= 0 ? 'green' : 'red') + ')">' +
+      sgn(totalReal) + '</div></div>';
+  }
+  r += fila('valor de tus acciones', c.valor > 0 ? fmt(c.valor) : '—',
                null, c.faltaPrecio ? 'falta el precio de alguna: no esta completo' : '');
+  // decir CUAL compra falta: "a alguna" no le sirve a nadie para arreglarlo
   r += fila('lo que llevas puesto', c.faltaCosto ? 'pendiente' : fmt(c.costo),
-            null, c.faltaCosto ? 'a alguna compra le falta el monto en pesos' : '');
+            null, c.faltaCosto ? 'falta el monto en pesos de: ' + c.sinCosto.join(', ') : '');
   if (c.ganancia !== null) {
-    r += fila('ganancia sobre lo invertido', sgn(c.ganancia), c.ganancia >= 0 ? 'green' : 'red',
+    r += fila(c.ganancia >= 0 ? 'ganancia sobre lo invertido' : 'perdida sobre lo invertido',
+              sgn(c.ganancia), c.ganancia >= 0 ? 'green' : 'red',
               c.gananciaPct !== null ? (c.gananciaPct >= 0 ? '+' : '−') + Math.abs(c.gananciaPct).toFixed(2) + '%' : '');
+  } else if (c.gananciaParcial !== null) {
+    // veredicto con lo que SI esta capturado: antes aqui decia 'pendiente' y tres pantallas
+    // abajo el mismo tablero daba un total — la app sabia y arriba decia que no
+    r += fila(c.gananciaParcial >= 0 ? 'ganancia sobre lo invertido' : 'perdida sobre lo invertido',
+              sgn(c.gananciaParcial), c.gananciaParcial >= 0 ? 'green' : 'red',
+              'solo con lo capturado (sin ' + [...new Set(c.sinCosto.concat(c.sinPrecio))].join(', ') + ')');
   } else {
     r += fila('ganancia sobre lo invertido', 'pendiente', null, 'faltan datos para calcularla sin inventar');
   }
@@ -5111,16 +5136,30 @@ function renderDashboard() {
   const conG = c.pos.filter(p => p.ganancia !== null);
   if (conG.length) {
     const tot = conG.reduce((t, p) => t + p.ganancia, 0);
+    const sumaPos = conG.reduce((t, p) => t + Math.max(0, p.ganancia), 0);
+    const sumaNeg = conG.reduce((t, p) => t + Math.max(0, -p.ganancia), 0);
+    const nPos = conG.filter(p => p.ganancia > 0.005).length, nNeg = conG.filter(p => p.ganancia < -0.005).length;
     const orden = conG.slice().sort((a, b) => b.ganancia - a.ganancia);
-    let ct = orden.map(p =>
+    // primero el veredicto, en una linea, y luego quien lo causa
+    // NO repetir "vas ganando/perdiendo": ese es el numero de arriba, que ademas incluye lo
+    // ya vendido. Este panel reparte SOLO lo que todavia tienes, y decirlo evita que dos
+    // cifras distintas con la misma frase queden a la vista a la vez.
+    let ct = '<div class="item-meta" style="margin-bottom:6px">' +
+      'de ' + fmt(Math.abs(tot)) + (tot >= 0 ? ' que llevas ganados' : ' que llevas perdidos') +
+      ' en lo que todavia NO vendes' + (c.faltaCosto || c.faltaPrecio ? ' y si esta capturado' : '') +
+      ', asi se reparte:</div>' +
+      orden.map(p =>
       '<div class="item-row"><div><div class="item-cat">' + escapeHtml(p.simbolo) + '</div>' +
-      // con perdida total, "-96% de tu ganancia" desorienta: se dice quien la CAUSA y
-      // quien la COMPENSA, en proporcion al tamaño de la perdida
-      '<div class="item-meta">' + (Math.abs(tot) > 0.005
-        ? (tot >= 0
-            ? (p.ganancia / tot * 100).toFixed(0) + '% de tu ganancia total'
-            : (p.ganancia < 0 ? 'causa el ' : 'compensa el ') + (Math.abs(p.ganancia) / Math.abs(tot) * 100).toFixed(0) + '% de tu perdida')
-        : 'sin ganancia todavia') +
+      // el porcentaje se mide contra el total del MISMO signo (todo lo que gana, o todo lo
+      // que pierde), nunca contra el neto: "causa el 174% de tu perdida" no significa nada
+      '<div class="item-meta">' + (
+        p.ganancia >= 0
+          ? (sumaPos <= 0.005 ? 'sin ganancia todavia'
+             : nPos === 1 ? 'la unica que te esta dando'          // "aporta el 100%" suena a error
+             : 'aporta el ' + (p.ganancia / sumaPos * 100).toFixed(0) + '% de lo que ganaste')
+          : (sumaNeg <= 0.005 ? ''
+             : nNeg === 1 ? 'la unica que te esta quitando'
+             : 'pesa el ' + (Math.abs(p.ganancia) / sumaNeg * 100).toFixed(0) + '% de lo que perdiste')) +
       '</div></div><span class="' + (p.ganancia >= 0 ? 'item-amt-pos' : 'item-amt-neg') + '">' +
       sgn(p.ganancia) + '</span></div>').join('');
     ct += '<div class="item-row"><div class="item-cat" style="font-weight:600">total</div>' +
@@ -5134,15 +5173,19 @@ function renderDashboard() {
   if (conSec.length) {
     const porSec = {};
     conSec.forEach(p => { porSec[p.sector] = (porSec[p.sector] || 0) + p.valor; });
-    let sec = pieChart(Object.entries(porSec).sort((a, b) => b[1] - a[1]));
+    let sec = '';
+    // lo que falta va ANTES de la dona: la conclusion no puede venir primero que la advertencia
+    if (conSec.length < c.pos.length) {
+      // mismo filtro para contar y para nombrar: sin sector O sin precio quedan fuera de la dona
+      sec += '<div class="item-meta" style="margin-bottom:8px">reparto de lo que ya tiene sector capturado (' +
+             conSec.length + ' de ' + c.pos.length + '): faltan ' +
+             escapeHtml(c.pos.filter(p => !(p.sector && p.valor !== null)).map(p => p.simbolo).join(', ')) + '</div>';
+    }
+    sec += pieChart(Object.entries(porSec).sort((a, b) => b[1] - a[1]));
     // aviso honesto: repartir 5 acciones en 5 sectores NO es estar diversificado
     sec += '<div class="item-meta" style="text-align:center;padding-top:8px">' +
-           'son ' + c.pos.length + ' empresa(s) en ' + Object.keys(porSec).length + ' sector(es). ' +
+           'son ' + conSec.length + ' accion(es) en ' + Object.keys(porSec).length + ' sector(es). ' +
            'Repartir pocas acciones en varios sectores no es lo mismo que estar diversificado.</div>';
-    if (conSec.length < c.pos.length) {
-      sec += '<div class="item-meta" style="text-align:center">faltan ' +
-             (c.pos.length - conSec.length) + ' por capturar su sector</div>';
-    }
     set('dash-sector', sec);
   } else set('dash-sector', vacio('captura el sector de tus acciones abajo para ver este reparto'));
 
@@ -5151,27 +5194,43 @@ function renderDashboard() {
   renderTickerUI();
 }
 
+// ── proyeccion: cuenta PURA (sin DOM) para poder probarla ──────────────────────
+// Modelo de UNIDADES: hoy tienes 1 unidad que vale V0 y paga D0 al año. El precio de la
+// unidad crece a r; el dividendo por unidad crece a g. Si se reinvierte, cada año los
+// dividendos compran mas unidades al precio de ese año — y mas unidades pagan mas.
+// TOPE DE YIELD: el dividendo por unidad nunca pasa del 10% de su precio. Sin ese tope,
+// con r negativo y g positivo el yield se dispara, la reinversion compra unidades casi
+// regaladas y la cuenta EXPLOTA (con -10% anual salia 9x de ganancia a 30 años — lo cazo
+// el code-reviewer). Ninguna empresa sostiene un dividendo asi; el tope no toca los casos
+// normales (con g <= r el yield baja, no sube).
+const PROY_TOPE_YIELD = 0.10;
+function proyectarCartera(V0, D0, r, g, reinvertir) {
+  const out = [];
+  if (!(V0 > 0)) return out;
+  let unidades = 1, divAcum = 0;
+  for (let i = 1; i <= 30; i++) {
+    const precio = V0 * Math.pow(1 + r, i);
+    const divUnidad = Math.min(D0 * Math.pow(1 + g, i), PROY_TOPE_YIELD * precio);
+    const divN = unidades * divUnidad;
+    if (reinvertir && precio > 0) unidades += divN / precio;
+    divAcum += divN;
+    if (i % 5 === 0) out.push({n: i, valor: unidades * precio, divN, divAcum});
+  }
+  return out;
+}
 // ── proyeccion: es una CUENTA, no un pronostico. Se presenta como escenario editable ──
 function renderProyeccion(c) {
   if (!(c.valor > 0)) { const e = document.getElementById('dash-proyeccion');
     if (e) e.innerHTML = '<div class="empty-state">sin valor de mercado no hay nada que proyectar</div>'; return; }
-  const r = DASH_SUP.retorno / 100, g = DASH_SUP.crecDiv / 100;
-  const divIni = c.divAnual > 0 ? c.divAnual : 0;
+  const filasP = proyectarCartera(c.valor, c.divAnual > 0 ? c.divAnual : 0,
+                                  DASH_SUP.retorno / 100, DASH_SUP.crecDiv / 100, dashReinvertir);
+  const D0 = c.divAnual > 0 ? c.divAnual : 0;
   let filas = '';
-  [5, 10, 15, 20, 25, 30].forEach(n => {
-    // el retorno supuesto es de PRECIO. Los dividendos se suman aparte solo si se
-    // reinvierten, para no contarlos dos veces.
-    let valor = c.valor * Math.pow(1 + r, n);
-    let divAcum = 0, divN = divIni;
-    for (let i = 1; i <= n; i++) {
-      divN = divIni * Math.pow(1 + g, i);
-      divAcum += divN;
-      if (dashReinvertir) valor += divN * Math.pow(1 + r, n - i);
-    }
-    filas += '<div class="item-row"><div><div class="item-cat">' + n + ' años</div>' +
-      (divIni > 0 ? '<div class="item-meta">dividendos ese año: ' + fmt(divN) +
-                    ' · acumulados: ' + fmt(divAcum) + '</div>' : '') +
-      '</div><div style="font-size:14px;font-weight:600">' + fmt(valor) + '</div></div>';
+  filasP.forEach(f => {
+    filas += '<div class="item-row"><div><div class="item-cat">' + f.n + ' años</div>' +
+      (D0 > 0 ? '<div class="item-meta">dividendos ese año: ' + fmt(f.divN) +
+                ' · acumulados: ' + fmt(f.divAcum) + '</div>' : '') +
+      '</div><div style="font-size:14px;font-weight:600">' + fmt(f.valor) + '</div></div>';
   });
   const el = document.getElementById('dash-proyeccion');
   if (!el) return;
@@ -5180,6 +5239,12 @@ function renderProyeccion(c) {
       '<b>Escenario, no promesa.</b> Es una cuenta con los supuestos de abajo. No predice nada: ' +
       'el mercado y los dividendos pueden subir, bajar o quedarse en cero. No descuenta ' +
       'impuestos, comisiones ni inflación.</div>' +
+    '<div class="item-meta" style="margin-bottom:10px">Parte de <b>' + fmt(c.valor) + '</b> (solo tus acciones, sin el efectivo) ' +
+      'y supone que <b>no vuelves a meter dinero</b>: cada compra nueva cambia todo esto.</div>' +
+    (DASH_SUP.retorno < 0
+      ? '<div class="item-meta" style="margin-bottom:10px">Con un rendimiento negativo los dividendos que reinviertes ' +
+        'tambien pierden valor cada año, por eso lo acumulado puede ser mayor que lo que acabas teniendo.</div>'
+      : '') +
     '<div class="type-toggle">' +
       '<div class="type-opt' + (dashReinvertir ? ' active' : '') + '" onclick="setReinvertir(true)">reinvirtiendo dividendos</div>' +
       '<div class="type-opt' + (!dashReinvertir ? ' active' : '') + '" onclick="setReinvertir(false)">sin reinvertir</div>' +
@@ -5218,9 +5283,8 @@ function renderMercadoHoy() {
   f('S&P 500 (IVVPESO)', state.ivvPrecio, Number.isFinite(state.ivvVar) && state.ivvVar !== 0
       ? state.ivvPrecio / (1 + state.ivvVar / 100) : null, '$');
   f('dólar', state.usdMxn, state.usdMxnPrev, '$');
-  Object.entries(state.accionesMkt || {}).forEach(([sym, mk]) => {
-    if (mk && Number.isFinite(mk.precio)) f(sym, mk.precio, mk.prev, 'US$');
-  });
+  // los precios de cada accion NO se repiten aqui: ya salen en "acciones" y en "como va
+  // cada posicion". Este panel es para el mercado, no para el portafolio.
   el.innerHTML = filas.length ? filas.join('') :
     '<div class="empty-state">sin cotizaciones todavia — se jalan solas al abrir</div>';
 }
@@ -5259,6 +5323,10 @@ function cargarTickerEnForm() {
   if (g('tk-div'))    g('tk-div').value    = Number.isFinite(t.divAnual) ? t.divAnual : '';
   if (g('tk-crec'))   g('tk-crec').value   = Number.isFinite(t.crecDiv) ? t.crecDiv : '';
 }
+// el <select> la llama desde un onchange inline: tiene que ser global. Sin esto, cambiar de
+// accion dejaba el formulario vacio y al guardar se BORRABAN sector y crecimiento (los
+// campos vacios se escriben como null a proposito). Lo cazo el agente usuario-real.
+window.cargarTickerEnForm = cargarTickerEnForm;
 let tickerGuardando = false;
 window.guardarTicker = async function() {
   if (tickerGuardando) return;
@@ -5413,15 +5481,23 @@ function mesStats(y,m) {
 // (comparaciones en centavos: el punto flotante no debe romper el umbral exacto)
 function mesBueno(st) {
   const i=Math.round(st.totalI*100), g=Math.round(st.totalG*100), a=Math.round(st.aporte*100);
-  // el umbral de aportacion sale del ESTANDAR del usuario (mismo que usan coach y score)
-  const obj=estandarDe(state.perfil).ahorroObj;
-  return st.tieneDatos && i>0 && g<=i && a*100>=i*obj;
+  // LOS DOS umbrales salen del ESTANDAR del usuario — los mismos que el score y el coach
+  // enseñan en pantalla. Antes solo se exigia no gastar mas de lo que entro (100%), asi que
+  // el mismo panel podia decir "gastaste el 92% y tu referencia es 75%" arriba y "cerrando
+  // bien" dos renglones abajo. Un panel que se contradice solo no se vuelve a leer.
+  // OJO: con esto una racha vieja puede bajar — es correcto, antes contaba de mas.
+  const est=estandarDe(state.perfil);
+  return st.tieneDatos && i>0 && g*100<=i*est.gastoMax && a*100>=i*est.ahorroObj;
 }
-// racha de meses buenos CONSECUTIVOS terminando en el ultimo mes COMPLETO (max 24: '24+')
-function calcRacha() {
-  const now=new Date(); let r=0;
-  for(let i=1;i<=24;i++){
-    const d=new Date(now.getFullYear(),now.getMonth()-i,1);
+// racha de meses buenos CONSECUTIVOS que termina en el mes (y,m) INCLUSIVE (max 24: '24+').
+// Sin argumentos termina en el ultimo mes COMPLETO. Antes solo se calculaba para el mes
+// en curso, y el score se califica sobre el mes anterior: la constancia llegaba siempre
+// en 0/20 aunque hubiera meses cerrados bien. Lo reporto Roberto el 9-sep-2026.
+function calcRacha(hastaY, hastaM) {
+  if (hastaY === undefined) { const d=new Date(new Date().getFullYear(),new Date().getMonth()-1,1); hastaY=d.getFullYear(); hastaM=d.getMonth(); }
+  let r=0;
+  for(let i=0;i<24;i++){
+    const d=new Date(hastaY,hastaM-i,1);
     if(mesBueno(mesStats(d.getFullYear(),d.getMonth()))) r++; else break;
   }
   return r;
@@ -5504,7 +5580,9 @@ function calcularCierre(start,end,modo) {
   const diasMes=new Date(start.getFullYear(),start.getMonth()+1,0).getDate();
   return {start,end,modo,esAno,per,esActual,totalI,totalG,aporte,ap,vacio,gPct,aPct,falta20,tops,comp,metas,
     maduro,diaMes,diasMes,est:estPre,
-    racha:(esActual&&!esAno)?calcRacha():0};
+    // la racha termina en el mes que se esta viendo: si es el actual (a medias), en el
+    // anterior; si es uno ya cerrado, en ese mismo mes incluido
+    racha:esAno?0:(esActual?calcRacha():calcRacha(start.getFullYear(),start.getMonth()))};
 }
 
 // ── SCORE DE HABITOS (indice propio, no un diagnostico financiero) ──
@@ -5512,6 +5590,16 @@ function calcularCierre(start,end,modo) {
 // control de gasto, constancia y colchon. Los componentes sin datos se excluyen y se
 // renormaliza, informando cuales quedaron fuera.
 const SCORE_VER='1.0';
+// por que un mes NO cuenta como bueno, en una frase — para que 0/20 diga que arreglar
+function porQueNoConto(m) {
+  if(m.gPct===null) return 'no hay ingresos registrados';
+  if(m.gPct>100) return 'gastaste mas de lo que entro ('+m.gPct.toFixed(0)+'%)';
+  // el gasto va PRIMERO: es la razon mas comun desde que mesBueno lo exige, y sin esto
+  // caia en el generico de abajo justo cuando la respuesta estaba dos renglones arriba
+  if(m.gPct>m.est.gastoMax) return 'gastaste el '+m.gPct.toFixed(0)+'% y tu tope es '+m.est.gastoMax+'%';
+  if(m.aPct<m.est.ahorroObj) return 'aportaste el '+Math.max(0,m.aPct).toFixed(0)+'% y tu referencia es '+m.est.ahorroObj+'%';
+  return 'sin movimientos suficientes';
+}
 function calcScore(m) {
   if(!m||m.vacio) return null;
   const est=m.est, comps=[], excluidos=[];
@@ -5532,7 +5620,7 @@ function calcScore(m) {
   } else excluidos.push('control de gasto (sin ingresos registrados)');
   // 3) constancia (20): meses buenos seguidos, tope a 6 para no premiar eternamente lo mismo
   comps.push({nombre:'constancia',max:20,puntos:Math.round(20*Math.min(1,m.racha/6)),
-    detalle:(m.racha>=1?('llevas '+(m.racha>=24?'24 o mas':m.racha)+' mes(es) seguidos cerrando bien'):'aun sin meses cerrados con buen resultado')
+    detalle:(m.racha>=1?('llevas '+(m.racha>=24?'24 o mas':m.racha)+' mes(es) seguidos cerrando bien'):('este mes no conto: '+porQueNoConto(m)))
       +' · se recalcula con tu referencia actual, asi que cambia si editas tu perfil'});
   // 4) colchon (10): meses de gasto cubiertos por dinero DISPONIBLE (sin bolsa, sin el
   // deposito congelado de la TDC, sin lo que te deben) contra el objetivo del estandar
@@ -5605,7 +5693,9 @@ function textoAnalisis(m) {
     if((metas.lista||[]).length&&(metas.lista||[]).every(m=>!m.medible||m.falta<=0)) frases.push('vas al corriente con todas tus metas');
     if(frases.length) p.push('Rumbo a tu meta: '+frases.join(', ')+'.');
   } else if(metas&&metas.vencida) p.push('La fecha de tus metas ya paso: toca revisar el resultado y fijar las siguientes.');
-  if(racha>=1) p.push('Y llevas '+(racha>=24?'24 o mas':racha)+' mes'+(racha>1?'es':'')+' seguido'+(racha>1?'s':'')+' cerrando bien — esa racha es tu mejor activo.');
+  // un mes YA CERRADO se cuenta en pasado: 'llevas' y 'no la rompas' son consejo de hoy,
+  // no descripcion de un cierre viejo (ahora los meses pasados si traen su racha)
+  if(racha>=1) p.push((esActual?'Y llevas ':'Y cerraste con ')+(racha>=24?'24 o mas':racha)+' mes'+(racha>1?'es':'')+' seguido'+(racha>1?'s':'')+' cerrando bien'+(esActual?' — esa racha es tu mejor activo.':'.'));
   return p;
 }
 
@@ -5643,7 +5733,7 @@ function cierreMesHTML(m,label,capturar) {
       partes.join(' · '));
   }
   if(racha>=1) fila('🔥','racha de meses buenos',
-    (racha>=24?'24 o mas':racha)+' mes'+(racha>1?'es':'')+' seguido'+(racha>1?'s':'')+' cerrando bien — no la rompas',
+    (racha>=24?'24 o mas':racha)+' mes'+(racha>1?'es':'')+' seguido'+(racha>1?'s':'')+' cerrando bien'+(esActual?' — no la rompas':' hasta ese mes'),
     (racha>=24?'24+':String(racha)));
   tops.forEach(t=>{
     let meta=(totalG>0?(t.amt/totalG*100).toFixed(0):'0')+'% de tus gastos';

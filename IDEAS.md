@@ -117,3 +117,25 @@ se lee como si fuera un hecho.
    y las barras de ese video se ven bien porque hay con qué llenarlas. Con 5
    posiciones, media pantalla se ve vacía. Conviene diseñarlo para lo que hay,
    no calcarlo.
+
+## Del agente `usuario-real` sobre el tablero (9/10-sep-2026) — decisiones de Roberto
+
+Probo el tablero tres veces como lo usaria Beto en el celular. Todo lo rojo y lo
+amarillo se corrigio (ver la bitacora). Quedan tres cosas que son DECISION suya,
+no bugs:
+
+
+
+1. **Editar una operación de bolsa.** El ledger `stocksOps` es inmutable a
+   propósito (se registra la inversa). Pero si a una compra le falta el monto en
+   pesos, hoy el tablero lo nombra y no hay dónde corregirlo. Opciones: permitir
+   editar SOLO `montoMxn` y `montoUsd` (no acciones ni fecha), o un "ajuste" que
+   registre la corrección como operación aparte.
+2. **Paneles que repiten dato.** Con ~5 posiciones, "cómo se mueve el mercado"
+   repite los precios de "acciones"; "efectivo 26%" sale dos veces; "lo que
+   pusiste vs lo que vale" y "cómo va cada posición" son el mismo hecho; y "tus
+   inversiones frente a otras opciones" del perfil quedó redundante. Roberto pidió
+   "casi idéntico con los mismos gráficos", así que se dejaron todos. Si algún día
+   estorban, el agente propone quedarse con cinco.
+3. Detalle de dedo: los botones tipo `type-opt` miden 34 px de alto (el resto de la
+   app 44-46). Es un patrón viejo de toda la app, no del tablero.
