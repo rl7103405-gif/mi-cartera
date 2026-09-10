@@ -239,6 +239,56 @@ console.log('\n14. Cuando la constancia es 0, decir por que');
       /92/.test(porQueNoConto(m(92, 5))), porQueNoConto(m(92, 5)));
 }
 
+// ═══ 15. graficas del tablero (estilo hoja): nunca NaN, escapan, respetan pendientes ═══
+console.log('\n15. Graficas del tablero: nunca NaN, escapan simbolos, respetan pendientes');
+{
+  const src = extrae('// ── graficas propias del tablero', '// ── pintar el tablero');
+  const esc = t => String(t).replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+  const G = new Function('escapeHtml', 'fmt', 'fmtCorto',
+    src + '\nreturn { pasoBonito, svgCostoValor, svgCrecimiento, svgGanaPierde, svgMercado };')(
+    esc, v => '$' + Number(v).toFixed(2), v => '$' + Math.round(v));
+  const limpio = h => !/NaN|Infinity|undefined/.test(h);
+  chk('paso bonito: 10,000 en 4 -> 5,000', G.pasoBonito(10000, 4) === 5000, String(G.pasoBonito(10000, 4)));
+  chk('paso bonito con rango 0 no truena', G.pasoBonito(0, 4) === 1);
+  const pos = [
+    {simbolo:'QQQ',  costo:6979.2,  valor:6658.15, gananciaPct:-4.6},
+    {simbolo:'SPCX', costo:1040.81, valor:1217.3,  gananciaPct:17},
+    {simbolo:'MSFT', costo:null,    valor:644.6,   gananciaPct:null},
+    {simbolo:'<b>',  costo:10,      valor:12,      gananciaPct:20}];
+  const cv = G.svgCostoValor(pos);
+  chk('costo vs valor: sin NaN', limpio(cv));
+  chk('costo vs valor: nombra la que no tiene costo', /MSFT/.test(cv) && /falta el monto/.test(cv));
+  chk('costo vs valor: escapa el simbolo', !cv.includes('<b>') && cv.includes('&lt;b&gt;'));
+  const cr = G.svgCrecimiento(pos);
+  chk('crecimiento con negativos: sin NaN y con linea de cero marcada', limpio(cr) && cr.includes('rgba(0,0,0,.45)'));
+  chk('crecimiento: la pendiente no tiene barra pero se nombra', /sin barra: MSFT/.test(cr));
+  chk('crecimiento sin ningun dato: mensaje, no grafica',
+      /faltan datos/.test(G.svgCrecimiento([{simbolo:'X', gananciaPct:null}])));
+  const gp = G.svgGanaPierde(176.49, 360.87);
+  chk('gana/pierde normal: sin NaN y dos barras', limpio(gp) && (gp.match(/<rect/g) || []).length === 2);
+  chk('gana/pierde en cero: sin NaN', limpio(G.svgGanaPierde(0, 0)));
+  chk('mercado sin historial: vacio', G.svgMercado([]) === '' && G.svgMercado(null) === '');
+  const mk = G.svgMercado([{t:'2026-09-01', c:500}, {t:'2026-09-02', c:505}, {t:'2026-09-03', c:500}]);
+  chk('mercado con historial: sin NaN y una barra por cierre', limpio(mk) && (mk.match(/<rect/g) || []).length === 3);
+  chk('mercado con precio plano: sin NaN', limpio(G.svgMercado([{t:'a', c:10}, {t:'b', c:10}])));
+}
+
+// ═══ 16. el tablero no depende de nada que la copia no tenga ═══
+// Al replicar el rediseño, renderMercadoHoy llego a copias que no declaraban REF_MERCADO ni
+// lo bajaban: la pestaña habria tronado con ReferenceError y ninguna prueba lo vio.
+console.log('\n16. Cada identificador que usa el tablero existe en esta copia');
+{
+  const declarado = n => new RegExp('(const|let|var|function)\\s+' + n + '\\b').test(HTML);
+  for (const n of ['REF_MERCADO', 'renderMercadoHoy', 'renderNotasDash', 'renderProyeccion', 'renderTickerUI',
+                   'efectivoDisponible', 'calcCartera', 'pieChart', 'guardarPerfil', 'fmtCorto', 'refrescar',
+                   'parseFechaLocal', 'showToast']) {
+    chk('declarado: ' + n, declarado(n));
+  }
+  chk('fetchStocks baja la referencia aunque no haya posiciones',
+      /const pedir=\[\.\.\.syms,/.test(HTML) && !/if\(!syms\.length\) return true;/.test(HTML));
+  chk('notas del tablero en la lista blanca del perfil', /notasInversion:\(typeof pf\.notasInversion==='string'\)/.test(HTML));
+}
+
 console.log('\n' + '='.repeat(58));
 console.log(fallos === 0 ? `TODO PASA — ${pruebas}/${pruebas}` : `${fallos} FALLAS de ${pruebas}`);
 process.exit(fallos === 0 ? 0 : 1);

@@ -130,12 +130,20 @@ no bugs:
    propósito (se registra la inversa). Pero si a una compra le falta el monto en
    pesos, hoy el tablero lo nombra y no hay dónde corregirlo. Opciones: permitir
    editar SOLO `montoMxn` y `montoUsd` (no acciones ni fecha), o un "ajuste" que
-   registre la corrección como operación aparte.
+   registre la corrección como operación aparte. **10-sep:** el usuario real lo
+   volvió a marcar en rojo con el tablero estilo hoja: "falta el monto en pesos de
+   MSFT" aparece en cinco tarjetas y ninguna dice dónde se arregla, porque no hay
+   dónde. Sigue siendo la decisión más urgente de esta lista.
 2. **Paneles que repiten dato.** Con ~5 posiciones, "cómo se mueve el mercado"
    repite los precios de "acciones"; "efectivo 26%" sale dos veces; "lo que
    pusiste vs lo que vale" y "cómo va cada posición" son el mismo hecho; y "tus
    inversiones frente a otras opciones" del perfil quedó redundante. Roberto pidió
    "casi idéntico con los mismos gráficos", así que se dejaron todos. Si algún día
-   estorban, el agente propone quedarse con cinco.
+   estorban, el agente propone quedarse con cinco. **10-sep, tablero estilo hoja:**
+   en la primera pantalla compiten tres cifras de pérdida ("$ ganancia/perdida" en
+   Acciones, "$ perdida" y "vas perdiendo (con lo vendido)" en Tu portafolio, y el
+   total que pierde en la gráfica verde). Se aclaró con texto por qué difieren,
+   pero Acciones y Tu portafolio siguen repitiendo valor y ganancia porque la hoja
+   original también lo hace. Si Roberto quiere una sola cifra, se quita de Acciones.
 3. Detalle de dedo: los botones tipo `type-opt` miden 34 px de alto (el resto de la
    app 44-46). Es un patrón viejo de toda la app, no del tablero.

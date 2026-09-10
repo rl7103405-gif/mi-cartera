@@ -315,6 +315,85 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
   .sec{min-width:0}
   .total-amount{font-size:46px}
 }
+
+/* ═══ TABLERO DE INVERSIONES — calcado de la hoja de Google Sheets que pidio Roberto ═══
+   Cuadricula de tarjetas de color que llena la pantalla de lado a lado. Dentro de cada
+   tarjeta manda el look de la hoja (texto oscuro sobre pastel) en CUALQUIER tema: por eso
+   la tarjeta redefine los tokens de color y todo lo que pinta dentro los hereda. */
+.dgrid{display:grid;gap:10px;grid-template-columns:minmax(0,1fr);
+  grid-template-areas:"titulo" "portafolio" "winloss" "stocks" "efectivo" "holdings" "asignacion" "pie" "costo" "crec" "mercado" "outlook" "sector" "notas" "datos"}
+.ga-titulo{grid-area:titulo}.ga-notas{grid-area:notas}.ga-stocks{grid-area:stocks}.ga-efectivo{grid-area:efectivo}
+.ga-asignacion{grid-area:asignacion}.ga-portafolio{grid-area:portafolio}.ga-mercado{grid-area:mercado}
+.ga-costo{grid-area:costo}.ga-pie{grid-area:pie}.ga-crec{grid-area:crec}.ga-winloss{grid-area:winloss}
+.ga-holdings{grid-area:holdings}.ga-outlook{grid-area:outlook}.ga-sector{grid-area:sector}.ga-datos{grid-area:datos}
+.dtitulo{background:#f2b90c;color:#1b1b1b;font-size:26px;font-weight:800;text-align:center;padding:10px 12px;border-radius:10px;letter-spacing:-.01em;align-self:start}
+.dcard{border-radius:10px;overflow:hidden;background:var(--dc-b);border:1px solid rgba(0,0,0,.10);box-shadow:0 1px 2px rgba(0,0,0,.10);min-width:0;display:flex;flex-direction:column;
+  --text:#1b1b1b;--muted:#4f4f4f;--border:rgba(0,0,0,.10);--border2:rgba(0,0,0,.22);--bg3:rgba(255,255,255,.6);--green:#1f7a3f;--red:#b3261e;--purple:#2f5bd3;color:var(--text)}
+.dcard-h{background:var(--dc-h);padding:8px 12px;font-size:20px;font-weight:800;text-align:center}
+.dcard-h.chico{font-size:13px;font-weight:700;text-align:left;padding:7px 12px}
+.dcard-b{padding:10px 12px;flex:1;min-width:0}
+.dc-gris{--dc-h:#bdbdbd;--dc-b:#dadada}
+.dc-rosa{--dc-h:#e8a0aa;--dc-b:#f5d3d8}
+.dc-rosa2{--dc-h:#efbcc3;--dc-b:#f8e1e4}
+.dc-amarillo{--dc-h:#f6dc7a;--dc-b:#fcf0c2}
+.dc-salmon{--dc-h:#f3b183;--dc-b:#fbdcc3}
+.dc-azul{--dc-h:#94b7ea;--dc-b:#d3e2f7}
+.dc-verde{--dc-h:#a9d8a8;--dc-b:#d8eed5}
+.dc-lila{--dc-h:#c2aee3;--dc-b:#e4daf3}
+.dc-durazno{--dc-h:#f3c4a0;--dc-b:#fae3d0}
+.dkv{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 12px;font-size:13px;align-items:baseline}
+.dkv .k{text-align:right;font-weight:700}
+.dkv .v{text-align:right;font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap}
+.dkv .v.pos{color:var(--green)}.dkv .v.neg{color:var(--red)}
+.dkv .nota{grid-column:1/-1;text-align:right;font-size:11px;color:var(--muted);margin:-2px 0 4px;font-weight:500}
+.dkv .destacado{font-size:16px;padding-top:6px}
+.dbig{font-size:72px;font-weight:800;text-align:center;line-height:1;padding:16px 0;font-variant-numeric:tabular-nums}
+.ga-holdings .dcard-b{display:flex;align-items:center;justify-content:center}
+.dleyenda{display:flex;flex-wrap:wrap;gap:6px 14px;justify-content:center;font-size:11px;font-weight:600;margin-bottom:6px}
+.dleyenda i{display:inline-block;width:10px;height:10px;margin-right:5px;vertical-align:-1px;border-radius:2px}
+.dsvg svg{display:block;width:100%;height:auto}
+.dmercado{display:grid;grid-template-columns:minmax(0,1fr);gap:10px;align-items:center}
+.dtabla-wrap{overflow-x:auto;margin-bottom:10px}
+.dtabla{width:100%;border-collapse:collapse;font-size:13px;min-width:420px}
+.dtabla th{background:var(--dc-h);padding:7px 8px;font-weight:700;text-align:center}
+.dtabla td{padding:8px;text-align:center;border-top:1px solid rgba(0,0,0,.10);font-weight:600;font-variant-numeric:tabular-nums}
+.dtabla td:first-child{font-weight:800}
+.dcard select,.dcard input[type=number],.dcard textarea{background:#fff;color:#1b1b1b;border:1px solid rgba(0,0,0,.25);border-radius:6px;padding:6px 8px;font-size:14px;min-height:36px;font-family:inherit}
+.dtabla select{color:#2f5bd3;font-weight:700;max-width:100%}
+.dreinv{display:block;font-size:11px;font-weight:700;margin-bottom:3px}
+.dsupuestos{display:flex;flex-wrap:wrap;gap:8px 16px;justify-content:center;font-size:13px;font-weight:600;margin-bottom:8px}
+.dsupuestos input{width:74px;margin:0 4px}
+.dcard textarea{width:100%;min-height:180px;resize:vertical;line-height:1.4;margin-bottom:8px}
+.dnota{margin:0 0 14px;font-size:12.5px;font-weight:700;text-align:center;line-height:1.4}
+.dcard .pie-wrap{flex-wrap:wrap;justify-content:center}
+.dcard .pie-svg{width:132px;flex:0 0 132px}
+.dcard .pie-legend{flex:1 1 150px;min-width:0}
+.ga-pie .pie-svg{width:190px;flex-basis:190px}
+.dcard .btn{min-height:40px}
+.dcard .item-amt-pos,.dcard .item-amt-neg{white-space:nowrap;padding-left:8px}
+@media(max-width:759px){
+  .dtabla{min-width:0;font-size:11.5px}
+  .dtabla th,.dtabla td{padding:6px 3px}
+  .dtabla select{font-size:16px;padding:4px;min-height:36px;width:100%}
+  .dcard select,.dcard input[type=number],.dcard textarea{font-size:16px}
+  .dtabla th:first-child{width:31%}
+}
+@media(min-width:760px){
+  #page-dashboard{max-width:1880px;padding:20px 24px}
+  .dgrid{grid-template-columns:repeat(2,minmax(0,1fr));
+    grid-template-areas:"titulo titulo" "portafolio winloss" "stocks efectivo" "asignacion pie" "costo crec" "mercado holdings" "outlook outlook" "sector notas" "datos datos"}
+}
+@media(min-width:1180px){
+  .dgrid{grid-template-columns:minmax(150px,.95fr) minmax(200px,1.15fr) minmax(0,2.5fr) minmax(0,2fr) minmax(190px,1.05fr);
+    grid-template-areas:
+      ".        titulo     titulo     pie    winloss"
+      "notas    stocks     portafolio pie    winloss"
+      "notas    efectivo   mercado    pie    winloss"
+      "notas    asignacion costo      crec   winloss"
+      "holdings outlook    outlook    sector winloss"
+      "datos    datos      datos      datos  datos"}
+  .dmercado{grid-template-columns:minmax(0,1fr) minmax(0,1.25fr)}
+}
 </style>
 </head>
 <body>
@@ -933,46 +1012,40 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
 
 <!-- RESUMEN -->
 <!-- TABLERO DE INVERSIONES (opcional: se enciende en el perfil) -->
+<!-- Calcado de la hoja de Google Sheets que Roberto pidio "casi identica": cuadricula de
+     tarjetas de color que llena la pantalla de lado a lado (ver .dgrid). En el telefono se
+     apila en el orden de lo que mas se consulta. -->
 <div class="page" id="page-dashboard">
-  <div class="mt">
-  <div class="inicio-grid">
+  <div class="dgrid">
+    <div class="dtitulo ga-titulo">Tablero de inversiones</div>
 
-  <div class="sec">
-    <div class="section-title">tu portafolio hoy</div>
-    <div class="panel" id="dash-resumen"><div class="empty-state">calculando...</div></div>
+    <div class="dcard dc-gris ga-notas"><div class="dcard-h">Notas:</div><div class="dcard-b" id="dash-notas"></div></div>
 
-    <div class="section-title mt">quien mueve tu resultado</div>
-    <div class="panel" id="dash-contribucion"><div class="empty-state">calculando...</div></div>
-    <div class="section-title mt">acciones</div>
-    <div class="panel" id="dash-acciones"><div class="empty-state">calculando...</div></div>
+    <div class="dcard dc-rosa ga-stocks"><div class="dcard-h">Acciones:</div><div class="dcard-b" id="dash-stocks"><div class="empty-state">calculando...</div></div></div>
 
-    <div class="section-title mt">efectivo disponible</div>
-    <div class="panel" id="dash-efectivo"><div class="empty-state">calculando...</div></div>
+    <div class="dcard dc-salmon ga-efectivo"><div class="dcard-h">Efectivo:</div><div class="dcard-b" id="dash-efectivo"><div class="empty-state">calculando...</div></div></div>
 
-    <div class="section-title mt">como se mueve el mercado</div>
-    <div class="panel" id="dash-mercado"><div class="empty-state">calculando...</div></div>
-  </div>
+    <div class="dcard dc-azul ga-asignacion"><div class="dcard-h chico">Asignación</div><div class="dcard-b" id="dash-asignacion"><div class="empty-state">calculando...</div></div></div>
 
-  <div class="sec">
-    <div class="section-title">en que esta tu dinero</div>
-    <div class="panel" id="dash-asignacion"><div class="empty-state">calculando...</div></div>
+    <div class="dcard dc-rosa2 ga-portafolio"><div class="dcard-h chico">Tu portafolio</div><div class="dcard-b" id="dash-portafolio"><div class="empty-state">calculando...</div></div></div>
 
-    <div class="section-title mt">lo que pusiste vs lo que vale</div>
-    <div class="panel" id="dash-costo-valor"><div class="empty-state">calculando...</div></div>
+    <div class="dcard dc-azul ga-mercado"><div class="dcard-h chico">Cómo se mueve el mercado</div><div class="dcard-b" id="dash-mercado"><div class="empty-state">calculando...</div></div></div>
 
-    <div class="section-title mt">como va cada posicion</div>
-    <div class="panel" id="dash-crecimiento"><div class="empty-state">calculando...</div></div>
+    <div class="dcard dc-amarillo ga-costo"><div class="dcard-h chico">Lo que pusiste y lo que vale</div><div class="dcard-b" id="dash-costo-valor"><div class="empty-state">calculando...</div></div></div>
 
-  </div>
+    <div class="dcard dc-durazno ga-pie"><div class="dcard-h chico">Reparto entre tus acciones</div><div class="dcard-b" id="dash-pie"><div class="empty-state">calculando...</div></div></div>
 
-  <div class="sec">
-    <div class="section-title">por sector</div>
-    <div class="panel" id="dash-sector"><div class="empty-state">calculando...</div></div>
+    <div class="dcard dc-rosa ga-crec"><div class="dcard-h chico">Crecimiento</div><div class="dcard-b" id="dash-crecimiento"><div class="empty-state">calculando...</div></div></div>
 
-    <div class="section-title mt">si esto sigue asi</div>
-    <div class="panel" id="dash-proyeccion"><div class="empty-state">calculando...</div></div>
+    <div class="dcard dc-verde ga-winloss"><div class="dcard-h chico">Lo que gana y lo que pierde</div><div class="dcard-b" id="dash-winloss"><div class="empty-state">calculando...</div></div></div>
 
-    <details class="acc">
+    <div class="dcard dc-verde ga-holdings"><div class="dcard-h">Total de posiciones:</div><div class="dcard-b" id="dash-holdings"><div class="empty-state">calculando...</div></div></div>
+
+    <div class="dcard dc-salmon ga-outlook"><div class="dcard-h">Proyección de tu portafolio</div><div class="dcard-b" id="dash-proyeccion"><div class="empty-state">calculando...</div></div></div>
+
+    <div class="dcard dc-lila ga-sector"><div class="dcard-h chico">Reparto por sector</div><div class="dcard-b" id="dash-sector"><div class="empty-state">calculando...</div></div></div>
+
+    <details class="acc ga-datos">
     <summary>
       <div class="acc-icon chip-oro"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M4 12h16M4 17h10"/></svg></div>
       <div><div class="acc-tit">datos de cada accion</div><div class="acc-sub">sector y dividendo — se capturan a mano</div></div>
@@ -1005,9 +1078,6 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
       </div>
     </div>
     </details>
-  </div>
-
-  </div>
   </div>
 </div>
 
@@ -1421,7 +1491,7 @@ let state = {
   catsGasto:[...CATS_GASTO_DEFAULT], catsIngreso:[...CATS_INGRESO_DEFAULT],
   apartados:[],
   // perfil para el estandar personalizado (vacio = estandar generico, no bloquea nada)
-  perfil:{anoNac:null, vivienda:'', dependientes:0, ingresoBase:null, nombre:'', foto:''},
+  perfil:{anoNac:null, vivienda:'', dependientes:0, ingresoBase:null, nombre:'', foto:'', notasInversion:''},
   personas:JSON.parse(JSON.stringify(PERSONAS_DEFAULT)),
   metas:{fecha:META_FECHA_DEF, items:[]},
   gastos:[], ingresos:[], transferencias:[], snapshots:[]
@@ -1763,6 +1833,8 @@ async function loadFromFirebase() {
         // solo se acepta un dataURL jpeg/png generado por la propia app
         // el tablero de inversiones: solo cuenta si esta guardado como true (lista blanca)
         dashboard: pf.dashboard === true,
+        // notas del tablero (columna "Notas" de la hoja): texto libre, se escapa al pintar
+        notasInversion:(typeof pf.notasInversion==='string')?pf.notasInversion.slice(0,1500):'',
         foto:(typeof pf.foto==='string'&&/^data:image\/(?:jpeg|png);base64,[A-Za-z0-9+/]+={0,2}$/.test(pf.foto)&&pf.foto.length<900000)?pf.foto:''};
     }
     if (tDoc.exists()) { state.tarjetaDeuda = Number.isFinite(tDoc.data().deuda) ? tDoc.data().deuda : state.tarjetaDeuda; state.tarjetaMovimientos = Array.isArray(tDoc.data().movimientos) ? tDoc.data().movimientos : []; }
@@ -4971,168 +5043,251 @@ function efectivoDisponible() {
 }
 
 // ── graficas propias del tablero ──────────────────────────────────────────────
-// barras pareadas: lo que pusiste contra lo que vale hoy, posicion por posicion
-function barrasCostoValor(items) {
-  const max = Math.max(...items.map(i => Math.max(i.costo || 0, i.valor || 0)), 1);
-  const filas = items.map(i => {
-    const c = Math.max(0, ((i.costo || 0) / max) * 100), v = Math.max(0, ((i.valor || 0) / max) * 100);
-    const sinDato = i.costo === null || i.valor === null;
-    return '<div style="margin-bottom:10px">' +
-      '<div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px">' +
-        '<span style="font-weight:600">' + escapeHtml(i.simbolo) + '</span>' +
-        '<span class="item-meta">' + (sinDato ? 'pendiente' : fmt(i.costo) + ' → ' + fmt(i.valor)) + '</span></div>' +
-      '<div style="height:8px;background:var(--bg3);border-radius:4px;overflow:hidden;margin-bottom:2px">' +
-        '<div style="height:100%;width:' + c.toFixed(1) + '%;background:var(--muted)"></div></div>' +
-      '<div style="height:8px;background:var(--bg3);border-radius:4px;overflow:hidden">' +
-        '<div style="height:100%;width:' + v.toFixed(1) + '%;background:var(--purple)"></div></div></div>';
-  }).join('');
-  return filas + '<div class="item-meta" style="text-align:center;padding-top:4px">' +
-    'barra gris: lo que pusiste · barra morada: lo que vale hoy</div>';
+// Calcadas de la hoja de Google Sheets que Roberto pidio "casi identica": barras
+// verticales con eje, leyenda arriba y la etiqueta de cada accion girada. SVG a mano.
+// verde = gana y rojo = pierde en TODAS las graficas: en la hoja original el rojo era
+// "lo que vale hoy" y junto a la de crecimiento se leia como perdida
+const DASH_AZUL = '#3b6fd8', DASH_ROJO = '#d9453b', DASH_MARINO = '#1f3a93', DASH_VERDE = '#2e9e5b', DASH_GRIS = '#9aa5b1';
+const svgNum = n => String(Math.round(n * 10) / 10);
+// paso "bonito" para un eje: 1, 2 o 5 por potencia de 10
+function pasoBonito(rango, n) {
+  if (!(rango > 0) || !(n > 0)) return 1;
+  const bruto = rango / n, mag = Math.pow(10, Math.floor(Math.log10(bruto))), r = bruto / mag;
+  return (r <= 1 ? 1 : r <= 2 ? 2 : r <= 5 ? 5 : 10) * mag;
+}
+function leyendaDash(items) {
+  return '<div class="dleyenda">' + items.map(([color, txt]) =>
+    '<span><i style="background:' + color + '"></i>' + escapeHtml(txt) + '</span>').join('') + '</div>';
+}
+const ejeMoneda = v => (v < 0 ? '−' : '') + fmtCorto(Math.abs(v));
+
+// barras pareadas: lo que pusiste (azul) contra lo que vale hoy (rojo), por accion
+function svgCostoValor(pos) {
+  const datos = pos.filter(p => p.costo !== null || p.valor !== null);
+  if (!datos.length) return '<div class="empty-state">sin datos todavia</div>';
+  const max = Math.max(...datos.map(p => Math.max(p.costo || 0, p.valor || 0)));
+  const paso = pasoBonito(max, 4), tope = Math.max(paso, Math.ceil(max / paso) * paso);
+  const L = 54, R = 8, T = 10, B = 48, H = 240, W = Math.max(320, L + R + datos.length * 52);
+  const ph = H - T - B, ancho = (W - L - R) / datos.length, bw = Math.min(18, ancho * 0.34);
+  const y = v => T + ph - (v / tope) * ph;
+  let g = '';
+  for (let v = 0; v <= tope + paso * 0.001; v += paso) {
+    const yy = svgNum(y(v));
+    g += '<line x1="' + L + '" x2="' + (W - R) + '" y1="' + yy + '" y2="' + yy + '" stroke="rgba(0,0,0,.12)"/>' +
+         '<text x="' + (L - 6) + '" y="' + svgNum(y(v) + 3.5) + '" text-anchor="end" font-size="10" fill="#444">' + escapeHtml(ejeMoneda(v)) + '</text>';
+  }
+  datos.forEach((p, k) => {
+    const cx = L + ancho * k + ancho / 2;
+    const barra = (x, v, color, etq) => v === null ? '' :
+      '<rect x="' + svgNum(x) + '" y="' + svgNum(y(v)) + '" width="' + svgNum(bw) + '" height="' + svgNum(Math.max(0, T + ph - y(v))) +
+      '" fill="' + color + '"><title>' + escapeHtml(p.simbolo + ' · ' + etq + ': ' + fmt(v)) + '</title></rect>';
+    g += barra(cx - bw - 1, p.costo, DASH_GRIS, 'lo que pusiste') + barra(cx + 1, p.valor, DASH_AZUL, 'lo que vale');
+    g += '<text transform="translate(' + svgNum(cx) + ',' + (T + ph + 12) + ') rotate(-40)" text-anchor="end" font-size="10" fill="#222">' + escapeHtml(p.simbolo) + '</text>';
+  });
+  const pend = pos.filter(p => p.costo === null).map(p => p.simbolo);
+  return leyendaDash([[DASH_GRIS, 'lo que pusiste'], [DASH_AZUL, 'lo que vale (ultimo precio)']]) +
+    '<div class="dsvg"><svg viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="lo que pusiste contra lo que vale, por accion">' + g + '</svg></div>' +
+    (pend.length ? '<div class="item-meta" style="text-align:center">sin barra gris: ' + escapeHtml(pend.join(', ')) + ' (falta el monto en pesos)</div>' : '');
 }
 
-// barras con signo: crecimiento de cada posicion, a la derecha si gana, a la izquierda si pierde
-function barrasSigno(items) {
-  const max = Math.max(...items.map(i => Math.abs(i.pct === null ? 0 : i.pct)), 1);
-  return items.map(i => {
-    if (i.pct === null) {
-      return '<div class="item-row"><div class="item-cat">' + escapeHtml(i.simbolo) +
-             '</div><span class="item-meta">pendiente</span></div>';
+// crecimiento de cada accion en %: arriba de la linea de cero gana, abajo pierde
+function svgCrecimiento(pos) {
+  const datos = pos.map(p => ({s: p.simbolo, v: p.gananciaPct}));
+  const con = datos.filter(d => d.v !== null && Number.isFinite(d.v));
+  if (!con.length) return '<div class="empty-state">faltan datos de costo para calcularlo</div>';
+  const hi = Math.max(0, ...con.map(d => d.v)), lo = Math.min(0, ...con.map(d => d.v));
+  const paso = pasoBonito(Math.max(hi - lo, 1), 4);
+  const tope = Math.max(paso, Math.ceil(hi / paso) * paso), piso = Math.min(0, Math.floor(lo / paso) * paso);
+  const L = 46, R = 8, T = 10, B = 48, H = 240, W = Math.max(320, L + R + datos.length * 44);
+  const ph = H - T - B, ancho = (W - L - R) / datos.length, bw = Math.min(22, ancho * 0.5);
+  const y = v => T + ((tope - v) / (tope - piso)) * ph;
+  let g = '';
+  for (let v = piso; v <= tope + paso * 0.001; v += paso) {
+    const yy = svgNum(y(v)), cero = Math.abs(v) < paso * 1e-6;
+    g += '<line x1="' + L + '" x2="' + (W - R) + '" y1="' + yy + '" y2="' + yy + '" stroke="' + (cero ? 'rgba(0,0,0,.45)' : 'rgba(0,0,0,.12)') + '"/>' +
+         '<text x="' + (L - 6) + '" y="' + svgNum(y(v) + 3.5) + '" text-anchor="end" font-size="10" fill="#444">' + svgNum(cero ? 0 : v) + '%</text>';
+  }
+  datos.forEach((d, k) => {
+    const cx = L + ancho * k + ancho / 2;
+    if (d.v !== null && Number.isFinite(d.v)) {
+      const y0 = y(0), y1 = y(d.v);
+      g += '<rect x="' + svgNum(cx - bw / 2) + '" y="' + svgNum(Math.min(y0, y1)) + '" width="' + svgNum(bw) + '" height="' + svgNum(Math.max(1, Math.abs(y1 - y0))) +
+           '" fill="' + (d.v >= 0 ? DASH_VERDE : DASH_ROJO) + '"><title>' + escapeHtml(d.s + ' · ' + (d.v >= 0 ? '+' : '−') + Math.abs(d.v).toFixed(1) + '%') + '</title></rect>';
     }
-    const w = (Math.abs(i.pct) / max) * 50, pos = i.pct >= 0;
-    return '<div style="margin-bottom:8px">' +
-      '<div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px">' +
-        '<span style="font-weight:600">' + escapeHtml(i.simbolo) + '</span>' +
-        '<span class="' + (pos ? 'item-amt-pos' : 'item-amt-neg') + '">' +
-        (pos ? '+' : '−') + Math.abs(i.pct).toFixed(1) + '%</span></div>' +
-      '<div style="height:10px;background:var(--bg3);border-radius:5px;position:relative">' +
-        '<div style="position:absolute;left:50%;top:0;bottom:0;width:1px;background:var(--border2)"></div>' +
-        '<div style="position:absolute;top:0;bottom:0;' + (pos ? 'left:50%' : 'right:50%') +
-        ';width:' + w.toFixed(1) + '%;background:var(--' + (pos ? 'green' : 'red') + ');border-radius:5px"></div>' +
-      '</div></div>';
-  }).join('');
+    g += '<text transform="translate(' + svgNum(cx) + ',' + (T + ph + 12) + ') rotate(-40)" text-anchor="end" font-size="10" fill="#222">' + escapeHtml(d.s) + '</text>';
+  });
+  const pend = datos.filter(d => !(d.v !== null && Number.isFinite(d.v))).map(d => d.s);
+  return '<div class="dsvg"><svg viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="crecimiento de cada accion en porcentaje">' + g + '</svg></div>' +
+    (pend.length ? '<div class="item-meta" style="text-align:center">sin barra: ' + escapeHtml(pend.join(', ')) + ' (falta el monto en pesos)</div>' : '');
+}
+
+// una sola barra: todo lo que gana (azul, arriba del cero) y todo lo que pierde (rojo, abajo)
+function svgGanaPierde(gana, pierde) {
+  const hi = Math.max(0, gana || 0), lo = Math.max(0, pierde || 0);
+  const paso = pasoBonito(Math.max(hi + lo, 1), 5);
+  const tope = Math.max(paso, Math.ceil(hi / paso) * paso), piso = Math.ceil(lo / paso) * paso;
+  const L = 68, R = 12, T = 10, B = 10, H = 300, W = 232, ph = H - T - B;
+  const y = v => T + ((tope - v) / (tope + piso)) * ph;
+  const bw = 84, x = L + (W - L - R - bw) / 2;
+  let g = '';
+  for (let v = -piso; v <= tope + paso * 0.001; v += paso) {
+    const yy = svgNum(y(v)), cero = Math.abs(v) < paso * 1e-6;
+    g += '<line x1="' + L + '" x2="' + (W - R) + '" y1="' + yy + '" y2="' + yy + '" stroke="' + (cero ? 'rgba(0,0,0,.45)' : 'rgba(0,0,0,.12)') + '"/>' +
+         '<text x="' + (L - 6) + '" y="' + svgNum(y(v) + 3.5) + '" text-anchor="end" font-size="13" fill="#333">' + escapeHtml(ejeMoneda(cero ? 0 : v)) + '</text>';
+  }
+  if (hi > 0) g += '<rect x="' + svgNum(x) + '" y="' + svgNum(y(hi)) + '" width="' + bw + '" height="' + svgNum(y(0) - y(hi)) + '" fill="' + DASH_VERDE + '"><title>' + escapeHtml('lo que gana: ' + fmt(hi)) + '</title></rect>';
+  if (lo > 0) g += '<rect x="' + svgNum(x) + '" y="' + svgNum(y(0)) + '" width="' + bw + '" height="' + svgNum(y(-lo) - y(0)) + '" fill="' + DASH_ROJO + '"><title>' + escapeHtml('lo que pierde: ' + fmt(lo)) + '</title></rect>';
+  return leyendaDash([[DASH_ROJO, 'total que pierde: ' + fmt(lo)], [DASH_VERDE, 'total que gana: ' + fmt(hi)]]) +
+    '<div class="dsvg" style="max-width:260px;margin:0 auto"><svg viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="total que gana contra total que pierde">' + g + '</svg></div>';
+}
+
+// barras de los cierres recientes del S&P 500, como la grafica de mercado de la hoja
+function svgMercado(hist) {
+  const pts = (Array.isArray(hist) ? hist : []).filter(p => p && Number.isFinite(p.c)).slice(-120);
+  if (pts.length < 2) return '';
+  const vals = pts.map(p => p.c), mn = Math.min(...vals), mx = Math.max(...vals);
+  const pad = (mx - mn) * 0.1 || Math.abs(mx) * 0.01 || 1;
+  const base = mn - pad, techo = mx + pad, W = 360, H = 96, paso = W / pts.length;
+  let g = '';
+  pts.forEach((p, i) => {
+    const alto = ((p.c - base) / (techo - base)) * H;
+    g += '<rect x="' + svgNum(i * paso) + '" y="' + svgNum(H - alto) + '" width="' + svgNum(Math.max(0.6, paso * 0.72)) + '" height="' + svgNum(alto) + '" fill="' + DASH_MARINO + '"/>';
+  });
+  return '<div class="dsvg"><svg viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="none" role="img" aria-label="cierres recientes del S&amp;P 500">' + g + '</svg></div>';
 }
 
 // ── pintar el tablero ─────────────────────────────────────────────────────────
+// en las donas del tablero NO va rojo ni verde: una rebanada roja (MSFT) se leia como "pierde"
+const DASH_PIE = ['#2563eb', '#d97706', '#7c3aed', '#0891b2', '#db2777', '#ca8a04', '#64748b', '#0ea5e9', '#ea580c'];
+// fecha del cierre en palabras y cuantos dias tiene; mas de 4 (un fin de semana largo son
+// 3-4) es un dato viejo que no se puede leer como de hoy
+function cierreDash(fecha) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(fecha || '')) return null;
+  const f = parseFechaLocal(fecha);
+  const dias = Math.floor((Date.now() - f.getTime()) / 86400000);
+  const txt = f.getDate() + ' ' + ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'][f.getMonth()];
+  return {txt, dias, viejo: dias > 4};
+}
 const DASH_SUP = {retorno: 8, crecDiv: 6};   // supuestos por defecto de la proyeccion
 let dashReinvertir = true;
 
 function renderDashboard() {
   if (!document.getElementById('page-dashboard')) return;
   const c = calcCartera();
-  const fila = (etq, val, cls, meta) =>
-    '<div class="item-row"><div><div class="item-cat">' + escapeHtml(etq) + '</div>' +
-    (meta ? '<div class="item-meta">' + escapeHtml(meta) + '</div>' : '') + '</div>' +
-    '<div style="font-size:14px;font-weight:600' + (cls ? ';color:var(--' + cls + ')' : '') + '">' +
-    escapeHtml(val) + '</div></div>';
-  const sgn = v => (v >= 0 ? '+' : '−') + fmt(Math.abs(v));
-  const vacio = m => '<div class="empty-state">' + m + '</div>';
   const set = (id, html) => { const el = document.getElementById(id); if (el) el.innerHTML = html; };
+  const sgn = v => (v >= 0 ? '+' : '−') + fmt(Math.abs(v));
+  const pct = v => (v >= 0 ? '+' : '−') + Math.abs(v).toFixed(2) + '%';
+  const signo = v => v >= 0 ? 'pos' : 'neg';
+  const vacio = m => '<div class="empty-state">' + m + '</div>';
+  // renglon estilo hoja: etiqueta a la izquierda, cifra a la derecha, nota opcional abajo
+  const kv = (k, v, cls, nota, destacado) =>
+    '<div class="k' + (destacado ? ' destacado' : '') + '">' + escapeHtml(k) + '</div>' +
+    '<div class="v' + (cls ? ' ' + cls : '') + (destacado ? ' destacado' : '') + '">' + escapeHtml(v) + '</div>' +
+    (nota ? '<div class="nota">' + escapeHtml(nota) + '</div>' : '');
+  const tabla = filas => '<div class="dkv">' + filas + '</div>';
+
+  renderNotasDash();
+  renderMercadoHoy();
+  const efe = efectivoDisponible();
 
   if (!c.pos.length) {
-    ['dash-resumen','dash-acciones','dash-asignacion','dash-costo-valor','dash-crecimiento',
-     'dash-contribucion','dash-sector','dash-proyeccion']
+    ['dash-stocks', 'dash-portafolio', 'dash-asignacion', 'dash-pie', 'dash-costo-valor', 'dash-crecimiento',
+     'dash-winloss', 'dash-sector', 'dash-proyeccion']
       .forEach(id => set(id, vacio('todavia no tienes acciones — registralas en inicio')));
-    set('dash-efectivo', fila('efectivo disponible', fmt(efectivoDisponible())));
-    renderMercadoHoy(); renderTickerUI();
+    set('dash-holdings', '<div class="dbig">0</div>');
+    set('dash-efectivo', tabla(kv('posicion en efectivo', fmt(efe), null, 'efectivo + NU saldo + Revolut MXN')));
+    renderTickerUI();
     return;
   }
 
-  // ── 1. el portafolio de un vistazo ──
-  const efe = efectivoDisponible(), total = c.valor + efe;
-  // EL numero que se busca al abrir: lo que llevas ganado o perdido en total, sin que
-  // Roberto tenga que restar de cabeza lo vendido de lo no vendido
+  const total = c.valor + efe;
   const noReal = c.ganancia !== null ? c.ganancia : c.gananciaParcial;
   const totalReal = (noReal !== null && c.realizado !== null) ? noReal + c.realizado : null;
-  let r = '';
-  if (totalReal !== null) {
-    r += '<div class="item-row" style="align-items:baseline"><div><div class="item-cat" style="font-weight:600">' +
-      (totalReal >= 0 ? 'vas ganando' : 'vas perdiendo') + '</div>' +
-      '<div class="item-meta">lo que tienes' + (Math.abs(c.realizado) > 0.005 ? ' mas lo que ya vendiste' : '') +
-      (c.completo ? '' : ' · solo con lo capturado') + '</div></div>' +
-      '<div style="font-size:20px;font-weight:700;color:var(--' + (totalReal >= 0 ? 'green' : 'red') + ')">' +
-      sgn(totalReal) + '</div></div>';
-  }
-  r += fila('valor de tus acciones', c.valor > 0 ? fmt(c.valor) : '—',
-               null, c.faltaPrecio ? 'falta el precio de alguna: no esta completo' : '');
-  // decir CUAL compra falta: "a alguna" no le sirve a nadie para arreglarlo
-  r += fila('lo que llevas puesto', c.faltaCosto ? 'pendiente' : fmt(c.costo),
-            null, c.faltaCosto ? 'falta el monto en pesos de: ' + c.sinCosto.join(', ') : '');
+  const sinQue = [...new Set(c.sinCosto.concat(c.sinPrecio))].join(', ');
+  // los precios de tus acciones llegan en la misma actualizacion que el mercado: si llevan
+  // dias sin llegar, el aviso va junto a TUS cifras (en el telefono el del mercado queda
+  // cuatro pantallas abajo y "vas perdiendo" se leia como de hoy)
+  const fechasPrecio = c.pos.map(p => ((state.accionesMkt || {})[p.simbolo] || {}).fecha)
+    .filter(f => /^\d{4}-\d{2}-\d{2}$/.test(f || '')).sort();
+  const cierrePos = fechasPrecio.length ? cierreDash(fechasPrecio[0]) : null;
+  const avisoPrecios = (cierrePos && cierrePos.viejo)
+    ? '<div class="nota" style="text-align:left;color:var(--red);font-weight:700;font-size:12px;margin:0 0 6px">ojo: son precios del ' +
+      cierrePos.txt + ', hace ' + cierrePos.dias + ' dias. Pulsa actualizar.</div>'
+    : '';
+
+  // ── Acciones (tarjeta "Stocks" de la hoja) ──
+  let st = avisoPrecios + kv('valor de mercado', c.valor > 0 ? fmt(c.valor) : '—', null,
+              c.faltaPrecio ? 'falta el precio de: ' + c.sinPrecio.join(', ') : '');
   if (c.ganancia !== null) {
-    r += fila(c.ganancia >= 0 ? 'ganancia sobre lo invertido' : 'perdida sobre lo invertido',
-              sgn(c.ganancia), c.ganancia >= 0 ? 'green' : 'red',
-              c.gananciaPct !== null ? (c.gananciaPct >= 0 ? '+' : '−') + Math.abs(c.gananciaPct).toFixed(2) + '%' : '');
+    st += kv('$ ganancia/perdida', sgn(c.ganancia), signo(c.ganancia)) +
+          kv('% ganancia/perdida', c.gananciaPct !== null ? pct(c.gananciaPct) : '—', c.gananciaPct !== null ? signo(c.gananciaPct) : null);
   } else if (c.gananciaParcial !== null) {
-    // veredicto con lo que SI esta capturado: antes aqui decia 'pendiente' y tres pantallas
-    // abajo el mismo tablero daba un total — la app sabia y arriba decia que no
-    r += fila(c.gananciaParcial >= 0 ? 'ganancia sobre lo invertido' : 'perdida sobre lo invertido',
-              sgn(c.gananciaParcial), c.gananciaParcial >= 0 ? 'green' : 'red',
-              'solo con lo capturado (sin ' + [...new Set(c.sinCosto.concat(c.sinPrecio))].join(', ') + ')');
+    st += kv('$ ganancia/perdida', sgn(c.gananciaParcial), signo(c.gananciaParcial), 'solo con lo capturado (sin ' + sinQue + ')') +
+          kv('% ganancia/perdida', 'pendiente');
   } else {
-    r += fila('ganancia sobre lo invertido', 'pendiente', null, 'faltan datos para calcularla sin inventar');
+    st += kv('$ ganancia/perdida', 'pendiente', null, 'faltan datos para calcularla sin inventar');
   }
-  if (c.realizado !== null && Math.abs(c.realizado) > 0.005) {
-    r += fila('ya realizado (vendido)', sgn(c.realizado), c.realizado >= 0 ? 'green' : 'red',
-              'ganancia de lo que ya vendiste');
-  }
-  r += fila('patrimonio invertible', fmt(total), null, 'acciones + efectivo disponible');
-  set('dash-resumen', r);
+  st += kv('dividendos al año', c.divAnual > 0 ? fmt(c.divAnual) : '—', c.divAnual > 0 ? 'pos' : null,
+           c.divAnual > 0 ? (c.faltaDiv ? 'solo de las que tienen dividendo capturado' : '') : 'capturalos abajo en "datos de cada accion"');
+  // el yield que se destaca es el ACTUAL; el "sobre costo" se ve mas alto por usar precios viejos
+  st += kv('dividendos: rinden al año', c.yieldActual !== null ? c.yieldActual.toFixed(2) + '%' : '—', null,
+           c.yieldCosto !== null ? 'sobre lo que pagaste: ' + c.yieldCosto.toFixed(2) + '%' : '');
+  set('dash-stocks', tabla(st));
 
-  // ── 2. acciones (con dividendos si estan capturados) ──
-  let a = fila('posiciones abiertas', String(c.pos.length));
-  if (c.divAnual > 0) {
-    a += fila('dividendos al año', fmt(c.divAnual), 'green',
-              c.faltaDiv ? 'solo de las acciones con dividendo capturado' : 'segun lo que capturaste');
-    if (c.yieldActual !== null) {
-      a += fila('rinde al año', c.yieldActual.toFixed(2) + '%', null,
-                'sobre lo que valen HOY' + (c.yieldCosto !== null
-                  ? ' · sobre lo que pagaste: ' + c.yieldCosto.toFixed(2) + '%' : ''));
-    }
+  // ── Efectivo ──
+  set('dash-efectivo', tabla(
+    kv('posicion en efectivo', fmt(efe), null, 'efectivo + NU saldo + Revolut MXN') +
+    kv('parte del total', total > 0 ? (efe / total * 100).toFixed(1) + '%' : '—')));
+
+  // ── Tu portafolio (el bloque grande de la hoja) ──
+  let pf = avisoPrecios + kv('valor del portafolio', c.valor > 0 ? fmt(c.valor) : '—', null, 'solo acciones, sin el efectivo');
+  pf += kv('costo del portafolio', c.faltaCosto ? 'pendiente' : fmt(c.costo), null,
+           c.faltaCosto ? 'falta el monto en pesos de: ' + c.sinCosto.join(', ') : '');
+  if (c.ganancia !== null) {
+    pf += kv(c.ganancia >= 0 ? '$ ganancia' : '$ perdida', sgn(c.ganancia), signo(c.ganancia)) +
+          (c.gananciaPct !== null ? kv(c.ganancia >= 0 ? '% ganancia' : '% perdida', pct(c.gananciaPct), signo(c.gananciaPct)) : '');
+  } else if (c.gananciaParcial !== null) {
+    pf += kv(c.gananciaParcial >= 0 ? '$ ganancia' : '$ perdida', sgn(c.gananciaParcial), signo(c.gananciaParcial),
+             'solo con lo capturado (sin ' + sinQue + ')');
   } else {
-    a += '<div class="item-meta" style="padding:8px 0">Para ver dividendos, capturalos abajo en ' +
-         '"datos de cada accion". Ninguna fuente gratis los da.</div>';
+    pf += kv('$ ganancia/perdida', 'pendiente', null, 'faltan datos para calcularla sin inventar');
   }
-  a += c.pos.map(p =>
-    '<div class="item-row"><div><div class="item-cat">' + escapeHtml(p.simbolo) + '</div>' +
-    '<div class="item-meta">' + p.acciones.toFixed(4) + ' acc' +
-    (p.precio !== null ? ' · US$' + p.precio.toFixed(2) : ' · precio pendiente') + '</div></div>' +
-    '<div style="font-size:14px;font-weight:600">' + (p.valor !== null ? fmt(p.valor) : '—') + '</div></div>'
-  ).join('');
-  set('dash-acciones', a);
+  pf += kv('ganancias realizadas', c.realizado !== null ? sgn(c.realizado) : 'pendiente',
+           (c.realizado !== null && Math.abs(c.realizado) > 0.005) ? signo(c.realizado) : null,
+           c.realizado === null ? 'a una venta le falta el monto' : 'lo que ya vendiste');
+  // EL numero que se busca al abrir: lo no vendido MAS lo ya vendido, sin restar de cabeza
+  if (totalReal !== null) {
+    pf += kv(totalReal >= 0 ? 'vas ganando (con lo vendido)' : 'vas perdiendo (con lo vendido)', sgn(totalReal), signo(totalReal),
+             (c.completo ? '' : 'solo con lo capturado · ') + 'no incluye dividendos cobrados: la app no los registra', true);
+  }
+  pf += kv('patrimonio invertible', fmt(total), null, 'acciones + efectivo disponible');
+  set('dash-portafolio', tabla(pf));
 
-  // ── 3. efectivo ──
-  set('dash-efectivo',
-    fila('efectivo disponible', fmt(efe), null, 'efectivo + NU saldo + Revolut MXN') +
-    fila('parte del total', total > 0 ? (efe / total * 100).toFixed(1) + '%' : '—', null,
-         'lo liquido frente a lo invertido'));
+  // ── Asignacion: efectivo contra bolsa ──
+  set('dash-asignacion', (c.valor > 0 || efe > 0)
+    ? pieChart([['acciones', c.valor], ['efectivo', efe]].filter(x => x[1] > 0), DASH_PIE)
+    : vacio('sin datos suficientes'));
 
-  // ── 4. asignacion: efectivo contra bolsa, y despues posicion por posicion ──
-  if (c.valor > 0 || efe > 0) {
-    let as = pieChart([['acciones', c.valor], ['efectivo', efe]].filter(x => x[1] > 0));
-    if (c.pos.filter(p => p.valor !== null).length > 1) {
-      as += '<div class="section-title" style="margin-top:14px">reparto entre tus acciones</div>' +
-            pieChart(c.pos.filter(p => p.valor !== null).map(p => [p.simbolo, p.valor]));
-      const mayor = c.pos[0];
-      if (mayor && mayor.valor !== null && c.valor > 0) {
-        const conc = mayor.valor / c.valor * 100;
-        if (conc >= 40) {
-          as += '<div class="item-meta" style="text-align:center;padding-top:8px">' +
-                'ojo: ' + escapeHtml(mayor.simbolo) + ' es el ' + conc.toFixed(0) +
-                '% de tu bolsa. Si le va mal a esa sola, te pega fuerte.</div>';
-        }
+  // ── Reparto entre tus acciones ──
+  const conV = c.pos.filter(p => p.valor !== null);
+  if (conV.length) {
+    let pp = pieChart(conV.map(p => [p.simbolo, p.valor]), DASH_PIE);
+    const mayor = c.pos[0];
+    if (mayor && mayor.valor !== null && c.valor > 0 && conV.length > 1) {
+      const conc = mayor.valor / c.valor * 100;
+      if (conc >= 40) {
+        pp += '<div class="item-meta" style="text-align:center;padding-top:8px">ojo: ' + escapeHtml(mayor.simbolo) +
+              ' es el ' + conc.toFixed(0) + '% de tu bolsa. Si le va mal a esa sola, te pega fuerte.</div>';
       }
     }
-    set('dash-asignacion', as);
-  } else set('dash-asignacion', vacio('sin datos suficientes'));
+    set('dash-pie', pp);
+  } else set('dash-pie', vacio('falta el precio de tus acciones'));
 
-  // ── 5. lo que pusiste contra lo que vale ──
-  set('dash-costo-valor', barrasCostoValor(c.pos));
+  // ── Lo que pusiste y lo que vale · Crecimiento ──
+  set('dash-costo-valor', svgCostoValor(c.pos));
+  set('dash-crecimiento', svgCrecimiento(c.pos));
 
-  // ── 6. como va cada posicion ──
-  set('dash-crecimiento', barrasSigno(c.pos.map(p => ({simbolo: p.simbolo, pct: p.gananciaPct}))));
-
-  // ── 7. quien esta dando la ganancia. Sustituye al "ganadoras vs perdedoras" del
-  //       video, que con pocas posiciones no dice nada: lo util es CUANTO aporta cada
-  //       una a la ganancia total, no cuantas van arriba y cuantas abajo.
+  // ── Lo que gana y lo que pierde (+ quien mueve el resultado) ──
   const conG = c.pos.filter(p => p.ganancia !== null);
   if (conG.length) {
     const tot = conG.reduce((t, p) => t + p.ganancia, 0);
@@ -5140,59 +5295,96 @@ function renderDashboard() {
     const sumaNeg = conG.reduce((t, p) => t + Math.max(0, -p.ganancia), 0);
     const nPos = conG.filter(p => p.ganancia > 0.005).length, nNeg = conG.filter(p => p.ganancia < -0.005).length;
     const orden = conG.slice().sort((a, b) => b.ganancia - a.ganancia);
-    // primero el veredicto, en una linea, y luego quien lo causa
-    // NO repetir "vas ganando/perdiendo": ese es el numero de arriba, que ademas incluye lo
-    // ya vendido. Este panel reparte SOLO lo que todavia tienes, y decirlo evita que dos
-    // cifras distintas con la misma frase queden a la vista a la vez.
-    let ct = '<div class="item-meta" style="margin-bottom:6px">' +
-      'de ' + fmt(Math.abs(tot)) + (tot >= 0 ? ' que llevas ganados' : ' que llevas perdidos') +
-      ' en lo que todavia NO vendes' + (c.faltaCosto || c.faltaPrecio ? ' y si esta capturado' : '') +
-      ', asi se reparte:</div>' +
+    // NO repetir "vas ganando/perdiendo": ese es el numero del portafolio, que incluye lo
+    // ya vendido. Aqui se reparte SOLO lo que todavia tienes, y se dice con todas sus letras.
+    let wl = svgGanaPierde(sumaPos, sumaNeg) +
+      '<div class="item-meta" style="margin:10px 0 4px">en lo que todavia NO vendes' + (c.faltaCosto || c.faltaPrecio ? ' (solo lo que ya tiene monto y precio)' : '') +
+      ': las que suben ganan ' + fmt(sumaPos) + ' y las que bajan pierden ' + fmt(sumaNeg) + '. En neto, ' + sgn(tot) + '.</div>' +
       orden.map(p =>
-      '<div class="item-row"><div><div class="item-cat">' + escapeHtml(p.simbolo) + '</div>' +
-      // el porcentaje se mide contra el total del MISMO signo (todo lo que gana, o todo lo
-      // que pierde), nunca contra el neto: "causa el 174% de tu perdida" no significa nada
-      '<div class="item-meta">' + (
-        p.ganancia >= 0
-          ? (sumaPos <= 0.005 ? 'sin ganancia todavia'
-             : nPos === 1 ? 'la unica que te esta dando'          // "aporta el 100%" suena a error
-             : 'aporta el ' + (p.ganancia / sumaPos * 100).toFixed(0) + '% de lo que ganaste')
-          : (sumaNeg <= 0.005 ? ''
-             : nNeg === 1 ? 'la unica que te esta quitando'
-             : 'pesa el ' + (Math.abs(p.ganancia) / sumaNeg * 100).toFixed(0) + '% de lo que perdiste')) +
-      '</div></div><span class="' + (p.ganancia >= 0 ? 'item-amt-pos' : 'item-amt-neg') + '">' +
-      sgn(p.ganancia) + '</span></div>').join('');
-    ct += '<div class="item-row"><div class="item-cat" style="font-weight:600">total</div>' +
-          '<span class="' + (tot >= 0 ? 'item-amt-pos' : 'item-amt-neg') +
-          '" style="font-size:15px">' + sgn(tot) + '</span></div>';
-    set('dash-contribucion', ct);
-  } else set('dash-contribucion', vacio('faltan datos de costo para calcularlo'));
+        '<div class="item-row"><div><div class="item-cat">' + escapeHtml(p.simbolo) + '</div>' +
+        // el porcentaje se mide contra el total del MISMO signo, nunca contra el neto
+        '<div class="item-meta">' + (
+          p.ganancia >= 0
+            ? (sumaPos <= 0.005 ? 'sin ganancia todavia'
+               : nPos === 1 ? 'la unica que te esta dando'
+               : 'aporta el ' + (p.ganancia / sumaPos * 100).toFixed(0) + '% de los ' + fmt(sumaPos) + ' que ganan')
+            : (sumaNeg <= 0.005 ? ''
+               : nNeg === 1 ? 'la unica que te esta quitando'
+               : 'pesa el ' + (Math.abs(p.ganancia) / sumaNeg * 100).toFixed(0) + '% de los ' + fmt(sumaNeg) + ' que pierden')) +
+        '</div></div><span class="' + (p.ganancia >= 0 ? 'item-amt-pos' : 'item-amt-neg') + '">' + sgn(p.ganancia) + '</span></div>'
+      ).join('') +
+      '<div class="item-row"><div class="item-cat" style="font-weight:700">total</div>' +
+      '<span class="' + (tot >= 0 ? 'item-amt-pos' : 'item-amt-neg') + '" style="font-size:15px">' + sgn(tot) + '</span></div>' +
+      (c.realizado !== null && Math.abs(c.realizado) > 0.005
+        ? '<div class="item-meta" style="margin-top:6px">el "vas ' + (totalReal !== null && totalReal < 0 ? 'perdiendo' : 'ganando') +
+          '" de tu portafolio es distinto porque suma lo que ya vendiste (' + sgn(c.realizado) + ')</div>'
+        : '');
+    set('dash-winloss', wl);
+  } else set('dash-winloss', vacio('faltan datos de costo para calcularlo'));
 
-  // ── 8. sector ──
+  // ── Total de posiciones ──
+  set('dash-holdings', '<div class="dbig">' + c.pos.length + '</div>');
+
+  // ── Reparto por sector ──
   const conSec = c.pos.filter(p => p.sector && p.valor !== null);
   if (conSec.length) {
-    const porSec = {};
+    const porSec = Object.create(null); // p.sector es texto libre: sin prototipo evita choques con "constructor"/"__proto__"
     conSec.forEach(p => { porSec[p.sector] = (porSec[p.sector] || 0) + p.valor; });
     let sec = '';
     // lo que falta va ANTES de la dona: la conclusion no puede venir primero que la advertencia
     if (conSec.length < c.pos.length) {
-      // mismo filtro para contar y para nombrar: sin sector O sin precio quedan fuera de la dona
       sec += '<div class="item-meta" style="margin-bottom:8px">reparto de lo que ya tiene sector capturado (' +
              conSec.length + ' de ' + c.pos.length + '): faltan ' +
              escapeHtml(c.pos.filter(p => !(p.sector && p.valor !== null)).map(p => p.simbolo).join(', ')) + '</div>';
     }
-    sec += pieChart(Object.entries(porSec).sort((a, b) => b[1] - a[1]));
-    // aviso honesto: repartir 5 acciones en 5 sectores NO es estar diversificado
-    sec += '<div class="item-meta" style="text-align:center;padding-top:8px">' +
-           'son ' + conSec.length + ' accion(es) en ' + Object.keys(porSec).length + ' sector(es). ' +
-           'Repartir pocas acciones en varios sectores no es lo mismo que estar diversificado.</div>';
+    sec += pieChart(Object.entries(porSec).sort((a, b) => b[1] - a[1]), DASH_PIE);
+    sec += '<div class="item-meta" style="text-align:center;padding-top:8px">son ' + conSec.length + (conSec.length === 1 ? ' accion' : ' acciones') + ' en ' +
+           Object.keys(porSec).length + (Object.keys(porSec).length === 1 ? ' sector' : ' sectores') + '. Repartir pocas acciones en varios sectores no es lo mismo que estar diversificado.</div>';
     set('dash-sector', sec);
   } else set('dash-sector', vacio('captura el sector de tus acciones abajo para ver este reparto'));
 
   renderProyeccion(c);
-  renderMercadoHoy();
   renderTickerUI();
 }
+
+// ── Notas (la columna "Notes" de la hoja): reglas propias, una por renglon ──
+// Viven en el perfil (perfil.notasInversion) para que viajen con la cuenta.
+let notasEditando = false;
+function renderNotasDash(forzar) {
+  const el = document.getElementById('dash-notas'); if (!el) return;
+  // si esta escribiendo, un refresco del tablero (p. ej. llegan cotizaciones) NO debe
+  // borrarle lo que lleva tecleado
+  if (notasEditando && !forzar && document.getElementById('dash-notas-txt')) return;
+  const txt = (state.perfil && typeof state.perfil.notasInversion === 'string') ? state.perfil.notasInversion : '';
+  if (notasEditando) {
+    el.innerHTML = '<textarea id="dash-notas-txt" maxlength="1500" placeholder="una regla por renglon">' + escapeHtml(txt) + '</textarea>' +
+      '<button type="button" class="btn btn-purple" id="dash-notas-btn" onclick="guardarNotasDash()">guardar</button>' +
+      '<button type="button" class="btn" style="margin-top:6px" onclick="editarNotasDash(false)">cancelar</button>';
+    return;
+  }
+  const lineas = txt.split('\n').map(l => l.trim()).filter(Boolean);
+  el.innerHTML = (lineas.length
+      ? lineas.map(l => '<p class="dnota">- ' + escapeHtml(l.replace(/^[-•]\s*/, '')) + '</p>').join('')
+      : '<div class="item-meta" style="line-height:1.6;text-align:center">Escribe aqui tus reglas de inversion, una por renglon. ' +
+        'Por ejemplo: invertir en empresas que suben su dividendo · no bajar de 15% en efectivo · vender lo que ya no encaje con mis metas.</div>') +
+    '<button type="button" class="btn" style="margin-top:10px" onclick="editarNotasDash(true)">' + (lineas.length ? 'editar notas' : 'escribir notas') + '</button>';
+}
+window.editarNotasDash = function(on) {
+  notasEditando = !!on;
+  renderNotasDash(true);
+  if (on) requestAnimationFrame(() => { const t = document.getElementById('dash-notas-txt'); if (t) { try { t.focus(); } catch (e) {} } });
+};
+window.guardarNotasDash = async function() {
+  const t = document.getElementById('dash-notas-txt'); if (!t) return;
+  const texto = t.value.slice(0, 1500);
+  const btn = document.getElementById('dash-notas-btn'); if (btn) btn.disabled = true;
+  // guardarPerfil valida datosCargados, evita el doble guardado y avisa si falla
+  const ok = await guardarPerfil({notasInversion: texto}, 'notas guardadas');
+  if (btn) btn.disabled = false;
+  if (!ok) return;                       // se queda abierto con lo escrito para reintentar
+  notasEditando = false;
+  renderNotasDash(true);
+};
 
 // ── proyeccion: cuenta PURA (sin DOM) para poder probarla ──────────────────────
 // Modelo de UNIDADES: hoy tienes 1 unidad que vale V0 y paga D0 al año. El precio de la
@@ -5219,45 +5411,35 @@ function proyectarCartera(V0, D0, r, g, reinvertir) {
   return out;
 }
 // ── proyeccion: es una CUENTA, no un pronostico. Se presenta como escenario editable ──
+// Mismas columnas que "Future Portfolio Outlook" de la hoja, con el menu de reinvertir
+// en la esquina de la tabla.
 function renderProyeccion(c) {
-  if (!(c.valor > 0)) { const e = document.getElementById('dash-proyeccion');
-    if (e) e.innerHTML = '<div class="empty-state">sin valor de mercado no hay nada que proyectar</div>'; return; }
-  const filasP = proyectarCartera(c.valor, c.divAnual > 0 ? c.divAnual : 0,
-                                  DASH_SUP.retorno / 100, DASH_SUP.crecDiv / 100, dashReinvertir);
+  const el = document.getElementById('dash-proyeccion'); if (!el) return;
+  if (!(c.valor > 0)) { el.innerHTML = '<div class="empty-state">sin valor de mercado no hay nada que proyectar</div>'; return; }
   const D0 = c.divAnual > 0 ? c.divAnual : 0;
-  let filas = '';
-  filasP.forEach(f => {
-    filas += '<div class="item-row"><div><div class="item-cat">' + f.n + ' años</div>' +
-      (D0 > 0 ? '<div class="item-meta">dividendos ese año: ' + fmt(f.divN) +
-                ' · acumulados: ' + fmt(f.divAcum) + '</div>' : '') +
-      '</div><div style="font-size:14px;font-weight:600">' + fmt(f.valor) + '</div></div>';
-  });
-  const el = document.getElementById('dash-proyeccion');
-  if (!el) return;
+  const filasP = proyectarCartera(c.valor, D0, DASH_SUP.retorno / 100, DASH_SUP.crecDiv / 100, dashReinvertir);
+  const celDiv = v => D0 > 0 ? fmt(v) : '—';
   el.innerHTML =
-    '<div class="item-meta" style="line-height:1.5;margin-bottom:10px">' +
-      '<b>Escenario, no promesa.</b> Es una cuenta con los supuestos de abajo. No predice nada: ' +
-      'el mercado y los dividendos pueden subir, bajar o quedarse en cero. No descuenta ' +
-      'impuestos, comisiones ni inflación.</div>' +
-    '<div class="item-meta" style="margin-bottom:10px">Parte de <b>' + fmt(c.valor) + '</b> (solo tus acciones, sin el efectivo) ' +
-      'y supone que <b>no vuelves a meter dinero</b>: cada compra nueva cambia todo esto.</div>' +
-    (DASH_SUP.retorno < 0
-      ? '<div class="item-meta" style="margin-bottom:10px">Con un rendimiento negativo los dividendos que reinviertes ' +
-        'tambien pierden valor cada año, por eso lo acumulado puede ser mayor que lo que acabas teniendo.</div>'
-      : '') +
-    '<div class="type-toggle">' +
-      '<div class="type-opt' + (dashReinvertir ? ' active' : '') + '" onclick="setReinvertir(true)">reinvirtiendo dividendos</div>' +
-      '<div class="type-opt' + (!dashReinvertir ? ' active' : '') + '" onclick="setReinvertir(false)">sin reinvertir</div>' +
+    '<div class="dtabla-wrap"><table class="dtabla"><thead><tr>' +
+      '<th><label class="dreinv" for="dash-reinv">reinvertir dividendos</label><select id="dash-reinv" aria-label="reinvertir dividendos" onchange="setReinvertir(this.value===\'1\')">' +
+        '<option value="1"' + (dashReinvertir ? ' selected' : '') + '>sí</option>' +
+        '<option value="0"' + (!dashReinvertir ? ' selected' : '') + '>no</option></select></th>' +
+      '<th>dividendos ese año</th><th>dividendos acumulados</th><th>valor del portafolio</th></tr></thead><tbody>' +
+      filasP.map(f => '<tr><td>' + f.n + ' años</td><td>' + celDiv(f.divN) + '</td><td>' + celDiv(f.divAcum) + '</td><td>' + fmt(f.valor) + '</td></tr>').join('') +
+    '</tbody></table></div>' +
+    '<div class="dsupuestos">' +
+      '<label>sube al año <input type="number" id="dash-sup-ret" value="' + DASH_SUP.retorno + '" step="0.5" inputmode="decimal" onchange="setSupuesto(\'retorno\',this.value)">%</label>' +
+      '<label>dividendo crece <input type="number" id="dash-sup-div" value="' + DASH_SUP.crecDiv + '" step="0.5" inputmode="decimal" onchange="setSupuesto(\'crecDiv\',this.value)">%</label>' +
     '</div>' +
-    '<div class="row2" style="gap:8px">' +
-      '<div class="field"><label>sube al año (%)</label><input type="number" id="dash-sup-ret" value="' +
-        DASH_SUP.retorno + '" step="0.5" inputmode="decimal" onchange="setSupuesto(\'retorno\',this.value)"></div>' +
-      '<div class="field"><label>dividendo crece (%)</label><input type="number" id="dash-sup-div" value="' +
-        DASH_SUP.crecDiv + '" step="0.5" inputmode="decimal" onchange="setSupuesto(\'crecDiv\',this.value)"></div>' +
-    '</div>' + filas +
-    '<div class="item-meta" style="text-align:center;padding-top:8px">' +
-      'Cambia los dos números y compara escenarios. El 8% de referencia es parecido al ' +
-      'promedio histórico del S&P 500 ya descontada la inflación — el pasado no obliga al futuro.</div>';
+    '<div class="item-meta" style="line-height:1.5"><b>Escenario, no promesa.</b> Parte de <b>' + fmt(c.valor) + '</b> (solo tus acciones, sin el efectivo) ' +
+      'y supone que <b>no vuelves a meter dinero</b>. ' +
+      (dashReinvertir ? 'Con "sí", los dividendos se vuelven acciones: ya van <b>dentro</b> del valor del portafolio. '
+                      : 'Con "no", los dividendos acumulados son <b>aparte</b>: no estan dentro del valor del portafolio. ') +
+      'No descuenta impuestos, comisiones ni inflación. El 8% de referencia es parecido al ' +
+      'promedio histórico del S&amp;P 500 descontada la inflación — el pasado no obliga al futuro.' +
+      (D0 > 0 ? '' : ' Sin dividendos capturados, esas columnas quedan en blanco.') +
+      (DASH_SUP.retorno < 0 ? ' Con un rendimiento negativo los dividendos que reinviertes también pierden valor cada año, por eso lo acumulado puede ser mayor que lo que acabas teniendo.' : '') +
+    '</div>';
 }
 window.setReinvertir = function(v) { dashReinvertir = !!v; refrescar(renderDashboard); };
 window.setSupuesto = function(cual, valor) {
@@ -5268,25 +5450,41 @@ window.setSupuesto = function(cual, valor) {
 };
 
 // ── como se mueve el mercado hoy ──
+// Antes leia state.ivvPrecio, que venia de GBM y quedo CONGELADO desde su venta (jul-2026):
+// enseñaba un S&P de hace semanas como si fuera de hoy. Ahora usa REF_MERCADO (VOO), que
+// fetchStocks baja en cada actualizacion junto con su historial.
 function renderMercadoHoy() {
-  const el = document.getElementById('dash-mercado');
-  if (!el) return;
-  const filas = [];
-  const f = (etq, precio, prev, suf) => {
-    if (!Number.isFinite(precio)) return;
-    const cam = Number.isFinite(prev) && prev > 0 ? (precio - prev) / prev * 100 : null;
-    filas.push('<div class="item-row"><div><div class="item-cat">' + escapeHtml(etq) + '</div>' +
-      (cam !== null ? '<div class="item-meta ' + (cam >= 0 ? 'item-amt-pos' : 'item-amt-neg') + '">' +
-        (cam >= 0 ? '+' : '−') + Math.abs(cam).toFixed(2) + '% hoy</div>' : '') +
-      '</div><div style="font-size:14px;font-weight:600">' + (suf || '') + precio.toFixed(2) + '</div></div>');
-  };
-  f('S&P 500 (IVVPESO)', state.ivvPrecio, Number.isFinite(state.ivvVar) && state.ivvVar !== 0
-      ? state.ivvPrecio / (1 + state.ivvVar / 100) : null, '$');
-  f('dólar', state.usdMxn, state.usdMxnPrev, '$');
-  // los precios de cada accion NO se repiten aqui: ya salen en "acciones" y en "como va
-  // cada posicion". Este panel es para el mercado, no para el portafolio.
-  el.innerHTML = filas.length ? filas.join('') :
-    '<div class="empty-state">sin cotizaciones todavia — se jalan solas al abrir</div>';
+  const el = document.getElementById('dash-mercado'); if (!el) return;
+  const mk = state.accionesMkt ? state.accionesMkt[REF_MERCADO] : null;
+  if (!mk || !Number.isFinite(mk.precio)) {
+    el.innerHTML = '<div class="empty-state">sin cotizacion del S&amp;P 500 todavia — se jala sola al abrir</div>';
+    return;
+  }
+  const cam = (Number.isFinite(mk.prev) && mk.prev > 0) ? mk.precio - mk.prev : null;
+  const camPct = cam !== null ? cam / mk.prev * 100 : null;
+  const dolar = Number.isFinite(state.usdMxn) ? state.usdMxn : null;
+  const camD = (dolar !== null && Number.isFinite(state.usdMxnPrev) && state.usdMxnPrev > 0)
+    ? (dolar - state.usdMxnPrev) / state.usdMxnPrev * 100 : null;
+  const cls = v => v === null ? '' : (v >= 0 ? ' pos' : ' neg');
+  const sg = v => v >= 0 ? '+' : '−';
+  // "con retraso" sonaba a minutos: si el cierre tiene mas de 4 dias (un fin de semana largo
+  // son 3-4) se avisa en rojo y con cuantos dias, para no leer un dato viejo como de hoy
+  const MESES = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+  const fch = /^\d{4}-\d{2}-\d{2}$/.test(mk.fecha || '') ? parseFechaLocal(mk.fecha) : null;
+  const fchTxt = fch ? fch.getDate() + ' ' + MESES[fch.getMonth()] : '';
+  const dias = fch ? Math.floor((Date.now() - fch.getTime()) / 86400000) : null;
+  const viejo = dias !== null && dias > 4;
+  el.innerHTML = (viejo ? '<div class="item-meta" style="color:var(--red);font-weight:700;margin-bottom:8px">ojo: es el cierre del ' +
+      fchTxt + ', hace ' + dias + ' dias. Pulsa actualizar para traer el de hoy.</div>' : '') +
+    '<div class="dmercado"><div class="dkv">' +
+      '<div class="k">indice</div><div class="v">S&amp;P 500 (' + escapeHtml(REF_MERCADO) + ')</div>' +
+      '<div class="k">precio</div><div class="v">US$' + mk.precio.toFixed(2) + '</div>' +
+      '<div class="k">cambio ' + (viejo ? 'de ese dia' : 'del dia') + ' $</div><div class="v' + cls(cam) + '">' + (cam === null ? '—' : sg(cam) + 'US$' + Math.abs(cam).toFixed(2)) + '</div>' +
+      '<div class="k">cambio ' + (viejo ? 'de ese dia' : 'del dia') + ' %</div><div class="v' + cls(camPct) + '">' + (camPct === null ? '—' : sg(camPct) + Math.abs(camPct).toFixed(2) + '%') + '</div>' +
+      (dolar !== null ? '<div class="k">dolar</div><div class="v' + cls(camD) + '">$' + dolar.toFixed(2) +
+        (camD === null ? '' : ' (' + sg(camD) + Math.abs(camD).toFixed(2) + '%)') + '</div>' : '') +
+    '</div>' + svgMercado(mk.hist) + '</div>' +
+    (fchTxt ? '<div class="item-meta" style="text-align:right">cierre del ' + escapeHtml(fchTxt) + ' · barras: cierres de los ultimos meses · Yahoo</div>' : '');
 }
 
 // ── captura de sector y dividendo por accion ──
@@ -5370,7 +5568,7 @@ window.guardarTicker = async function() {
 // ── RESUMEN ───────────────────────────────────────────────────
 // paleta ajustada a fondo claro (tonos fuertes, distinguibles sobre blanco)
 const PIE_COLORS=['#2563eb','#059669','#dc2626','#d97706','#0ea5e9','#db2777','#16a34a','#ea580c','#0891b2','#7c3aed','#ca8a04','#64748b','#e11d48'];
-function pieChart(entries) {
+function pieChart(entries, colores = PIE_COLORS) {
   // entries: [[categoria, monto], ...] ordenado desc
   const total=entries.reduce((s,e)=>s+e[1],0);
   if(!total) return '<div class="empty-state">sin datos en este periodo</div>';
@@ -5379,7 +5577,7 @@ function pieChart(entries) {
   // la interaccion tactil/cursor; el centro del donut muestra la seleccion
   const attrs=(e,i)=>`class="pie-slice" data-cat="${escapeHtml(e[0])}" data-monto="${fmtCorto(e[1])}" data-pct="${(e[1]/total*100).toFixed(1)}"`;
   entries.forEach((e,i)=>{
-    const frac=e[1]/total, color=PIE_COLORS[i%PIE_COLORS.length];
+    const frac=e[1]/total, color=colores[i%colores.length];
     if(frac>=0.999){ paths+=`<circle ${attrs(e,i)} cx="${cx}" cy="${cy}" r="${(r+ir)/2}" fill="none" stroke="${color}" stroke-width="${r-ir}"/>`; a0+=frac*2*Math.PI; return; }
     const a1=a0+frac*2*Math.PI, large=(a1-a0)>Math.PI?1:0;
     const x0=cx+r*Math.cos(a0),y0=cy+r*Math.sin(a0),x1=cx+r*Math.cos(a1),y1=cy+r*Math.sin(a1);
@@ -5389,7 +5587,7 @@ function pieChart(entries) {
   });
   const centro=`<text class="pie-c1" x="60" y="56" text-anchor="middle" font-size="8">total</text>`+
     `<text class="pie-c2" x="60" y="69" text-anchor="middle" font-size="11" font-weight="700">${fmtCorto(total)}</text>`;
-  const legend=entries.map((e,i)=>`<div class="pie-leg"><span class="pie-dot" style="background:${PIE_COLORS[i%PIE_COLORS.length]}"></span><span class="pie-cat">${escapeHtml(e[0])}</span><span class="pie-pct">${(e[1]/total*100).toFixed(1)}%</span><span class="pie-amt">${fmt(e[1])}</span></div>`).join('');
+  const legend=entries.map((e,i)=>`<div class="pie-leg"><span class="pie-dot" style="background:${colores[i%colores.length]}"></span><span class="pie-cat">${escapeHtml(e[0])}</span><span class="pie-pct">${(e[1]/total*100).toFixed(1)}%</span><span class="pie-amt">${fmt(e[1])}</span></div>`).join('');
   return `<div class="pie-wrap"><svg viewBox="0 0 120 120" class="pie-svg" data-total="${fmtCorto(total)}">${paths}${centro}</svg><div class="pie-legend">${legend}</div></div>`;
 }
 
@@ -6082,7 +6280,8 @@ async function fetchYahooSeries(symbol) {
 // cuya historia sigue sirviendo a la grafica).
 async function fetchStocks() {
   const syms=Object.keys(state.posiciones).filter(k=>state.posiciones[k].acciones>0);
-  if(!syms.length) return true;
+  // ya NO se sale temprano si no hay posiciones: REF_MERCADO (VOO) y el dolar los necesita
+  // el panel "como se mueve el mercado hoy" aunque el usuario no tenga acciones abiertas
   const prev={accionesMkt:state.accionesMkt,usdMxn:state.usdMxn,usdMxnPrev:state.usdMxnPrev,
     usdMxnFecha:state.usdMxnFecha,usdMxnHistory:state.usdMxnHistory};
   // VOO (S&P 500) se baja siempre como referencia para comparar decisiones, aunque no se tenga
@@ -6156,6 +6355,9 @@ initChartInteraccion('gbm-chart');
 initChartInteraccion('patrimonio-chart');
 initPieInteraccion('res-pie');
 initPieInteraccion('res-pie-ingresos');
+initPieInteraccion('dash-asignacion');
+initPieInteraccion('dash-pie');
+initPieInteraccion('dash-sector');
 actualizarOjo();
 marcarTemaActivo();
 
