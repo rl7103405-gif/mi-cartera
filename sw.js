@@ -1,4 +1,4 @@
-const CACHE = 'cartera-v8'; // v8: arranque instantaneo (stale-while-revalidate + SDK precacheado)
+const CACHE = 'cartera-v9'; // v8: arranque instantaneo (stale-while-revalidate + SDK precacheado)
 // El HTML y el SDK de Firebase se precachean: sin esto, en el telefono cada apertura
 // esperaba a bajar ~94KB de HTML MAS los 3 modulos de gstatic antes de pintar nada.
 const SDK = [
@@ -11,7 +11,9 @@ const ASSETS = ['./', './index.html', './manifest.json', './icon-192.png'];
 self.addEventListener('install', e => {
   e.waitUntil((async () => {
     const c = await caches.open(CACHE);
-    await c.addAll(ASSETS);
+    // cache:'reload' salta el cache HTTP del navegador: sin esto, el precache podia
+    // guardar la copia VIEJA que el navegador aun tenia por el max-age de GitHub Pages
+    await c.addAll(ASSETS.map(u => new Request(u, {cache:'reload'})));
     // el SDK es de otro origen: si falla (offline al instalar) NO debe tumbar la
     // instalacion entera, se recachea solo en el primer fetch que lo pida
     await Promise.allSettled(SDK.map(u => c.add(new Request(u, {mode:'cors'}))));
@@ -52,16 +54,25 @@ self.addEventListener('fetch', e => {
     e.respondWith((async () => {
       const cache = await caches.open(CACHE);
       const cached = await cache.match('./index.html');
-      const red = fetch(req).then(async res => {
+      // LEER el texto de la copia guardada AQUI, antes de entregarla a la pagina. Una
+      // Response solo se puede leer una vez: en cuanto el navegador consume 'cached' para
+      // pintar, clonarla despues truena con "Response body is already used". Ese error
+      // mataba la revalidacion entera y el catch lo silenciaba: del 4 al 9-sep el service
+      // worker NUNCA guardo una version nueva, y Roberto vio 5 dias la misma fecha.
+      const viejoTxtP = cached ? cached.clone().text() : Promise.resolve(null);
+      // REVALIDAR CONTRA EL SERVIDOR, no contra el cache HTTP del navegador. GitHub Pages
+      // manda max-age=600: con fetch(req) a secas el navegador contestaba desde su propio
+      // cache y esta revalidacion nunca veia la version nueva. Paso el 9-sep: Roberto veia
+      // 'version del 4 de septiembre' con varias publicaciones encima.
+      const red = fetch(req.url, {cache:'no-cache', credentials:'same-origin'}).then(async res => {
         if (res && res.ok) {
-          const copia = res.clone();
-          const nuevoTxt = await copia.clone().text();
-          const viejoTxt = cached ? await cached.clone().text() : null;
-          await cache.put('./index.html', copia);
+          const nuevoTxt = await res.clone().text();
+          const viejoTxt = await viejoTxtP;
+          await cache.put('./index.html', res.clone());
           if (viejoTxt !== null && viejoTxt !== nuevoTxt) avisarVersionNueva();
         }
         return res;
-      }).catch(() => null);
+      }).catch(err => { console.error('sw: revalidacion del HTML fallo', err); return null; });
       // si hay copia guardada se responde YA; la red sigue corriendo en segundo plano
       if (cached) { e.waitUntil(red); return cached; }
       const res = await red;
