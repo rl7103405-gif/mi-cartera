@@ -326,21 +326,14 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
 .ga-asignacion{grid-area:asignacion}.ga-portafolio{grid-area:portafolio}.ga-mercado{grid-area:mercado}
 .ga-costo{grid-area:costo}.ga-pie{grid-area:pie}.ga-crec{grid-area:crec}.ga-winloss{grid-area:winloss}
 .ga-holdings{grid-area:holdings}.ga-outlook{grid-area:outlook}.ga-sector{grid-area:sector}.ga-datos{grid-area:datos}
-.dtitulo{background:#f2b90c;color:#1b1b1b;font-size:26px;font-weight:800;text-align:center;padding:10px 12px;border-radius:10px;letter-spacing:-.01em;align-self:start}
-.dcard{border-radius:10px;overflow:hidden;background:var(--dc-b);border:1px solid rgba(0,0,0,.10);box-shadow:0 1px 2px rgba(0,0,0,.10);min-width:0;display:flex;flex-direction:column;
+.dtitulo{background:#f2b90c;color:#1b1b1b;font-size:28px;font-weight:800;text-align:center;padding:16px 12px;border-radius:12px;letter-spacing:-.01em;margin:0 0 8px;border:1px solid rgba(0,0,0,.14);box-shadow:0 1px 3px rgba(0,0,0,.18)}
+/* un solo tono para todas las tarjetas (Roberto, 10-sep: "no tantos colores"): el color se
+   queda para los DATOS (verde gana, rojo pierde) y para el dorado del titulo */
+.dcard{--dc-h:#dfe5ee;--dc-b:#f6f7f9;border-radius:10px;overflow:hidden;background:var(--dc-b);border:1px solid rgba(0,0,0,.10);box-shadow:0 1px 2px rgba(0,0,0,.10);min-width:0;display:flex;flex-direction:column;
   --text:#1b1b1b;--muted:#4f4f4f;--border:rgba(0,0,0,.10);--border2:rgba(0,0,0,.22);--bg3:rgba(255,255,255,.6);--green:#1f7a3f;--red:#b3261e;--purple:#2f5bd3;color:var(--text)}
 .dcard-h{background:var(--dc-h);padding:8px 12px;font-size:20px;font-weight:800;text-align:center}
 .dcard-h.chico{font-size:13px;font-weight:700;text-align:left;padding:7px 12px}
 .dcard-b{padding:10px 12px;flex:1;min-width:0}
-.dc-gris{--dc-h:#bdbdbd;--dc-b:#dadada}
-.dc-rosa{--dc-h:#e8a0aa;--dc-b:#f5d3d8}
-.dc-rosa2{--dc-h:#efbcc3;--dc-b:#f8e1e4}
-.dc-amarillo{--dc-h:#f6dc7a;--dc-b:#fcf0c2}
-.dc-salmon{--dc-h:#f3b183;--dc-b:#fbdcc3}
-.dc-azul{--dc-h:#94b7ea;--dc-b:#d3e2f7}
-.dc-verde{--dc-h:#a9d8a8;--dc-b:#d8eed5}
-.dc-lila{--dc-h:#c2aee3;--dc-b:#e4daf3}
-.dc-durazno{--dc-h:#f3c4a0;--dc-b:#fae3d0}
 .dkv{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 12px;font-size:13px;align-items:baseline}
 .dkv .k{text-align:right;font-weight:700}
 .dkv .v{text-align:right;font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap}
@@ -379,20 +372,22 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
   .dtabla th:first-child{width:31%}
 }
 @media(min-width:760px){
-  #page-dashboard{max-width:1880px;padding:20px 24px}
+  #page-dashboard{max-width:1880px;padding:32px 24px 24px}
   .dgrid{grid-template-columns:repeat(2,minmax(0,1fr));
     grid-template-areas:"titulo titulo" "portafolio winloss" "stocks efectivo" "asignacion pie" "costo crec" "mercado holdings" "outlook outlook" "sector notas" "datos datos"}
 }
-@media(min-width:1180px){
-  .dgrid{grid-template-columns:minmax(150px,.95fr) minmax(200px,1.15fr) minmax(0,2.5fr) minmax(0,2fr) minmax(190px,1.05fr);
+@media(min-width:1400px){
+  /* con el zoom del navegador (125%) la laptop mide ~1536px: a 1180 la columna de Acciones
+     quedaba de ~218px y las etiquetas se partian en dos renglones */
+  .dgrid{grid-template-columns:minmax(150px,.85fr) minmax(250px,1.45fr) minmax(0,2.2fr) minmax(0,1.9fr) minmax(210px,1.2fr);
     grid-template-areas:
-      ".        titulo     titulo     pie    winloss"
+      "titulo   titulo     titulo     titulo winloss"
       "notas    stocks     portafolio pie    winloss"
       "notas    efectivo   mercado    pie    winloss"
       "notas    asignacion costo      crec   winloss"
       "holdings outlook    outlook    sector winloss"
       "datos    datos      datos      datos  datos"}
-  .dmercado{grid-template-columns:minmax(0,1fr) minmax(0,1.25fr)}
+  .dmercado{grid-template-columns:minmax(0,1.15fr) minmax(0,1fr)}
 }
 </style>
 </head>
@@ -1019,31 +1014,31 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
   <div class="dgrid">
     <div class="dtitulo ga-titulo">Tablero de inversiones</div>
 
-    <div class="dcard dc-gris ga-notas"><div class="dcard-h">Notas:</div><div class="dcard-b" id="dash-notas"></div></div>
+    <div class="dcard ga-notas"><div class="dcard-h">Notas:</div><div class="dcard-b" id="dash-notas"></div></div>
 
-    <div class="dcard dc-rosa ga-stocks"><div class="dcard-h">Acciones:</div><div class="dcard-b" id="dash-stocks"><div class="empty-state">calculando...</div></div></div>
+    <div class="dcard ga-stocks"><div class="dcard-h">Acciones:</div><div class="dcard-b" id="dash-stocks"><div class="empty-state">calculando...</div></div></div>
 
-    <div class="dcard dc-salmon ga-efectivo"><div class="dcard-h">Efectivo:</div><div class="dcard-b" id="dash-efectivo"><div class="empty-state">calculando...</div></div></div>
+    <div class="dcard ga-efectivo"><div class="dcard-h">Efectivo:</div><div class="dcard-b" id="dash-efectivo"><div class="empty-state">calculando...</div></div></div>
 
-    <div class="dcard dc-azul ga-asignacion"><div class="dcard-h chico">Asignación</div><div class="dcard-b" id="dash-asignacion"><div class="empty-state">calculando...</div></div></div>
+    <div class="dcard ga-asignacion"><div class="dcard-h chico">Asignación</div><div class="dcard-b" id="dash-asignacion"><div class="empty-state">calculando...</div></div></div>
 
-    <div class="dcard dc-rosa2 ga-portafolio"><div class="dcard-h chico">Tu portafolio</div><div class="dcard-b" id="dash-portafolio"><div class="empty-state">calculando...</div></div></div>
+    <div class="dcard ga-portafolio"><div class="dcard-h chico">Tu portafolio</div><div class="dcard-b" id="dash-portafolio"><div class="empty-state">calculando...</div></div></div>
 
-    <div class="dcard dc-azul ga-mercado"><div class="dcard-h chico">Cómo se mueve el mercado</div><div class="dcard-b" id="dash-mercado"><div class="empty-state">calculando...</div></div></div>
+    <div class="dcard ga-mercado"><div class="dcard-h chico">Cómo se mueve el mercado</div><div class="dcard-b" id="dash-mercado"><div class="empty-state">calculando...</div></div></div>
 
-    <div class="dcard dc-amarillo ga-costo"><div class="dcard-h chico">Lo que pusiste y lo que vale</div><div class="dcard-b" id="dash-costo-valor"><div class="empty-state">calculando...</div></div></div>
+    <div class="dcard ga-costo"><div class="dcard-h chico">Lo que pusiste y lo que vale</div><div class="dcard-b" id="dash-costo-valor"><div class="empty-state">calculando...</div></div></div>
 
-    <div class="dcard dc-durazno ga-pie"><div class="dcard-h chico">Reparto entre tus acciones</div><div class="dcard-b" id="dash-pie"><div class="empty-state">calculando...</div></div></div>
+    <div class="dcard ga-pie"><div class="dcard-h chico">Reparto entre tus acciones</div><div class="dcard-b" id="dash-pie"><div class="empty-state">calculando...</div></div></div>
 
-    <div class="dcard dc-rosa ga-crec"><div class="dcard-h chico">Crecimiento</div><div class="dcard-b" id="dash-crecimiento"><div class="empty-state">calculando...</div></div></div>
+    <div class="dcard ga-crec"><div class="dcard-h chico">Crecimiento</div><div class="dcard-b" id="dash-crecimiento"><div class="empty-state">calculando...</div></div></div>
 
-    <div class="dcard dc-verde ga-winloss"><div class="dcard-h chico">Lo que gana y lo que pierde</div><div class="dcard-b" id="dash-winloss"><div class="empty-state">calculando...</div></div></div>
+    <div class="dcard ga-winloss"><div class="dcard-h chico">Lo que gana y lo que pierde</div><div class="dcard-b" id="dash-winloss"><div class="empty-state">calculando...</div></div></div>
 
-    <div class="dcard dc-verde ga-holdings"><div class="dcard-h">Total de posiciones:</div><div class="dcard-b" id="dash-holdings"><div class="empty-state">calculando...</div></div></div>
+    <div class="dcard ga-holdings"><div class="dcard-h">Posiciones:</div><div class="dcard-b" id="dash-holdings"><div class="empty-state">calculando...</div></div></div>
 
-    <div class="dcard dc-salmon ga-outlook"><div class="dcard-h">Proyección de tu portafolio</div><div class="dcard-b" id="dash-proyeccion"><div class="empty-state">calculando...</div></div></div>
+    <div class="dcard ga-outlook"><div class="dcard-h">Proyección de tu portafolio</div><div class="dcard-b" id="dash-proyeccion"><div class="empty-state">calculando...</div></div></div>
 
-    <div class="dcard dc-lila ga-sector"><div class="dcard-h chico">Reparto por sector</div><div class="dcard-b" id="dash-sector"><div class="empty-state">calculando...</div></div></div>
+    <div class="dcard ga-sector"><div class="dcard-h chico">Reparto por sector</div><div class="dcard-b" id="dash-sector"><div class="empty-state">calculando...</div></div></div>
 
     <details class="acc ga-datos">
     <summary>
@@ -2918,20 +2913,43 @@ function diaLocalDe(f) {
   return isNaN(d.getTime()) ? 0 : d.getDate();
 }
 // ── BOLSA: el ledger stocksOps es la fuente de verdad; posiciones se derivan ─
+// ── polvo de acciones ──
+// Una venta capturada con 4 decimales puede dejar un sobrante de 0.0001 acciones que ya no
+// existe en la casa de bolsa (Moderna, 10-sep-2026: salia en el tablero con 0.0% y $0.04).
+// Es POLVO si, justo despues de una venta, lo que queda es menos de POLVO_ACCIONES Y a lo mas
+// el POLVO_FRACCION de lo que habia: comprar 0.0015 y vender 0.001 NO borra las 0.0005 que
+// quedan. Una compra chiquita sin venta nunca se toca. Lo usan TODOS los que cuentan
+// acciones (posiciones, tablero, grafica, rendimientos y el registro de la venta).
+const POLVO_ACCIONES = 0.001, POLVO_FRACCION = 0.05;
+function esPolvo(queda, antes) { return queda < POLVO_ACCIONES && queda <= antes * POLVO_FRACCION; }
+// orden cronologico del ledger: fecha y, el mismo dia, orden de captura (0 si empatan)
+function ordenOps(a, b) {
+  if (a.fecha !== b.fecha) return a.fecha < b.fecha ? -1 : 1;
+  const ca = String(a.creado || ''), cb = String(b.creado || '');
+  return ca < cb ? -1 : ca > cb ? 1 : 0;
+}
+// suma una operacion a las acciones que habia; si una venta deja polvo, queda en 0
+function sumaOp(antes, op) {
+  const queda = antes + (op.tipo === 'venta' ? -1 : 1) * op.acciones;
+  return (op.tipo === 'venta' && esPolvo(queda, antes)) ? 0 : queda;
+}
+// ── fin polvo ──
 function accionesEnFecha(sym, tms) {
   let a=0;
-  state.stocksOps.forEach(op=>{
-    if(op.simbolo!==sym) return;
+  // en orden y con la misma regla de polvo: si no, la grafica y los rendimientos seguirian
+  // valuando las 0.0001 acciones que el tablero ya da por vendidas
+  state.stocksOps.filter(op=>op.simbolo===sym).sort(ordenOps).forEach(op=>{
     const t=parseFechaLocal(op.fecha).getTime();
-    if(Number.isFinite(t)&&t<=tms) a+=(op.tipo==='venta'?-1:1)*op.acciones;
+    if(Number.isFinite(t)&&t<=tms) a=sumaOp(a,op);
   });
   return Math.max(0,Math.round(a*1e8)/1e8);
 }
 function derivarPosiciones() {
   const pos={};
-  state.stocksOps.forEach(op=>{
+  // en orden cronologico, igual que calcCartera: el polvo se decide justo despues de cada venta
+  state.stocksOps.slice().sort(ordenOps).forEach(op=>{
     if(!pos[op.simbolo]) pos[op.simbolo]={acciones:0,desde:op.fecha};
-    pos[op.simbolo].acciones+=(op.tipo==='venta'?-1:1)*op.acciones;
+    pos[op.simbolo].acciones=sumaOp(pos[op.simbolo].acciones,op);
     if(op.fecha<pos[op.simbolo].desde) pos[op.simbolo].desde=op.fecha;
   });
   Object.keys(pos).forEach(k=>{ pos[k].acciones=Math.max(0,Math.round(pos[k].acciones*1e8)/1e8); });
@@ -4010,6 +4028,7 @@ async function operarStock(tipo) {
   if(stockOpOcupado||dineroOcupado) return;
   const d=pedirDatosStock(); if(!d) return;
   if(tipo==='venta'){
+    // 1e-8 es tolerancia de punto flotante, NO el umbral de polvo (ese vive en esPolvo)
     const pos=state.posiciones[d.simbolo];
     if(!pos||pos.acciones<d.acciones-1e-8){ showToast('no tienes tantas acciones de '+d.simbolo); return; }
     if(accionesEnFecha(d.simbolo, parseFechaLocal(d.fecha).getTime())<d.acciones-1e-8){ showToast('en esa fecha no tenias tantas acciones de '+d.simbolo); return; }
@@ -4031,7 +4050,10 @@ async function operarStock(tipo) {
         const actUnits=Math.round((Number.isFinite(posData[d.simbolo])?posData[d.simbolo]:0)*1e8);
         const opUnits=Math.round(d.acciones*1e8);
         if(tipo==='venta'&&opUnits>actUnits) return {error:'no tienes tantas acciones de '+d.simbolo};
-        const nuevoUnits=tipo==='compra'?actUnits+opUnits:actUnits-opUnits;
+        // misma regla de polvo que derivarPosiciones: si la venta deja polvo se guarda 0 y
+        // Firestore no discrepa de lo que la app muestra
+        const restaUnits=tipo==='compra'?actUnits+opUnits:actUnits-opUnits;
+        const nuevoUnits=(tipo==='venta'&&esPolvo(restaUnits/1e8,actUnits/1e8))?0:restaUnits;
         const nuevoSaldo=campo?Math.round((saldoActual+(tipo==='compra'?-d.monto:d.monto))*100)/100:null;
         const op={tipo,simbolo:d.simbolo,acciones:d.acciones,montoMxn:d.monto,montoUsd:d.montoUsd,cuenta:d.cuenta,fecha:d.fecha,creado:new Date().toISOString()};
         const opRef=doc(collection(db,'stocksOps'));
@@ -4959,8 +4981,7 @@ function calcCartera() {
   // tronar la propia comparacion del sort y con ella el tablero entero
   const ops = (state.stocksOps || [])
     .filter(o => o && typeof o.simbolo === 'string' && Number.isFinite(o.acciones) && o.acciones > 0)
-    .sort((a, b) => (a.fecha < b.fecha ? -1 : a.fecha > b.fecha ? 1 :
-                     String(a.creado || '') < String(b.creado || '') ? -1 : 1));
+    .sort(ordenOps);
   const acc = {};                 // simbolo -> {acciones, costo, costoPendiente}
   let realizado = 0, realizadoPendiente = false;
   ops.forEach(o => {
@@ -4979,9 +5000,15 @@ function calcCartera() {
       const costoVendido = t.costo * prop;
       if (monto === null || t.costoPendiente) realizadoPendiente = true;
       else realizado += monto - costoVendido;
+      const antes = t.acciones;
       t.costo = Math.max(0, t.costo - costoVendido);
       t.acciones = Math.max(0, t.acciones - vendidas);
-      if (t.acciones <= 1e-8) { t.acciones = 0; t.costo = 0; }  // cerrada: una recompra empieza de cero
+      // cerrada, o solo queda polvo (ver esPolvo): el costo que quedaba es parte de lo vendido,
+      // y una recompra empieza de cero, sin arrastrar el costo pendiente de la posicion vieja
+      if (esPolvo(t.acciones, antes)) {
+        if (monto !== null && !t.costoPendiente) realizado -= t.costo;
+        t.acciones = 0; t.costo = 0; t.costoPendiente = false;
+      }
     }
   });
 
@@ -5479,8 +5506,8 @@ function renderMercadoHoy() {
     '<div class="dmercado"><div class="dkv">' +
       '<div class="k">indice</div><div class="v">S&amp;P 500 (' + escapeHtml(REF_MERCADO) + ')</div>' +
       '<div class="k">precio</div><div class="v">US$' + mk.precio.toFixed(2) + '</div>' +
-      '<div class="k">cambio ' + (viejo ? 'de ese dia' : 'del dia') + ' $</div><div class="v' + cls(cam) + '">' + (cam === null ? '—' : sg(cam) + 'US$' + Math.abs(cam).toFixed(2)) + '</div>' +
-      '<div class="k">cambio ' + (viejo ? 'de ese dia' : 'del dia') + ' %</div><div class="v' + cls(camPct) + '">' + (camPct === null ? '—' : sg(camPct) + Math.abs(camPct).toFixed(2) + '%') + '</div>' +
+      '<div class="k">cambio $</div><div class="v' + cls(cam) + '">' + (cam === null ? '—' : sg(cam) + 'US$' + Math.abs(cam).toFixed(2)) + '</div>' +
+      '<div class="k">cambio %</div><div class="v' + cls(camPct) + '">' + (camPct === null ? '—' : sg(camPct) + Math.abs(camPct).toFixed(2) + '%') + '</div>' +
       (dolar !== null ? '<div class="k">dolar</div><div class="v' + cls(camD) + '">$' + dolar.toFixed(2) +
         (camD === null ? '' : ' (' + sg(camD) + Math.abs(camD).toFixed(2) + '%)') + '</div>' : '') +
     '</div>' + svgMercado(mk.hist) + '</div>' +

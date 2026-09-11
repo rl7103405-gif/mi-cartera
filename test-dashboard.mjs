@@ -21,8 +21,12 @@ const state = {
   usdMxn: 20, efectivo: 1000, nuSaldo: 500, revMXN: 300
 };
 const fuente = extrae('// El doc cartera/tickers lo teclea el usuario', '// ── graficas propias del tablero');
+// la regla de polvo (esPolvo, ordenOps, sumaOp) vive junto a derivarPosiciones, fuera de este
+// tramo: se toma del HTML real y se antepone
+const polvoSrc = extrae('// ── polvo de acciones ──', '// ── fin polvo ──');
+const POLVO = Number((HTML.match(/const POLVO_ACCIONES\s*=\s*([\d.]+)\s*[,;]/) || [])[1]);
 const { calcCartera, saneaTickers, efectivoDisponible } = new Function(
-  'state', fuente + '\nreturn { calcCartera, saneaTickers, efectivoDisponible };'
+  'state', polvoSrc + fuente + '\nreturn { calcCartera, saneaTickers, efectivoDisponible };'
 )(state);
 
 let fallos = 0, pruebas = 0;
@@ -281,12 +285,94 @@ console.log('\n16. Cada identificador que usa el tablero existe en esta copia');
   const declarado = n => new RegExp('(const|let|var|function)\\s+' + n + '\\b').test(HTML);
   for (const n of ['REF_MERCADO', 'renderMercadoHoy', 'renderNotasDash', 'renderProyeccion', 'renderTickerUI',
                    'efectivoDisponible', 'calcCartera', 'pieChart', 'guardarPerfil', 'fmtCorto', 'refrescar',
-                   'parseFechaLocal', 'showToast']) {
+                   'parseFechaLocal', 'showToast', 'POLVO_ACCIONES', 'derivarPosiciones', 'esPolvo', 'ordenOps', 'sumaOp',
+                   'accionesEnFecha']) {
     chk('declarado: ' + n, declarado(n));
   }
   chk('fetchStocks baja la referencia aunque no haya posiciones',
       /const pedir=\[\.\.\.syms,/.test(HTML) && !/if\(!syms\.length\) return true;/.test(HTML));
   chk('notas del tablero en la lista blanca del perfil', /notasInversion:\(typeof pf\.notasInversion==='string'\)/.test(HTML));
+}
+
+// ═══ 17. polvo de acciones: lo que sobra al vender con 4 decimales es posicion cerrada ═══
+// Moderna, 10-sep-2026: Roberto ya la habia vendido y el tablero la seguia enseñando con
+// "0.0%  $0.04" porque la venta dejo 0.0001 acciones.
+console.log('\n17. Sobrante minimo tras una venta: no es una posicion abierta');
+{
+  chk('POLVO_ACCIONES se lee del HTML', Number.isFinite(POLVO) && POLVO > 0 && POLVO <= 0.01, 'POLVO=' + POLVO);
+  armar([{tipo:'compra', simbolo:'MRNA', acciones:0.0866, montoMxn:500,  fecha:'2026-08-01'},
+         {tipo:'venta',  simbolo:'MRNA', acciones:0.0865, montoMxn:450,  fecha:'2026-09-01'},
+         {tipo:'compra', simbolo:'QQQ',  acciones:0.5,    montoMxn:6000, fecha:'2026-08-01'}],
+        {MRNA:{precio:25}, QQQ:{precio:600}});
+  c = calcCartera();
+  chk('MRNA ya no aparece como posicion', !c.pos.some(p => p.simbolo === 'MRNA'));
+  chk('QQQ sigue igual', c.pos.length === 1 && c.pos[0].simbolo === 'QQQ');
+  chk('lo realizado cuenta la venta COMPLETA (450 - 500)', cerca(c.realizado, -50), 'real=' + c.realizado);
+
+  // una compra chiquita SIN venta nunca se borra
+  armar([{tipo:'compra', simbolo:'NVDA', acciones:0.0004, montoMxn:15, fecha:'2026-08-01'}], {NVDA:{precio:180}});
+  c = calcCartera();
+  chk('una compra de 0.0004 sin vender sigue abierta', c.pos.length === 1);
+
+  // venta sin monto: el polvo cierra la posicion pero lo realizado queda pendiente, no inventado
+  armar([{tipo:'compra', simbolo:'MRNA', acciones:0.0866, montoMxn:500, fecha:'2026-08-01'},
+         {tipo:'venta',  simbolo:'MRNA', acciones:0.0865, montoMxn:0,   fecha:'2026-09-01'}],
+        {MRNA:{precio:25}});
+  c = calcCartera();
+  chk('venta sin monto: cerrada y lo realizado pendiente', c.pos.length === 0 && c.realizado === null, 'real=' + c.realizado);
+
+  // derivarPosiciones (inicio, cotizaciones y el resto de la app) aplica el mismo criterio
+  const der = new Function('state', polvoSrc +
+    // fin por el propio cuerpo: el comentario siguiente cambia entre copias
+    extrae('function derivarPosiciones()', 'state.posiciones=pos;') + 'state.posiciones=pos;\n}\nreturn derivarPosiciones;')(state);
+  armar([{tipo:'compra', simbolo:'MRNA', acciones:0.0866, montoMxn:500, fecha:'2026-08-01'},
+         {tipo:'venta',  simbolo:'MRNA', acciones:0.0865, montoMxn:450, fecha:'2026-09-01'},
+         {tipo:'compra', simbolo:'NVDA', acciones:0.0004, montoMxn:15,  fecha:'2026-08-01'}]);
+  der();
+  chk('derivarPosiciones: MRNA en 0 (cerrada; se conserva para su historia)',
+      state.posiciones.MRNA && state.posiciones.MRNA.acciones === 0);
+  chk('derivarPosiciones: la compra chiquita sin venta sigue', state.posiciones.NVDA && state.posiciones.NVDA.acciones > 0);
+  armar([{tipo:'venta',  simbolo:'X', acciones:0.9999, montoMxn:10, fecha:'2026-09-01'},
+         {tipo:'compra', simbolo:'X', acciones:1,      montoMxn:9,  fecha:'2026-08-01'}]);
+  der();
+  chk('derivarPosiciones ordena por fecha antes de decidir el polvo', state.posiciones.X.acciones === 0,
+      'acciones=' + state.posiciones.X.acciones);
+  armar([{tipo:'compra', simbolo:'Y', acciones:2, montoMxn:10, fecha:'2026-08-01'},
+         {tipo:'venta',  simbolo:'Y', acciones:0.5, montoMxn:4, fecha:'2026-09-01'}]);
+  der();
+  chk('derivarPosiciones: una venta parcial normal no se toca', Math.abs(state.posiciones.Y.acciones - 1.5) < 1e-9);
+
+  // Codex: un umbral fijo borraba posiciones chiquitas legitimas (compra 0.0015, vende 0.001)
+  const chica = [{tipo:'compra', simbolo:'Z', acciones:0.0015, montoMxn:30, fecha:'2026-08-01'},
+                 {tipo:'venta',  simbolo:'Z', acciones:0.001,  montoMxn:25, fecha:'2026-09-01'}];
+  armar(chica, {Z:{precio:900}});
+  c = calcCartera();
+  chk('calcCartera: compra 0.0015 y vende 0.001 -> quedan 0.0005 abiertas', c.pos.length === 1 && cerca(c.pos[0].acciones, 0.0005, 1e-9));
+  armar(chica); der();
+  chk('derivarPosiciones: tambien conserva las 0.0005', Math.abs(state.posiciones.Z.acciones - 0.0005) < 1e-9);
+
+  // la grafica y los rendimientos (accionesEnFecha) aplican la misma regla
+  const aef = new Function('state', 'parseFechaLocal', polvoSrc +
+    extrae('function accionesEnFecha(sym, tms)', 'function derivarPosiciones()') + '\nreturn accionesEnFecha;')(
+    state, f => new Date(f + 'T00:00:00'));
+  armar([{tipo:'compra', simbolo:'MRNA', acciones:0.0866, montoMxn:500, fecha:'2026-08-01'},
+         {tipo:'venta',  simbolo:'MRNA', acciones:0.0865, montoMxn:450, fecha:'2026-09-01'}]);
+  const tAntes = new Date('2026-08-15T00:00:00').getTime(), tDespues = new Date('2026-09-05T00:00:00').getTime();
+  chk('accionesEnFecha: antes de la venta si tenia las 0.0866', Math.abs(aef('MRNA', tAntes) - 0.0866) < 1e-9);
+  chk('accionesEnFecha: despues de la venta ya no cuenta el polvo', aef('MRNA', tDespues) === 0, 'a=' + aef('MRNA', tDespues));
+  armar(chica);
+  chk('accionesEnFecha: la posicion chiquita legitima sigue', Math.abs(aef('Z', tDespues) - 0.0005) < 1e-9);
+
+  // Codex: cerrar con costo pendiente y recomprar con costo conocido NO debe quedar pendiente
+  armar([{tipo:'compra', simbolo:'W', acciones:1, montoMxn:0,   fecha:'2026-07-01'},
+         {tipo:'venta',  simbolo:'W', acciones:1, montoMxn:100, fecha:'2026-08-01'},
+         {tipo:'compra', simbolo:'W', acciones:1, montoMxn:50,  fecha:'2026-09-01'}], {W:{precio:3}});
+  c = calcCartera();
+  chk('recompra tras cerrar con costo pendiente: el costo nuevo SI cuenta', c.faltaCosto === false && cerca(c.costo, 50), 'costo=' + c.costo + ' falta=' + c.faltaCosto);
+
+  // orden estable: mismo dia y mismo 'creado' no deben reordenarse al azar
+  const ordenOps = new Function(polvoSrc + '\nreturn ordenOps;')();
+  chk('ordenOps devuelve 0 si fecha y creado empatan', ordenOps({fecha:'2026-09-01'}, {fecha:'2026-09-01'}) === 0);
 }
 
 console.log('\n' + '='.repeat(58));
