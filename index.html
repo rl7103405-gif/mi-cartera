@@ -316,78 +316,63 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
   .total-amount{font-size:46px}
 }
 
-/* ═══ TABLERO DE INVERSIONES — calcado de la hoja de Google Sheets que pidio Roberto ═══
-   Cuadricula de tarjetas de color que llena la pantalla de lado a lado. Dentro de cada
-   tarjeta manda el look de la hoja (texto oscuro sobre pastel) en CUALQUIER tema: por eso
-   la tarjeta redefine los tokens de color y todo lo que pinta dentro los hereda. */
-.dgrid{display:grid;gap:10px;grid-template-columns:minmax(0,1fr);
-  grid-template-areas:"titulo" "portafolio" "winloss" "stocks" "efectivo" "holdings" "asignacion" "pie" "costo" "crec" "mercado" "outlook" "sector" "notas" "datos"}
-.ga-titulo{grid-area:titulo}.ga-notas{grid-area:notas}.ga-stocks{grid-area:stocks}.ga-efectivo{grid-area:efectivo}
-.ga-asignacion{grid-area:asignacion}.ga-portafolio{grid-area:portafolio}.ga-mercado{grid-area:mercado}
-.ga-costo{grid-area:costo}.ga-pie{grid-area:pie}.ga-crec{grid-area:crec}.ga-winloss{grid-area:winloss}
-.ga-holdings{grid-area:holdings}.ga-outlook{grid-area:outlook}.ga-sector{grid-area:sector}.ga-datos{grid-area:datos}
-.dtitulo{background:#f2b90c;color:#1b1b1b;font-size:28px;font-weight:800;text-align:center;padding:16px 12px;border-radius:12px;letter-spacing:-.01em;margin:0 0 8px;border:1px solid rgba(0,0,0,.14);box-shadow:0 1px 3px rgba(0,0,0,.18)}
-/* un solo tono para todas las tarjetas (Roberto, 10-sep: "no tantos colores"): el color se
-   queda para los DATOS (verde gana, rojo pierde) y para el dorado del titulo */
-.dcard{--dc-h:#dfe5ee;--dc-b:#f6f7f9;border-radius:10px;overflow:hidden;background:var(--dc-b);border:1px solid rgba(0,0,0,.10);box-shadow:0 1px 2px rgba(0,0,0,.10);min-width:0;display:flex;flex-direction:column;
-  --text:#1b1b1b;--muted:#4f4f4f;--border:rgba(0,0,0,.10);--border2:rgba(0,0,0,.22);--bg3:rgba(255,255,255,.6);--green:#1f7a3f;--red:#b3261e;--purple:#2f5bd3;color:var(--text)}
-.dcard-h{background:var(--dc-h);padding:8px 12px;font-size:20px;font-weight:800;text-align:center}
-.dcard-h.chico{font-size:13px;font-weight:700;text-align:left;padding:7px 12px}
-.dcard-b{padding:10px 12px;flex:1;min-width:0}
-.dkv{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 12px;font-size:13px;align-items:baseline}
-.dkv .k{text-align:right;font-weight:700}
-.dkv .v{text-align:right;font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap}
+/* ═══ TABLERO DE INVERSIONES ═══
+   14-sep-2026, Roberto: "no me encantan los colores", "quiero ver mas datos a la vez", "los
+   cuadros son muy grandes". Todo sale de los TOKENS del tema (el tablero cambia con el color
+   de la app, igual que la dona de inicio), las cifras sueltas van en una fila de fichas y las
+   tarjetas se acomodan solas al ancho con auto-fill: sin cortes fijos que dependan del zoom
+   del navegador. Las graficas tienen alto maximo para que ninguna tarjeta se estire. */
+#page-dashboard{max-width:1880px}
+#page-fondo{max-width:1180px}
+#page-fondo .dkpis{grid-template-columns:repeat(auto-fill,minmax(128px,1fr))}
+#page-fondo .dgrid{grid-template-columns:repeat(auto-fill,minmax(min(100%,440px),1fr))}
+.dhead{display:flex;align-items:baseline;justify-content:space-between;flex-wrap:wrap;gap:4px 16px;margin:0 0 10px}
+.dhead h2{margin:0;font-size:20px;font-weight:700;color:var(--text);letter-spacing:-.01em}
+.daviso{font-size:12px;font-weight:600;color:var(--red)}
+.dkpis{display:grid;grid-template-columns:repeat(auto-fill,minmax(128px,1fr));gap:8px;margin-bottom:10px}
+.dkpi{background:var(--bg2);border:1px solid var(--sup-borde);border-radius:var(--rs);padding:9px 12px;min-width:0;box-shadow:var(--sombra)}
+.dkpi .l{font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dkpi .n{font-size:19px;font-weight:700;color:var(--text);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dkpi .n.pos{color:var(--green)}.dkpi .n.neg{color:var(--red)}
+.dkpi .s{font-size:11px;color:var(--muted);margin-top:2px;line-height:1.3}
+@media(min-width:360px){.dkpi.hero{grid-column:span 2}}
+.dkpi.hero .n{font-size:24px}
+.dgrid{display:grid;gap:10px;grid-template-columns:repeat(auto-fill,minmax(min(100%,340px),1fr));grid-auto-flow:row dense;align-items:start}
+.dcard{background:var(--bg2);border:1px solid var(--sup-borde);border-radius:var(--r);box-shadow:var(--sombra);min-width:0;overflow:hidden;color:var(--text)}
+.dcard-h{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;font-weight:600;padding:10px 14px 0}
+.dcard-b{padding:8px 14px 12px;min-width:0}
+@media(min-width:760px){.dcard.ancha{grid-column:span 2}}
+.dgrid .acc{grid-column:1/-1;margin-bottom:0}
+.dkv{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:3px 12px;font-size:13px;align-items:baseline}
+.dkv .k{color:var(--muted)}
+.dkv .v{text-align:right;font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap}
 .dkv .v.pos{color:var(--green)}.dkv .v.neg{color:var(--red)}
-.dkv .nota{grid-column:1/-1;text-align:right;font-size:11px;color:var(--muted);margin:-2px 0 4px;font-weight:500}
-.dkv .destacado{font-size:16px;padding-top:6px}
-.dbig{font-size:72px;font-weight:800;text-align:center;line-height:1;padding:16px 0;font-variant-numeric:tabular-nums}
-.ga-holdings .dcard-b{display:flex;align-items:center;justify-content:center}
-.dleyenda{display:flex;flex-wrap:wrap;gap:6px 14px;justify-content:center;font-size:11px;font-weight:600;margin-bottom:6px}
-.dleyenda i{display:inline-block;width:10px;height:10px;margin-right:5px;vertical-align:-1px;border-radius:2px}
-.dsvg svg{display:block;width:100%;height:auto}
-.dmercado{display:grid;grid-template-columns:minmax(0,1fr);gap:10px;align-items:center}
-.dtabla-wrap{overflow-x:auto;margin-bottom:10px}
-.dtabla{width:100%;border-collapse:collapse;font-size:13px;min-width:420px}
-.dtabla th{background:var(--dc-h);padding:7px 8px;font-weight:700;text-align:center}
-.dtabla td{padding:8px;text-align:center;border-top:1px solid rgba(0,0,0,.10);font-weight:600;font-variant-numeric:tabular-nums}
-.dtabla td:first-child{font-weight:800}
-.dcard select,.dcard input[type=number],.dcard textarea{background:#fff;color:#1b1b1b;border:1px solid rgba(0,0,0,.25);border-radius:6px;padding:6px 8px;font-size:14px;min-height:36px;font-family:inherit}
-.dtabla select{color:#2f5bd3;font-weight:700;max-width:100%}
-.dreinv{display:block;font-size:11px;font-weight:700;margin-bottom:3px}
-.dsupuestos{display:flex;flex-wrap:wrap;gap:8px 16px;justify-content:center;font-size:13px;font-weight:600;margin-bottom:8px}
-.dsupuestos input{width:74px;margin:0 4px}
-.dcard textarea{width:100%;min-height:180px;resize:vertical;line-height:1.4;margin-bottom:8px}
-.dnota{margin:0 0 14px;font-size:12.5px;font-weight:700;text-align:center;line-height:1.4}
-.dcard .pie-wrap{flex-wrap:wrap;justify-content:center}
-.dcard .pie-svg{width:132px;flex:0 0 132px}
+.dleyenda{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:11px;color:var(--muted);margin-bottom:4px}
+.dleyenda i{display:inline-block;width:9px;height:9px;margin-right:5px;vertical-align:-1px;border-radius:2px}
+.dsvg svg{display:block;width:100%;height:auto;max-height:230px;margin:0 auto}
+.dsvg .dlinea{stroke:var(--border)}.dsvg .dcero{stroke:var(--border2)}.dsvg .deje{fill:var(--muted)}
+.dmercado{display:grid;grid-template-columns:minmax(0,1fr);gap:8px}
+.dtabla-wrap{overflow-x:auto;margin-bottom:8px}
+.dtabla{width:100%;border-collapse:collapse;font-size:12.5px;min-width:380px}
+.dtabla th{color:var(--muted);font-weight:600;font-size:11px;text-align:right;padding:6px 8px;border-bottom:1px solid var(--border2);vertical-align:bottom}
+.dtabla th:first-child,.dtabla td:first-child{text-align:left}
+.dtabla td{padding:6px 8px;text-align:right;border-top:1px solid var(--border);font-variant-numeric:tabular-nums}
+.dcard select,.dcard input[type=number],.dcard textarea{background:var(--bg);color:var(--text);border:1px solid var(--border2);border-radius:6px;padding:5px 8px;font-size:14px;min-height:34px;font-family:inherit}
+.dreinv{display:block;font-size:10.5px;font-weight:600;margin-bottom:3px}
+.dsupuestos{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:12.5px;margin-bottom:6px;color:var(--muted)}
+.dsupuestos input{width:70px;margin:0 4px}
+.dcard textarea{width:100%;min-height:120px;resize:vertical;line-height:1.4;margin-bottom:8px}
+.dnota{margin:0 0 5px;font-size:13px;line-height:1.4}
+.dcard .pie-wrap{flex-wrap:wrap;justify-content:center;gap:12px}
+.dcard .pie-svg{width:120px;flex:0 0 120px}
 .dcard .pie-legend{flex:1 1 150px;min-width:0}
-.ga-pie .pie-svg{width:190px;flex-basis:190px}
-.dcard .btn{min-height:40px}
+.dcard .btn{min-height:38px}
+.dcard .item-row{padding:7px 0}
 .dcard .item-amt-pos,.dcard .item-amt-neg{white-space:nowrap;padding-left:8px}
 @media(max-width:759px){
   .dtabla{min-width:0;font-size:11.5px}
-  .dtabla th,.dtabla td{padding:6px 3px}
-  .dtabla select{font-size:16px;padding:4px;min-height:36px;width:100%}
-  .dcard select,.dcard input[type=number],.dcard textarea{font-size:16px}
-  .dtabla th:first-child{width:31%}
-}
-@media(min-width:760px){
-  #page-dashboard{max-width:1880px;padding:32px 24px 24px}
-  .dgrid{grid-template-columns:repeat(2,minmax(0,1fr));
-    grid-template-areas:"titulo titulo" "portafolio winloss" "stocks efectivo" "asignacion pie" "costo crec" "mercado holdings" "outlook outlook" "sector notas" "datos datos"}
-}
-@media(min-width:1400px){
-  /* con el zoom del navegador (125%) la laptop mide ~1536px: a 1180 la columna de Acciones
-     quedaba de ~218px y las etiquetas se partian en dos renglones */
-  .dgrid{grid-template-columns:minmax(150px,.85fr) minmax(250px,1.45fr) minmax(0,2.2fr) minmax(0,1.9fr) minmax(210px,1.2fr);
-    grid-template-areas:
-      "titulo   titulo     titulo     titulo winloss"
-      "notas    stocks     portafolio pie    winloss"
-      "notas    efectivo   mercado    pie    winloss"
-      "notas    asignacion costo      crec   winloss"
-      "holdings outlook    outlook    sector winloss"
-      "datos    datos      datos      datos  datos"}
-  .dmercado{grid-template-columns:minmax(0,1.15fr) minmax(0,1fr)}
+  .dtabla th,.dtabla td{padding:5px 3px}
+  .dcard select,.dcard input[type=number],.dcard textarea{font-size:16px;min-height:40px}
 }
 </style>
 </head>
@@ -430,6 +415,7 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
   <div class="tab" data-page="movimientos" onclick="showPage('movimientos')">movimientos</div>
   <!-- solo se ve si esta encendido en el perfil (ver aplicarVisibilidadDashboard) -->
   <div class="tab" data-page="dashboard" id="tab-dashboard" hidden onclick="showPage('dashboard')">inversiones</div>
+  <div class="tab" data-page="fondo" id="tab-fondo" hidden onclick="showPage('fondo')">fondo</div>
   <div class="tab" data-page="metas" onclick="showPage('metas')">metas</div>
   <div class="tab" data-page="perfil" onclick="showPage('perfil')">perfil</div>
   <div class="tab" data-page="noticias" onclick="showPage('noticias')">noticias</div>
@@ -441,7 +427,7 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
 <div class="page active" id="page-inicio">
   <div class="hero-grid">
   <div class="total-section">
-    <div class="total-label">activos totales</div>
+    <div class="total-label" id="total-label">activos totales</div>
     <div class="total-amount" id="total-display">$—</div>
     <div class="total-sub" id="neto-display">—</div>
     <div class="total-sub" id="last-update">—</div>
@@ -503,7 +489,7 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
     <div class="card" onclick="toggleCuenta('nu','nu-detail')">
       <div class="card-header">
         <div class="card-left"><div class="card-icon icon-nu"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9.5 12 4l9 5.5"/><path d="M5 10v8M9.5 10v8M14.5 10v8M19 10v8"/><path d="M3 20h18"/></svg></div>
-          <div><div class="card-name">NU saldo</div><div class="card-sub">disponible</div></div>
+          <div><div class="card-name">NU saldo</div><div class="card-sub" id="nu-saldo-sub">disponible</div></div>
         </div>
         <div class="card-right"><div class="card-amount" id="nu-saldo-display">$—</div></div>
       </div>
@@ -539,7 +525,7 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
     <div class="card" onclick="toggleCuenta('efectivo','cash-detail')">
       <div class="card-header">
         <div class="card-left"><div class="card-icon icon-cash"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="7" width="19" height="10" rx="2"/><circle cx="12" cy="12" r="2.6"/><path d="M6 12h.01M18 12h.01"/></svg></div>
-          <div><div class="card-name">efectivo</div><div class="card-sub">pesos en mano</div></div>
+          <div><div class="card-name">efectivo</div><div class="card-sub" id="cash-sub">pesos en mano</div></div>
         </div>
         <div class="card-right"><div class="card-amount" id="cash-display">$—</div></div>
       </div>
@@ -550,7 +536,7 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
     <div class="card" onclick="toggleCuenta('revolut','rev-mxn-detail')">
       <div class="card-header">
         <div class="card-left"><div class="card-icon icon-rev"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><ellipse cx="12" cy="12" rx="3.6" ry="8.5"/><path d="M3.5 12h17"/></svg></div>
-          <div><div class="card-name">Revolut MXN</div><div class="card-sub">cuenta personal</div></div>
+          <div><div class="card-name">Revolut MXN</div><div class="card-sub" id="rev-mxn-sub">cuenta personal</div></div>
         </div>
         <div class="card-right"><div class="card-amount" id="rev-mxn-display">$—</div></div>
       </div>
@@ -896,6 +882,15 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
         <div class="type-opt" id="dash-off" onclick="setDashboard(false)">apagado</div>
         <div class="type-opt" id="dash-on" onclick="setDashboard(true)">encendido</div>
       </div>
+      <div class="item-meta" style="line-height:1.5;margin:14px 0 8px">
+        <b>Pestaña del fondo de la universidad.</b> Para llevar ese dinero apartado de tus cuentas:
+        no cuenta como tuyo en inicio, en tus metas ni en tu score, y ninguna operacion normal lo
+        puede tocar. La proteccion aplica aunque la pestaña este apagada.
+      </div>
+      <div class="type-toggle" id="fondo-toggle">
+        <div class="type-opt" id="fondo-off" onclick="setFondoTab(false)">apagada</div>
+        <div class="type-opt" id="fondo-on" onclick="setFondoTab(true)">encendida</div>
+      </div>
     </div>
     <div class="section-title mt">tus datos y tu privacidad</div>
     <div class="panel">
@@ -1007,40 +1002,23 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
 
 <!-- RESUMEN -->
 <!-- TABLERO DE INVERSIONES (opcional: se enciende en el perfil) -->
-<!-- Calcado de la hoja de Google Sheets que Roberto pidio "casi identica": cuadricula de
-     tarjetas de color que llena la pantalla de lado a lado (ver .dgrid). En el telefono se
-     apila en el orden de lo que mas se consulta. -->
+<!-- 14-sep-2026: colores del tema, una fila de cifras (.dkpis) y tarjetas que se acomodan
+     solas al ancho (.dgrid). En el telefono se apilan en el orden de lo que mas se consulta. -->
 <div class="page" id="page-dashboard">
+  <div class="dhead"><h2>Tablero de inversiones</h2><div class="daviso" id="dash-aviso"></div></div>
+  <div class="dkpis" id="dash-kpis"><div class="empty-state">calculando...</div></div>
   <div class="dgrid">
-    <div class="dtitulo ga-titulo">Tablero de inversiones</div>
+    <div class="dcard"><div class="dcard-h">Lo que gana y lo que pierde</div><div class="dcard-b" id="dash-winloss"><div class="empty-state">calculando...</div></div></div>
+    <div class="dcard"><div class="dcard-h">Lo que pusiste y lo que vale</div><div class="dcard-b" id="dash-costo-valor"><div class="empty-state">calculando...</div></div></div>
+    <div class="dcard"><div class="dcard-h">Crecimiento de cada acción</div><div class="dcard-b" id="dash-crecimiento"><div class="empty-state">calculando...</div></div></div>
+    <div class="dcard"><div class="dcard-h">Reparto entre tus acciones</div><div class="dcard-b" id="dash-pie"><div class="empty-state">calculando...</div></div></div>
+    <div class="dcard"><div class="dcard-h">Cómo se mueve el mercado</div><div class="dcard-b" id="dash-mercado"><div class="empty-state">calculando...</div></div></div>
+    <div class="dcard"><div class="dcard-h">Acciones y efectivo</div><div class="dcard-b" id="dash-asignacion"><div class="empty-state">calculando...</div></div></div>
+    <div class="dcard"><div class="dcard-h">Reparto por sector</div><div class="dcard-b" id="dash-sector"><div class="empty-state">calculando...</div></div></div>
+    <div class="dcard ancha"><div class="dcard-h">Proyección de tu portafolio</div><div class="dcard-b" id="dash-proyeccion"><div class="empty-state">calculando...</div></div></div>
+    <div class="dcard"><div class="dcard-h">Notas</div><div class="dcard-b" id="dash-notas"></div></div>
 
-    <div class="dcard ga-notas"><div class="dcard-h">Notas:</div><div class="dcard-b" id="dash-notas"></div></div>
-
-    <div class="dcard ga-stocks"><div class="dcard-h">Acciones:</div><div class="dcard-b" id="dash-stocks"><div class="empty-state">calculando...</div></div></div>
-
-    <div class="dcard ga-efectivo"><div class="dcard-h">Efectivo:</div><div class="dcard-b" id="dash-efectivo"><div class="empty-state">calculando...</div></div></div>
-
-    <div class="dcard ga-asignacion"><div class="dcard-h chico">Asignación</div><div class="dcard-b" id="dash-asignacion"><div class="empty-state">calculando...</div></div></div>
-
-    <div class="dcard ga-portafolio"><div class="dcard-h chico">Tu portafolio</div><div class="dcard-b" id="dash-portafolio"><div class="empty-state">calculando...</div></div></div>
-
-    <div class="dcard ga-mercado"><div class="dcard-h chico">Cómo se mueve el mercado</div><div class="dcard-b" id="dash-mercado"><div class="empty-state">calculando...</div></div></div>
-
-    <div class="dcard ga-costo"><div class="dcard-h chico">Lo que pusiste y lo que vale</div><div class="dcard-b" id="dash-costo-valor"><div class="empty-state">calculando...</div></div></div>
-
-    <div class="dcard ga-pie"><div class="dcard-h chico">Reparto entre tus acciones</div><div class="dcard-b" id="dash-pie"><div class="empty-state">calculando...</div></div></div>
-
-    <div class="dcard ga-crec"><div class="dcard-h chico">Crecimiento</div><div class="dcard-b" id="dash-crecimiento"><div class="empty-state">calculando...</div></div></div>
-
-    <div class="dcard ga-winloss"><div class="dcard-h chico">Lo que gana y lo que pierde</div><div class="dcard-b" id="dash-winloss"><div class="empty-state">calculando...</div></div></div>
-
-    <div class="dcard ga-holdings"><div class="dcard-h">Posiciones:</div><div class="dcard-b" id="dash-holdings"><div class="empty-state">calculando...</div></div></div>
-
-    <div class="dcard ga-outlook"><div class="dcard-h">Proyección de tu portafolio</div><div class="dcard-b" id="dash-proyeccion"><div class="empty-state">calculando...</div></div></div>
-
-    <div class="dcard ga-sector"><div class="dcard-h chico">Reparto por sector</div><div class="dcard-b" id="dash-sector"><div class="empty-state">calculando...</div></div></div>
-
-    <details class="acc ga-datos">
+    <details class="acc">
     <summary>
       <div class="acc-icon chip-oro"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M4 12h16M4 17h10"/></svg></div>
       <div><div class="acc-tit">datos de cada accion</div><div class="acc-sub">sector y dividendo — se capturan a mano</div></div>
@@ -1073,6 +1051,38 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
       </div>
     </div>
     </details>
+  </div>
+</div>
+
+<!-- FONDO DE LA UNIVERSIDAD (14-sep-2026): dinero APARTADO dentro de las cuentas reales -->
+<div class="page" id="page-fondo">
+  <div class="dhead"><h2>Fondo de la universidad</h2><div class="item-meta">apartado dentro de tus cuentas: no es dinero para el dia a dia</div></div>
+  <div class="dkpis" id="fondo-kpis"><div class="empty-state">calculando...</div></div>
+  <div class="dgrid">
+    <div class="dcard"><div class="dcard-h">Registrar un movimiento del fondo</div><div class="dcard-b">
+      <div class="field"><label for="fondo-tipo">que paso</label>
+        <select id="fondo-tipo" onchange="fondoTipoCambio()">
+          <option value="entrada">llego dinero nuevo al fondo</option>
+          <option value="apartar">apartar dinero que ya esta en la cuenta</option>
+          <option value="rendimiento">el banco abono rendimiento del fondo</option>
+          <option value="salida">pague algo con el fondo</option>
+          <option value="traspaso">movi dinero del fondo a otra cuenta</option>
+          <option value="liberar">liberar: pasa del fondo a mi dinero</option>
+        </select></div>
+      <div class="row2" style="gap:8px">
+        <div class="field"><label for="fondo-cuenta" id="fondo-cuenta-lbl">cuenta</label><select id="fondo-cuenta" onchange="fondoTipoCambio()"></select></div>
+        <div class="field" id="fondo-destino-campo" hidden><label for="fondo-destino">a la cuenta</label><select id="fondo-destino"></select></div>
+      </div>
+      <div class="row2" style="gap:8px">
+        <div class="field"><label for="fondo-monto">monto</label><input type="number" id="fondo-monto" step="0.01" min="0" inputmode="decimal" placeholder="0.00"></div>
+        <div class="field"><label for="fondo-fecha">fecha (vacia = hoy)</label><input type="text" id="fondo-fecha" placeholder="AAAA-MM-DD"></div>
+      </div>
+      <div class="field"><label for="fondo-nota">nota</label><input type="text" id="fondo-nota" maxlength="120" placeholder="ej. deposito del seguro"></div>
+      <div class="item-meta" id="fondo-ayuda" style="margin-bottom:8px;line-height:1.45"></div>
+      <button type="button" class="btn btn-purple" id="fondo-btn" onclick="registrarFondo()">registrar</button>
+    </div></div>
+    <div class="dcard"><div class="dcard-h">Dónde está el fondo</div><div class="dcard-b" id="fondo-cuentas"><div class="empty-state">calculando...</div></div></div>
+    <div class="dcard ancha"><div class="dcard-h">Movimientos del fondo</div><div class="dcard-b" id="fondo-movs"><div class="empty-state">calculando...</div></div></div>
   </div>
 </div>
 
@@ -1485,8 +1495,10 @@ let state = {
   mesOffset:0, resPeriodo:'mes',
   catsGasto:[...CATS_GASTO_DEFAULT], catsIngreso:[...CATS_INGRESO_DEFAULT],
   apartados:[],
+  // fondo de la universidad: dinero APARTADO dentro de las cuentas reales (ver saneaFondo)
+  fondo:{saldosPorCuenta:{}, movs:[]},
   // perfil para el estandar personalizado (vacio = estandar generico, no bloquea nada)
-  perfil:{anoNac:null, vivienda:'', dependientes:0, ingresoBase:null, nombre:'', foto:'', notasInversion:''},
+  perfil:{anoNac:null, vivienda:'', dependientes:0, ingresoBase:null, nombre:'', foto:'', notasInversion:'', fondoTab:false},
   personas:JSON.parse(JSON.stringify(PERSONAS_DEFAULT)),
   metas:{fecha:META_FECHA_DEF, items:[]},
   gastos:[], ingresos:[], transferencias:[], snapshots:[]
@@ -1521,6 +1533,8 @@ async function pintarDesdeCache() {
       getDocFromCache(doc(db,'cartera','categorias')),
       getDocFromCache(doc(db,'cartera','historial')),
       getDocFromCache(doc(db,'cartera','mercado')),
+      // el fondo entra al TODO O NADA: sin el, la copia local pintaria lo apartado como tuyo
+      getDocFromCache(doc(db,'cartera','fondo')),
       getDocsFromCache(query(collection(db,'gastos'), orderBy('fecha','desc'))),
       getDocsFromCache(query(collection(db,'ingresos'), orderBy('fecha','desc'))),
       getDocsFromCache(query(collection(db,'transferencias'), orderBy('fecha','desc'))),
@@ -1530,7 +1544,7 @@ async function pintarDesdeCache() {
   // getDocFromCache/getDocsFromCache LANZAN si eso no esta guardado en el aparato:
   // si alguna falto, la copia local no alcanza para una pantalla coherente
   if (r.some(x => x.status !== 'fulfilled')) return false;
-  const [sD,tD,trvD,pD,cD,hD,mD,gS,iS,trS,opS] = r.map(x => x.value);
+  const [sD,tD,trvD,pD,cD,hD,mD,fD,gS,iS,trS,opS] = r.map(x => x.value);
   // sin saldos, personas o tarjeta no alcanza para una pantalla coherente: pintar
   // personas vacio enseñaria los PERSONAS_DEFAULT del codigo como si fueran deudas reales
   if (!sD.exists() || !pD.exists() || !tD.exists()) return false;
@@ -1568,6 +1582,7 @@ async function pintarDesdeCache() {
       if (Array.isArray(c.catsGasto) && c.catsGasto.length) state.catsGasto = c.catsGasto;
       if (Array.isArray(c.catsIngreso) && c.catsIngreso.length) state.catsIngreso = c.catsIngreso; }
     if (hD.exists() && Array.isArray(hD.data().snapshots)) state.snapshots = hD.data().snapshots;
+    state.fondo = saneaFondo(fD.exists() ? fD.data() : null);
     // las cotizaciones: sin ellas la bolsa valdria 0 y el patrimonio total saldria
     // MAS BAJO de lo real, que es justo el susto que hay que evitar
     if (mD.exists()) { const m = mD.data();
@@ -1639,7 +1654,7 @@ async function loadFromFirebase() {
     // exactamente el mismo orden, asi que nada cambia de semantica.
     const [
       sDoc, mDoc, pDoc, perDoc, tDoc,
-      trvDoc, hDoc, aDoc, mtDoc, cDoc, tkDoc,
+      trvDoc, hDoc, aDoc, mtDoc, cDoc, tkDoc, fDoc,
       gSnap, iSnap, trSnap, opSnap
     ] = await Promise.all([
       getDoc(doc(db,'cartera','saldos')),
@@ -1653,6 +1668,7 @@ async function loadFromFirebase() {
       getDoc(doc(db,'cartera','metas')),
       getDoc(doc(db,'cartera','categorias')),
       getDoc(doc(db,'cartera','tickers')),
+      getDoc(doc(db,'cartera','fondo')),
       getDocs(query(collection(db,'gastos'), orderBy('fecha','desc'))),
       getDocs(query(collection(db,'ingresos'), orderBy('fecha','desc'))),
       getDocs(query(collection(db,'transferencias'), orderBy('fecha','desc'))),
@@ -1662,6 +1678,8 @@ async function loadFromFirebase() {
     // las siembras/migraciones: decidirian sobre un estado viejo y podrian reaplicar
     // correcciones ya hechas. Se saltan y se reintentan en la proxima apertura con red.
     const desdeCache = !!(sDoc && sDoc.metadata && sDoc.metadata.fromCache);
+    // el fondo se carga SIEMPRE, exista o no: sin el, inicio pintaria el dinero apartado como tuyo
+    state.fondo = saneaFondo(fDoc.exists() ? fDoc.data() : null);
     if (sDoc.exists()) {
       const d = sDoc.data();
       // respaldo de todos los campos numericos/fecha antes de sobreescribir: si algo llega
@@ -1828,6 +1846,7 @@ async function loadFromFirebase() {
         // solo se acepta un dataURL jpeg/png generado por la propia app
         // el tablero de inversiones: solo cuenta si esta guardado como true (lista blanca)
         dashboard: pf.dashboard === true,
+        fondoTab: pf.fondoTab === true,
         // notas del tablero (columna "Notas" de la hoja): texto libre, se escapa al pintar
         notasInversion:(typeof pf.notasInversion==='string')?pf.notasInversion.slice(0,1500):'',
         foto:(typeof pf.foto==='string'&&/^data:image\/(?:jpeg|png);base64,[A-Za-z0-9+/]+={0,2}$/.test(pf.foto)&&pf.foto.length<900000)?pf.foto:''};
@@ -2109,6 +2128,9 @@ async function procesarPendientesAtajo() {
   try{
     const resultado=await runTransaction(db, async tx=>{
       const sSnap=await tx.get(saldosRef), tSnap=await tx.get(tarjetaRef), trvSnap=await tx.get(tarjetaRevRef);
+      // lo apartado del fondo: un gasto del Atajo que lo tomaria se rechaza como los invalidos
+      const fSnapAt=await tx.get(doc(db,'cartera','fondo'));
+      const apAt=saneaFondo(fSnapAt.exists()?fSnapAt.data():null).saldosPorCuenta;
       const s=sSnap.exists()?sSnap.data():{};
       const cuentas={
         efectivo:Number.isFinite(s.efectivo)?s.efectivo:0,
@@ -2144,6 +2166,10 @@ async function procesarPendientesAtajo() {
         // TDC Revolut: limite = deposito; aqui SI se valida contra los valores canonicos
         // (este es el unico flujo genuinamente concurrente); si excede, se rechaza
         if(valido&&cta==='tarjetaRev'&&Math.round((Math.max(0,revTdcDeuda)+d.monto)*100)>Math.round(revTdcDeposito*100)) valido=false;
+        if(valido&&tipo==='gasto'){
+          const campoAt={efectivo:'efectivo',nu:'nuSaldo',revolut:'revMXN'}[cta];
+          if(campoAt&&apAt[cta]&&Math.round((cuentas[campoAt]-d.monto)*100)<Math.round(apAt[cta]*100)) valido=false;
+        }
         if(valido){
           const sgn=tipo==='gasto'?-1:1;
           if(cta==='efectivo') cuentas.efectivo+=sgn*d.monto;
@@ -2243,7 +2269,8 @@ function suscribirEnVivo() {
     [doc(db,'cartera','saldos'),     aplicarSaldosRemotos,     ()=>refrescar(render)],
     [doc(db,'cartera','tarjeta'),    aplicarTarjetaRemota,     ()=>refrescar(render)],
     [doc(db,'cartera','tarjetaRev'), aplicarTarjetaRevRemota,  ()=>refrescar(render)],
-    [doc(db,'cartera','personas'),   aplicarPersonasRemotas,   ()=>refrescar(render,renderDeudas,renderPersonaSelect)]
+    [doc(db,'cartera','personas'),   aplicarPersonasRemotas,   ()=>refrescar(render,renderDeudas,renderPersonaSelect)],
+    [doc(db,'cartera','fondo'),      d=>{ state.fondo=saneaFondo(d); }, ()=>refrescar(render,renderFondo)]
   ];
   pares.forEach(([ref,aplica,pinta])=>{
     const u=onSnapshot(ref, snap=>{
@@ -2292,6 +2319,37 @@ function liberarDinero() { dineroOcupado=false; drenarSnapshots(); }
 
 // cuentas de saldo simple: slot -> campo en cartera/saldos
 const CAMPO_SIMPLE={efectivo:'efectivo', nu:'nuSaldo', revolut:'revMXN', gbm:'efectivoGBM'};
+// ── fondo: saneo ──
+// FONDO DE LA UNIVERSIDAD (14-sep-2026). Roberto recibe ~MXN 813,600 (estimado) de un seguro
+// educativo y los guarda MEZCLADOS en sus cuentas (casi todo en Revolut). No son dinero para
+// el dia a dia: se llevan como APARTADO contable por cuenta. 'tu dinero' = saldo fisico menos
+// lo apartado, y ninguna operacion normal puede dejar una cuenta bajo lo apartado. El interes
+// NO se aparta solo (txDinero reinicia base/fecha y no hay historia para atribuirlo): se
+// muestra una estimacion y Roberto concilia lo que el banco abono (tipo 'rendimiento').
+const CTAS_FONDO = ['revolut', 'revSavings', 'nu', 'efectivo', 'cajita1'];
+const TIPOS_FONDO = ['entrada', 'salida', 'traspaso', 'apartar', 'rendimiento', 'liberar'];
+function saneaFondo(d) {
+  const out = {saldosPorCuenta:{}, movs:[]};
+  if (!d || typeof d !== 'object') return out;
+  const sp = d.saldosPorCuenta;
+  if (sp && typeof sp === 'object' && !Array.isArray(sp))
+    CTAS_FONDO.forEach(k => { const v = sp[k]; if (Number.isFinite(v) && v > 0) out.saldosPorCuenta[k] = Math.round(v * 100) / 100; });
+  if (Array.isArray(d.movs))
+    out.movs = d.movs.filter(m => m && typeof m === 'object' && TIPOS_FONDO.includes(m.tipo) &&
+      Number.isFinite(m.monto) && m.monto > 0 && CTAS_FONDO.includes(m.cuenta) &&
+      (m.tipo !== 'traspaso' || (CTAS_FONDO.includes(m.destino) && m.destino !== m.cuenta))).slice(0, 2000);
+  return out;
+}
+const fmtFondo = v => '$' + (Math.round(nFin(v) * 100) / 100).toLocaleString('es-MX', {minimumFractionDigits:2, maximumFractionDigits:2});
+// saldo FISICO de una cuenta tras esta operacion, con lo que la transaccion leyo y lo que va a escribir
+function saldoFinalSlot(slot, sal, campos, ahora) {
+  if (CAMPO_SIMPLE[slot]) { const f = CAMPO_SIMPLE[slot]; return campos[f] !== undefined ? nFin(campos[f]) : nFin(sal[f]); }
+  const cfg = CAMPO_COMP[slot]; if (!cfg) return 0;
+  const b = campos[cfg.base] !== undefined ? nFin(campos[cfg.base]) : nFin(sal[cfg.base]);
+  const f = campos[cfg.fecha] !== undefined ? campos[cfg.fecha] : sal[cfg.fecha];
+  return calcCompoundAt(b, f, ahora, modeloComp({...sal, ...campos}, cfg));
+}
+// ── fin saneo fondo ──
 // cuentas de interes compuesto: su saldo es DERIVADO (base+interes hasta hoy), asi que
 // un delta se aplica consolidando el interes: base = saldoHoy + delta, fecha = hoy
 // def: convencion del producto cuando el doc no trae el campo. dias=360 (regulacion
@@ -2321,6 +2379,7 @@ const CAMPO_COMP={
 //   tdcRevDelta,  tdcRevMovAdd,  tdcRevMovDelId       -> cartera/tarjetaRev
 //   persona:{key,nombre,crear,deltaSaldo,movAdd,movDelId}
 //   crear:[{ref,data}] borrar:[ref] requerirDocs:[ref]
+//   fondo:{delta:{slot:monto}, mov:{...}}  mueve el APARTADO del fondo a la par del saldo
 //   movBorrar:{ref,slot,signo,monto}  borra un gasto/ingreso Y decide DENTRO de la
 //                                transaccion si revierte el saldo, releyendo las
 //                                banderas pendiente/aplicadoSaldo del propio documento
@@ -2333,7 +2392,7 @@ async function txDinero(plan) {
   const slotsSal = Object.keys(deltasPlan).filter(s => CAMPO_SIMPLE[s] || CAMPO_COMP[s]);
   const absolutos  = plan.absolutos || {};
   const cristal    = plan.cristalizar || [];
-  const usaSaldos  = slotsSal.length > 0 || Object.keys(absolutos).length > 0 || cristal.length > 0;
+  const usaSaldos  = slotsSal.length > 0 || Object.keys(absolutos).length > 0 || cristal.length > 0 || !!plan.fondo;
   const usaDep     = deltasPlan.revTdcDep !== undefined || plan.tdcRevDeposito !== undefined;
   const usaTarjeta = plan.tarjetaDelta !== undefined || !!plan.tarjetaMovAdd || !!plan.tarjetaMovDelId;
   const usaTdcRev  = plan.tdcRevDelta !== undefined || !!plan.tdcRevMovAdd || !!plan.tdcRevMovDelId || usaDep;
@@ -2353,6 +2412,8 @@ async function txDinero(plan) {
       const tSnap  = usaTarjeta          ? await tx.get(doc(db,'cartera','tarjeta'))  : null;
       const rSnap  = usaTdcRev           ? await tx.get(doc(db,'cartera','tarjetaRev')): null;
       const pSnap  = usaPersona          ? await tx.get(doc(db,'cartera','personas')) : null;
+      // el fondo se lee en TODA operacion que toque saldos: es lo que protege el dinero apartado
+      const fSnap  = (usaSaldos || usaDep || mb) ? await tx.get(doc(db,'cartera','fondo')) : null;
       const req = [];
       for (const r of (plan.requerirDocs||[])) req.push(await tx.get(r));
       const mbSnap = mb ? await tx.get(mb.ref) : null;
@@ -2410,6 +2471,56 @@ async function txDinero(plan) {
         if (d < 0 && plan.permitirNegativo !== true && cent(nuevo) < 0)
           return {error:'saldo insuficiente en '+(CUENTAS[slot]||slot)};
         saldosFinales[slot] = nuevo;
+      }
+      // FONDO DE LA UNIVERSIDAD: ninguna operacion puede dejar una cuenta con menos saldo fisico
+      // del que tiene apartado; las del propio fondo mueven el apartado a la par (plan.fondo.delta).
+      // Solo se juzgan las cuentas que ESTA operacion toca, y solo si las empeora: una entrada
+      // nunca se bloquea aunque la cuenta ya estuviera bajo lo apartado.
+      let fondo = null;
+      if (fSnap) {
+        const fd = saneaFondo(fSnap.exists() ? fSnap.data() : null);
+        const ap = {...fd.saldosPorCuenta};
+        const dAp = (plan.fondo && plan.fondo.delta) || {};
+        // el plan lo arma la pantalla: aqui NO se le cree. El movimiento y los deltas deben cuadrar
+        // (un traspaso a la misma cuenta colapsaba los dos deltas en uno y creaba dinero de la nada)
+        if (plan.fondo) {
+          const mv = plan.fondo.mov || {}, t = mv.tipo;
+          if (!TIPOS_FONDO.includes(t) || !CTAS_FONDO.includes(mv.cuenta) || !(cent(nFin(mv.monto)) > 0))
+            return {error:'movimiento del fondo no valido'};
+          if (t === 'traspaso' && (!CTAS_FONDO.includes(mv.destino) || mv.destino === mv.cuenta))
+            return {error:'el traspaso necesita dos cuentas distintas'};
+          const mueveSaldo = t === 'entrada' || t === 'salida' || t === 'traspaso';
+          // lo esperado sale del MOVIMIENTO: el apartado y el saldo deben ser exactamente eso
+          const mm = c2(nFin(mv.monto)), esperado = {};
+          if (t === 'entrada' || t === 'apartar' || t === 'rendimiento') esperado[mv.cuenta] = mm;
+          else if (t === 'salida' || t === 'liberar') esperado[mv.cuenta] = -mm;
+          else { esperado[mv.cuenta] = -mm; esperado[mv.destino] = mm; }
+          for (const k of new Set([...Object.keys(esperado), ...Object.keys(dAp), ...Object.keys(deltasPlan)])) {
+            const e = cent(nFin(esperado[k])), dF = cent(nFin(dAp[k])), dSal = cent(nFin(deltasPlan[k]));
+            if (dF !== e || dSal !== (mueveSaldo ? e : 0)) return {error:'movimiento del fondo no valido'};
+          }
+        }
+        for (const k in dAp) {
+          if (!CTAS_FONDO.includes(k)) return {error:'esa cuenta no puede guardar dinero del fondo'};
+          const antes = nFin(ap[k]);
+          ap[k] = c2(antes + nFin(dAp[k]));
+          if (cent(ap[k]) < 0) return {error:'en ' + (CUENTAS[k]||k) + ' el fondo solo tiene ' + fmtFondo(antes)};
+          if (cent(ap[k]) === 0) delete ap[k];
+        }
+        const tocadas = new Set([...slotsAplicar, ...Object.keys(dAp)]);
+        CTAS_FONDO.forEach(k => {
+          const f = CAMPO_SIMPLE[k] || (CAMPO_COMP[k] && CAMPO_COMP[k].base);
+          if (f && campos[f] !== undefined) tocadas.add(k);
+        });
+        for (const k of tocadas) {
+          if (!ap[k]) continue;
+          const fin = saldoFinalSlot(k, sal, campos, ahora), ini = saldoFinalSlot(k, sal, {}, ahora);
+          const subioApartado = cent(ap[k]) > cent(nFin(fd.saldosPorCuenta[k]));
+          if (cent(fin) < cent(ap[k]) && (cent(fin) < cent(ini) || subioApartado))
+            return {error:'eso tomaria dinero del fondo de la universidad: en ' + (CUENTAS[k]||k) + ' quedarian ' +
+                          fmtFondo(fin) + ' y hay ' + fmtFondo(ap[k]) + ' apartados'};
+        }
+        if (plan.fondo) fondo = {saldosPorCuenta: ap, movs: [plan.fondo.mov, ...fd.movs]};
       }
       // tarjeta NU
       let tarjeta = null;
@@ -2491,9 +2602,11 @@ async function txDinero(plan) {
       if (usaTdcRev)  tx.set(doc(db,'cartera','tarjetaRev'), tdcRev, {merge:true});
       // merge profundo de mapas: toca UNICAMENTE a esa persona, las otras quedan intactas
       if (usaPersona) tx.set(doc(db,'cartera','personas'), {data:{[plan.persona.key]:persona}}, {merge:true});
+      // set COMPLETO (sin merge): una cuenta que queda en cero debe desaparecer del mapa
+      if (fondo) tx.set(doc(db,'cartera','fondo'), fondo);
       for (const c of (plan.crear||[])) tx.set(c.ref, c.data);
       for (const r of (plan.borrar||[])) tx.delete(r);
-      return {ok:true, saldos:saldosFinales, campos, tarjeta, tdcRev, persona,
+      return {ok:true, saldos:saldosFinales, campos, tarjeta, tdcRev, persona, fondo,
               movAplicaba: mb ? !movSinEfecto(mbSnap.data()) : undefined};
     }, {maxAttempts:8});
     setSyncDot('ok'); // la transaccion llego al servidor (aunque haya devuelto {error})
@@ -2532,6 +2645,7 @@ function aplicarRes(res) {
     if (cp.reporto        !== undefined) state.reporto        = cp.reporto;
   }
   if (res.tarjeta) { state.tarjetaDeuda = res.tarjeta.deuda; state.tarjetaMovimientos = res.tarjeta.movimientos; }
+  if (res.fondo)   state.fondo = saneaFondo(res.fondo);
   if (res.tdcRev)  { state.revTdcDeuda = res.tdcRev.deuda; state.revTdcDeposito = res.tdcRev.deposito; state.revTdcMovs = res.tdcRev.movimientos; }
 }
 // un fallo pintando la pantalla NO debe reportarse como "no se guardo": ya se guardo
@@ -2603,6 +2717,7 @@ window.showPage = function(p) {
   document.querySelectorAll('.tab').forEach(el => el.classList.toggle('active', el.dataset.page===p));
   document.getElementById('page-'+p).classList.add('active');
   if(p==='dashboard') renderDashboard();
+  if(p==='fondo') renderFondo();
   if(p==='resumen') renderResumen();
   if(p==='movimientos') renderMovimientos();
   if(p==='deudas') renderDeudas();
@@ -2803,7 +2918,7 @@ function actualizarOjo() {
 }
 // re-renderiza TODAS las paginas (tambien las inactivas, para no dejar montos viejos en el DOM)
 function rerenderTodo() {
-  render(); renderTransferencias(); renderMovimientos(); renderDeudas(); renderResumen(); if(dashboardEncendido()) renderDashboard();
+  render(); renderTransferencias(); renderMovimientos(); renderDeudas(); renderResumen(); if(dashboardEncendido()) renderDashboard(); if(fondoVisible()) renderFondo();
   renderNoticias(); // el modo privado tambien oculta los tickers de las noticias
 }
 // detalle por cuenta: al tocar una tarjeta de inicio se listan sus movimientos del ultimo
@@ -3046,7 +3161,7 @@ function cicloTdcRev() {
 function render() {
   const nu1=calcNu1();
   document.getElementById('nu-cajita1-display').textContent=fmt(nu1.saldo);
-  document.getElementById('nu1-sub').textContent=descModelo('cajita1');
+  document.getElementById('nu1-sub').textContent=descModelo('cajita1')+(apartadoDe('cajita1')>0?' · incluye '+fmt(apartadoDe('cajita1'))+' del fondo · libres '+fmt(Math.max(0,disponibleCuenta('cajita1'))):'');
   document.getElementById('nu1-rend').textContent=nu1.rend>0?'+'+fmt(nu1.rend):fmt(0);
   document.getElementById('nu1-base-val').textContent=fmt(state.nuCajita1Base);
   document.getElementById('nu1-rend-val').textContent='+'+fmt(nu1.rend);
@@ -3055,9 +3170,11 @@ function render() {
 
   // Revolut
   document.getElementById('rev-mxn-display').textContent=fmt(state.revMXN);
+  const subFondo=(id,base,c)=>{ const el=document.getElementById(id); if(el) el.textContent=base+(apartadoDe(c)>0?' · incluye '+fmt(apartadoDe(c))+' del fondo · libres '+fmt(Math.max(0,disponibleCuenta(c))):''); };
+  subFondo('nu-saldo-sub','disponible','nu'); subFondo('cash-sub','pesos en mano','efectivo'); subFondo('rev-mxn-sub','cuenta personal','revolut');
   const rs=calcRevSavings();
   document.getElementById('rev-savings-display').textContent=fmt(rs.saldo);
-  document.getElementById('rev-savings-sub').textContent=descModelo('revSavings');
+  document.getElementById('rev-savings-sub').textContent=descModelo('revSavings')+(apartadoDe('revSavings')>0?' · incluye '+fmt(apartadoDe('revSavings'))+' del fondo · libres '+fmt(Math.max(0,disponibleCuenta('revSavings'))):'');
   document.getElementById('rev-savings-rend').textContent=rs.rend>0?'+'+fmt(rs.rend):fmt(0);
   document.getElementById('rev-savings-base-val').textContent=fmt(state.revSavingsBase);
   document.getElementById('rev-savings-rend-val').textContent='+'+fmt(rs.rend);
@@ -3152,13 +3269,24 @@ function render() {
 
   // GBM retirado (vendido jul-2026, el dinero migro a Revolut): fuera del total.
   // El deposito de la TDC Revolut SI es activo (dinero propio, aunque congelado)
-  const total=nu1.saldo+state.nuSaldo+state.efectivo+state.revMXN+rs.saldo+nvdaVal+tdcDep;
+  const totalFisico=nu1.saldo+state.nuSaldo+state.efectivo+state.revMXN+rs.saldo+nvdaVal+tdcDep;
+  // el fondo de la universidad vive DENTRO de estas cuentas pero no es dinero para el dia a dia:
+  // inicio, metas, distribucion, el snapshot y el coach usan TU dinero (fisico menos apartado)
+  const fondoTot=fondoTotal();
+  const total=totalFisico-fondoTot;
   document.getElementById('total-display').textContent=fmt(total);
+  const totLbl=document.getElementById('total-label');
+  // si el fondo llego de otro dispositivo antes que los saldos, 'tu dinero' puede salir negativo un instante
+  if(totLbl) totLbl.textContent=fondoTot>0?(total<-0.005?'tu dinero (sincronizando el fondo…)':'tu dinero (sin el fondo)'):'activos totales';
   // neto = activos + lo que me deben (o menos lo que debo) - deudas de tarjetas
   const saldoDeudas=Object.values(state.personas||{}).reduce((s,p)=>s+(p.saldo||0),0);
   const neto=total+saldoDeudas-(state.tarjetaDeuda||0)-(state.revTdcDeuda||0);
-  document.getElementById('neto-display').textContent='patrimonio neto (con deudas y tarjetas): '+fmt(neto);
-  renderDistribucion(nu1.saldo+rs.saldo, nvdaVal, state.efectivo+state.nuSaldo+state.revMXN, tdcDep, posAbiertas.length>0&&!stocksCompleto);
+  document.getElementById('neto-display').textContent='patrimonio neto (con deudas y tarjetas): '+fmt(neto)+(fondoTot>0?' · fondo aparte: '+fmt(fondoTot):'');
+  totalesInicio={fisico:totalFisico, tuyo:total, neto, listo:true};
+  refrescar(aplicarVisibilidadFondo);
+  // lo apartado se resta POR CUENTA: en Savings reduce 'ahorro', en MXN reduce 'disponible'
+  renderDistribucion(nu1.saldo+rs.saldo-apartadoDe('cajita1')-apartadoDe('revSavings'), nvdaVal,
+    state.efectivo+state.nuSaldo+state.revMXN-apartadoDe('efectivo')-apartadoDe('nu')-apartadoDe('revolut'), tdcDep, posAbiertas.length>0&&!stocksCompleto);
   renderMetas({stocks:nvdaVal, stocksPendiente:posAbiertas.length>0&&!stocksCompleto, patrimonio:total});
   renderApartados();
   renderStockDatalist();
@@ -3321,7 +3449,7 @@ window.registrarTarjeta = async function(tipo) {
     // el monto contra la deuda y contra el saldo lo revalida txDinero con los valores
     // de la nube; esto es solo un aviso temprano para no mandar una transaccion inutil
     if(monto>state.tarjetaDeuda+0.01){showToast('el pago excede la deuda de la tarjeta');return;}
-    if(fuente!=='externo'&&monto>getSaldoCuenta(fuente)+0.01){showToast('saldo insuficiente en '+CUENTAS[fuente]);return;}
+    if(fuente!=='externo'&&monto>disponibleCuenta(fuente)+0.01){showToast('saldo insuficiente en '+CUENTAS[fuente]);return;}
   }
   if(dineroOcupado){showToast('espera, hay otra operacion en curso');return;}
   const fechaMov=fechaMovOpcional('tarjeta-fecha'); if(fechaMov===null) return;
@@ -3370,7 +3498,7 @@ window.registrarTarjetaRev = async function(tipo) {
     fuente=document.getElementById('tarjeta-rev-pago-fuente').value;
     if(!['revolut','efectivo','nu','externo'].includes(fuente)){showToast('cuenta no valida');return;}
     if(monto>state.revTdcDeuda+0.01){showToast('el pago excede la deuda de la TDC Revolut');return;}
-    if(fuente!=='externo'&&monto>getSaldoCuenta(fuente)+0.01){showToast('saldo insuficiente en '+CUENTAS[fuente]);return;}
+    if(fuente!=='externo'&&monto>disponibleCuenta(fuente)+0.01){showToast('saldo insuficiente en '+CUENTAS[fuente]);return;}
   }
   if(dineroOcupado){showToast('espera, hay otra operacion en curso');return;}
   const fechaMov=fechaMovOpcional('tarjeta-rev-fecha'); if(fechaMov===null) return;
@@ -3416,6 +3544,19 @@ function getSaldoCuenta(c) {
   if(c==='revTdcDep') return Math.max(0,Math.min((state.revTdcDeposito||0)-250,(state.revTdcDeposito||0)-Math.max(0,state.revTdcDeuda||0)));
   return 0;
 }
+// ── FONDO: lo apartado y lo libre de cada cuenta ──
+function apartadoDe(c) { const sp = state.fondo && state.fondo.saldosPorCuenta; const v = sp ? sp[c] : 0; return Number.isFinite(v) ? v : 0; }
+function fondoTotal() { return CTAS_FONDO.reduce((t, k) => t + apartadoDe(k), 0); }
+// lo que SI se puede usar de una cuenta: su saldo menos lo apartado del fondo
+function disponibleCuenta(c) { return getSaldoCuenta(c) - apartadoDe(c); }
+// totales que calcula render(): la pestaña del fondo los reusa en vez de repetir la formula
+let totalesInicio = {fisico:0, tuyo:0, neto:0, listo:false};
+// lo que se concilio al fondo como rendimiento en un periodo: no es rendimiento TUYO
+function rendFondoEnRango(start, end) {
+  const a = start.getTime(), b = end.getTime();
+  return ((state.fondo && state.fondo.movs) || []).filter(m => m.tipo === 'rendimiento').reduce((t, m) => {
+    const ms = msFechaMov(m.fecha || m.creado); return (ms !== null && ms >= a && ms < b) ? t + m.monto : t; }, 0);
+}
 function clampCero(v) { return Math.abs(v)<0.005?0:v; } // al vaciar una cajita no quedan residuos de centavos
 // NOTA: aqui vivian aplicarDelta/backupCuentas/restoreCuentas — el patron VIEJO de
 // mutar el estado en memoria y despues escribir el documento de saldos COMPLETO.
@@ -3434,7 +3575,8 @@ window.registrarTransferencia = async function() {
   if(origen===destino){showToast('elige cuentas distintas');return;}
   // avisos tempranos con el estado en pantalla; txDinero revalida TODO contra la nube.
   // El retirable del deposito (piso $250 y deuda usada) solo se puede calcular aqui.
-  const saldoOrigen=getSaldoCuenta(origen);
+  // lo apartado del fondo no se puede mover con una transferencia normal
+  const saldoOrigen=origen==='revTdcDep'?getSaldoCuenta(origen):disponibleCuenta(origen);
   if(Math.round(monto*100)>Math.round(saldoOrigen*100)){showToast(origen==='revTdcDep'?'solo puedes retirar '+fmt(saldoOrigen)+' del deposito (piso $250 y deuda usada quedan bloqueados)':'saldo insuficiente en '+CUENTAS[origen]);return;}
   if(destino==='tarjeta'&&monto>state.tarjetaDeuda+0.01){showToast('el pago excede la deuda de la tarjeta');return;}
   if(destino==='tarjetaRev'&&monto>state.revTdcDeuda+0.01){showToast('el pago excede la deuda de la TDC Revolut');return;}
@@ -4044,8 +4186,12 @@ async function operarStock(tipo) {
       res=await runTransaction(db, async tx=>{
         const sSnap=await tx.get(doc(db,'cartera','saldos'));
         const pSnap=await tx.get(doc(db,'cartera','posiciones'));
+        const fSnapOp=await tx.get(doc(db,'cartera','fondo'));
         const saldoActual=(campo&&sSnap.exists()&&Number.isFinite(sSnap.data()[campo]))?sSnap.data()[campo]:0;
         if(tipo==='compra'&&campo&&Math.round(d.monto*100)>Math.round(saldoActual*100)) return {error:'saldo insuficiente en '+(CUENTAS[d.cuenta]||d.cuenta)};
+        // lo apartado del fondo de la universidad no se puede invertir desde aqui
+        const apOp=saneaFondo(fSnapOp.exists()?fSnapOp.data():null).saldosPorCuenta[d.cuenta]||0;
+        if(tipo==='compra'&&campo&&Math.round((saldoActual-d.monto)*100)<Math.round(apOp*100)) return {error:'eso tomaria dinero del fondo de la universidad: en '+(CUENTAS[d.cuenta]||d.cuenta)+' solo tienes '+fmt(Math.max(0,saldoActual-apOp))+' libres'};
         const posData=pSnap.exists()?pSnap.data():{};
         const actUnits=Math.round((Number.isFinite(posData[d.simbolo])?posData[d.simbolo]:0)*1e8);
         const opUnits=Math.round(d.acciones*1e8);
@@ -4573,6 +4719,164 @@ window.setDashboard = async function(valor) {
   aplicarVisibilidadDashboard();
   if (valor) refrescar(renderDashboard);
 };
+// ── pestaña del FONDO DE LA UNIVERSIDAD ──────────────────────────────────────
+// visible si la encendio en el perfil O si ya hay dinero apartado: un fondo con saldo no se
+// puede esconder, seria dinero que no se ve en ningun lado
+function fondoVisible() { return !!(state.perfil && state.perfil.fondoTab) || fondoTotal() > 0; }
+function aplicarVisibilidadFondo() {
+  const on = fondoVisible();
+  const tab = document.getElementById('tab-fondo'); if (tab) tab.hidden = !on;
+  const pag = document.getElementById('page-fondo');
+  if (!on && pag && pag.classList.contains('active')) showPage('inicio');
+  const pOn = !!(state.perfil && state.perfil.fondoTab);
+  const off = document.getElementById('fondo-off'), onEl = document.getElementById('fondo-on');
+  if (off && onEl) { off.classList.toggle('active', !pOn); onEl.classList.toggle('active', pOn); }
+}
+window.setFondoTab = async function(valor) {
+  if (!!(state.perfil && state.perfil.fondoTab) === !!valor) return;
+  const ok = await guardarPerfil({fondoTab: !!valor}, valor ? 'pestaña del fondo encendida'
+    : (fondoTotal() > 0 ? 'apagada, pero sigue visible mientras haya dinero apartado' : 'pestaña del fondo apagada'));
+  if (!ok) return;
+  aplicarVisibilidadFondo();
+  if (valor) refrescar(renderFondo);
+};
+const FONDO_TIPOS_TXT = {entrada:'llego al fondo', apartar:'apartado', rendimiento:'rendimiento del banco',
+  salida:'pagado con el fondo', traspaso:'traspaso', liberar:'liberado a tu dinero'};
+const FONDO_AYUDA = {
+  entrada:'Sube el saldo de esa cuenta y lo aparta. No es un ingreso: no cuenta en tu mes ni en tu score. OJO: si ya capturaste ese saldo en "actualizar saldos", NO uses esta: usa "apartar dinero que ya esta en la cuenta", o lo contarias dos veces.',
+  apartar:'El dinero ya esta en la cuenta (por ejemplo, ya lo habias capturado): no mueve el saldo, solo lo aparta.',
+  rendimiento:'El interes que el banco le pago al fondo. Ya esta en el saldo: aqui se aparta y deja de contar como tuyo.',
+  salida:'Baja el saldo de la cuenta y lo apartado (por ejemplo, pagaste la inscripcion). No es un gasto: no cuenta en tu mes ni en tu score.',
+  traspaso:'Mueves dinero del fondo entre tus cuentas: el saldo y lo apartado viajan juntos.',
+  liberar:'Deja de estar apartado y pasa a ser dinero tuyo, sin mover el saldo.'};
+window.fondoTipoCambio = function() {
+  const t = (document.getElementById('fondo-tipo') || {}).value;
+  const dest = document.getElementById('fondo-destino-campo'); if (dest) dest.hidden = t !== 'traspaso';
+  const lbl = document.getElementById('fondo-cuenta-lbl'); if (lbl) lbl.textContent = t === 'traspaso' ? 'de la cuenta' : 'cuenta';
+  const ay = document.getElementById('fondo-ayuda');
+  if (ay) {
+    let txt = FONDO_AYUDA[t] || '';
+    if (t === 'rendimiento') {
+      const c = (document.getElementById('fondo-cuenta') || {}).value, sug = rendFondoSugerido(c);
+      txt += sug ? ' En ' + (CUENTAS[c] || c) + ', desde tu ultimo registro del fondo (' + sug.dias + ' dias) el fondo genero ≈' + fmt(sug.monto) +
+                   ' (estimado). Revolut abona a diario: basta con registrarlo una vez al mes.'
+                 : ' Esa cuenta no le genera interes al fondo.';
+    }
+    ay.textContent = txt;
+  }
+};
+// cuanto interes le toco al fondo en una cuenta desde su ultimo movimiento del fondo (ESTIMADO),
+// para no dejar a Roberto sacando la cuenta: el banco le abona uno solo mezclado con el suyo
+function rendFondoSugerido(slot) {
+  if (!CAMPO_COMP[slot] || !(apartadoDe(slot) > 0)) return null;
+  const S = slot === 'cajita1' ? calcNu1().saldo : slot === 'revSavings' ? calcRevSavings().saldo : null;
+  if (S === null) return null;
+  const F = Math.min(apartadoDe(slot), Math.max(0, S)), hoy = hoyLocal(), m = modeloComp(state, CAMPO_COMP[slot]);
+  const gana = x => x > 0 ? calcCompoundAt(x, hoy, parseFechaLocal(hoy).getTime() + 360 * 86400000, m) - x : 0;
+  const diario = (gana(S) - gana(S - F)) / 360;
+  const ult = ((state.fondo && state.fondo.movs) || []).find(x => x.cuenta === slot || x.destino === slot); // el mas nuevo va primero
+  const desde = ult ? msFechaMov(ult.fecha || ult.creado) : null;
+  const dias = desde !== null ? Math.max(0, Math.floor((Date.now() - desde) / 86400000)) : 30;
+  return {dias, monto: c2(diario * dias)};
+}
+// lo que el fondo AGREGA de interes al mes (ESTIMADO): tu dinero ocupa primero la banda alta
+function rendEstimadoFondoMes() {
+  let anual = 0;
+  const hoy = hoyLocal(), en360 = parseFechaLocal(hoy).getTime() + 360 * 86400000;
+  [['cajita1', calcNu1().saldo], ['revSavings', calcRevSavings().saldo]].forEach(([slot, S]) => {
+    const F = Math.min(apartadoDe(slot), Math.max(0, S)); if (!(F > 0)) return;
+    const m = modeloComp(state, CAMPO_COMP[slot]);
+    const gana = x => x > 0 ? calcCompoundAt(x, hoy, en360, m) - x : 0;
+    anual += gana(S) - gana(S - F);
+  });
+  return anual / 12;
+}
+function renderFondo() {
+  const k = document.getElementById('fondo-kpis'); if (!k) return;
+  ['fondo-cuenta', 'fondo-destino'].forEach(id => {
+    const sel = document.getElementById(id);
+    if (sel && !sel.options.length) sel.innerHTML = CTAS_FONDO.map(c => '<option value="' + c + '">' + escapeHtml(CUENTAS[c] || c) + '</option>').join('');
+  });
+  fondoTipoCambio();
+  const F = fondoTotal(), T = totalesInicio, estMes = rendEstimadoFondoMes();
+  const movs = (state.fondo && state.fondo.movs) || [];
+  const suma = tipos => movs.filter(m => tipos.includes(m.tipo)).reduce((t, m) => t + m.monto, 0);
+  const kpi = (l, n, sub, hero) => '<div class="dkpi' + (hero ? ' hero' : '') + '"><div class="l">' + escapeHtml(l) + '</div>' +
+    '<div class="n">' + escapeHtml(n) + '</div>' + (sub ? '<div class="s">' + escapeHtml(sub) + '</div>' : '') + '</div>';
+  k.innerHTML =
+    kpi('fondo apartado', fmt(F), F > 0 ? 'dentro de tus cuentas, protegido' : 'todavia no hay dinero apartado', true) +
+    kpi('tu dinero', T.listo ? fmt(T.tuyo) : '—', 'lo tuyo, sin el fondo') +
+    kpi('patrimonio completo', T.listo ? fmt(T.fisico) : '—', 'tu dinero + el fondo') +
+    kpi('neto completo', T.listo ? fmt(T.neto + F) : '—', 'suma lo que te deben y resta tus tarjetas') +
+    kpi('rinde al mes', estMes > 0.005 ? '≈' + fmt(estMes) : '—', 'estimado: el interes que agrega el fondo') +
+    kpi('ha entrado', fmt(suma(['entrada', 'apartar', 'rendimiento'])), 'entradas, apartados y rendimientos') +
+    kpi('se ha usado', fmt(suma(['salida', 'liberar'])), 'pagos y lo liberado a tu dinero');
+  const cu = document.getElementById('fondo-cuentas');
+  if (cu) {
+    const filas = CTAS_FONDO.filter(c => apartadoDe(c) > 0).map(c => {
+      const saldo = getSaldoCuenta(c), falta = apartadoDe(c) - saldo;
+      return '<div class="item-row"><div><div class="item-cat">' + escapeHtml(CUENTAS[c] || c) + '</div>' +
+        '<div class="item-meta"' + (falta > 0.005 ? ' style="color:var(--red)"' : '') + '>' +
+        (falta > 0.005 ? 'ojo: en la cuenta hay ' + fmt(saldo) + ', menos que lo apartado'
+                       : 'en la cuenta hay ' + fmt(saldo) + ' · libres para ti ' + fmt(Math.max(0, saldo - apartadoDe(c))) + (CAMPO_COMP[c] ? '' : ' · esta cuenta no genera interes')) +
+        '</div></div><span style="font-weight:600">' + fmt(apartadoDe(c)) + '</span></div>';
+    }).join('');
+    cu.innerHTML = (filas || '<div class="empty-state">sin dinero apartado todavia</div>') +
+      '<div class="item-meta" style="margin-top:8px;line-height:1.5">El interes que el banco le paga al fondo <b>no se aparta solo</b>: ' +
+      'cuando veas el abono en tu banco, registralo como "el banco abono rendimiento del fondo". Mientras no lo registres, ese interes cuenta como tuyo.' +
+      (estMes > 0.005 ? ' Estimado: ≈' + fmt(estMes) + ' al mes, contando que tu dinero ocupa primero la banda de mayor tasa.' : '') + '</div>';
+  }
+  const mv = document.getElementById('fondo-movs');
+  if (mv) {
+    const neg = t => t === 'salida' || t === 'liberar';
+    mv.innerHTML = movs.length
+      ? movs.slice(0, 60).map(m =>
+          '<div class="item-row"><div><div class="item-cat">' + escapeHtml(FONDO_TIPOS_TXT[m.tipo] || m.tipo) + ' · ' + escapeHtml(CUENTAS[m.cuenta] || m.cuenta) +
+          (m.tipo === 'traspaso' && m.destino ? ' → ' + escapeHtml(CUENTAS[m.destino] || m.destino) : '') + '</div>' +
+          '<div class="item-meta">' + escapeHtml(fmtFechaMov(m.fecha, {day:'numeric', month:'short', year:'numeric'})) + (m.nota ? ' · ' + escapeHtml(m.nota) : '') + '</div></div>' +
+          '<span class="' + (neg(m.tipo) ? 'item-amt-neg' : m.tipo === 'traspaso' ? '' : 'item-amt-pos') + '">' +
+          (neg(m.tipo) ? '−' : m.tipo === 'traspaso' ? '' : '+') + fmt(m.monto) + '</span></div>').join('') +
+        '<div class="item-meta" style="margin-top:8px">los movimientos del fondo no se borran: si te equivocas, registra el contrario (por ejemplo "liberar" para deshacer un "apartar")</div>'
+      : '<div class="empty-state">sin movimientos todavia</div>';
+  }
+}
+window.registrarFondo = async function() {
+  const tipo = document.getElementById('fondo-tipo').value;
+  const cuenta = document.getElementById('fondo-cuenta').value;
+  const destino = document.getElementById('fondo-destino').value;
+  const monto = Math.round(parseFloat(document.getElementById('fondo-monto').value) * 100) / 100;
+  const nota = document.getElementById('fondo-nota').value.trim().slice(0, 120);
+  if (!TIPOS_FONDO.includes(tipo) || !CTAS_FONDO.includes(cuenta)) { showToast('elige que paso y la cuenta'); return; }
+  if (!Number.isFinite(monto) || monto <= 0) { showToast('ingresa un monto valido'); return; }
+  if (tipo === 'traspaso' && (!CTAS_FONDO.includes(destino) || destino === cuenta)) { showToast('elige una cuenta destino distinta'); return; }
+  // avisos tempranos con lo que hay en pantalla; txDinero revalida TODO contra la nube
+  const ap = apartadoDe(cuenta), saldo = getSaldoCuenta(cuenta);
+  if (['salida', 'traspaso', 'liberar'].includes(tipo) && cent(monto) > cent(ap)) { showToast('en ' + CUENTAS[cuenta] + ' el fondo solo tiene ' + fmt(ap)); return; }
+  if (['salida', 'traspaso'].includes(tipo) && cent(monto) > cent(saldo)) { showToast('saldo insuficiente en ' + CUENTAS[cuenta]); return; }
+  if (['apartar', 'rendimiento'].includes(tipo) && cent(ap + monto) > cent(saldo)) { showToast('en ' + CUENTAS[cuenta] + ' solo hay ' + fmt(Math.max(0, saldo - ap)) + ' sin apartar'); return; }
+  if (dineroOcupado) { showToast('espera, hay otra operacion en curso'); return; }
+  const fecha = fechaMovOpcional('fondo-fecha'); if (fecha === null) return;
+  const m = c2(monto), ahora = new Date().toISOString();
+  const mov = {id: nuevoId(), tipo, cuenta, monto: m, nota, fecha, creado: ahora};
+  const plan = {fondo: {mov, delta: {}}};
+  if (tipo === 'entrada') { plan.deltas = {[cuenta]: m}; plan.fondo.delta[cuenta] = m; }
+  else if (tipo === 'salida') { plan.deltas = {[cuenta]: -m}; plan.fondo.delta[cuenta] = -m; }
+  else if (tipo === 'traspaso') { mov.destino = destino; plan.deltas = {[cuenta]: -m, [destino]: m}; plan.fondo.delta = {[cuenta]: -m, [destino]: m}; }
+  else if (tipo === 'liberar') plan.fondo.delta[cuenta] = -m;
+  else plan.fondo.delta[cuenta] = m;   // apartar / rendimiento: no mueve el saldo fisico
+  const btn = document.getElementById('fondo-btn');
+  let res = null, err = null;
+  if (btn) btn.disabled = true;
+  dineroOcupado = true;
+  try { res = await txDinero(plan); } catch (e) { err = e; }
+  finally { if (btn) btn.disabled = false; liberarDinero(); }
+  if (err) { console.error('registrarFondo', err); showToast(msgFalloDinero()); return; }
+  if (res.error) { showToast(res.error); return; }
+  aplicarRes(res);
+  ['fondo-monto', 'fondo-nota', 'fondo-fecha'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+  refrescar(render, renderFondo);
+  showToast((FONDO_TIPOS_TXT[tipo] || tipo) + ': ' + fmt(m));
+};
 window.cambiarFoto = () => { const i=document.getElementById('perfil-foto-input'); if(i){ i.value=''; i.click(); } };
 // comprime a 300x300 recortando al centro; baja calidad hasta caber en el doc de Firestore
 window.subirFoto = function(ev) {
@@ -4635,7 +4939,7 @@ window.exportarMisDatos = function() {
       tarjetaRev:tarjetaRevPayload(),
       gastos:state.gastos, ingresos:state.ingresos, transferencias:state.transferencias,
       operacionesBolsa:state.stocksOps, personas:state.personas,
-      apartados:state.apartados, categorias:{gasto:state.catsGasto,ingreso:state.catsIngreso},
+      apartados:state.apartados, fondo:state.fondo, categorias:{gasto:state.catsGasto,ingreso:state.catsIngreso},
       historial:state.snapshots
     };
     const blob=new Blob([JSON.stringify(datos,null,2)],{type:'application/json'});
@@ -4685,7 +4989,7 @@ window.editarPerfil = async function() {
 function valorMeta(cuenta, ctx) {
   if(cuenta==='stocks') return ctx.stocks;
   if(cuenta==='patrimonio') return ctx.patrimonio;
-  return getSaldoCuenta(cuenta);
+  return getSaldoCuenta(cuenta)-apartadoDe(cuenta); // lo apartado del fondo no cuenta para tus metas
 }
 function metaBloqueada(cuenta, ctx) { return cuenta==='stocks' && ctx.stocksPendiente; }
 function renderMetas(ctx) {
@@ -5066,15 +5370,16 @@ function calcCartera() {
 // efectivo que de verdad podria invertirse hoy (no cuenta cajitas, metas ni deudas)
 function efectivoDisponible() {
   const n = v => Number.isFinite(v) ? v : 0;
-  return n(state.efectivo) + n(state.nuSaldo) + n(state.revMXN);
+  // lo apartado del fondo de la universidad NO es efectivo para invertir
+  const ap = c => (typeof apartadoDe === 'function') ? apartadoDe(c) : 0;
+  return n(state.efectivo) + n(state.nuSaldo) + n(state.revMXN) - ap('efectivo') - ap('nu') - ap('revolut');
 }
 
 // ── graficas propias del tablero ──────────────────────────────────────────────
-// Calcadas de la hoja de Google Sheets que Roberto pidio "casi identica": barras
-// verticales con eje, leyenda arriba y la etiqueta de cada accion girada. SVG a mano.
-// verde = gana y rojo = pierde en TODAS las graficas: en la hoja original el rojo era
-// "lo que vale hoy" y junto a la de crecimiento se leia como perdida
-const DASH_AZUL = '#3b6fd8', DASH_ROJO = '#d9453b', DASH_MARINO = '#1f3a93', DASH_VERDE = '#2e9e5b', DASH_GRIS = '#9aa5b1';
+// SVG a mano. TODO color sale de un token del tema, puesto en style (un atributo SVG no
+// acepta var()): asi el tablero cambia con el color de la app. Verde = gana y rojo = pierde
+// en todas; lo neutro (lo que pusiste, lo que vale, el mercado) va en la escala del acento.
+const DC = {pusiste:'var(--d3)', vale:'var(--d1)', gana:'var(--green)', pierde:'var(--red)', mercado:'var(--d2)'};
 const svgNum = n => String(Math.round(n * 10) / 10);
 // paso "bonito" para un eje: 1, 2 o 5 por potencia de 10
 function pasoBonito(rango, n) {
@@ -5087,34 +5392,33 @@ function leyendaDash(items) {
     '<span><i style="background:' + color + '"></i>' + escapeHtml(txt) + '</span>').join('') + '</div>';
 }
 const ejeMoneda = v => (v < 0 ? '−' : '') + fmtCorto(Math.abs(v));
+const lineaEje = (L, W, R, yy, cero) => '<line x1="' + L + '" x2="' + (W - R) + '" y1="' + yy + '" y2="' + yy + '" class="' + (cero ? 'dcero' : 'dlinea') + '"/>';
+const textoEje = (x, y, t) => '<text x="' + x + '" y="' + y + '" text-anchor="end" font-size="10" class="deje">' + escapeHtml(t) + '</text>';
+const barraDash = (x, y, w, alto, color, titulo) =>
+  '<rect x="' + svgNum(x) + '" y="' + svgNum(y) + '" width="' + svgNum(w) + '" height="' + svgNum(alto) + '" rx="2" style="fill:' + color + '"><title>' + escapeHtml(titulo) + '</title></rect>';
+const etiquetaX = (cx, y, t) => '<text transform="translate(' + svgNum(cx) + ',' + y + ') rotate(-35)" text-anchor="end" font-size="10" class="deje">' + escapeHtml(t) + '</text>';
 
-// barras pareadas: lo que pusiste (azul) contra lo que vale hoy (rojo), por accion
+// barras pareadas por accion: lo que pusiste (tono claro) contra lo que vale (acento)
 function svgCostoValor(pos) {
   const datos = pos.filter(p => p.costo !== null || p.valor !== null);
   if (!datos.length) return '<div class="empty-state">sin datos todavia</div>';
   const max = Math.max(...datos.map(p => Math.max(p.costo || 0, p.valor || 0)));
   const paso = pasoBonito(max, 4), tope = Math.max(paso, Math.ceil(max / paso) * paso);
-  const L = 54, R = 8, T = 10, B = 48, H = 240, W = Math.max(320, L + R + datos.length * 52);
-  const ph = H - T - B, ancho = (W - L - R) / datos.length, bw = Math.min(18, ancho * 0.34);
+  const L = 50, R = 6, T = 8, B = 38, H = 210, W = Math.max(300, L + R + datos.length * 50);
+  const ph = H - T - B, ancho = (W - L - R) / datos.length, bw = Math.min(16, ancho * 0.32);
   const y = v => T + ph - (v / tope) * ph;
   let g = '';
-  for (let v = 0; v <= tope + paso * 0.001; v += paso) {
-    const yy = svgNum(y(v));
-    g += '<line x1="' + L + '" x2="' + (W - R) + '" y1="' + yy + '" y2="' + yy + '" stroke="rgba(0,0,0,.12)"/>' +
-         '<text x="' + (L - 6) + '" y="' + svgNum(y(v) + 3.5) + '" text-anchor="end" font-size="10" fill="#444">' + escapeHtml(ejeMoneda(v)) + '</text>';
-  }
+  for (let v = 0; v <= tope + paso * 0.001; v += paso) g += lineaEje(L, W, R, svgNum(y(v)), false) + textoEje(L - 6, svgNum(y(v) + 3.5), ejeMoneda(v));
   datos.forEach((p, k) => {
     const cx = L + ancho * k + ancho / 2;
-    const barra = (x, v, color, etq) => v === null ? '' :
-      '<rect x="' + svgNum(x) + '" y="' + svgNum(y(v)) + '" width="' + svgNum(bw) + '" height="' + svgNum(Math.max(0, T + ph - y(v))) +
-      '" fill="' + color + '"><title>' + escapeHtml(p.simbolo + ' · ' + etq + ': ' + fmt(v)) + '</title></rect>';
-    g += barra(cx - bw - 1, p.costo, DASH_GRIS, 'lo que pusiste') + barra(cx + 1, p.valor, DASH_AZUL, 'lo que vale');
-    g += '<text transform="translate(' + svgNum(cx) + ',' + (T + ph + 12) + ') rotate(-40)" text-anchor="end" font-size="10" fill="#222">' + escapeHtml(p.simbolo) + '</text>';
+    if (p.costo !== null) g += barraDash(cx - bw - 1, y(p.costo), bw, Math.max(0, T + ph - y(p.costo)), DC.pusiste, p.simbolo + ' · lo que pusiste: ' + fmt(p.costo));
+    if (p.valor !== null) g += barraDash(cx + 1, y(p.valor), bw, Math.max(0, T + ph - y(p.valor)), DC.vale, p.simbolo + ' · lo que vale: ' + fmt(p.valor));
+    g += etiquetaX(cx, T + ph + 12, p.simbolo);
   });
   const pend = pos.filter(p => p.costo === null).map(p => p.simbolo);
-  return leyendaDash([[DASH_GRIS, 'lo que pusiste'], [DASH_AZUL, 'lo que vale (ultimo precio)']]) +
+  return leyendaDash([[DC.pusiste, 'lo que pusiste'], [DC.vale, 'lo que vale (ultimo precio)']]) +
     '<div class="dsvg"><svg viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="lo que pusiste contra lo que vale, por accion">' + g + '</svg></div>' +
-    (pend.length ? '<div class="item-meta" style="text-align:center">sin barra gris: ' + escapeHtml(pend.join(', ')) + ' (falta el monto en pesos)</div>' : '');
+    (pend.length ? '<div class="item-meta">sin barra de lo que pusiste: ' + escapeHtml(pend.join(', ')) + ' (falta el monto en pesos)</div>' : '');
 }
 
 // crecimiento de cada accion en %: arriba de la linea de cero gana, abajo pierde
@@ -5125,67 +5429,71 @@ function svgCrecimiento(pos) {
   const hi = Math.max(0, ...con.map(d => d.v)), lo = Math.min(0, ...con.map(d => d.v));
   const paso = pasoBonito(Math.max(hi - lo, 1), 4);
   const tope = Math.max(paso, Math.ceil(hi / paso) * paso), piso = Math.min(0, Math.floor(lo / paso) * paso);
-  const L = 46, R = 8, T = 10, B = 48, H = 240, W = Math.max(320, L + R + datos.length * 44);
-  const ph = H - T - B, ancho = (W - L - R) / datos.length, bw = Math.min(22, ancho * 0.5);
+  const L = 42, R = 6, T = 8, B = 38, H = 210, W = Math.max(300, L + R + datos.length * 44);
+  const ph = H - T - B, ancho = (W - L - R) / datos.length, bw = Math.min(20, ancho * 0.5);
   const y = v => T + ((tope - v) / (tope - piso)) * ph;
   let g = '';
   for (let v = piso; v <= tope + paso * 0.001; v += paso) {
-    const yy = svgNum(y(v)), cero = Math.abs(v) < paso * 1e-6;
-    g += '<line x1="' + L + '" x2="' + (W - R) + '" y1="' + yy + '" y2="' + yy + '" stroke="' + (cero ? 'rgba(0,0,0,.45)' : 'rgba(0,0,0,.12)') + '"/>' +
-         '<text x="' + (L - 6) + '" y="' + svgNum(y(v) + 3.5) + '" text-anchor="end" font-size="10" fill="#444">' + svgNum(cero ? 0 : v) + '%</text>';
+    const cero = Math.abs(v) < paso * 1e-6;
+    g += lineaEje(L, W, R, svgNum(y(v)), cero) + textoEje(L - 6, svgNum(y(v) + 3.5), svgNum(cero ? 0 : v) + '%');
   }
   datos.forEach((d, k) => {
     const cx = L + ancho * k + ancho / 2;
     if (d.v !== null && Number.isFinite(d.v)) {
       const y0 = y(0), y1 = y(d.v);
-      g += '<rect x="' + svgNum(cx - bw / 2) + '" y="' + svgNum(Math.min(y0, y1)) + '" width="' + svgNum(bw) + '" height="' + svgNum(Math.max(1, Math.abs(y1 - y0))) +
-           '" fill="' + (d.v >= 0 ? DASH_VERDE : DASH_ROJO) + '"><title>' + escapeHtml(d.s + ' · ' + (d.v >= 0 ? '+' : '−') + Math.abs(d.v).toFixed(1) + '%') + '</title></rect>';
+      g += barraDash(cx - bw / 2, Math.min(y0, y1), bw, Math.max(1, Math.abs(y1 - y0)), d.v >= 0 ? DC.gana : DC.pierde,
+                     d.s + ' · ' + (d.v >= 0 ? '+' : '−') + Math.abs(d.v).toFixed(1) + '%');
     }
-    g += '<text transform="translate(' + svgNum(cx) + ',' + (T + ph + 12) + ') rotate(-40)" text-anchor="end" font-size="10" fill="#222">' + escapeHtml(d.s) + '</text>';
+    g += etiquetaX(cx, T + ph + 12, d.s);
   });
   const pend = datos.filter(d => !(d.v !== null && Number.isFinite(d.v))).map(d => d.s);
   return '<div class="dsvg"><svg viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="crecimiento de cada accion en porcentaje">' + g + '</svg></div>' +
-    (pend.length ? '<div class="item-meta" style="text-align:center">sin barra: ' + escapeHtml(pend.join(', ')) + ' (falta el monto en pesos)</div>' : '');
+    (pend.length ? '<div class="item-meta">sin barra: ' + escapeHtml(pend.join(', ')) + ' (falta el monto en pesos)</div>' : '');
 }
 
-// una sola barra: todo lo que gana (azul, arriba del cero) y todo lo que pierde (rojo, abajo)
+// una sola barra: todo lo que gana (arriba del cero) y todo lo que pierde (abajo)
 function svgGanaPierde(gana, pierde) {
   const hi = Math.max(0, gana || 0), lo = Math.max(0, pierde || 0);
-  const paso = pasoBonito(Math.max(hi + lo, 1), 5);
+  const paso = pasoBonito(Math.max(hi + lo, 1), 4);
   const tope = Math.max(paso, Math.ceil(hi / paso) * paso), piso = Math.ceil(lo / paso) * paso;
-  const L = 68, R = 12, T = 10, B = 10, H = 300, W = 232, ph = H - T - B;
+  const L = 56, R = 10, T = 8, B = 8, H = 200, W = 240, ph = H - T - B;
   const y = v => T + ((tope - v) / (tope + piso)) * ph;
-  const bw = 84, x = L + (W - L - R - bw) / 2;
+  const bw = 70, x = L + (W - L - R - bw) / 2;
   let g = '';
   for (let v = -piso; v <= tope + paso * 0.001; v += paso) {
-    const yy = svgNum(y(v)), cero = Math.abs(v) < paso * 1e-6;
-    g += '<line x1="' + L + '" x2="' + (W - R) + '" y1="' + yy + '" y2="' + yy + '" stroke="' + (cero ? 'rgba(0,0,0,.45)' : 'rgba(0,0,0,.12)') + '"/>' +
-         '<text x="' + (L - 6) + '" y="' + svgNum(y(v) + 3.5) + '" text-anchor="end" font-size="13" fill="#333">' + escapeHtml(ejeMoneda(cero ? 0 : v)) + '</text>';
+    const cero = Math.abs(v) < paso * 1e-6;
+    g += lineaEje(L, W, R, svgNum(y(v)), cero) + textoEje(L - 6, svgNum(y(v) + 3.5), ejeMoneda(cero ? 0 : v));
   }
-  if (hi > 0) g += '<rect x="' + svgNum(x) + '" y="' + svgNum(y(hi)) + '" width="' + bw + '" height="' + svgNum(y(0) - y(hi)) + '" fill="' + DASH_VERDE + '"><title>' + escapeHtml('lo que gana: ' + fmt(hi)) + '</title></rect>';
-  if (lo > 0) g += '<rect x="' + svgNum(x) + '" y="' + svgNum(y(0)) + '" width="' + bw + '" height="' + svgNum(y(-lo) - y(0)) + '" fill="' + DASH_ROJO + '"><title>' + escapeHtml('lo que pierde: ' + fmt(lo)) + '</title></rect>';
-  return leyendaDash([[DASH_ROJO, 'total que pierde: ' + fmt(lo)], [DASH_VERDE, 'total que gana: ' + fmt(hi)]]) +
-    '<div class="dsvg" style="max-width:260px;margin:0 auto"><svg viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="total que gana contra total que pierde">' + g + '</svg></div>';
+  if (hi > 0) g += barraDash(x, y(hi), bw, y(0) - y(hi), DC.gana, 'lo que gana: ' + fmt(hi));
+  if (lo > 0) g += barraDash(x, y(0), bw, y(-lo) - y(0), DC.pierde, 'lo que pierde: ' + fmt(lo));
+  return leyendaDash([[DC.gana, 'total que gana: ' + fmt(hi)], [DC.pierde, 'total que pierde: ' + fmt(lo)]]) +
+    '<div class="dsvg" style="max-width:280px;margin:0 auto"><svg viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="total que gana contra total que pierde">' + g + '</svg></div>';
 }
 
-// barras de los cierres recientes del S&P 500, como la grafica de mercado de la hoja
+// barras de los cierres recientes del S&P 500
 function svgMercado(hist) {
   const pts = (Array.isArray(hist) ? hist : []).filter(p => p && Number.isFinite(p.c)).slice(-120);
   if (pts.length < 2) return '';
   const vals = pts.map(p => p.c), mn = Math.min(...vals), mx = Math.max(...vals);
   const pad = (mx - mn) * 0.1 || Math.abs(mx) * 0.01 || 1;
-  const base = mn - pad, techo = mx + pad, W = 360, H = 96, paso = W / pts.length;
+  const base = mn - pad, techo = mx + pad, W = 360, H = 80, paso = W / pts.length;
   let g = '';
   pts.forEach((p, i) => {
     const alto = ((p.c - base) / (techo - base)) * H;
-    g += '<rect x="' + svgNum(i * paso) + '" y="' + svgNum(H - alto) + '" width="' + svgNum(Math.max(0.6, paso * 0.72)) + '" height="' + svgNum(alto) + '" fill="' + DASH_MARINO + '"/>';
+    g += '<rect x="' + svgNum(i * paso) + '" y="' + svgNum(H - alto) + '" width="' + svgNum(Math.max(0.6, paso * 0.72)) + '" height="' + svgNum(alto) + '" style="fill:' + DC.mercado + '"/>';
   });
   return '<div class="dsvg"><svg viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="none" role="img" aria-label="cierres recientes del S&amp;P 500">' + g + '</svg></div>';
 }
 
 // ── pintar el tablero ─────────────────────────────────────────────────────────
-// en las donas del tablero NO va rojo ni verde: una rebanada roja (MSFT) se leia como "pierde"
-const DASH_PIE = ['#2563eb', '#d97706', '#7c3aed', '#0891b2', '#db2777', '#ca8a04', '#64748b', '#0ea5e9', '#ea580c'];
+// donas: la escala del tema, como la dona de inicio. A lo mas 4 rebanadas + "otras": con mas,
+// los tonos de una sola escala dejan de distinguirse. Nunca rojo ni verde: ahi significan pierde/gana.
+const DASH_PIE = ['var(--d1)', 'var(--d2)', 'var(--d4)', 'var(--d3)', 'var(--muted)'];
+function top4(entries) {           // entries ya ordenadas de mayor a menor
+  if (entries.length <= 5) return entries;
+  const resto = entries.slice(4).reduce((t, e) => t + e[1], 0);
+  return entries.slice(0, 4).concat([['otras (' + (entries.length - 4) + ')', resto]]);
+}
 // fecha del cierre en palabras y cuantos dias tiene; mas de 4 (un fin de semana largo son
 // 3-4) es un dato viejo que no se puede leer como de hoy
 function cierreDash(fecha) {
@@ -5206,23 +5514,22 @@ function renderDashboard() {
   const pct = v => (v >= 0 ? '+' : '−') + Math.abs(v).toFixed(2) + '%';
   const signo = v => v >= 0 ? 'pos' : 'neg';
   const vacio = m => '<div class="empty-state">' + m + '</div>';
-  // renglon estilo hoja: etiqueta a la izquierda, cifra a la derecha, nota opcional abajo
-  const kv = (k, v, cls, nota, destacado) =>
-    '<div class="k' + (destacado ? ' destacado' : '') + '">' + escapeHtml(k) + '</div>' +
-    '<div class="v' + (cls ? ' ' + cls : '') + (destacado ? ' destacado' : '') + '">' + escapeHtml(v) + '</div>' +
-    (nota ? '<div class="nota">' + escapeHtml(nota) + '</div>' : '');
-  const tabla = filas => '<div class="dkv">' + filas + '</div>';
+  // ficha de la fila de cifras: etiqueta, numero y una linea que dice de donde sale
+  const kpi = (l, n, cls, sub, hero) =>
+    '<div class="dkpi' + (hero ? ' hero' : '') + '"><div class="l">' + escapeHtml(l) + '</div>' +
+    '<div class="n' + (cls ? ' ' + cls : '') + '">' + escapeHtml(n) + '</div>' +
+    (sub ? '<div class="s">' + escapeHtml(sub) + '</div>' : '') + '</div>';
 
   renderNotasDash();
   renderMercadoHoy();
   const efe = efectivoDisponible();
+  set('dash-aviso', '');
 
   if (!c.pos.length) {
-    ['dash-stocks', 'dash-portafolio', 'dash-asignacion', 'dash-pie', 'dash-costo-valor', 'dash-crecimiento',
-     'dash-winloss', 'dash-sector', 'dash-proyeccion']
+    set('dash-kpis', kpi('posiciones', '0', null, 'todavia no tienes acciones') +
+                     kpi('efectivo disponible', fmt(efe), null, 'efectivo + NU saldo + Revolut MXN'));
+    ['dash-asignacion', 'dash-pie', 'dash-costo-valor', 'dash-crecimiento', 'dash-winloss', 'dash-sector', 'dash-proyeccion']
       .forEach(id => set(id, vacio('todavia no tienes acciones — registralas en inicio')));
-    set('dash-holdings', '<div class="dbig">0</div>');
-    set('dash-efectivo', tabla(kv('posicion en efectivo', fmt(efe), null, 'efectivo + NU saldo + Revolut MXN')));
     renderTickerUI();
     return;
   }
@@ -5232,89 +5539,65 @@ function renderDashboard() {
   const totalReal = (noReal !== null && c.realizado !== null) ? noReal + c.realizado : null;
   const sinQue = [...new Set(c.sinCosto.concat(c.sinPrecio))].join(', ');
   // los precios de tus acciones llegan en la misma actualizacion que el mercado: si llevan
-  // dias sin llegar, el aviso va junto a TUS cifras (en el telefono el del mercado queda
-  // cuatro pantallas abajo y "vas perdiendo" se leia como de hoy)
+  // dias sin llegar, se dice arriba de TODO, junto al titulo, antes de cualquier cifra
   const fechasPrecio = c.pos.map(p => ((state.accionesMkt || {})[p.simbolo] || {}).fecha)
     .filter(f => /^\d{4}-\d{2}-\d{2}$/.test(f || '')).sort();
   const cierrePos = fechasPrecio.length ? cierreDash(fechasPrecio[0]) : null;
-  const avisoPrecios = (cierrePos && cierrePos.viejo)
-    ? '<div class="nota" style="text-align:left;color:var(--red);font-weight:700;font-size:12px;margin:0 0 6px">ojo: son precios del ' +
-      cierrePos.txt + ', hace ' + cierrePos.dias + ' dias. Pulsa actualizar.</div>'
-    : '';
+  if (cierrePos && cierrePos.viejo)
+    set('dash-aviso', escapeHtml('ojo: son precios del ' + cierrePos.txt + ', hace ' + cierrePos.dias + ' dias. Pulsa actualizar.'));
 
-  // ── Acciones (tarjeta "Stocks" de la hoja) ──
-  let st = avisoPrecios + kv('valor de mercado', c.valor > 0 ? fmt(c.valor) : '—', null,
-              c.faltaPrecio ? 'falta el precio de: ' + c.sinPrecio.join(', ') : '');
-  if (c.ganancia !== null) {
-    st += kv('$ ganancia/perdida', sgn(c.ganancia), signo(c.ganancia)) +
-          kv('% ganancia/perdida', c.gananciaPct !== null ? pct(c.gananciaPct) : '—', c.gananciaPct !== null ? signo(c.gananciaPct) : null);
-  } else if (c.gananciaParcial !== null) {
-    st += kv('$ ganancia/perdida', sgn(c.gananciaParcial), signo(c.gananciaParcial), 'solo con lo capturado (sin ' + sinQue + ')') +
-          kv('% ganancia/perdida', 'pendiente');
-  } else {
-    st += kv('$ ganancia/perdida', 'pendiente', null, 'faltan datos para calcularla sin inventar');
-  }
-  st += kv('dividendos al año', c.divAnual > 0 ? fmt(c.divAnual) : '—', c.divAnual > 0 ? 'pos' : null,
-           c.divAnual > 0 ? (c.faltaDiv ? 'solo de las que tienen dividendo capturado' : '') : 'capturalos abajo en "datos de cada accion"');
-  // el yield que se destaca es el ACTUAL; el "sobre costo" se ve mas alto por usar precios viejos
-  st += kv('dividendos: rinden al año', c.yieldActual !== null ? c.yieldActual.toFixed(2) + '%' : '—', null,
-           c.yieldCosto !== null ? 'sobre lo que pagaste: ' + c.yieldCosto.toFixed(2) + '%' : '');
-  set('dash-stocks', tabla(st));
-
-  // ── Efectivo ──
-  set('dash-efectivo', tabla(
-    kv('posicion en efectivo', fmt(efe), null, 'efectivo + NU saldo + Revolut MXN') +
-    kv('parte del total', total > 0 ? (efe / total * 100).toFixed(1) + '%' : '—')));
-
-  // ── Tu portafolio (el bloque grande de la hoja) ──
-  let pf = avisoPrecios + kv('valor del portafolio', c.valor > 0 ? fmt(c.valor) : '—', null, 'solo acciones, sin el efectivo');
-  pf += kv('costo del portafolio', c.faltaCosto ? 'pendiente' : fmt(c.costo), null,
-           c.faltaCosto ? 'falta el monto en pesos de: ' + c.sinCosto.join(', ') : '');
-  if (c.ganancia !== null) {
-    pf += kv(c.ganancia >= 0 ? '$ ganancia' : '$ perdida', sgn(c.ganancia), signo(c.ganancia)) +
-          (c.gananciaPct !== null ? kv(c.ganancia >= 0 ? '% ganancia' : '% perdida', pct(c.gananciaPct), signo(c.gananciaPct)) : '');
-  } else if (c.gananciaParcial !== null) {
-    pf += kv(c.gananciaParcial >= 0 ? '$ ganancia' : '$ perdida', sgn(c.gananciaParcial), signo(c.gananciaParcial),
-             'solo con lo capturado (sin ' + sinQue + ')');
-  } else {
-    pf += kv('$ ganancia/perdida', 'pendiente', null, 'faltan datos para calcularla sin inventar');
-  }
-  pf += kv('ganancias realizadas', c.realizado !== null ? sgn(c.realizado) : 'pendiente',
+  // ── la fila de cifras: lo que antes eran tres tarjetas grandes y el "4" gigante ──
+  let k = '';
+  // EL numero que se busca al abrir: lo no vendido MAS lo ya vendido, sin restar de cabeza
+  if (totalReal !== null)
+    k += kpi(totalReal >= 0 ? 'vas ganando' : 'vas perdiendo', sgn(totalReal), signo(totalReal),
+             'con lo que ya vendiste' + (c.completo ? '' : ' · solo lo capturado') + ' · sin dividendos cobrados', true);
+  k += kpi('valor de tus acciones', c.valor > 0 ? fmt(c.valor) : '—', null,
+           c.faltaPrecio ? 'falta el precio de ' + c.sinPrecio.join(', ') : 'al ultimo precio');
+  k += kpi('lo que pusiste', c.faltaCosto ? 'pendiente' : fmt(c.costo), null,
+           c.faltaCosto ? 'falta el monto de ' + c.sinCosto.join(', ') : 'costo promedio');
+  if (c.ganancia !== null)
+    k += kpi(c.ganancia >= 0 ? 'ganancia sin vender' : 'perdida sin vender', sgn(c.ganancia), signo(c.ganancia),
+             c.gananciaPct !== null ? pct(c.gananciaPct) + ' sobre lo que pusiste' : '');
+  else if (c.gananciaParcial !== null)
+    k += kpi(c.gananciaParcial >= 0 ? 'ganancia sin vender' : 'perdida sin vender', sgn(c.gananciaParcial), signo(c.gananciaParcial),
+             'solo lo capturado (sin ' + sinQue + ')');
+  else k += kpi('ganancia sin vender', 'pendiente', null, 'faltan datos para calcularla sin inventar');
+  k += kpi('ya realizado', c.realizado !== null ? sgn(c.realizado) : 'pendiente',
            (c.realizado !== null && Math.abs(c.realizado) > 0.005) ? signo(c.realizado) : null,
            c.realizado === null ? 'a una venta le falta el monto' : 'lo que ya vendiste');
-  // EL numero que se busca al abrir: lo no vendido MAS lo ya vendido, sin restar de cabeza
-  if (totalReal !== null) {
-    pf += kv(totalReal >= 0 ? 'vas ganando (con lo vendido)' : 'vas perdiendo (con lo vendido)', sgn(totalReal), signo(totalReal),
-             (c.completo ? '' : 'solo con lo capturado · ') + 'no incluye dividendos cobrados: la app no los registra', true);
-  }
-  pf += kv('patrimonio invertible', fmt(total), null, 'acciones + efectivo disponible');
-  set('dash-portafolio', tabla(pf));
+  k += kpi('efectivo disponible', fmt(efe), null, total > 0 ? (efe / total * 100).toFixed(1) + '% de lo invertible' : '');
+  k += kpi('patrimonio invertible', fmt(total), null, 'acciones + efectivo disponible');
+  // el yield que se destaca es el ACTUAL; el "sobre costo" se ve mas alto por usar precios viejos
+  k += kpi('dividendos al año', c.divAnual > 0 ? fmt(c.divAnual) : '—', null,
+           c.divAnual > 0 ? (c.yieldActual !== null ? 'rinden ' + c.yieldActual.toFixed(2) + '% al precio de hoy' : '')
+                          : 'capturalos en "datos de cada accion"');
+  k += kpi('posiciones', String(c.pos.length), null, c.pos.map(p => p.simbolo).join(' · '));
+  set('dash-kpis', k);
 
-  // ── Asignacion: efectivo contra bolsa ──
+  // ── acciones contra efectivo ──
   set('dash-asignacion', (c.valor > 0 || efe > 0)
     ? pieChart([['acciones', c.valor], ['efectivo', efe]].filter(x => x[1] > 0), DASH_PIE)
     : vacio('sin datos suficientes'));
 
-  // ── Reparto entre tus acciones ──
+  // ── reparto entre tus acciones ──
   const conV = c.pos.filter(p => p.valor !== null);
   if (conV.length) {
-    let pp = pieChart(conV.map(p => [p.simbolo, p.valor]), DASH_PIE);
+    let pp = pieChart(top4(conV.map(p => [p.simbolo, p.valor]).sort((a, b) => b[1] - a[1])), DASH_PIE);
     const mayor = c.pos[0];
     if (mayor && mayor.valor !== null && c.valor > 0 && conV.length > 1) {
       const conc = mayor.valor / c.valor * 100;
-      if (conc >= 40) {
-        pp += '<div class="item-meta" style="text-align:center;padding-top:8px">ojo: ' + escapeHtml(mayor.simbolo) +
-              ' es el ' + conc.toFixed(0) + '% de tu bolsa. Si le va mal a esa sola, te pega fuerte.</div>';
-      }
+      if (conc >= 40) pp += '<div class="item-meta" style="padding-top:8px">ojo: ' + escapeHtml(mayor.simbolo) +
+                            ' es el ' + conc.toFixed(0) + '% de tu bolsa. Si le va mal a esa sola, te pega fuerte.</div>';
     }
     set('dash-pie', pp);
   } else set('dash-pie', vacio('falta el precio de tus acciones'));
 
-  // ── Lo que pusiste y lo que vale · Crecimiento ──
+  // ── lo que pusiste y lo que vale · crecimiento ──
   set('dash-costo-valor', svgCostoValor(c.pos));
   set('dash-crecimiento', svgCrecimiento(c.pos));
 
-  // ── Lo que gana y lo que pierde (+ quien mueve el resultado) ──
+  // ── lo que gana y lo que pierde (+ quien mueve el resultado) ──
   const conG = c.pos.filter(p => p.ganancia !== null);
   if (conG.length) {
     const tot = conG.reduce((t, p) => t + p.ganancia, 0);
@@ -5322,10 +5605,10 @@ function renderDashboard() {
     const sumaNeg = conG.reduce((t, p) => t + Math.max(0, -p.ganancia), 0);
     const nPos = conG.filter(p => p.ganancia > 0.005).length, nNeg = conG.filter(p => p.ganancia < -0.005).length;
     const orden = conG.slice().sort((a, b) => b.ganancia - a.ganancia);
-    // NO repetir "vas ganando/perdiendo": ese es el numero del portafolio, que incluye lo
-    // ya vendido. Aqui se reparte SOLO lo que todavia tienes, y se dice con todas sus letras.
-    let wl = svgGanaPierde(sumaPos, sumaNeg) +
-      '<div class="item-meta" style="margin:10px 0 4px">en lo que todavia NO vendes' + (c.faltaCosto || c.faltaPrecio ? ' (solo lo que ya tiene monto y precio)' : '') +
+    // NO repetir "vas ganando/perdiendo": ese incluye lo ya vendido. Aqui se reparte SOLO lo
+    // que todavia tienes, y se dice con todas sus letras.
+    const wl = svgGanaPierde(sumaPos, sumaNeg) +
+      '<div class="item-meta" style="margin:8px 0 2px">en lo que todavia NO vendes' + (c.faltaCosto || c.faltaPrecio ? ' (solo lo que ya tiene monto y precio)' : '') +
       ': las que suben ganan ' + fmt(sumaPos) + ' y las que bajan pierden ' + fmt(sumaNeg) + '. En neto, ' + sgn(tot) + '.</div>' +
       orden.map(p =>
         '<div class="item-row"><div><div class="item-cat">' + escapeHtml(p.simbolo) + '</div>' +
@@ -5340,19 +5623,14 @@ function renderDashboard() {
                : 'pesa el ' + (Math.abs(p.ganancia) / sumaNeg * 100).toFixed(0) + '% de los ' + fmt(sumaNeg) + ' que pierden')) +
         '</div></div><span class="' + (p.ganancia >= 0 ? 'item-amt-pos' : 'item-amt-neg') + '">' + sgn(p.ganancia) + '</span></div>'
       ).join('') +
-      '<div class="item-row"><div class="item-cat" style="font-weight:700">total</div>' +
-      '<span class="' + (tot >= 0 ? 'item-amt-pos' : 'item-amt-neg') + '" style="font-size:15px">' + sgn(tot) + '</span></div>' +
       (c.realizado !== null && Math.abs(c.realizado) > 0.005
         ? '<div class="item-meta" style="margin-top:6px">el "vas ' + (totalReal !== null && totalReal < 0 ? 'perdiendo' : 'ganando') +
-          '" de tu portafolio es distinto porque suma lo que ya vendiste (' + sgn(c.realizado) + ')</div>'
+          '" de arriba es distinto porque suma lo que ya vendiste (' + sgn(c.realizado) + ')</div>'
         : '');
     set('dash-winloss', wl);
   } else set('dash-winloss', vacio('faltan datos de costo para calcularlo'));
 
-  // ── Total de posiciones ──
-  set('dash-holdings', '<div class="dbig">' + c.pos.length + '</div>');
-
-  // ── Reparto por sector ──
+  // ── reparto por sector ──
   const conSec = c.pos.filter(p => p.sector && p.valor !== null);
   if (conSec.length) {
     const porSec = Object.create(null); // p.sector es texto libre: sin prototipo evita choques con "constructor"/"__proto__"
@@ -5364,9 +5642,10 @@ function renderDashboard() {
              conSec.length + ' de ' + c.pos.length + '): faltan ' +
              escapeHtml(c.pos.filter(p => !(p.sector && p.valor !== null)).map(p => p.simbolo).join(', ')) + '</div>';
     }
-    sec += pieChart(Object.entries(porSec).sort((a, b) => b[1] - a[1]), DASH_PIE);
-    sec += '<div class="item-meta" style="text-align:center;padding-top:8px">son ' + conSec.length + (conSec.length === 1 ? ' accion' : ' acciones') + ' en ' +
-           Object.keys(porSec).length + (Object.keys(porSec).length === 1 ? ' sector' : ' sectores') + '. Repartir pocas acciones en varios sectores no es lo mismo que estar diversificado.</div>';
+    sec += pieChart(top4(Object.entries(porSec).sort((a, b) => b[1] - a[1])), DASH_PIE);
+    const nS = Object.keys(porSec).length;
+    sec += '<div class="item-meta" style="padding-top:8px">son ' + conSec.length + (conSec.length === 1 ? ' accion' : ' acciones') + ' en ' +
+           nS + (nS === 1 ? ' sector' : ' sectores') + '. Repartir pocas acciones en varios sectores no es lo mismo que estar diversificado.</div>';
     set('dash-sector', sec);
   } else set('dash-sector', vacio('captura el sector de tus acciones abajo para ver este reparto'));
 
@@ -5605,11 +5884,11 @@ function pieChart(entries, colores = PIE_COLORS) {
   const attrs=(e,i)=>`class="pie-slice" data-cat="${escapeHtml(e[0])}" data-monto="${fmtCorto(e[1])}" data-pct="${(e[1]/total*100).toFixed(1)}"`;
   entries.forEach((e,i)=>{
     const frac=e[1]/total, color=colores[i%colores.length];
-    if(frac>=0.999){ paths+=`<circle ${attrs(e,i)} cx="${cx}" cy="${cy}" r="${(r+ir)/2}" fill="none" stroke="${color}" stroke-width="${r-ir}"/>`; a0+=frac*2*Math.PI; return; }
+    if(frac>=0.999){ paths+=`<circle ${attrs(e,i)} cx="${cx}" cy="${cy}" r="${(r+ir)/2}" fill="none" style="stroke:${color}" stroke-width="${r-ir}"/>`; a0+=frac*2*Math.PI; return; }
     const a1=a0+frac*2*Math.PI, large=(a1-a0)>Math.PI?1:0;
     const x0=cx+r*Math.cos(a0),y0=cy+r*Math.sin(a0),x1=cx+r*Math.cos(a1),y1=cy+r*Math.sin(a1);
     const xi1=cx+ir*Math.cos(a1),yi1=cy+ir*Math.sin(a1),xi0=cx+ir*Math.cos(a0),yi0=cy+ir*Math.sin(a0);
-    paths+=`<path ${attrs(e,i)} d="M${x0.toFixed(1)},${y0.toFixed(1)} A${r},${r} 0 ${large} 1 ${x1.toFixed(1)},${y1.toFixed(1)} L${xi1.toFixed(1)},${yi1.toFixed(1)} A${ir},${ir} 0 ${large} 0 ${xi0.toFixed(1)},${yi0.toFixed(1)} Z" fill="${color}"/>`;
+    paths+=`<path ${attrs(e,i)} d="M${x0.toFixed(1)},${y0.toFixed(1)} A${r},${r} 0 ${large} 1 ${x1.toFixed(1)},${y1.toFixed(1)} L${xi1.toFixed(1)},${yi1.toFixed(1)} A${ir},${ir} 0 ${large} 0 ${xi0.toFixed(1)},${yi0.toFixed(1)} Z" style="fill:${color}"/>`;
     a0=a1;
   });
   const centro=`<text class="pie-c1" x="60" y="56" text-anchor="middle" font-size="8">total</text>`+
@@ -5786,7 +6065,7 @@ function calcularCierre(start,end,modo) {
     posA.forEach(([k,p])=>{ const mk=state.accionesMkt[k]; if(mk&&Number.isFinite(mk.precio)&&stCompleto) stVal+=p.acciones*mk.precio*state.usdMxn; else stCompleto=false; });
     // patrimonio con la MISMA formula del total de inicio ('total' no existe en este
     // scope: referirlo aqui tronaba calcularCierre y dejaba el coach en "calculando...")
-    const patTot=calcNu1().saldo+state.nuSaldo+state.efectivo+state.revMXN+calcRevSavings().saldo+stVal+(Number.isFinite(state.revTdcDeposito)?state.revTdcDeposito:0);
+    const patTot=calcNu1().saldo+state.nuSaldo+state.efectivo+state.revMXN+calcRevSavings().saldo+stVal+(Number.isFinite(state.revTdcDeposito)?state.revTdcDeposito:0)-fondoTotal();
     const ctxM={stocks:stVal, stocksPendiente:posA.length>0&&!stCompleto, patrimonio:patTot};
     // una entrada por meta: el coach las recorre en vez de hablar de dos cuentas fijas
     const lista=(MT.items||[]).map(m=>({
@@ -6180,7 +6459,7 @@ function renderUtilidades(start,end) {
   const iniRS=Math.max(start.getTime(),Number.isFinite(rsFecha)?rsFecha:start.getTime());
   const int1=(dias>0&&endC.getTime()>iniC1)?Math.max(0,calcNu1At(endC.getTime())-calcNu1At(iniC1)):0;
   const int2=(dias>0&&endC.getTime()>iniRS)?Math.max(0,calcRevSavingsAt(endC.getTime())-calcRevSavingsAt(iniRS)):0;
-  const intereses=int1+int2;
+  const intereses=int1+int2-rendFondoEnRango(start,endC); // lo conciliado al fondo no es tuyo
   const parcialInt=(Number.isFinite(c1Fecha)&&c1Fecha>start.getTime()&&c1Fecha<endC.getTime())||(Number.isFinite(rsFecha)&&rsFecha>start.getTime()&&rsFecha<endC.getTime());
   fila('🏦','intereses de tus cuentas',
     'cajita NU y Revolut Savings'+(parcialInt?' · parcial: solo desde la fecha base actual':''),'+'+fmt(intereses));
@@ -6256,7 +6535,9 @@ function renderRendimientos(start, end, balance) {
   const fd=d=>d.toLocaleDateString('es-MX',{day:'numeric',month:'short'});
   const parcialC1=c1FechaValida&&!sinDatosC1&&start.getTime()<parseFechaLocal(state.nuCajita1Fecha).getTime()&&parseFechaLocal(state.nuCajita1Fecha).getTime()<endC.getTime();
   const parcialRS=rsFechaValida&&!sinDatosRS&&start.getTime()<parseFechaLocal(state.revSavingsFecha).getTime()&&parseFechaLocal(state.revSavingsFecha).getTime()<endC.getTime();
-  const rendTotal=rend1+rendRS;
+  // lo que el banco abono por el dinero del FONDO (conciliado en su pestaña) no es rendimiento tuyo
+  const rendFondo=rendFondoEnRango(start,endC);
+  const rendTotal=rend1+rendRS-rendFondo;
   const real=balance+rendTotal;
   const sgn=(v,cls)=>`<span class="${v>=0?'item-amt-pos':'item-amt-neg'}"${cls?' style="font-size:15px"':''}>${v>=0?'+':'−'}${fmt(Math.abs(v))}</span>`;
   const rowC1=sinDatosC1
@@ -6267,6 +6548,7 @@ function renderRendimientos(start, end, balance) {
     :`<div class="item-row"><div><div class="item-cat">Revolut Savings</div><div class="item-meta">${descModelo('revSavings')}${parcialRS?' · desde el '+fd(parseFechaLocal(state.revSavingsFecha))+' (parcial)':''}</div></div>${sgn(rendRS)}</div>`;
   document.getElementById('res-rendimientos').innerHTML=
     rowC1+rowRS+
+    (rendFondo>0?`<div class="item-row"><div><div class="item-cat">del fondo de la universidad</div><div class="item-meta">rendimiento conciliado en la pestaña fondo: no es tuyo</div></div>${sgn(-rendFondo)}</div>`:'')+
     `<div class="item-row"><div class="item-cat" style="font-weight:600">total rendimientos</div>${sgn(rendTotal,1)}</div>`+
     `<div class="item-row"><div><div class="item-cat" style="font-weight:600">balance real del periodo</div><div class="item-meta">ingresos − gastos + rendimientos</div></div>${sgn(real,1)}</div>`;
 }

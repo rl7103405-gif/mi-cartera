@@ -69,6 +69,9 @@ const HAY_TDCREV = fuente.includes("'tarjetaRev'");
 const HAY_STOCKS = fuente.includes('C_OPS') || fuente.includes("'stocksOps'");
 // sin las cotizaciones la bolsa valdria 0 y el patrimonio saldria mas bajo del real
 const HAY_MERCADO = fuente.includes("'mercado'");
+// el fondo de la universidad (solo la app de Roberto): sin el cacheado, inicio pintaria lo apartado como tuyo
+const HAY_FONDO = fuente.includes("'fondo'");
+const fondoSrc = HAY_FONDO ? extrae('// ── fondo: saneo', '// ── fin saneo fondo') : '';
 const ARGS = ['db','doc','collection','query','orderBy','getDocFromCache','getDocsFromCache',
   'state','derivarPosiciones','document','localStorage','console',
   'NS','C_GASTOS','C_INGRESOS','C_TRANSF','C_OPS',
@@ -80,7 +83,7 @@ const VALS = [db, doc, collection, query, orderBy, getDocFromCache, getDocsFromC
   window, loadFromFirebase, showToast, renderCatSelect, refrescar,
   renderPersonaSelect, render, renderMovimientos, renderTransferencias, datosCargados];
 const { pintarDesdeCache, marcarCopiaLocal, marcarSincronizado } = new Function(
-  ...ARGS, fuente + '\nreturn { pintarDesdeCache, marcarCopiaLocal, marcarSincronizado };'
+  ...ARGS, fondoSrc + fuente + '\nreturn { pintarDesdeCache, marcarCopiaLocal, marcarSincronizado };'
 )(...VALS);
 
 // ── utilidades ──────────────────────────────────────────────
@@ -101,6 +104,7 @@ function cacheCompleta() {
   };
   if (HAY_TDCREV) CACHE[`${NS}/tarjetaRev`] = { deuda:200, deposito:438.67, movimientos:[] };
   if (HAY_MERCADO) CACHE[`${NS}/mercado`] = { ivvPrecio:154.2, usdMxn:18.5, accionesMkt:{NVDA:{precio:120}} };
+  if (HAY_FONDO) CACHE[`${NS}/fondo`] = { saldosPorCuenta:{revolut:800000, gbm:5}, movs:[{id:'f1',tipo:'entrada',cuenta:'revolut',monto:800000,fecha:'2026-09-28',creado:'2026-09-28T10:00:00Z'}] };
   COLS = {
     [PFX+'gastos']:         [{id:'g1',monto:150,cat:'Comida',fecha:'2026-09-02T00:00:00Z'},
                              {id:'g2',monto:80, cat:'Casa',  fecha:'2026-09-03T00:00:00Z'}],
@@ -130,12 +134,15 @@ if (HAY_STOCKS) chk('carga stocksOps y deriva posiciones', state.stocksOps.lengt
 if (HAY_MERCADO) chk('aplica las cotizaciones (si no, el patrimonio saldria de menos)',
   state.ivvPrecio === 154.2 && state.usdMxn === 18.5 && !!state.accionesMkt.NVDA,
   JSON.stringify({p:state.ivvPrecio,fx:state.usdMxn,mk:state.accionesMkt}));
+if (HAY_FONDO) chk('aplica el fondo (si no, inicio pintaria lo apartado como tuyo)',
+  state.fondo && state.fondo.saldosPorCuenta.revolut === 800000 && state.fondo.movs.length === 1, JSON.stringify(state.fondo));
+if (HAY_FONDO) chk('el fondo se sanea: una cuenta fuera del catalogo no entra', state.fondo && state.fondo.saldosPorCuenta.gbm === undefined);
 chk('NO escribio NADA en Firestore', ESCRITURAS === 0, 'escrituras=' + ESCRITURAS);
 
 // ═══ 2. TODO O NADA ═══
 console.log('\n2. Si falta CUALQUIER pieza, no pinta nada (todo o nada)');
 for (const falta of ['saldos','tarjeta','personas','categorias','historial',...DOCS_OPC,
-                     ...(HAY_MERCADO?['mercado']:[])]) {
+                     ...(HAY_MERCADO?['mercado']:[]), ...(HAY_FONDO?['fondo']:[])]) {
   reset(); cacheCompleta(); delete CACHE[`${NS}/${falta}`];
   ok = await pintarDesdeCache();
   chk('sin ' + falta + ' -> false y estado intacto', ok === false && state.efectivo === 0,
@@ -202,7 +209,7 @@ const doc2 = { getElementById: id => (id === 'banda-cache' ? el : null),
 // se sustituye 'document' (posicion 9 de ARGS) por uno falso que SI tiene la banda
 const VALS2 = VALS.slice(); VALS2[ARGS.indexOf('document')] = doc2;
 const { marcarCopiaLocal: mcl, marcarSincronizado: ms } = new Function(
-  ...ARGS, fuente + '\nreturn { marcarCopiaLocal, marcarSincronizado };'
+  ...ARGS, fondoSrc + fuente + '\nreturn { marcarCopiaLocal, marcarSincronizado };'
 )(...VALS2);
 mcl(true);
 chk('al sincronizar se ve y lo dice', el.hidden === false && /copia local/.test(el.textContent), el.textContent);

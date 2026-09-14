@@ -147,3 +147,28 @@ no bugs:
    original también lo hace. Si Roberto quiere una sola cifra, se quita de Acciones.
 3. Detalle de dedo: los botones tipo `type-opt` miden 34 px de alto (el resto de la
    app 44-46). Es un patrón viejo de toda la app, no del tablero.
+
+---
+
+# Fondo de la universidad — HECHO 14-sep-2026 (solo en la app de Roberto)
+
+Pestaña "fondo": el dinero del seguro educativo (~MXN 813,600, *estimado*; deposito 28-sep)
+vive MEZCLADO en sus cuentas (casi todo Revolut) y se lleva como **apartado contable** en
+`cartera/fondo`. Inicio, metas, coach, score, resumen y tablero usan "tu dinero" (fisico menos
+apartado). Ninguna operacion normal (gastos, transferencias, tarjetas, bolsa, Atajo, capturas
+manuales) puede dejar una cuenta bajo lo apartado. Diseño revisado y tumbado primero por Codex.
+
+Pendientes y decisiones:
+- **Pruebas que solo puede hacer Roberto con su Firebase real:** registrar la primera entrada y
+  ver que `cartera/fondo` se crea; el interruptor del perfil; conciliar un rendimiento real y
+  verlo restado en Resumen; dos dispositivos a la vez.
+- **El interes del fondo no se aparta solo:** hay que registrarlo como "el banco abono rendimiento"
+  (la app sugiere el monto estimado). Automatizarlo exigiria cristalizar la atribucion marginal en
+  cada movimiento de la cuenta — no se hizo a proposito.
+- Las reglas desplegadas (las de cartera-casa) ya cubren `cartera/{documento=**}`. El archivo
+  `mi-cartera/firestore.rules` sigue divergente: NO desplegar desde aqui.
+- Copias (Eli, Zoe, Toño, casa, plantilla): no tienen fondo. Si alguien lo pide, portar el bloque
+  "fondo: saneo" + la validacion de txDinero + las tres transacciones.
+- El tope de 15% de Revolut ya lo ocupa su propio ahorro: el fondo gana el excedente (7.3% bruto).
+- Tablero: la tarjeta alta de "lo que gana y lo que pierde" deja un hueco debajo en escritorio
+  (CSS grid sin masonry). Cosmetico, sin arreglar.

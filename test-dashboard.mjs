@@ -264,7 +264,7 @@ console.log('\n15. Graficas del tablero: nunca NaN, escapan simbolos, respetan p
   chk('costo vs valor: nombra la que no tiene costo', /MSFT/.test(cv) && /falta el monto/.test(cv));
   chk('costo vs valor: escapa el simbolo', !cv.includes('<b>') && cv.includes('&lt;b&gt;'));
   const cr = G.svgCrecimiento(pos);
-  chk('crecimiento con negativos: sin NaN y con linea de cero marcada', limpio(cr) && cr.includes('rgba(0,0,0,.45)'));
+  chk('crecimiento con negativos: sin NaN y con linea de cero marcada', limpio(cr) && cr.includes('dcero'));
   chk('crecimiento: la pendiente no tiene barra pero se nombra', /sin barra: MSFT/.test(cr));
   chk('crecimiento sin ningun dato: mensaje, no grafica',
       /faltan datos/.test(G.svgCrecimiento([{simbolo:'X', gananciaPct:null}])));

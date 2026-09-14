@@ -331,6 +331,78 @@ chk('la base se consolida con el tope VIEJO (default 25000)', Math.abs(s16.nuCaj
     'esperado ' + conModeloViejo.toFixed(2) + ' obtuvo ' + s16.nuCajita1Base);
 chk('el tope y la tasa excedente nuevos quedan guardados', s16.nuCajita1Tope === 30000 && s16.nuCajita1TasaExc === 5);
 
+// =============== 17. FONDO DE LA UNIVERSIDAD: lo apartado no se toca ===============
+// Solo en la app de Roberto (las copias no tienen fondo).
+if (fuente.includes("'fondo'")) {
+  console.log('\n17. Fondo de la universidad: dinero apartado dentro de las cuentas');
+  const F = R('cartera/fondo'), S = R('cartera/saldos');
+  SERVIDOR = { [S]: { revMXN: 1000, efectivo: 50 } };
+  let r = await txDinero({ deltas:{revolut:800000}, fondo:{ delta:{revolut:800000}, mov:{id:'f1',tipo:'entrada',cuenta:'revolut',monto:800000} } });
+  chk('entrada: sube el saldo y lo aparta en la MISMA transaccion',
+      r.ok && SERVIDOR[S].revMXN === 801000 && SERVIDOR[F].saldosPorCuenta.revolut === 800000, JSON.stringify(r));
+  r = await txDinero({ deltas:{revolut:-1500} });
+  chk('un gasto normal que tomaria el fondo se rechaza y no mueve nada', !!r.error && SERVIDOR[S].revMXN === 801000, JSON.stringify(r));
+  r = await txDinero({ deltas:{revolut:-900} });
+  chk('un gasto que cabe en lo libre si pasa', r.ok && SERVIDOR[S].revMXN === 800100);
+  r = await txDinero({ deltas:{revolut:500} });
+  chk('una entrada normal nunca se bloquea', r.ok && SERVIDOR[S].revMXN === 800600);
+  r = await txDinero({ absolutos:{revMXN:100} });
+  chk('una captura manual que deja la cuenta bajo lo apartado se rechaza', !!r.error && SERVIDOR[S].revMXN === 800600);
+  r = await txDinero({ deltas:{revolut:-10000}, fondo:{ delta:{revolut:-10000}, mov:{id:'f2',tipo:'salida',cuenta:'revolut',monto:10000} } });
+  chk('salida del fondo: baja saldo y apartado juntos',
+      r.ok && SERVIDOR[S].revMXN === 790600 && SERVIDOR[F].saldosPorCuenta.revolut === 790000, JSON.stringify(SERVIDOR[F]));
+  r = await txDinero({ fondo:{ delta:{revolut:-800000}, mov:{id:'f3',tipo:'liberar',cuenta:'revolut',monto:800000} } });
+  chk('no se libera mas de lo apartado', !!r.error && SERVIDOR[F].saldosPorCuenta.revolut === 790000);
+  r = await txDinero({ fondo:{ delta:{revolut:700}, mov:{id:'f4',tipo:'apartar',cuenta:'revolut',monto:700} } });
+  chk('apartar mas de lo que hay libre se rechaza (libre = 600)', !!r.error);
+  r = await txDinero({ fondo:{ delta:{revolut:600}, mov:{id:'f5',tipo:'rendimiento',cuenta:'revolut',monto:600} } });
+  chk('conciliar rendimiento: aparta exactamente lo libre sin mover el saldo',
+      r.ok && SERVIDOR[S].revMXN === 790600 && SERVIDOR[F].saldosPorCuenta.revolut === 790600);
+  chk('el historial del fondo va del mas nuevo al mas viejo y sin los rechazados',
+      SERVIDOR[F].movs.map(m => m.id).join(',') === 'f5,f2,f1', SERVIDOR[F].movs.map(m => m.id).join(','));
+  r = await txDinero({ deltas:{revolut:-5000, efectivo:5000}, fondo:{ delta:{revolut:-5000, efectivo:5000}, mov:{id:'f6',tipo:'traspaso',cuenta:'revolut',destino:'efectivo',monto:5000} } });
+  chk('traspaso: saldo y apartado viajan juntos',
+      r.ok && SERVIDOR[F].saldosPorCuenta.efectivo === 5000 && SERVIDOR[F].saldosPorCuenta.revolut === 785600 && SERVIDOR[S].efectivo === 5050,
+      JSON.stringify(SERVIDOR[F].saldosPorCuenta));
+  r = await txDinero({ deltas:{efectivo:-60} });
+  chk('en la otra cuenta tambien protege: efectivo solo tiene $50 libres', !!r.error && SERVIDOR[S].efectivo === 5050);
+  r = await txDinero({ fondo:{ delta:{efectivo:-5000}, mov:{id:'f7',tipo:'liberar',cuenta:'efectivo',monto:5000} } });
+  chk('una cuenta que queda en cero desaparece del mapa', r.ok && SERVIDOR[F].saldosPorCuenta.efectivo === undefined, JSON.stringify(SERVIDOR[F].saldosPorCuenta));
+  r = await txDinero({ fondo:{ delta:{gbm:10}, mov:{id:'x',tipo:'apartar',cuenta:'gbm',monto:10} } });
+  chk('una cuenta fuera del catalogo del fondo se rechaza', !!r.error);
+  // doc del fondo con basura: se sanea en vez de romper la transaccion
+  SERVIDOR[F] = { saldosPorCuenta:{revolut:'mucho', nu:-5}, movs:'no' };
+  r = await txDinero({ deltas:{revolut:-100} });
+  chk('un doc del fondo corrupto no bloquea ni truena', r.ok, JSON.stringify(r));
+  // cuenta con interes (Revolut Savings): el saldo final se calcula con su modelo
+  SERVIDOR = { [S]: { revSavingsBase:1000, revSavingsFecha:'2026-08-27' }, [F]: { saldosPorCuenta:{revSavings:900}, movs:[] } };
+  r = await txDinero({ deltas:{revSavings:-200} });
+  chk('Savings: no deja sacar lo apartado', !!r.error);
+  r = await txDinero({ deltas:{revSavings:-90} });
+  chk('Savings: lo libre si sale', r.ok, JSON.stringify(r));
+  // borrar un ingreso que dejaria la cuenta bajo lo apartado tambien se frena
+  SERVIDOR = { [S]: { revMXN:1000 }, [F]: { saldosPorCuenta:{revolut:900}, movs:[] }, [R('ingresos/i9')]: { monto:200 } };
+  const ri = { path: R('ingresos/i9') };
+  r = await txDinero({ requerirDocs:[ri], borrar:[ri], deltas:{revolut:-200}, permitirNegativo:true });
+  chk('borrar un ingreso que tomaria el fondo se rechaza (y el ingreso sigue)', !!r.error && !!SERVIDOR[R('ingresos/i9')] && SERVIDOR[S].revMXN === 1000);
+  // el plan lo arma la pantalla: txDinero no le cree
+  SERVIDOR = { [S]: { revMXN:1000 }, [F]: { saldosPorCuenta:{revolut:500}, movs:[] } };
+  r = await txDinero({ deltas:{revolut:100}, fondo:{ delta:{revolut:100}, mov:{id:'t1',tipo:'traspaso',cuenta:'revolut',destino:'revolut',monto:100} } });
+  chk('traspaso a la MISMA cuenta se rechaza (crearia dinero de la nada)', !!r.error && SERVIDOR[S].revMXN === 1000 && SERVIDOR[F].saldosPorCuenta.revolut === 500, JSON.stringify(r));
+  r = await txDinero({ fondo:{ delta:{revolut:300}, mov:{id:'t2',tipo:'entrada',cuenta:'revolut',monto:300} } });
+  chk('una entrada que no sube el saldo se rechaza', !!r.error && SERVIDOR[F].saldosPorCuenta.revolut === 500);
+  r = await txDinero({ deltas:{revolut:-100}, fondo:{ delta:{revolut:-100}, mov:{id:'t3',tipo:'liberar',cuenta:'revolut',monto:100} } });
+  chk('liberar no puede mover el saldo fisico', !!r.error && SERVIDOR[S].revMXN === 1000);
+  r = await txDinero({ deltas:{revolut:500}, fondo:{ delta:{revolut:500}, mov:{id:'t4',tipo:'entrada',cuenta:'revolut',monto:100} } });
+  chk('el apartado debe ser el monto del movimiento (no otro)', !!r.error && SERVIDOR[S].revMXN === 1000 && SERVIDOR[F].saldosPorCuenta.revolut === 500);
+  r = await txDinero({ deltas:{nu:100}, fondo:{ delta:{nu:100}, mov:{id:'t5',tipo:'entrada',cuenta:'revolut',monto:100} } });
+  chk('el apartado debe ir a la cuenta del movimiento', !!r.error && !(SERVIDOR[F].saldosPorCuenta.nu > 0));
+  // sin fondo todo sigue igual que siempre
+  SERVIDOR = { [S]: { efectivo:10 } };
+  r = await txDinero({ deltas:{efectivo:-5} });
+  chk('sin doc de fondo nada cambia', r.ok && SERVIDOR[S].efectivo === 5);
+}
+
 console.log('\n' + '='.repeat(58));
 console.log(fallos === 0 ? `TODO PASA — ${pruebas}/${pruebas}` : `${fallos} FALLAS de ${pruebas}`);
 process.exit(fallos === 0 ? 0 : 1);
