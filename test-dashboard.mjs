@@ -286,7 +286,7 @@ console.log('\n16. Cada identificador que usa el tablero existe en esta copia');
   for (const n of ['REF_MERCADO', 'renderMercadoHoy', 'renderNotasDash', 'renderProyeccion', 'renderTickerUI',
                    'efectivoDisponible', 'calcCartera', 'pieChart', 'guardarPerfil', 'fmtCorto', 'refrescar',
                    'parseFechaLocal', 'showToast', 'POLVO_ACCIONES', 'derivarPosiciones', 'esPolvo', 'ordenOps', 'sumaOp',
-                   'accionesEnFecha']) {
+                   'accionesEnFecha', 'SECTOR_CONOCIDO', 'movValido']) {
     chk('declarado: ' + n, declarado(n));
   }
   chk('fetchStocks baja la referencia aunque no haya posiciones',
@@ -373,6 +373,29 @@ console.log('\n17. Sobrante minimo tras una venta: no es una posicion abierta');
   // orden estable: mismo dia y mismo 'creado' no deben reordenarse al azar
   const ordenOps = new Function(polvoSrc + '\nreturn ordenOps;')();
   chk('ordenOps devuelve 0 si fecha y creado empatan', ordenOps({fecha:'2026-09-01'}, {fecha:'2026-09-01'}) === 0);
+}
+
+// ═══ 18. sector y dividendo automaticos (14-sep-2026) ═══
+console.log('\n18. Sector conocido y dividendo real de Yahoo cuando no se capturo nada');
+{
+  armar([{tipo:'compra', simbolo:'NVDA', acciones:1, montoMxn:3000, fecha:'2026-08-01'},
+         {tipo:'compra', simbolo:'WMT',  acciones:1, montoMxn:1500, fecha:'2026-08-01'},
+         {tipo:'compra', simbolo:'ZZZZ', acciones:1, montoMxn:100,  fecha:'2026-08-01'}],
+        {NVDA:{precio:180, div12m:0.04}, WMT:{precio:95, div12m:0.94}, ZZZZ:{precio:5}},
+        {WMT:{sector:'Otro', divAnual:1}});
+  c = calcCartera();
+  const por = s => c.pos.find(p => p.simbolo === s);
+  chk('NVDA sin capturar: sector Tecnologia automatico', por('NVDA').sector === 'Tecnologia' && por('NVDA').sectorAuto === true);
+  chk('lo capturado manda sobre lo automatico (WMT = Otro)', por('WMT').sector === 'Otro' && !por('WMT').sectorAuto);
+  chk('ticker desconocido: sin sector, no se inventa', por('ZZZZ').sector === null && !por('ZZZZ').sectorAuto);
+  chk('NVDA sin dividendo capturado usa lo pagado en 12 meses (Yahoo)', cerca(por('NVDA').divAnual, 0.04 * 20, 0.001) && por('NVDA').divAuto === true,
+      'div=' + por('NVDA').divAnual);
+  chk('WMT usa el dividendo capturado, no el de Yahoo', cerca(por('WMT').divAnual, 20) && !por('WMT').divAuto);
+  chk('sin dato de Yahoo ni captura: sigue faltando (no es cero)', por('ZZZZ').divAnual === null && c.faltaDiv === true);
+  armar([{tipo:'compra', simbolo:'SPCX', acciones:1, montoMxn:2000, fecha:'2026-08-01'}], {SPCX:{precio:120, div12m:0}});
+  c = calcCartera();
+  chk('una accion que no pago dividendo en 12 meses cuenta 0 real, no pendiente',
+      c.pos[0].divAnual === 0 && c.faltaDiv === false && c.pos[0].sector === 'Industrial');
 }
 
 console.log('\n' + '='.repeat(58));

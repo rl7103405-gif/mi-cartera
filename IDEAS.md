@@ -172,3 +172,15 @@ Pendientes y decisiones:
 - El tope de 15% de Revolut ya lo ocupa su propio ahorro: el fondo gana el excedente (7.3% bruto).
 - Tablero: la tarjeta alta de "lo que gana y lo que pierde" deja un hueco debajo en escritorio
   (CSS grid sin masonry). Cosmetico, sin arreglar.
+
+## Bancos en la pestaña de inversiones (pedido 14-sep-2026, pendiente de platicar)
+
+Roberto lo volvio a pedir tras quitar "efectivo disponible" y "acciones y efectivo" del tablero:
+quiere ver "cuanto dinero tengo bien ahorrado" junto a las inversiones. Recomendacion de Claude:
+UNA tarjeta "tus ahorros en bancos" (cajita Nu y Revolut Savings, SIN el fondo de la universidad)
+con saldo, tasa y rendimiento estimado al mes; no mezclar cuentas de gasto (efectivo, NU saldo,
+Revolut MXN). Queda para decidirlo con el.
+
+Hecho el mismo dia: sector automatico para tickers conocidos (SECTOR_CONOCIDO; SPCX = SpaceX
+cuenta como Industrial, se puede cambiar), dividendo de 12 meses desde Yahoo cuando no esta
+capturado, y "dividendos cobrados" = ingresos con categoria "Dividendos".

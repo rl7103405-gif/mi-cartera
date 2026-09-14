@@ -336,6 +336,8 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
 .dkpi .n.pos{color:var(--green)}.dkpi .n.neg{color:var(--red)}
 .dkpi .s{font-size:11px;color:var(--muted);margin-top:2px;line-height:1.3}
 @media(min-width:360px){.dkpi.hero{grid-column:span 2}}
+/* en escritorio las fichas van SIEMPRE en un renglon: con auto-fit la ultima caia sola abajo */
+@media(min-width:1000px){#page-dashboard .dkpis{grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);grid-template-columns:none}}
 .dkpi.hero .n{font-size:24px}
 .dgrid{display:grid;gap:10px;grid-template-columns:repeat(auto-fill,minmax(min(100%,340px),1fr));grid-auto-flow:row dense;align-items:start}
 .dcard{background:var(--bg2);border:1px solid var(--sup-borde);border-radius:var(--r);box-shadow:var(--sombra);min-width:0;overflow:hidden;color:var(--text)}
@@ -347,15 +349,15 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
    se estiran a la misma altura. Solo #page-dashboard: la pestaña del fondo tiene su propio acomodo */
 @media(min-width:760px){
   #page-dashboard .dgrid{grid-template-columns:repeat(2,minmax(0,1fr));align-items:stretch;
-    grid-template-areas:"wl costo" "wl crec" "pie merc" "asig sector" "proy proy" "notas notas" "datos datos"}
+    grid-template-areas:"wl costo" "wl crec" "pie merc" "sector notas" "proy proy" "datos datos"}
   #page-dashboard .dg-wl{grid-area:wl}#page-dashboard .dg-costo{grid-area:costo}#page-dashboard .dg-crec{grid-area:crec}
-  #page-dashboard .dg-pie{grid-area:pie}#page-dashboard .dg-merc{grid-area:merc}#page-dashboard .dg-asig{grid-area:asig}
+  #page-dashboard .dg-pie{grid-area:pie}#page-dashboard .dg-merc{grid-area:merc}
   #page-dashboard .dg-sector{grid-area:sector}#page-dashboard .dg-proy{grid-area:proy}#page-dashboard .dg-notas{grid-area:notas}
   #page-dashboard .dgrid .dg-datos{grid-area:datos}
 }
 @media(min-width:1200px){
   #page-dashboard .dgrid{grid-template-columns:repeat(3,minmax(0,1fr));
-    grid-template-areas:"wl costo crec" "wl pie merc" "asig proy proy" "sector proy proy" "notas proy proy" "datos datos datos"}
+    grid-template-areas:"wl costo crec" "wl pie merc" "sector proy proy" "notas proy proy" "datos datos datos"}
 }
 .dgrid .acc{grid-column:1/-1;margin-bottom:0}
 .dkv{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:3px 12px;font-size:13px;align-items:baseline}
@@ -1028,7 +1030,6 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
     <div class="dcard dg-crec"><div class="dcard-h">Crecimiento de cada acción</div><div class="dcard-b" id="dash-crecimiento"><div class="empty-state">calculando...</div></div></div>
     <div class="dcard dg-pie"><div class="dcard-h">Reparto entre tus acciones</div><div class="dcard-b" id="dash-pie"><div class="empty-state">calculando...</div></div></div>
     <div class="dcard dg-merc"><div class="dcard-h">Cómo se mueve el mercado</div><div class="dcard-b" id="dash-mercado"><div class="empty-state">calculando...</div></div></div>
-    <div class="dcard dg-asig"><div class="dcard-h">Acciones y efectivo</div><div class="dcard-b" id="dash-asignacion"><div class="empty-state">calculando...</div></div></div>
     <div class="dcard dg-sector"><div class="dcard-h">Reparto por sector</div><div class="dcard-b" id="dash-sector"><div class="empty-state">calculando...</div></div></div>
     <div class="dcard ancha dg-proy"><div class="dcard-h">Proyección de tu portafolio</div><div class="dcard-b" id="dash-proyeccion"><div class="empty-state">calculando...</div></div></div>
     <div class="dcard dg-notas"><div class="dcard-h">Notas</div><div class="dcard-b" id="dash-notas"></div></div>
@@ -1738,6 +1739,8 @@ async function loadFromFirebase() {
           if(!/^[A-Z][A-Z0-9.\-]{0,9}$/.test(k)||!mk||typeof mk!=='object'||!Number.isFinite(mk.precio)||mk.precio<=0) return;
           limpio[k]={precio:mk.precio, prev:(Number.isFinite(mk.prev)&&mk.prev>0)?mk.prev:null,
             fecha:typeof mk.fecha==='string'?mk.fecha:'',
+            moneda:typeof mk.moneda==='string'?mk.moneda:'',
+            div12m:(Number.isFinite(mk.div12m)&&mk.div12m>=0)?mk.div12m:null,
             hist:Array.isArray(mk.hist)?mk.hist.filter(p=>p&&typeof p.t==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(p.t)&&Number.isFinite(p.c)&&p.c>0).sort((a,b)=>a.t.localeCompare(b.t)):[]};
         });
         state.accionesMkt = limpio;
@@ -5290,6 +5293,15 @@ function saneaTickers(d) {
   return out;
 }
 
+// sector de acciones y ETFs conocidos, para no obligar a capturarlo a mano (14-sep-2026). Lo que
+// se capture en "datos de cada accion" SIEMPRE manda. QQQ (Nasdaq-100) cuenta como tecnologia
+// porque la mayor parte del indice son tecnologicas; SPCX es SpaceX: aeroespacial = Industrial.
+const SECTOR_CONOCIDO = {NVDA:'Tecnologia', MSFT:'Tecnologia', AAPL:'Tecnologia', AMD:'Tecnologia', AVGO:'Tecnologia',
+  INTC:'Tecnologia', ORCL:'Tecnologia', CRM:'Tecnologia', QQQ:'Tecnologia', GOOGL:'Comunicaciones', GOOG:'Comunicaciones',
+  META:'Comunicaciones', NFLX:'Comunicaciones', AMZN:'Consumo discrecional', TSLA:'Consumo discrecional',
+  WMT:'Consumo basico', COST:'Consumo basico', KO:'Consumo basico', PG:'Consumo basico', JNJ:'Salud', UNH:'Salud',
+  JPM:'Financiero', V:'Financiero', MA:'Financiero', SPCX:'Industrial', VOO:'ETF / indice', SPY:'ETF / indice',
+  IVV:'ETF / indice', VTI:'ETF / indice'};
 // COSTO PROMEDIO PONDERADO — es el metodo que usa la propia Ley del ISR mexicana para el
 // costo por accion, asi que ademas de ser el estandar contable es el que cuadra con el
 // fisco. Cada venta se lleva su parte proporcional del costo base; la diferencia contra
@@ -5344,7 +5356,10 @@ function calcCartera() {
     if (val === null) faltaPrecio = true;
     if (t.costoPendiente) faltaCosto = true;
     const tk = (state.tickers || {})[sym] || {};
-    const dv = (Number.isFinite(tk.divAnual) && fxOk) ? t.acciones * tk.divAnual * fx : null;
+    // dividendo por accion: el capturado manda; si no hay, lo que la accion PAGO de verdad en los
+    // ultimos 12 meses segun Yahoo (dato real, no una proyeccion). Sin ninguno de los dos, falta.
+    const divPS = Number.isFinite(tk.divAnual) ? tk.divAnual : (mk && Number.isFinite(mk.div12m) ? mk.div12m : null);
+    const dv = (divPS !== null && fxOk) ? t.acciones * divPS * fx : null;
     if (dv === null) faltaDiv = true;
     const p = {
       simbolo: sym, acciones: t.acciones,
@@ -5354,7 +5369,9 @@ function calcCartera() {
       ganancia: (val !== null && !t.costoPendiente) ? val - t.costo : null,
       gananciaPct: (val !== null && !t.costoPendiente && t.costo > 0) ? (val - t.costo) / t.costo * 100 : null,
       divAnual: dv,
-      sector: tk.sector || null,
+      sector: tk.sector || SECTOR_CONOCIDO[sym] || null,
+      sectorAuto: !tk.sector && !!SECTOR_CONOCIDO[sym],
+      divAuto: !Number.isFinite(tk.divAnual) && divPS !== null,
       crecDiv: Number.isFinite(tk.crecDiv) ? tk.crecDiv : null
     };
     pos.push(p);
@@ -5541,9 +5558,8 @@ function renderDashboard() {
   set('dash-aviso', '');
 
   if (!c.pos.length) {
-    set('dash-kpis', kpi('posiciones', '0', null, 'todavia no tienes acciones') +
-                     kpi('efectivo disponible', fmt(efe), null, 'efectivo + NU saldo + Revolut MXN'));
-    ['dash-asignacion', 'dash-pie', 'dash-costo-valor', 'dash-crecimiento', 'dash-winloss', 'dash-sector', 'dash-proyeccion']
+    set('dash-kpis', kpi('posiciones', '0', null, 'todavia no tienes acciones'));
+    ['dash-pie', 'dash-costo-valor', 'dash-crecimiento', 'dash-winloss', 'dash-sector', 'dash-proyeccion']
       .forEach(id => set(id, vacio('todavia no tienes acciones — registralas en inicio')));
     renderTickerUI();
     return;
@@ -5551,7 +5567,10 @@ function renderDashboard() {
 
   const total = c.valor + efe;
   const noReal = c.ganancia !== null ? c.ganancia : c.gananciaParcial;
-  const totalReal = (noReal !== null && c.realizado !== null) ? noReal + c.realizado : null;
+  // dividendos que YA te pagaron: se registran como ingreso con categoria "Dividendos"
+  const divCobrados = (state.ingresos || []).filter(i => i && movValido(i) && /dividend/i.test(String(i.cat || '')))
+    .reduce((t, i) => t + i.monto, 0);
+  const totalReal = (noReal !== null && c.realizado !== null) ? noReal + c.realizado + divCobrados : null;
   const sinQue = [...new Set(c.sinCosto.concat(c.sinPrecio))].join(', ');
   // los precios de tus acciones llegan en la misma actualizacion que el mercado: si llevan
   // dias sin llegar, se dice arriba de TODO, junto al titulo, antes de cualquier cifra
@@ -5566,7 +5585,7 @@ function renderDashboard() {
   // EL numero que se busca al abrir: lo no vendido MAS lo ya vendido, sin restar de cabeza
   if (totalReal !== null)
     k += kpi(totalReal >= 0 ? 'vas ganando' : 'vas perdiendo', sgn(totalReal), signo(totalReal),
-             'con lo que ya vendiste' + (c.completo ? '' : ' · solo lo capturado') + ' · sin dividendos cobrados', true);
+             'con lo que ya vendiste' + (divCobrados > 0.005 ? ' y tus dividendos' : '') + (c.completo ? '' : ' · solo lo capturado'), true);
   k += kpi('valor de tus acciones', c.valor > 0 ? fmt(c.valor) : '—', null,
            c.faltaPrecio ? 'falta el precio de ' + c.sinPrecio.join(', ') : 'al ultimo precio');
   k += kpi('lo que pusiste', c.faltaCosto ? 'pendiente' : fmt(c.costo), null,
@@ -5581,19 +5600,16 @@ function renderDashboard() {
   k += kpi('ya realizado', c.realizado !== null ? sgn(c.realizado) : 'pendiente',
            (c.realizado !== null && Math.abs(c.realizado) > 0.005) ? signo(c.realizado) : null,
            c.realizado === null ? 'a una venta le falta el monto' : 'lo que ya vendiste');
-  k += kpi('efectivo disponible', fmt(efe), null, total > 0 ? (efe / total * 100).toFixed(1) + '% de lo invertible' : '');
+  k += kpi('dividendos cobrados', fmt(divCobrados), divCobrados > 0.005 ? 'pos' : null,
+           divCobrados > 0.005 ? 'lo que ya te pagaron' : 'registralos como ingreso "Dividendos"');
   k += kpi('patrimonio invertible', fmt(total), null, 'acciones + efectivo disponible');
   // el yield que se destaca es el ACTUAL; el "sobre costo" se ve mas alto por usar precios viejos
-  k += kpi('dividendos al año', c.divAnual > 0 ? fmt(c.divAnual) : '—', null,
-           c.divAnual > 0 ? (c.yieldActual !== null ? 'rinden ' + c.yieldActual.toFixed(2) + '% al precio de hoy' : '')
-                          : 'capturalos en "datos de cada accion"');
+  const divDeYahoo = c.pos.some(p => p.divAuto);
+  k += kpi('dividendos al año', c.divAnual > 0 ? fmt(c.divAnual) : (c.faltaDiv ? '—' : fmt(0)), null,
+           c.divAnual > 0 ? ((divDeYahoo ? 'lo que pagaron en 12 meses' : 'segun lo capturado') + (c.yieldActual !== null ? ' · rinden ' + c.yieldActual.toFixed(2) + '%' : ''))
+                          : (c.faltaDiv ? 'se calcula al actualizar precios' : 'no pagaron dividendo en 12 meses'));
   k += kpi('posiciones', String(c.pos.length), null, c.pos.map(p => p.simbolo).join(' · '));
   set('dash-kpis', k);
-
-  // ── acciones contra efectivo ──
-  set('dash-asignacion', (c.valor > 0 || efe > 0)
-    ? pieChart([['acciones', c.valor], ['efectivo', efe]].filter(x => x[1] > 0), DASH_PIE)
-    : vacio('sin datos suficientes'));
 
   // ── reparto entre tus acciones ──
   const conV = c.pos.filter(p => p.valor !== null);
@@ -5638,9 +5654,10 @@ function renderDashboard() {
                : 'pesa el ' + (Math.abs(p.ganancia) / sumaNeg * 100).toFixed(0) + '% de los ' + fmt(sumaNeg) + ' que pierden')) +
         '</div></div><span class="' + (p.ganancia >= 0 ? 'item-amt-pos' : 'item-amt-neg') + '">' + sgn(p.ganancia) + '</span></div>'
       ).join('') +
-      (c.realizado !== null && Math.abs(c.realizado) > 0.005
+      ((c.realizado !== null && Math.abs(c.realizado) > 0.005) || divCobrados > 0.005
         ? '<div class="item-meta" style="margin-top:6px">el "vas ' + (totalReal !== null && totalReal < 0 ? 'perdiendo' : 'ganando') +
-          '" de arriba es distinto porque suma lo que ya vendiste (' + sgn(c.realizado) + ')</div>'
+          '" de arriba es distinto porque suma lo que ya vendiste (' + sgn(c.realizado || 0) + ')' +
+          (divCobrados > 0.005 ? ' y tus dividendos cobrados (' + fmt(divCobrados) + ')' : '') + '</div>'
         : '');
     set('dash-winloss', wl);
   } else set('dash-winloss', vacio('faltan datos de costo para calcularlo'));
@@ -5658,6 +5675,9 @@ function renderDashboard() {
              escapeHtml(c.pos.filter(p => !(p.sector && p.valor !== null)).map(p => p.simbolo).join(', ')) + '</div>';
     }
     sec += pieChart(top4(Object.entries(porSec).sort((a, b) => b[1] - a[1])), DASH_PIE);
+    const autos = conSec.filter(p => p.sectorAuto).map(p => p.simbolo);
+    if (autos.length) sec += '<div class="item-meta" style="padding-top:6px">sector automatico en ' + escapeHtml(autos.join(', ')) +
+      ': si no te cuadra, cambialo abajo en "datos de cada accion"</div>';
     const nS = Object.keys(porSec).length;
     sec += '<div class="item-meta" style="padding-top:8px">son ' + conSec.length + (conSec.length === 1 ? ' accion' : ' acciones') + ' en ' +
            nS + (nS === 1 ? ' sector' : ' sectores') + '. Repartir pocas acciones en varios sectores no es lo mismo que estar diversificado.</div>';
@@ -6578,7 +6598,7 @@ window.cambiarMes=d=>{state.mesOffset+=d;renderResumen();};
 // helper unico: baja la serie diaria de un simbolo con validacion completa
 // (HTTP, JSON del proxy, chart.error, timestamps y precios finitos positivos)
 async function fetchYahooSeries(symbol) {
-  const url=`https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?interval=1d&range=1y`;
+  const url=`https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?interval=1d&range=1y&events=div`;
   const proxies=[u=>`https://api.allorigins.win/get?url=${encodeURIComponent(u)}`,u=>`https://corsproxy.io/?${encodeURIComponent(u)}`];
   for(const proxy of proxies){
     try{
@@ -6593,7 +6613,15 @@ async function fetchYahooSeries(symbol) {
       const closes=(res.indicators&&res.indicators.quote&&res.indicators.quote[0]&&res.indicators.quote[0].close)||[];
       const hist=[];
       for(let i=0;i<ts.length;i++){ if(Number.isFinite(closes[i])&&closes[i]>0) hist.push({t:new Date(ts[i]*1000).toISOString().split('T')[0], c:closes[i]}); }
-      if(hist.length){ hist.moneda=(res.meta&&res.meta.currency)||''; return hist; }
+      if(hist.length){
+        hist.moneda=(res.meta&&res.meta.currency)||'';
+        // dividendos pagados en los ultimos 12 meses (se piden con events=div). Si Yahoo no manda
+        // eventos es que no pago ninguno en el rango: eso es un cero real, no un dato faltante.
+        const ev=(res.events&&res.events.dividends&&typeof res.events.dividends==='object')?Object.values(res.events.dividends):[];
+        const desde=Date.now()/1000-365*86400;
+        hist.div12m=+ev.filter(x=>x&&Number.isFinite(x.amount)&&x.amount>0&&Number.isFinite(x.date)&&x.date>=desde).reduce((t,x)=>t+x.amount,0).toFixed(4);
+        return hist;
+      }
     }catch(e){ console.error('fetchYahooSeries '+symbol,e); }
   }
   return null;
@@ -6618,7 +6646,7 @@ async function fetchStocks() {
     const serie=res[i].status==='fulfilled'?res[i].value:null;
     if(serie&&serie.length){
       nuevoMkt[sm]={precio:serie[serie.length-1].c, prev:serie.length>=2?serie[serie.length-2].c:null,
-        fecha:serie[serie.length-1].t, moneda:serie.moneda||'', hist:serie.map(p=>({t:p.t,c:+p.c.toFixed(2)}))};
+        fecha:serie[serie.length-1].t, moneda:serie.moneda||'', div12m:Number.isFinite(serie.div12m)?serie.div12m:null, hist:serie.map(p=>({t:p.t,c:+p.c.toFixed(2)}))};
       algun=true;
     } else if(syms.includes(sm)) todo=false; // si falla solo la referencia, no rompe el total
   });
@@ -6679,7 +6707,6 @@ initChartInteraccion('gbm-chart');
 initChartInteraccion('patrimonio-chart');
 initPieInteraccion('res-pie');
 initPieInteraccion('res-pie-ingresos');
-initPieInteraccion('dash-asignacion');
 initPieInteraccion('dash-pie');
 initPieInteraccion('dash-sector');
 actualizarOjo();
