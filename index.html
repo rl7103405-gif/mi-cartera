@@ -2985,7 +2985,16 @@ async function reclasificarCat(tipo, A, B) {
   while (vueltas++ < 60) {
     let snap;
     try { snap = await getDocsFromServer(query(collection(db, COL), where('cat','==',A))); }
-    catch(e) { console.error('reclasificarCat leer', e); showToast('no se pudieron leer tus movimientos — revisa tu conexion'); return false; }
+    catch(e) {
+      // salida distinta a la del lote: aqui ya puede haber movimientos confirmados y la
+      // memoria tiene que reflejar ESOS, ni mas ni menos
+      console.error('reclasificarCat leer', e);
+      catAplicarEnMemoria(tipo, A, B, movidosIds);
+      showToast(movidos
+        ? ('se movieron '+movidos+' y se corto la conexion: vuelve a apretar para terminar')
+        : 'no se pudieron leer tus movimientos — revisa tu conexion');
+      return false;
+    }
     const docs = snap.docs.slice(0, 200);
     if (!docs.length) break;
     const lote = writeBatch(db);
@@ -5510,8 +5519,14 @@ async function publicarFicha(forzar){
   if(!amigosVisible()||!datosCargados) return;
   let f; try{ f=miFicha(); }catch(e){ console.error('amigos ficha',e); return; }
   const clave=JSON.stringify(f);
-  if(!forzar&&clave===fichaPublicada) return;
-  try{ await setDoc(doc(db,'amigos',AMIGO_ID),{...f,actualizado:new Date().toISOString()}); fichaPublicada=clave; fichaFallo=null; }
+  // si la ultima publicacion fallo hay que REINTENTAR aunque la ficha no haya cambiado:
+  // con el memo a secas, un rechazo dejaba el aviso pegado y ya nadie volvia a intentar
+  if(!forzar&&clave===fichaPublicada&&!fichaFallo) return;
+  try{ await setDoc(doc(db,'amigos',AMIGO_ID),{...f,actualizado:new Date().toISOString()}); fichaPublicada=clave;
+    // al recuperarse hay que repintar: si no, el aviso de un fallo viejo se queda en pantalla
+    const habiaFallo=fichaFallo; fichaFallo=null;
+    if(habiaFallo&&document.getElementById('amigos-panel')&&perfilSubActual==='amigos') renderAmigos();
+  }
   catch(e){
     // un fallo aqui es justo el que nadie ve: sin esto, que las reglas rechacen la ficha
     // se queda en la consola y la pestaña dice tranquilamente "todavia nadie participa"
@@ -6104,7 +6119,9 @@ function checkPremium() {
   if(!ocultar){ try{ if(localStorage.getItem('premiumDescartado')===mesKey) ocultar=true; }catch(e){} }
   if(!ocultar && premiumDescartadoMem===mesKey) ocultar=true;
   if(!ocultar){
-    const ya=state.gastos.some(g=>g.fuente==='revolut'&&g.cat==='Suscripciones'&&mesLocalDe(g.fecha)===mesKey&&diaLocalDe(g.fecha)>=20);
+    // se compara NORMALIZADO: con igualdad exacta, renombrar la categoria a "suscripciones"
+    // hacia que este aviso dejara de reconocer un Premium ya pagado y lo volviera a ofrecer
+    const ya=state.gastos.some(g=>g.fuente==='revolut'&&esCatSuscripcion(g.cat)&&mesLocalDe(g.fecha)===mesKey&&diaLocalDe(g.fecha)>=20);
     if(ya) ocultar=true;
   }
   if(!ocultar) document.getElementById('premium-btn').textContent='registrar '+fmt(PREMIUM_MONTO);
@@ -7529,11 +7546,14 @@ async function fetchYahooSeries(symbol, rango) {
   return serie;
 }
 // pega los dias nuevos sobre la historia guardada, sin duplicar fechas ni perder lo viejo
-function fundirHist(viejo, nuevo) {
+function fundirHist(viejo, nuevo, dec) {
   const m = new Map();
   (Array.isArray(viejo)?viejo:[]).forEach(p => { if(p&&p.t&&Number.isFinite(p.c)) m.set(p.t, +p.c); });
   (Array.isArray(nuevo)?nuevo:[]).forEach(p => { if(p&&p.t&&Number.isFinite(p.c)) m.set(p.t, +p.c); });
-  return [...m.entries()].sort((a,b)=>a[0]<b[0]?-1:1).map(([t,c])=>({t, c:+c.toFixed(2)}));
+  // el dolar se guarda con CUATRO decimales; redondearlo a dos aqui degradaba en silencio
+  // todo el historial viejo cada vez que se hacia una pasada corta
+  const d = Number.isFinite(dec) ? dec : 2;
+  return [...m.entries()].sort((a,b)=>a[0]<b[0]?-1:1).map(([t,c])=>({t, c:+c.toFixed(d)}));
 }
 
 // BOLSA: cotizaciones de todos los simbolos con posicion abierta + tipo de cambio.
@@ -7555,7 +7575,18 @@ async function fetchStocks() {
   const rangoDe=sm=>{ const mk=state.accionesMkt[sm];
     return (mk&&Array.isArray(mk.hist)&&mk.hist.length>5&&mk.full===hoyMkt)?'5d':'1y'; };
   // el tipo de cambio no tiene dividendos, asi que basta con ya tener el ano guardado
-  const rangoFx=()=> (Array.isArray(state.usdMxnHistory)&&state.usdMxnHistory.length>200)?'5d':'1y';
+  // no basta con tener el año guardado: si la app no se abrio en semanas, una pasada de
+  // cinco dias deja un hueco que ya nunca se rellena. Si lo ultimo guardado quedo fuera
+  // del alcance de esos cinco dias, se vuelve a pedir el año entero.
+  const rangoFx=()=>{
+    const h=state.usdMxnHistory;
+    if(!(Array.isArray(h)&&h.length>200)) return '1y';
+    const ult=state.usdMxnFecha||(h[h.length-1]&&h[h.length-1].t);
+    if(typeof ult!=='string') return '1y';
+    // se compara la fecha como texto para no depender de nada mas: 'YYYY-MM-DD' ordena solo
+    const limite=new Date(Date.now()-4*86400000).toISOString().slice(0,10);
+    return (ult>=limite)?'5d':'1y';
+  };
   const res=await Promise.allSettled([...pedir.map(sm=>fetchYahooSeries(sm,rangoDe(sm))),
     fetchYahooSeries('MXN=X',rangoFx())]);
   const cambios={}; let algun=false, todo=true;
@@ -7565,17 +7596,20 @@ async function fetchStocks() {
     if(serie&&serie.length){
       const ant=state.accionesMkt[sm]||{};
       // en la pasada corta se conserva lo que solo trae la larga: los dividendos de 12 meses
-      const hist=serie.largo?serie.map(p=>({t:p.t,c:+p.c.toFixed(2)})):fundirHist(ant.hist,serie);
+      // si la moneda que reporta el proveedor cambio, pegar lo nuevo sobre lo viejo mezclaria
+      // unidades: se descarta la historia previa y se fuerza una pasada larga la proxima vez
+      const monedaCambio=!serie.largo&&ant.moneda&&serie.moneda&&ant.moneda!==serie.moneda;
+      const hist=(serie.largo||monedaCambio)?serie.map(p=>({t:p.t,c:+p.c.toFixed(2)})):fundirHist(ant.hist,serie);
       nuevoMkt[sm]={precio:hist[hist.length-1].c, prev:hist.length>=2?hist[hist.length-2].c:null,
         fecha:hist[hist.length-1].t, moneda:serie.moneda||ant.moneda||'',
         div12m:serie.largo?(Number.isFinite(serie.div12m)?serie.div12m:null):(Number.isFinite(ant.div12m)?ant.div12m:null),
-        full:serie.largo?hoyMkt:(ant.full||null), hist};
+        full:serie.largo?hoyMkt:(monedaCambio?null:(ant.full||null)), hist};
       algun=true;
     } else if(syms.includes(sm)) todo=false; // si falla solo la referencia, no rompe el total
   });
   const fxRes=res[res.length-1]; const fxS=fxRes.status==='fulfilled'?fxRes.value:null;
   if(fxS&&fxS.length){
-    const fxHist=fxS.largo?fxS.map(p=>({t:p.t,c:+p.c.toFixed(4)})):fundirHist(state.usdMxnHistory,fxS);
+    const fxHist=fxS.largo?fxS.map(p=>({t:p.t,c:+p.c.toFixed(4)})):fundirHist(state.usdMxnHistory,fxS,4);
     state.usdMxn=fxHist[fxHist.length-1].c;
     state.usdMxnPrev=fxHist.length>=2?fxHist[fxHist.length-2].c:null;
     state.usdMxnFecha=fxHist[fxHist.length-1].t;
