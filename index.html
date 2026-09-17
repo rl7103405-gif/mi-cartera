@@ -333,6 +333,9 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
   .cards{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;align-items:start;margin-bottom:28px}
   .tarjeta-card{grid-column:1/-1;margin-bottom:0}
   .inicio-grid,.summary-grid{display:grid;grid-template-columns:1fr 1fr;gap:0 20px;align-items:start}
+  /* resumen: las dos tarjetas de cada fila arrancan y terminan a la misma altura */
+  .summary-grid{align-items:stretch}.summary-grid>.sec{display:flex;flex-direction:column;min-width:0}
+  .summary-grid>.sec>.panel{flex:1 1 auto}.summary-grid>.sec>details.acc{margin-bottom:16px}
   .sec{min-width:0}
   .total-amount{font-size:46px}
 }
@@ -1181,13 +1184,8 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
     <div class="panel" id="res-utilidades"></div>
     </div>
     <div class="sec">
-    <details class="acc">
-    <summary>
-      <div class="acc-icon chip-verde"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M19 5 5 19"/><circle cx="7.2" cy="7.2" r="2.4"/><circle cx="16.8" cy="16.8" r="2.4"/></svg></div>
-      <div><div class="acc-tit">rendimientos del periodo</div><div class="acc-sub">cajitas, savings y balance real</div></div>
-    </summary>
-    <div class="acc-body"><div class="panel" id="res-rendimientos"></div></div>
-    </details>
+    <div class="section-title mt">rendimientos del periodo</div>
+    <div class="panel" id="res-rendimientos"></div>
     </div>
     <div class="sec">
     <details class="acc">
