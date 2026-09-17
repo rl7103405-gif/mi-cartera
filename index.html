@@ -246,6 +246,10 @@ nav{position:sticky;top:0;z-index:100;background:var(--nav-bg);backdrop-filter:b
 /* amigos: avatar con inicial y la fila propia resaltada */
 .amigo-av{width:34px;height:34px;border-radius:50%;background:var(--chip-r);color:var(--accent);display:flex;align-items:center;justify-content:center;font-weight:700;flex-shrink:0}
 .amigo-yo{background:var(--bg3);border-radius:10px;padding-left:6px;padding-right:6px;margin:0 -6px}
+.amigo-fila{gap:14px}.amigo-der{text-align:right;flex-shrink:0;min-width:64px}.amigo-comp{font-size:11px;color:var(--muted);margin-top:2px}
+.subtabs{display:flex;gap:22px;border-bottom:1px solid var(--border2);margin:4px 0 18px}
+.subtabs .stab{padding:8px 2px 10px;font-size:15px;font-weight:600;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px}
+.subtabs .stab.active{color:var(--accent);border-bottom-color:var(--accent)}
 .deuda-sub{font-size:12px;color:var(--muted);margin-top:2px}
 .deuda-detail{display:none;margin-top:12px;padding-top:12px;border-top:0.5px solid var(--border)}
 .deuda-detail.open{display:block}
@@ -914,9 +918,9 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
     <button type="button" class="btn" style="margin-top:0" onclick="cambiarFoto()">cambiar foto</button>
   </div>
   <!-- subpestañas: "tu perfil" (lo de siempre) y "amigos" (la competencia de la familia) -->
-  <div class="type-toggle" id="perfil-subtabs" style="margin-bottom:16px">
-    <div class="type-opt active" id="ptab-perfil" onclick="perfilSub('perfil')">tu perfil</div>
-    <div class="type-opt" id="ptab-amigos" onclick="perfilSub('amigos')">amigos</div>
+  <div class="subtabs" id="perfil-subtabs">
+    <div class="stab active" id="ptab-perfil" onclick="perfilSub('perfil')">tu perfil</div>
+    <div class="stab" id="ptab-amigos" onclick="perfilSub('amigos')">amigos</div>
   </div>
   <div id="perfil-sub-perfil">
   <div class="inicio-grid">
@@ -978,7 +982,7 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
   </div>
   </div>
   <div id="perfil-sub-amigos" style="display:none">
-    <div class="section-title">quien va ganando el mes</div>
+    <div class="section-title" id="amigos-titulo">amigos</div>
     <div class="panel" id="amigos-panel"><div class="empty-state">calculando...</div></div>
     <div class="section-title mt">participar</div>
     <div class="panel">
@@ -986,7 +990,7 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
         Se compara la calificacion del ultimo mes completo (la misma de tu perfil), en que banda
         quedo tu gasto y tu ahorro (por ejemplo "ahorra 10–20%", nunca el porcentaje exacto), tu
         racha de meses buenos y como va tu ahorro este mes. <b>Jamas tus saldos, montos ni
-        movimientos.</b> Viene encendido; si sales, tu ficha desaparece para los demas.
+        movimientos.</b> Si sales, tu ficha desaparece para los demas; si vuelves, se publica de nuevo.
       </div>
       <div class="type-toggle" id="amigos-toggle">
         <div class="type-opt" id="amigos-off" onclick="setAmigos(false)">no participo</div>
@@ -5121,7 +5125,9 @@ function miFicha(){
     mes:pi.getFullYear()+'-'+String(pi.getMonth()+1).padStart(2,'0'),
     score:(conIngreso&&sc)?sc.score:null,
     gasto:conIngreso?bandaGasto(mPrev.gPct):null, ahorro:conIngreso?bandaAhorro(mPrev.aPct):null,
-    racha:calcRacha(), ahorroMes:(act&&!act.vacio&&Number.isFinite(act.aPct)&&act.totalI>0)?bandaAhorro(act.aPct):null, ver:SCORE_VER};
+    racha:calcRacha(), ahorroMes:(act&&!act.vacio&&Number.isFinite(act.aPct)&&act.totalI>0)?bandaAhorro(act.aPct):null, ver:SCORE_VER,
+    // los cuatro componentes de la calificacion (puntos sobre su maximo): sin esto la tabla no deja ver por que gana quien gana
+    puntos:(conIngreso&&sc&&Array.isArray(sc.comps))?sc.comps.slice(0,6).map(c=>({n:String(c.nombre||'').slice(0,28),p:Math.round(c.puntos),m:Math.round(c.max)})):null};
 }
 // BANDAS, no porcentajes exactos: un porcentaje exacto junto a una cifra conocida (una aportacion
 // que alguien vio) permitiria deducir el ingreso; una banda no
@@ -5139,7 +5145,7 @@ async function publicarFicha(forzar){
 }
 async function retirarFicha(){
   try{ await setDoc(doc(db,'amigos',AMIGO_ID),{participa:false,actualizado:new Date().toISOString()}); fichaPublicada=null; return true; }
-  catch(e){ console.error('amigos retirar',e); showToast('no se pudo salir — revisa tu conexion'); return false; }
+  catch(e){ console.error('amigos retirar',e); showToast('no se pudo guardar tu salida (sin conexion o sin permiso): sigues participando'); return false; }
 }
 let amigosOcupado=false;
 window.setAmigos=async function(valor){
@@ -5156,7 +5162,8 @@ window.setAmigos=async function(valor){
 const MESES_CORTO=['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
 async function renderAmigos(){
   const el=document.getElementById('amigos-panel'); if(!el) return;
-  if(!amigosVisible()){ el.innerHTML='<div class="empty-state">no participas: enciende "participo" aqui abajo para ver a tus amigos y que te vean</div>'; return; }
+  const tit0=document.getElementById('amigos-titulo');
+  if(!amigosVisible()){ if(tit0) tit0.textContent='amigos'; el.innerHTML='<div class="empty-state">no participas: enciende "participo" aqui abajo para ver a tus amigos y que te vean</div>'; return; }
   el.innerHTML='<div class="empty-state">cargando...</div>';
   let docs=[];
   try{ const snap=await getDocs(collection(db,'amigos')); snap.forEach(d=>docs.push({id:d.id,...d.data()})); }
@@ -5170,17 +5177,26 @@ async function renderAmigos(){
   const mesTxt=m=>{ const x=/^(\d{4})-(\d{2})$/.exec(String(m||'')); return x?MESES_CORTO[+x[2]-1]+' '+x[1]:'—'; };
   const liderClaro=act.length>=2&&act[0].score>act[1].score;
   const b=v=>(typeof v==='string'&&v)?v:'—';
-  const fila=(d,pos)=>{
+  const tit=document.getElementById('amigos-titulo'); if(tit) tit.textContent='quien va ganando en '+mesTxt(mia.mes);
+  const mesAct=MESES_CORTO[new Date().getMonth()];
+  // empates: mismo numero para la misma calificacion (1, 2, 2, 4), no el orden en que llegaron
+  const posDe=d=>act.findIndex(x=>x.score===d.score)+1;
+  const fila=(d,enTabla)=>{
+    const pos=enTabla?posDe(d):null;
     const yo=d.id===AMIGO_ID, gana=pos===1&&liderClaro, empate=pos!==null&&act.filter(x=>x.score===d.score).length>1;
-    const meta=[`gasta ${b(d.gasto)}`,`ahorra ${b(d.ahorro)}`,`racha ${Number.isFinite(d.racha)?d.racha:'—'}`,`este mes ahorra ${b(d.ahorroMes)}`].join(' · ');
-    return `<div class="item-row${yo?' amigo-yo':''}"><div style="display:flex;align-items:center;gap:10px;min-width:0"><div class="amigo-av">${escapeHtml(String(d.inicial||d.nombre.charAt(0)).toUpperCase())}</div><div style="min-width:0"><div class="item-cat">${pos!==null?pos+'. ':''}${escapeHtml(d.nombre)}${yo?' <span class="item-meta">(tu)</span>':''}${gana?' <span class="pie-pct">va ganando</span>':''}${empate?' <span class="item-meta">empate</span>':''}</div><div class="item-meta">${escapeHtml(meta)}</div></div></div><div style="text-align:right;flex-shrink:0"><div style="font-size:20px;font-weight:700">${Number.isFinite(d.score)?d.score:'—'}<span class="item-meta">/100</span></div><div class="item-meta">${escapeHtml(mesTxt(d.mes))}</div></div></div>`;
+    const l1=Number.isFinite(d.score)?`${mesTxt(d.mes)}: gasto ${b(d.gasto)} · ahorro ${b(d.ahorro)} · racha ${Number.isFinite(d.racha)?d.racha:'—'}`:'sin calificacion: sin ingresos capturados en '+mesTxt(d.mes);
+    const l2=`${mesAct} (a medias): ahorra ${b(d.ahorroMes)}`;
+    const comp=Array.isArray(d.puntos)&&d.puntos.length?`<div class="amigo-comp">${d.puntos.map(c=>escapeHtml(String(c.n||'').split(' ')[0])+' '+escapeHtml(String(c.p))+'/'+escapeHtml(String(c.m))).join(' · ')}</div>`:'';
+    const ms=d.actualizado?new Date(d.actualizado).getTime():NaN, dias=Number.isFinite(ms)?Math.floor((Date.now()-ms)/86400000):null;
+    const fresco=(!yo&&dias!==null&&dias>=2)?`<div class="item-meta">hace ${dias} dias</div>`:'';
+    return `<div class="item-row amigo-fila${yo?' amigo-yo':''}"><div style="display:flex;align-items:center;gap:10px;min-width:0"><div class="amigo-av">${escapeHtml(String(d.inicial||d.nombre.charAt(0)).toUpperCase())}</div><div style="min-width:0"><div class="item-cat">${pos!==null?pos+'. ':''}${escapeHtml(d.nombre)}${yo?' <span class="item-meta">(tu)</span>':''}${gana?' <span class="pie-pct">va ganando</span>':''}${empate?' <span class="item-meta">empate</span>':''}</div><div class="item-meta">${escapeHtml(l1)}</div><div class="item-meta">${escapeHtml(l2)}</div>${comp}</div></div><div class="amigo-der"><div style="font-size:20px;font-weight:700">${Number.isFinite(d.score)?d.score+'<span class="item-meta">/100</span>':'<span class="item-meta">sin calif.</span>'}</div>${fresco}</div></div>`;
   };
-  const filas=act.map((d,i)=>fila(d,i+1)).join('')
-    +(fuera.length?`<div class="item-meta" style="padding-top:8px">sin calificacion este mes (sin ingresos capturados o ficha de otro mes):</div>`+fuera.map(d=>fila(d,null)).join(''):'');
+  const filas=act.map(d=>fila(d,true)).join('')
+    +(fuera.length?`<div class="item-meta" style="padding-top:8px">fuera de la tabla este mes:</div>`+fuera.map(d=>fila(d,false)).join(''):'');
   const faltan=Object.keys(AMIGO_NOMBRES).filter(k=>!todos.some(d=>d.id===k)).map(k=>AMIGO_NOMBRES[k]);
   el.innerHTML=(filas||'<div class="empty-state">todavia nadie participa</div>')
     +(faltan.length?`<div class="item-meta" style="padding-top:10px">todavia no aparecen: ${escapeHtml(faltan.join(', '))} — su ficha se publica en cuanto abran su app</div>`:'')
-    +`<div class="item-meta" style="padding-top:6px">la calificacion es la del ultimo mes completo (${escapeHtml(mesTxt(mia.mes))}), la misma que ves en tu perfil: mide habitos contra la referencia de cada quien, no cuanto dinero tiene. Es una competencia de confianza: cada app reporta lo que su dueño registra.</div>`;
+    +`<div class="item-meta" style="padding-top:6px">la calificacion es la de ${escapeHtml(mesTxt(mia.mes))}, el ultimo mes completo, la misma que ves en tu perfil: aportacion (40) + control de gasto (30) + constancia (20) + colchon (10), cada quien contra su propia referencia. Es una competencia de confianza: cada app reporta lo que su dueño registra.</div>`;
 }
 function dashboardEncendido() { return !!(state.perfil && state.perfil.dashboard); }
 function aplicarVisibilidadDashboard() {
