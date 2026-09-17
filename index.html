@@ -2876,7 +2876,7 @@ window.showPage = function(p) {
   if(p==='dashboard') renderDashboard();
   if(p==='fondo') renderFondo();
   if(p==='resumen') renderResumen();
-  if(p==='amigos') renderAmigos();
+  if(p==='amigos'){ (amigosVisible()?publicarFicha():Promise.resolve()).then(()=>renderAmigos()); }
   if(p==='movimientos') renderMovimientos();
   if(p==='deudas') renderDeudas();
   if(p==='noticias') abrirNoticias(); // carga perezosa: cache primero, refresco si esta viejo
@@ -5095,6 +5095,8 @@ function aplicarVisibilidadAmigos(){
   if(!on&&pag&&pag.classList.contains('active')) showPage('inicio');
   const off=document.getElementById('amigos-off'), onEl=document.getElementById('amigos-on');
   if(off&&onEl){ off.classList.toggle('active',!on); onEl.classList.toggle('active',on); }
+  // al arrancar (y en cada repintado general) la ficha propia se pone al dia; el memo evita escribir de mas
+  if(on&&typeof datosCargados!=='undefined'&&datosCargados) publicarFicha();
 }
 // la ficha: indicadores del ULTIMO MES COMPLETO (un mes a medias es ruido) + como va el ahorro este mes
 function miFicha(){
@@ -5107,7 +5109,7 @@ function miFicha(){
   const nombre=((state.perfil&&state.perfil.nombre)||'').trim().slice(0,24)||AMIGO_NOMBRES[AMIGO_ID]||AMIGO_ID;
   return {participa:true, nombre, inicial:nombre.charAt(0).toUpperCase(),
     mes:pi.getFullYear()+'-'+String(pi.getMonth()+1).padStart(2,'0'),
-    score:(conIngreso&&sc)?sc.score:null, nivel:(conIngreso&&sc)?sc.nivel:null,
+    score:(conIngreso&&sc)?sc.score:null,
     gasto:conIngreso?bandaGasto(mPrev.gPct):null, ahorro:conIngreso?bandaAhorro(mPrev.aPct):null,
     racha:calcRacha(), ahorroMes:(act&&!act.vacio&&Number.isFinite(act.aPct)&&act.totalI>0)?bandaAhorro(act.aPct):null, ver:SCORE_VER};
 }
@@ -5123,19 +5125,23 @@ async function publicarFicha(forzar){
   const clave=JSON.stringify(f);
   if(!forzar&&clave===fichaPublicada) return;
   try{ await setDoc(doc(db,'amigos',AMIGO_ID),{...f,actualizado:new Date().toISOString()}); fichaPublicada=clave; }
-  catch(e){ console.error('amigos publicar',e); }
+  catch(e){ console.error('amigos publicar',e); if(forzar) showToast('no se pudo publicar tu ficha — revisa tu conexion e intenta de nuevo'); }
 }
 async function retirarFicha(){
   try{ await setDoc(doc(db,'amigos',AMIGO_ID),{participa:false,actualizado:new Date().toISOString()}); fichaPublicada=null; return true; }
   catch(e){ console.error('amigos retirar',e); showToast('no se pudo salir — revisa tu conexion'); return false; }
 }
+let amigosOcupado=false;
 window.setAmigos=async function(valor){
-  if(!!(state.perfil&&state.perfil.amigos)===!!valor) return;
+  if(!!(state.perfil&&state.perfil.amigos)===!!valor||amigosOcupado) return;
+  amigosOcupado=true;
+  try{
   if(!valor){ if(!(await retirarFicha())) return; }
   const ok=await guardarPerfil({amigos:!!valor}, valor?'ya participas con tus amigos':'saliste: tu ficha ya no se ve');
   if(!ok) return;
   aplicarVisibilidadAmigos();
   if(valor){ await publicarFicha(true); refrescar(renderAmigos); }
+  } finally { amigosOcupado=false; }
 };
 const MESES_CORTO=['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
 async function renderAmigos(){
