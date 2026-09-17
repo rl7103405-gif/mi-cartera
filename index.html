@@ -243,6 +243,9 @@ nav{position:sticky;top:0;z-index:100;background:var(--nav-bg);backdrop-filter:b
 .xl-panel select,.xl-panel input{flex:1;min-width:130px;padding:8px 10px;border-radius:10px;border:1px solid var(--border2);background:var(--bg2s);color:var(--text);font-size:13px}
 .xl-panel .btn{width:auto;margin-top:0;padding:8px 14px;flex-shrink:0;font-size:13px}
 .xl-fechas{display:flex;gap:6px;flex:1 1 100%}
+/* amigos: avatar con inicial y la fila propia resaltada */
+.amigo-av{width:34px;height:34px;border-radius:50%;background:var(--chip-r);color:var(--accent);display:flex;align-items:center;justify-content:center;font-weight:700;flex-shrink:0}
+.amigo-yo{background:var(--bg3);border-radius:10px;padding-left:6px;padding-right:6px;margin:0 -6px}
 .deuda-sub{font-size:12px;color:var(--muted);margin-top:2px}
 .deuda-detail{display:none;margin-top:12px;padding-top:12px;border-top:0.5px solid var(--border)}
 .deuda-detail.open{display:block}
@@ -324,13 +327,15 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
   #page-inicio{max-width:1060px}
   #page-movimientos{max-width:1060px}
   #page-metas{max-width:1060px}
+  #page-amigos{max-width:760px}
   #page-perfil{max-width:1060px}
   #page-resumen{max-width:1080px}
   /* las dos columnas arrancan a la misma altura: el primer titulo de cada una no lleva el margen superior */
   .summary-grid>.sec>.section-title.mt:first-child,.inicio-grid>.sec>.section-title.mt:first-child{margin-top:0}
   nav,.tabs{padding-left:32px;padding-right:32px}
   .hero-grid{display:grid;grid-template-columns:1fr 1.1fr;gap:0 24px;align-items:center;margin-bottom:8px}
-  .cards{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;align-items:start;margin-bottom:28px}
+  .cards{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;align-items:stretch;margin-bottom:28px}
+  .cards>.card{margin-bottom:0}
   .tarjeta-card{grid-column:1/-1;margin-bottom:0}
   .inicio-grid,.summary-grid{display:grid;grid-template-columns:1fr 1fr;gap:0 20px;align-items:start}
   /* resumen: las dos tarjetas de cada fila arrancan y terminan a la misma altura */
@@ -461,6 +466,7 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
   <div class="tab" data-page="perfil" onclick="showPage('perfil')">perfil</div>
   <div class="tab" data-page="noticias" onclick="showPage('noticias')">noticias</div>
   <div class="tab" data-page="deudas" onclick="showPage('deudas')">deudas</div>
+  <div class="tab" data-page="amigos" id="tab-amigos" hidden onclick="showPage('amigos')">amigos</div>
   <div class="tab" data-page="resumen" onclick="showPage('resumen')">resumen</div>
 </div>
 
@@ -937,6 +943,15 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
         <div class="type-opt" id="dash-on" onclick="setDashboard(true)">encendido</div>
       </div>
       <div class="item-meta" style="line-height:1.5;margin:14px 0 8px">
+        <b>Amigos.</b> Compite con tus amigos que tambien usan la app: se comparte tu calificacion del
+        mes, en que banda quedaron tu gasto y tu ahorro (nunca el porcentaje exacto) y tu racha — jamas tus saldos ni tus movimientos. Al
+        apagarlo, tu ficha desaparece para los demas.
+      </div>
+      <div class="type-toggle" id="amigos-toggle">
+        <div class="type-opt" id="amigos-off" onclick="setAmigos(false)">no participo</div>
+        <div class="type-opt" id="amigos-on" onclick="setAmigos(true)">participo</div>
+      </div>
+      <div class="item-meta" style="line-height:1.5;margin:14px 0 8px">
         <b>Pestaña del fondo de la universidad.</b> Para llevar ese dinero apartado de tus cuentas:
         no cuenta como tuyo en inicio, en tus metas ni en tu score, y ninguna operacion normal lo
         puede tocar. La proteccion aplica aunque la pestaña este apagada.
@@ -1136,6 +1151,16 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
     </div></div>
     <div class="dcard"><div class="dcard-h">Dónde está el fondo</div><div class="dcard-b" id="fondo-cuentas"><div class="empty-state">calculando...</div></div></div>
     <div class="dcard ancha"><div class="dcard-h">Movimientos del fondo</div><div class="dcard-b" id="fondo-movs"><div class="empty-state">calculando...</div></div></div>
+  </div>
+</div>
+
+<!-- AMIGOS: competencia entre las carteras de la familia. Se comparten INDICADORES (calificacion,
+     porcentajes, racha), nunca saldos ni movimientos; cada quien decide participar desde su perfil -->
+<div class="page" id="page-amigos">
+  <div class="mt">
+  <div class="section-title">tus amigos · quien va ganando</div>
+  <div class="panel" id="amigos-panel"><div class="empty-state">calculando...</div></div>
+  <div class="item-meta" style="margin-top:10px;line-height:1.5">Se compara la calificacion del ultimo mes completo (la misma de tu perfil), en que banda quedo tu gasto y tu ahorro (por ejemplo "ahorra 10–20%"), tu racha de meses buenos y como va tu ahorro este mes. <b>Nunca se comparten saldos, montos ni movimientos.</b> Puedes salir cuando quieras desde tu perfil.</div>
   </div>
 </div>
 
@@ -2851,6 +2876,7 @@ window.showPage = function(p) {
   if(p==='dashboard') renderDashboard();
   if(p==='fondo') renderFondo();
   if(p==='resumen') renderResumen();
+  if(p==='amigos') renderAmigos();
   if(p==='movimientos') renderMovimientos();
   if(p==='deudas') renderDeudas();
   if(p==='noticias') abrirNoticias(); // carga perezosa: cache primero, refresco si esta viejo
@@ -3060,7 +3086,7 @@ function actualizarOjo() {
 }
 // re-renderiza TODAS las paginas (tambien las inactivas, para no dejar montos viejos en el DOM)
 function rerenderTodo() {
-  render(); renderTransferencias(); renderMovimientos(); renderDeudas(); renderResumen(); if(dashboardEncendido()) renderDashboard(); if(fondoVisible()) renderFondo();
+  render(); renderTransferencias(); renderMovimientos(); renderDeudas(); renderResumen(); if(dashboardEncendido()) renderDashboard(); aplicarVisibilidadAmigos(); if(amigosVisible()){ publicarFicha(); } if(fondoVisible()) renderFondo();
   renderNoticias(); // el modo privado tambien oculta los tickers de las noticias
 }
 // detalle por cuenta: al tocar una tarjeta de inicio se listan sus movimientos del ultimo
@@ -5053,8 +5079,96 @@ function renderPerfil() {
 // ── TABLERO DE INVERSIONES: encendido/apagado desde el perfil ─────────────────
 // Vive en el perfil (cartera/perfil.dashboard) y no en un ajuste local, para que la
 // decision viaje con la cuenta y no haya que repetirla en cada aparato.
+// ── AMIGOS ────────────────────────────────────────────────────
+// 16-sep-2026, Roberto: "ya es hora de ponerlos como amigos y empezar la competitividad".
+// Cada cartera que participa escribe UNA ficha en amigos/<id> con indicadores del ultimo mes
+// completo (los mismos que ya calcula el perfil), y lee las fichas de las demas. Las reglas de
+// Firestore solo dejan escribir la propia y leer las de la familia. Nada de montos: porcentajes,
+// calificacion y racha no permiten deducir cuanto tiene nadie.
+const AMIGO_ID=(typeof NS==='string')?NS:'cartera';
+const AMIGO_NOMBRES={cartera:'Roberto',eli:'Eli',zoe:'Zoe',tono:'Toño'};
+function amigosVisible(){ return !!(state.perfil&&state.perfil.amigos); }
+function aplicarVisibilidadAmigos(){
+  const on=amigosVisible();
+  const tab=document.getElementById('tab-amigos'); if(tab) tab.hidden=!on;
+  const pag=document.getElementById('page-amigos');
+  if(!on&&pag&&pag.classList.contains('active')) showPage('inicio');
+  const off=document.getElementById('amigos-off'), onEl=document.getElementById('amigos-on');
+  if(off&&onEl){ off.classList.toggle('active',!on); onEl.classList.toggle('active',on); }
+}
+// la ficha: indicadores del ULTIMO MES COMPLETO (un mes a medias es ruido) + como va el ahorro este mes
+function miFicha(){
+  const now=new Date();
+  const pi=new Date(now.getFullYear(),now.getMonth()-1,1), pf=new Date(now.getFullYear(),now.getMonth(),1);
+  const mPrev=calcularCierre(pi,pf,'mes'), sc=calcScore(mPrev);
+  const act=calcularCierre(new Date(now.getFullYear(),now.getMonth(),1),new Date(now.getFullYear(),now.getMonth()+1,1),'mes');
+  // sin ingresos capturados ese mes no hay calificacion (fuera de la tabla, nunca un cero)
+  const conIngreso=!!(mPrev&&!mPrev.vacio&&Number.isFinite(mPrev.gPct)&&mPrev.totalI>0);
+  const nombre=((state.perfil&&state.perfil.nombre)||'').trim().slice(0,24)||AMIGO_NOMBRES[AMIGO_ID]||AMIGO_ID;
+  return {participa:true, nombre, inicial:nombre.charAt(0).toUpperCase(),
+    mes:pi.getFullYear()+'-'+String(pi.getMonth()+1).padStart(2,'0'),
+    score:(conIngreso&&sc)?sc.score:null, nivel:(conIngreso&&sc)?sc.nivel:null,
+    gasto:conIngreso?bandaGasto(mPrev.gPct):null, ahorro:conIngreso?bandaAhorro(mPrev.aPct):null,
+    racha:calcRacha(), ahorroMes:(act&&!act.vacio&&Number.isFinite(act.aPct)&&act.totalI>0)?bandaAhorro(act.aPct):null, ver:SCORE_VER};
+}
+// BANDAS, no porcentajes exactos: un porcentaje exacto junto a una cifra conocida (una aportacion
+// que alguien vio) permitiria deducir el ingreso; una banda no
+function bandaGasto(g){ if(!Number.isFinite(g)) return null; return g<50?'menos de 50%':g<75?'50–75%':g<=100?'75–100%':'mas de 100%'; }
+function bandaAhorro(a){ if(!Number.isFinite(a)) return null; return a<0?'negativo':a<10?'menos de 10%':a<20?'10–20%':a<30?'20–30%':'mas de 30%'; }
+let fichaPublicada=null;
+// se escribe solo si cambio algo (memo del contenido): abrir la app cien veces no son cien escrituras
+async function publicarFicha(forzar){
+  if(!amigosVisible()||!datosCargados) return;
+  let f; try{ f=miFicha(); }catch(e){ console.error('amigos ficha',e); return; }
+  const clave=JSON.stringify(f);
+  if(!forzar&&clave===fichaPublicada) return;
+  try{ await setDoc(doc(db,'amigos',AMIGO_ID),{...f,actualizado:new Date().toISOString()}); fichaPublicada=clave; }
+  catch(e){ console.error('amigos publicar',e); }
+}
+async function retirarFicha(){
+  try{ await setDoc(doc(db,'amigos',AMIGO_ID),{participa:false,actualizado:new Date().toISOString()}); fichaPublicada=null; return true; }
+  catch(e){ console.error('amigos retirar',e); showToast('no se pudo salir — revisa tu conexion'); return false; }
+}
+window.setAmigos=async function(valor){
+  if(!!(state.perfil&&state.perfil.amigos)===!!valor) return;
+  if(!valor){ if(!(await retirarFicha())) return; }
+  const ok=await guardarPerfil({amigos:!!valor}, valor?'ya participas con tus amigos':'saliste: tu ficha ya no se ve');
+  if(!ok) return;
+  aplicarVisibilidadAmigos();
+  if(valor){ await publicarFicha(true); refrescar(renderAmigos); }
+};
+const MESES_CORTO=['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+async function renderAmigos(){
+  const el=document.getElementById('amigos-panel'); if(!el) return;
+  if(!amigosVisible()){ el.innerHTML='<div class="empty-state">enciende "amigos" en tu perfil para participar</div>'; return; }
+  el.innerHTML='<div class="empty-state">cargando...</div>';
+  let docs=[];
+  try{ const snap=await getDocs(collection(db,'amigos')); snap.forEach(d=>docs.push({id:d.id,...d.data()})); }
+  catch(e){ console.error('amigos leer',e); el.innerHTML='<div class="empty-state">no se pudo leer a tus amigos — revisa tu conexion</div>'; return; }
+  const todos=docs.filter(d=>d&&d.participa===true&&typeof d.nombre==='string');
+  // solo compiten fichas del MISMO mes cerrado y la misma version del calculo; el resto se lista aparte
+  const mia=miFicha();
+  const act=todos.filter(d=>d.mes===mia.mes&&d.ver===SCORE_VER&&Number.isFinite(d.score));
+  const fuera=todos.filter(d=>!act.includes(d));
+  act.sort((a,b)=>b.score-a.score);
+  const mesTxt=m=>{ const x=/^(\d{4})-(\d{2})$/.exec(String(m||'')); return x?MESES_CORTO[+x[2]-1]+' '+x[1]:'—'; };
+  const liderClaro=act.length>=2&&act[0].score>act[1].score;
+  const b=v=>(typeof v==='string'&&v)?v:'—';
+  const fila=(d,pos)=>{
+    const yo=d.id===AMIGO_ID, gana=pos===1&&liderClaro, empate=pos!==null&&act.filter(x=>x.score===d.score).length>1;
+    const meta=[`gasta ${b(d.gasto)}`,`ahorra ${b(d.ahorro)}`,`racha ${Number.isFinite(d.racha)?d.racha:'—'}`,`este mes ahorra ${b(d.ahorroMes)}`].join(' · ');
+    return `<div class="item-row${yo?' amigo-yo':''}"><div style="display:flex;align-items:center;gap:10px;min-width:0"><div class="amigo-av">${escapeHtml(String(d.inicial||d.nombre.charAt(0)).toUpperCase())}</div><div style="min-width:0"><div class="item-cat">${pos!==null?pos+'. ':''}${escapeHtml(d.nombre)}${yo?' <span class="item-meta">(tu)</span>':''}${gana?' <span class="pie-pct">va ganando</span>':''}${empate?' <span class="item-meta">empate</span>':''}</div><div class="item-meta">${escapeHtml(meta)}</div></div></div><div style="text-align:right;flex-shrink:0"><div style="font-size:20px;font-weight:700">${Number.isFinite(d.score)?d.score:'—'}<span class="item-meta">/100</span></div><div class="item-meta">${escapeHtml(mesTxt(d.mes))}</div></div></div>`;
+  };
+  const filas=act.map((d,i)=>fila(d,i+1)).join('')
+    +(fuera.length?`<div class="item-meta" style="padding-top:8px">sin calificacion este mes (sin ingresos capturados o ficha de otro mes):</div>`+fuera.map(d=>fila(d,null)).join(''):'');
+  const faltan=Object.keys(AMIGO_NOMBRES).filter(k=>!act.some(d=>d.id===k)).map(k=>AMIGO_NOMBRES[k]);
+  el.innerHTML=(filas||'<div class="empty-state">todavia nadie participa</div>')
+    +(faltan.length?`<div class="item-meta" style="padding-top:10px">aun no participan: ${escapeHtml(faltan.join(', '))} — se enciende en su perfil</div>`:'')
+    +`<div class="item-meta" style="padding-top:6px">la calificacion es la del ultimo mes completo (${escapeHtml(mesTxt(mia.mes))}), la misma que ves en tu perfil: mide habitos contra la referencia de cada quien, no cuanto dinero tiene. Es una competencia de confianza: cada app reporta lo que su dueño registra.</div>`;
+}
 function dashboardEncendido() { return !!(state.perfil && state.perfil.dashboard); }
 function aplicarVisibilidadDashboard() {
+  aplicarVisibilidadAmigos();
   const on = dashboardEncendido();
   const tab = document.getElementById('tab-dashboard');
   if (tab) tab.hidden = !on;
