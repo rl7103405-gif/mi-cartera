@@ -5504,14 +5504,22 @@ function miFicha(){
 function bandaGasto(g){ if(!Number.isFinite(g)) return null; return g<50?'menos de 50%':g<75?'50–75%':g<=100?'75–100%':'mas de 100%'; }
 function bandaAhorro(a){ if(!Number.isFinite(a)) return null; return a<0?'negativo':a<10?'menos de 10%':a<20?'10–20%':a<30?'20–30%':'mas de 30%'; }
 let fichaPublicada=null;
+let fichaFallo=null;   // motivo del ultimo rechazo al publicar, para que NO sea mudo
 // se escribe solo si cambio algo (memo del contenido): abrir la app cien veces no son cien escrituras
 async function publicarFicha(forzar){
   if(!amigosVisible()||!datosCargados) return;
   let f; try{ f=miFicha(); }catch(e){ console.error('amigos ficha',e); return; }
   const clave=JSON.stringify(f);
   if(!forzar&&clave===fichaPublicada) return;
-  try{ await setDoc(doc(db,'amigos',AMIGO_ID),{...f,actualizado:new Date().toISOString()}); fichaPublicada=clave; }
-  catch(e){ console.error('amigos publicar',e); if(forzar) showToast('no se pudo publicar tu ficha — revisa tu conexion e intenta de nuevo'); }
+  try{ await setDoc(doc(db,'amigos',AMIGO_ID),{...f,actualizado:new Date().toISOString()}); fichaPublicada=clave; fichaFallo=null; }
+  catch(e){
+    // un fallo aqui es justo el que nadie ve: sin esto, que las reglas rechacen la ficha
+    // se queda en la consola y la pestaña dice tranquilamente "todavia nadie participa"
+    console.error('amigos publicar',e);
+    fichaFallo=(e&&e.code)||'error';
+    if(forzar) showToast('no se pudo publicar tu ficha — revisa tu conexion e intenta de nuevo');
+    if(document.getElementById('amigos-panel')&&perfilSubActual==='amigos') renderAmigos();
+  }
 }
 async function retirarFicha(){
   try{ await setDoc(doc(db,'amigos',AMIGO_ID),{participa:false,actualizado:new Date().toISOString()}); fichaPublicada=null; return true; }
@@ -5539,6 +5547,13 @@ async function renderAmigos(){
   try{ const snap=await getDocs(collection(db,'amigos')); snap.forEach(d=>docs.push({id:d.id,...d.data()})); }
   catch(e){ console.error('amigos leer',e); el.innerHTML='<div class="empty-state">no se pudo leer a tus amigos — revisa tu conexion</div>'; return; }
   const todos=docs.filter(d=>d&&d.participa===true&&typeof d.nombre==='string');
+  // si tu propia ficha no esta y ademas fallo al publicarla, decirlo: el sintoma normal
+  // ("todavia nadie participa") es identico al de un rechazo de permisos, y eso escondio
+  // este mismo bug durante un dia entero
+  const avisoFicha = fichaFallo
+    ? '<div class="item-meta" style="color:var(--gold);padding-bottom:8px">no se pudo publicar tu ficha ('
+      + escapeHtml(String(fichaFallo)) + '): los demas no te ven. Revisa tu conexion; si sigue, avisale a Roberto.</div>'
+    : '';
   // solo compiten fichas del MISMO mes cerrado y la misma version del calculo; el resto se lista aparte
   const mia=miFicha();
   const act=todos.filter(d=>d.mes===mia.mes&&d.ver===SCORE_VER&&Number.isFinite(d.score));
@@ -5564,7 +5579,7 @@ async function renderAmigos(){
   const filas=act.map(d=>fila(d,true)).join('')
     +(fuera.length?`<div class="item-meta" style="padding-top:8px">fuera de la tabla este mes:</div>`+fuera.map(d=>fila(d,false)).join(''):'');
   const faltan=Object.keys(AMIGO_NOMBRES).filter(k=>!todos.some(d=>d.id===k)).map(k=>AMIGO_NOMBRES[k]);
-  el.innerHTML=(filas||'<div class="empty-state">todavia nadie participa</div>')
+  el.innerHTML=avisoFicha+(filas||'<div class="empty-state">todavia nadie participa</div>')
     +(faltan.length?`<div class="item-meta" style="padding-top:10px">todavia no aparecen: ${escapeHtml(faltan.join(', '))} — su ficha se publica en cuanto abran su app</div>`:'')
     +`<div class="item-meta" style="padding-top:6px">la calificacion es la de ${escapeHtml(mesTxt(mia.mes))}, el ultimo mes completo, la misma que ves en tu perfil: aportacion (40) + control de gasto (30) + constancia (20) + colchon (10), cada quien contra su propia referencia. Es una competencia de confianza: cada app reporta lo que su dueño registra.</div>`;
 }
