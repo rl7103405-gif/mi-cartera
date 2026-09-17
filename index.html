@@ -310,6 +310,10 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
 .cat-mov:last-child{border-bottom:none}
 .cat-mov-f{color:var(--muted);flex:0 0 52px}.cat-mov-n{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.cat-mov-m{font-weight:600;flex-shrink:0}
 .cat-mov-m.neg{color:var(--red)}.cat-mov-m.pos{color:var(--green)}
+.bar-chev{display:inline-block;margin-left:6px;color:var(--muted);font-size:11px;transition:transform .15s}
+.resumen-bar.abierta .bar-chev{transform:rotate(180deg)}
+.cat-mov-n{display:flex;flex-direction:column;gap:1px}.cat-mov-c{font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cat-mov-e{font-size:13px;padding:2px 0 2px 8px}
 /* con dos botones por fila (editar + borrar) el texto se encoge (y hace wrap), no ellos */
 .item-row>div:first-child{min-width:0}
 .del-btn:active{color:var(--red)}
@@ -4388,11 +4392,13 @@ window.excelDeuda=async function(key) {
     ws.getCell('A4').value='Periodo'; ws.getCell('B4').value=r.etiq;
     ws.getCell('A5').value='Generado'; ws.getCell('B5').value=new Date(); ws.getCell('B5').numFmt='dd/mm/yyyy';
     ws.getCell('A6').value='Movimientos'; ws.getCell('B6').value=dentro.length;
+    ws.getCell('D4').value='Filtra por concepto o nota con las flechitas del encabezado: los totales suman solo lo que quede a la vista.';
+    ws.getCell('D4').font={italic:true,color:{argb:'FF6B7773'}};
     ['A4','A5','A6'].forEach(c=>ws.getCell(c).font={bold:true});
     const h=ws.getRow(8); h.values=['Fecha','Concepto','Nota','Me debe mas (+)','Me pago / le debo (−)','Saldo']; h.height=30;
     h.eachCell(c=>{ c.font={bold:true,color:{argb:'FFFFFFFF'}}; c.fill=relleno(VERDE); c.alignment={horizontal:'center',vertical:'middle',wrapText:true}; });
-    let fila=9, saldo=saldoInicial;
-    const pre=ws.getRow(fila++); pre.values=['','Saldo al inicio del periodo','','','',saldoInicial];
+    let fila=9, saldo=saldoInicial; const primera=9;   // los movimientos van del 9 en adelante; el saldo inicial arriba del encabezado
+    const pre=ws.getRow(7); pre.values=['','Saldo al inicio del periodo','','','',saldoInicial];   // fuera del rango del filtro
     pre.getCell(2).font={italic:true,color:{argb:'FF6B7773'}}; pre.getCell(6).numFmt=MON; pre.getCell(6).font={bold:true};
     dentro.forEach((m,i)=>{
       const sg=signo(m); saldo=c2(saldo+sg);
@@ -4403,7 +4409,14 @@ window.excelDeuda=async function(key) {
       for(let k=1;k<=6;k++){ row.getCell(k).border={bottom:{style:'thin',color:{argb:'FFD0D7D3'}}}; if(i%2) row.getCell(k).fill=relleno(GRIS); }
     });
     const mas=dentro.filter(m=>signo(m)>0).reduce((t,m)=>t+nFin(m.monto),0), menos=dentro.filter(m=>signo(m)<0).reduce((t,m)=>t+nFin(m.monto),0);
-    const tot=ws.getRow(fila++); tot.values=['','Totales del periodo','',c2(mas),c2(menos),saldoFinal];
+    const ultima=fila-1;
+    // filtro nativo de Excel en el encabezado (16-sep-2026, Roberto: "poderlo buscar ahi mismo en el Excel"):
+    // con las flechitas se filtra por concepto o nota, y los totales son SUBTOTAL para que sumen SOLO
+    // lo filtrado. El saldo final es un valor: no cambia con el filtro
+    if(ultima>=primera) ws.autoFilter={from:{row:8,column:1},to:{row:ultima,column:6}};
+    const tot=ws.getRow(fila++); tot.values=['','Totales (de lo que este a la vista)','',
+      ultima>=primera?{formula:'SUBTOTAL(109,D'+primera+':D'+ultima+')',result:c2(mas)}:c2(mas),
+      ultima>=primera?{formula:'SUBTOTAL(109,E'+primera+':E'+ultima+')',result:c2(menos)}:c2(menos), saldoFinal];
     for(let k=1;k<=6;k++){ tot.getCell(k).font={bold:true}; tot.getCell(k).fill=relleno(VCLARO); } [4,5,6].forEach(k=>tot.getCell(k).numFmt=MON);
     const fin=ws.getRow(fila++); fin.values=['',saldoFinal>=0?'Saldo final: '+nombre+' me debe':'Saldo final: le debo a '+nombre,'','','',Math.abs(saldoFinal)];
     fin.getCell(2).font={bold:true,color:{argb:VERDE}}; fin.getCell(6).numFmt=MON; fin.getCell(6).font={bold:true,size:12,color:{argb:VERDE}};
@@ -6754,11 +6767,11 @@ function renderResumen() {
   const byCat={}; gastos.forEach(i=>byCat[i.cat]=(byCat[i.cat]||0)+i.monto);
   const sortedG=Object.entries(byCat).sort((a,b)=>b[1]-a[1]); const maxG=sortedG[0]?sortedG[0][1]:1;
   document.getElementById('res-pie').innerHTML=pieChart(sortedG);
-  document.getElementById('resumen-cats').innerHTML=sortedG.length?sortedG.map(([cat,amt])=>`<div class="resumen-bar" onclick="toggleCatDesglose(this,event)" title="ver los movimientos de esta categoria"><div class="bar-header"><span class="bar-label">${escapeHtml(cat)} <span class="bar-n">${gastos.filter(i=>i.cat===cat).length}</span></span><span class="bar-amt neg">${fmt(amt)}</span></div><div class="bar-track"><div class="bar-fill" style="width:${(amt/maxG*100).toFixed(1)}%"></div></div>${desgloseCatHTML(gastos.filter(i=>i.cat===cat),'neg')}</div>`).join(''):'<div class="empty-state">sin gastos en este periodo</div>';
+  document.getElementById('resumen-cats').innerHTML=sortedG.length?sortedG.map(([cat,amt])=>`<div class="resumen-bar${catsAbiertas.has('g|'+cat)?' abierta':''}" data-k="g|${escapeHtml(cat)}" onclick="toggleCatDesglose(this,event)" title="ver los movimientos de esta categoria"><div class="bar-header"><span class="bar-label">${escapeHtml(cat)} <span class="bar-n">${gastos.filter(i=>i.cat===cat).length}</span></span><span class="bar-amt neg">${fmt(amt)}<span class="bar-chev">&#9662;</span></span></div><div class="bar-track"><div class="bar-fill" style="width:${(amt/maxG*100).toFixed(1)}%"></div></div>${desgloseCatHTML(gastos.filter(i=>i.cat===cat),'neg',catsAbiertas.has('g|'+cat))}</div>`).join(''):'<div class="empty-state">sin gastos en este periodo</div>';
   const byIng={}; ingresos.forEach(i=>byIng[i.cat]=(byIng[i.cat]||0)+i.monto);
   const sortedI=Object.entries(byIng).sort((a,b)=>b[1]-a[1]); const maxI=sortedI[0]?sortedI[0][1]:1;
   document.getElementById('res-pie-ingresos').innerHTML=pieChart(sortedI);
-  document.getElementById('resumen-ingresos-cats').innerHTML=sortedI.length?sortedI.map(([cat,amt])=>`<div class="resumen-bar" onclick="toggleCatDesglose(this,event)" title="ver los movimientos de esta categoria"><div class="bar-header"><span class="bar-label">${escapeHtml(cat)} <span class="bar-n">${ingresos.filter(i=>i.cat===cat).length}</span></span><span class="bar-amt pos">${fmt(amt)}</span></div><div class="bar-track"><div class="bar-fill bar-fill-green" style="width:${(amt/maxI*100).toFixed(1)}%"></div></div>${desgloseCatHTML(ingresos.filter(i=>i.cat===cat),'pos')}</div>`).join(''):'<div class="empty-state">sin ingresos en este periodo</div>';
+  document.getElementById('resumen-ingresos-cats').innerHTML=sortedI.length?sortedI.map(([cat,amt])=>`<div class="resumen-bar${catsAbiertas.has('i|'+cat)?' abierta':''}" data-k="i|${escapeHtml(cat)}" onclick="toggleCatDesglose(this,event)" title="ver los movimientos de esta categoria"><div class="bar-header"><span class="bar-label">${escapeHtml(cat)} <span class="bar-n">${ingresos.filter(i=>i.cat===cat).length}</span></span><span class="bar-amt pos">${fmt(amt)}<span class="bar-chev">&#9662;</span></span></div><div class="bar-track"><div class="bar-fill bar-fill-green" style="width:${(amt/maxI*100).toFixed(1)}%"></div></div>${desgloseCatHTML(ingresos.filter(i=>i.cat===cat),'pos',catsAbiertas.has('i|'+cat))}</div>`).join(''):'<div class="empty-state">sin ingresos en este periodo</div>';
 
   renderRendimientos(start, end, balance);
   renderUtilidades(start, end);
@@ -6769,16 +6782,25 @@ function renderResumen() {
 // cada barra de 'gastos/ingresos por categoria' se abre al tocarla y lista SUS movimientos del
 // periodo: fecha, nota y monto, del mas reciente al mas viejo. Va oculto para que la lista de
 // barras siga leyendose de un vistazo.
-function desgloseCatHTML(items, cls) {
+// las categorias que el usuario dejo abiertas siguen abiertas al repintar (p. ej. tras editar un
+// movimiento desde el propio desglose, que repinta todo el resumen)
+const catsAbiertas=new Set();
+function desgloseCatHTML(items, cls, abierto) {
+  const tipo=cls==='neg'?'gasto':'ingreso';
   const ord=items.slice().sort((a,b)=>String(b.fecha||'').localeCompare(String(a.fecha||'')));
-  const filas=ord.map(m=>`<div class="cat-mov"><span class="cat-mov-f">${escapeHtml(fmtFechaMov(m.fecha,{day:'numeric',month:'short'}))}</span><span class="cat-mov-n">${escapeHtml(m.nota||'sin nota')}</span><span class="cat-mov-m ${cls}">${fmt(m.monto)}</span></div>`).join('');
-  return `<div class="cat-desglose" style="display:none">${filas||'<div class="item-meta">sin movimientos</div>'}</div>`;
+  const filas=ord.map(m=>`<div class="cat-mov"><span class="cat-mov-f">${escapeHtml(fmtFechaMov(m.fecha,{day:'numeric',month:'short'}))}</span>`+
+    `<span class="cat-mov-n">${escapeHtml(m.nota||'sin nota')}<span class="cat-mov-c">${escapeHtml(CUENTAS[tipo==='gasto'?m.fuente:m.destino]||'—')}</span></span>`+
+    `<span class="cat-mov-m ${cls}">${fmt(m.monto)}</span>`+
+    (m.id?`<button type="button" class="edit-btn cat-mov-e" title="cambiar de categoria o nota" aria-label="cambiar de categoria o nota" onclick="editarMovimiento('${tipo}','${escapeHtml(m.id)}')">&#9998;</button>`:'')+
+    `</div>`).join('');
+  return `<div class="cat-desglose"${abierto?'':' style="display:none"'}>${filas||'<div class="item-meta">sin movimientos</div>'}</div>`;
 }
 window.toggleCatDesglose=function(el,ev){
   const d=el.querySelector('.cat-desglose'); if(!d) return;
-  if(ev&&ev.target&&ev.target.closest&&ev.target.closest('.cat-desglose')) return;  // leer el desglose no lo cierra
+  if(ev&&ev.target&&ev.target.closest&&ev.target.closest('.cat-desglose')) return;  // leer o editar dentro no lo cierra
   const abierto=d.style.display!=='none';
   d.style.display=abierto?'none':''; el.classList.toggle('abierta',!abierto);
+  const k=el.getAttribute('data-k'); if(k){ if(abierto) catsAbiertas.delete(k); else catsAbiertas.add(k); }
 };
 
 // ── UTILIDADES: cuanto gano tu dinero ─────────────────────────
