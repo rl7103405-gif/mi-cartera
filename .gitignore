@@ -1,0 +1,14 @@
+# Al repo va la app (index.html, sw.js, manifest, iconos) y sus pruebas. Nada mas.
+# Esto existe porque un "git add ." se llevaria los scripts de trabajo a un repo PUBLICO,
+# y quitarlos en un commit posterior NO los borra del historial: habria que rehacer el repo.
+
+# material de trabajo de las sesiones (parches, capturas, volcados, demos sueltas)
+.pendiente/
+.playwright-mcp/
+demo/
+*.png.bak
+
+# dependencias y basura de herramientas
+node_modules/
+.DS_Store
+Thumbs.db

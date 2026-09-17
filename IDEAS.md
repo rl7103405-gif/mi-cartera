@@ -1,5 +1,33 @@
 # Ideas pendientes (no implementar sin que Roberto lo pida)
 
+## Desacoplar el significado del NOMBRE de la categoria (17-sep-2026)
+
+Salio del debate con Codex al construir "administrar categorias". Hoy hay dos
+comportamientos que dependen del texto que el usuario escribio:
+
+- Los **dividendos** se detectan con `/dividend/i` sobre `it.cat` (tablero y resumen).
+- El **aviso de Revolut Premium** compara `g.cat === 'Suscripciones'`.
+
+Por eso la pantalla nueva **bloquea** juntar o renombrar cuando eso cambiaria la
+semantica (sacar movimientos de "Dividendos" o meterlos), y solo **avisa** en el caso
+de Suscripciones, que es un aviso informativo.
+
+Lo correcto a largo plazo es un campo estable aparte del texto: `naturaleza:'dividendo'`
+y `concepto:'revolut_premium'` en el propio movimiento. Entonces el usuario podria
+llamarle a su categoria como quiera sin romper cuentas. **Cuesta tocar la captura, los
+calculos y los movimientos historicos**, asi que no se hizo hoy. Un id de categoria
+ayudaria a renombrar pero NO resuelve esto por si solo: mezclar dividendos con otros
+ingresos en una fusion seguiria cambiando el calculo.
+
+## Reclasificacion de categorias reanudable (17-sep-2026)
+
+Hoy, si se corta la luz a la mitad de juntar dos categorias, quedan las dos con sus
+movimientos y la pantalla lo enseña: el usuario vuelve a apretar y termina. Se decidio
+asi a proposito (la pantalla ES el mecanismo de recuperacion). El hueco que Codex señalo
+y que se acepto: **la app no recuerda que habia una fusion a medias**, asi que el usuario
+tiene que acordarse de cual iba a cual. Si algun dia hay usuarios que no son de la familia,
+vale la pena un documento de operacion pendiente con origen, destino y avance.
+
 ## Lista de amigos + perfil comparativo (pedida 2026-08-26)
 
 Roberto: que el perfil sirva para compararse entre amigos/familia — NO quién

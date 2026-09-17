@@ -250,6 +250,19 @@ nav{position:sticky;top:0;z-index:100;background:var(--nav-bg);backdrop-filter:b
 .subtabs{display:flex;gap:22px;border-bottom:1px solid var(--border2);margin:4px 0 18px}
 .subtabs .stab{padding:8px 2px 10px;font-size:15px;font-weight:600;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px}
 .subtabs .stab.active{color:var(--accent);border-bottom-color:var(--accent)}
+.cat-fila{display:flex;align-items:center;gap:10px 12px;padding:9px 0;border-bottom:1px solid var(--sup-borde);flex-wrap:wrap}
+.cat-fila:last-child{border-bottom:none}
+.cat-fila-info{flex:1 1 190px;min-width:0}
+.cat-fila-acc{display:flex;gap:6px;flex-shrink:0;flex-wrap:wrap;justify-content:flex-end}
+.cat-act{background:var(--bg3);border:1px solid var(--sup-borde);color:var(--muted);font-size:11.5px;padding:4px 9px;border-radius:7px;cursor:pointer;font-family:inherit}
+.cat-act:hover{color:var(--fg)}.cat-act[disabled]{opacity:.45;cursor:default}
+.cat-act.pri{color:var(--accent);border-color:var(--accent)}
+.cat-badge{font-size:10.5px;padding:1px 6px;border-radius:5px;background:var(--bg3);color:var(--muted);margin-left:6px;white-space:nowrap;display:inline-block}
+.cat-badge.warn{color:var(--gold)}
+.cat-edit{display:flex;gap:6px;align-items:center;flex:1;min-width:0}
+.cat-edit input,.cat-edit select{flex:1;min-width:0;padding:6px 8px;font-size:13px}
+/* en el telefono los botones no caben junto al nombre: bajan completos en vez de encimarse */
+@media(max-width:560px){.cat-fila-acc{flex:1 0 100%;justify-content:flex-start}.cat-edit{flex:1 0 100%}}
 .deuda-sub{font-size:12px;color:var(--muted);margin-top:2px}
 .deuda-detail{display:none;margin-top:12px;padding-top:12px;border-top:0.5px solid var(--border)}
 .deuda-detail.open{display:block}
@@ -830,6 +843,12 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
 <!-- MOVIMIENTOS (gastos + ingresos en una sola pestana) -->
 <div class="page" id="page-movimientos">
   <div class="mt">
+  <!-- subpestanas: "registrar" (lo de siempre) y "categorias" (administrar la lista) -->
+  <div class="subtabs" id="mov-subtabs">
+    <div class="stab active" id="mtab-registrar" onclick="movSub('registrar')">registrar</div>
+    <div class="stab" id="mtab-cats" onclick="movSub('cats')">categorias</div>
+  </div>
+  <div id="mov-sub-registrar">
   <div class="inicio-grid">
   <div class="sec">
     <div class="section-title">registrar movimiento</div>
@@ -896,6 +915,15 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
     </div>
     <div class="panel" id="movimientos-historial"><div class="empty-state">sin movimientos registrados</div></div>
   </div>
+  </div>
+  </div>
+  <div id="mov-sub-cats" style="display:none">
+    <div id="cats-admin-panel"><div class="panel"><div class="empty-state">cargando...</div></div></div>
+    <div class="item-meta" style="margin-top:10px;line-height:1.5">
+      Cambiar el nombre de una categoria o juntar dos <b>reescribe todos los movimientos
+      que la usan</b>, para que tu historial y tu resumen sigan cuadrando. Solo se puede
+      quitar una categoria que ya no tenga movimientos: si tiene, juntala con otra.
+    </div>
   </div>
   </div>
 </div>
@@ -1286,7 +1314,7 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
 
 <script type="module">
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
-import { getFirestore, initializeFirestore, persistentLocalCache, persistentMultipleTabManager, doc, getDoc, getDocFromCache, getDocsFromCache, setDoc, updateDoc, collection, getDocs, query, orderBy, writeBatch, runTransaction, onSnapshot } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+import { getFirestore, initializeFirestore, persistentLocalCache, persistentMultipleTabManager, doc, getDoc, getDocFromCache, getDocsFromCache, setDoc, updateDoc, collection, getDocs, query, orderBy, where, writeBatch, runTransaction, getDocsFromServer, onSnapshot } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
 import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
 
 const firebaseConfig = {
@@ -1820,6 +1848,7 @@ async function loadFromFirebase() {
             fecha:typeof mk.fecha==='string'?mk.fecha:'',
             moneda:typeof mk.moneda==='string'?mk.moneda:'',
             div12m:(Number.isFinite(mk.div12m)&&mk.div12m>=0)?mk.div12m:null,
+            full:(typeof mk.full==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(mk.full))?mk.full:null,
             hist:Array.isArray(mk.hist)?mk.hist.filter(p=>p&&typeof p.t==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(p.t)&&Number.isFinite(p.c)&&p.c>0).sort((a,b)=>a.t.localeCompare(b.t)):[]};
         });
         state.accionesMkt = limpio;
@@ -2839,10 +2868,6 @@ async function saveApartados() {
   if (!datosCargados) throw new Error('datos no cargados');
   try { await setDoc(doc(db,'cartera','apartados'),{items:state.apartados}); setSyncDot('ok'); } catch(e) { setSyncDot('err'); throw e; }
 }
-async function saveCategorias() {
-  if (!datosCargados) throw new Error('datos no cargados');
-  try { await setDoc(doc(db,'cartera','categorias'),{catsGasto:state.catsGasto, catsIngreso:state.catsIngreso}); setSyncDot('ok'); } catch(e) { setSyncDot('err'); throw e; }
-}
 
 // ── CATEGORIAS PERSONALIZADAS ─────────────────────────────────
 function renderCatSelect(selectId, cats) {
@@ -2856,26 +2881,347 @@ function renderCatSelect(selectId, cats) {
 }
 window.handleCatChange = async function(tipo, sel) {
   if(sel.value!=='__nueva__') return;
-  const nombre=(prompt('Nombre de la nueva categoria:')||'').trim();
   const arr = tipo==='gasto' ? state.catsGasto : state.catsIngreso;
-  if(!nombre){ sel.value=arr[0]||''; return; }
-  const existe=arr.find(c=>c.toLowerCase()===nombre.toLowerCase());
+  const nombre=(prompt('Nombre de la nueva categoria:')||'').trim();
+  if(!nombre){ renderCatSelect(sel.id, arr); sel.value=arr[0]||''; return; }
+  const err = catNombreInvalido(nombre);
+  if(err){ showToast(err); renderCatSelect(sel.id, arr); sel.value=arr[0]||''; return; }
+  const existe=arr.find(c=>normCat(c)===normCat(nombre));
   if(existe){ renderCatSelect(sel.id, arr); sel.value=existe; return; }
-  arr.push(nombre);
-  try{
-    await saveCategorias();
-    renderCatSelect(sel.id, arr);
-    sel.value=nombre;
-    showToast('categoria "'+nombre+'" agregada');
-  }catch(e){
-    arr.pop();
-    renderCatSelect(sel.id, arr);
-    sel.value=arr[0]||'';
-    console.error('handleCatChange',e);
-    showToast('ERROR: no se guardo la categoria, revisa tu conexion');
+  // se escribe en transaccion sobre el catalogo vigente: escribir el documento completo
+  // desde memoria pisaba la categoria que otro aparato acabara de agregar
+  const r = await txCatalogo((g,i) => { (tipo==='gasto'?g:i).push(nombre); return {gasto:g, ingreso:i}; });
+  if(r && r.error){
+    renderCatSelect(sel.id, arr); sel.value=arr[0]||'';
+    showToast(r.error); return;
   }
+  renderCatSelect(sel.id, tipo==='gasto'?state.catsGasto:state.catsIngreso);
+  sel.value=nombre;
+  showToast('categoria "'+nombre+'" agregada');
+  if(movSubActual==='cats') renderCategorias();
 };
 
+// ── ADMINISTRAR CATEGORIAS ────────────────────────────────────
+// 17-sep-2026, Roberto: "tengo repetidas algunas y quiero quitar otras".
+// Los movimientos guardan la categoria POR NOMBRE, asi que renombrar o juntar dos
+// obliga a reescribir cada gasto o ingreso que la usa. Codex tumbo dos cosas del primer
+// diseno y las dos estan corregidas aqui: (1) NO se decide desde state -- la app no
+// escucha gastos ni ingresos en vivo, o sea que la memoria puede estar vieja, y para
+// mover se consulta al SERVIDOR; (2) el catalogo NO se escribe con setDoc completo --
+// eso pisa la categoria que otro aparato acabe de agregar -- sino en transaccion sobre
+// el documento vigente. El orden es: asegurar el destino, mover, y solo al final retirar
+// el origen; si se corta a la mitad quedan las dos con sus movimientos y esta misma
+// pantalla lo enseña, o sea que la recuperacion es volver a apretar el boton.
+const CAT_COL = t => t==='gasto' ? (typeof C_GASTOS==='string'?C_GASTOS:'gastos')
+                                 : (typeof C_INGRESOS==='string'?C_INGRESOS:'ingresos');
+const CAT_DOC = () => doc(db, (typeof NS==='string'?NS:'cartera'), 'categorias');
+const catArr = t => t==='gasto' ? state.catsGasto : state.catsIngreso;
+// normalizar sirve SOLO para detectar repetidas y comparar; el nombre exacto se respeta
+const normCat = s => String(s||'').normalize('NFD').replace(/[̀-ͯ]/g,'')
+                      .toLowerCase().replace(/\s+/g,' ').trim();
+// nombres de los que depende el codigo: los dividendos se detectan con /dividend/i en el
+// tablero y el resumen, y el aviso de Revolut compara contra 'Suscripciones'. Sacar
+// movimientos de esa semantica (o meterlos) cambia cuentas, no solo etiquetas.
+const esCatDividendo = x => /dividend/i.test(String(x||''));
+const esCatSuscripcion = x => normCat(x)==='suscripciones';
+function catMotivoBloqueo(origen, destino) {
+  if (esCatDividendo(origen) !== esCatDividendo(destino))
+    return esCatDividendo(origen)
+      ? 'no se puede: el tablero cuenta tus dividendos por el nombre de la categoria, y sacarlos de "'+origen+'" los dejaria fuera'
+      : 'no se puede: pasarlos a "'+destino+'" los contaria como dividendos en el tablero';
+  return null;
+}
+function catAvisoSemantica(origen, destino) {
+  if (esCatSuscripcion(origen) && !esCatSuscripcion(destino))
+    return 'El aviso de tu suscripcion de Revolut busca la categoria "Suscripciones". Si la mueves, ese aviso deja de salir.';
+  return null;
+}
+// toda escritura del catalogo pasa por aqui. Lee el documento VIGENTE dentro de la
+// transaccion y aplica el cambio sobre el, para no pisar lo que otro aparato agrego.
+async function txCatalogo(aplicar) {
+  const ref = CAT_DOC();
+  try {
+    const res = await runTransaction(db, async tx => {
+      const snap = await tx.get(ref);
+      const d = (snap && snap.exists()) ? (snap.data()||{}) : {};
+      const g = (Array.isArray(d.catsGasto) && d.catsGasto.length) ? [...d.catsGasto] : [...(state.catsGasto||[])];
+      const i = (Array.isArray(d.catsIngreso) && d.catsIngreso.length) ? [...d.catsIngreso] : [...(state.catsIngreso||[])];
+      const out = aplicar(g, i);
+      if (!out || out.error) return {error:(out&&out.error)||'no se pudo aplicar el cambio'};
+      // nunca dejar un tipo sin categorias: la carga trata la lista vacia como "no hay
+      // dato" y resucitaria las de fabrica, o sea que el borrado se desharia solo.
+      // Se comprueba DENTRO de la transaccion, sobre el catalogo vigente.
+      if (!out.gasto.length || !out.ingreso.length) return {error:'tiene que quedar al menos una categoria de cada tipo'};
+      tx.set(ref, {catsGasto: out.gasto, catsIngreso: out.ingreso});
+      return {ok:true, gasto: out.gasto, ingreso: out.ingreso};
+    });
+    if (res && res.ok) {
+      state.catsGasto = res.gasto; state.catsIngreso = res.ingreso;
+      renderCatSelect('gasto-cat', state.catsGasto);
+      renderCatSelect('ingreso-cat', state.catsIngreso);
+      setSyncDot('ok');
+    }
+    return res;
+  } catch(e) {
+    console.error('txCatalogo', e); setSyncDot('err');
+    return {error:'no se pudo guardar tus categorias — revisa tu conexion'};
+  }
+}
+// mueve TODOS los movimientos de una categoria a otra, releyendo del servidor antes de
+// cada lote. Devuelve false si algo quedo a medias (y lo dice con numero exacto).
+let catOcupado = false;
+async function reclasificarCat(tipo, A, B) {
+  const COL = CAT_COL(tipo);
+  // 1. el destino tiene que existir ANTES de mover un solo movimiento
+  const r1 = await txCatalogo((g,i) => {
+    const arr = tipo==='gasto' ? g : i;
+    if (!arr.some(c => c===B)) arr.push(B);
+    return {gasto:g, ingreso:i};
+  });
+  if (!r1 || r1.error) { showToast((r1&&r1.error)||'no se pudo preparar el cambio'); return false; }
+  // 2. mover en lotes, consultando al SERVIDOR cada vuelta (la memoria puede estar vieja)
+  let movidos = 0, vueltas = 0;
+  const movidosIds = [];   // los que el servidor CONFIRMO: la memoria solo se toca con estos
+  while (vueltas++ < 60) {
+    let snap;
+    try { snap = await getDocsFromServer(query(collection(db, COL), where('cat','==',A))); }
+    catch(e) { console.error('reclasificarCat leer', e); showToast('no se pudieron leer tus movimientos — revisa tu conexion'); return false; }
+    const docs = snap.docs.slice(0, 200);
+    if (!docs.length) break;
+    const lote = writeBatch(db);
+    docs.forEach(d => lote.update(d.ref, {cat: B}));
+    try { await lote.commit(); movidos += docs.length; docs.forEach(d => movidosIds.push(d.id)); }
+    catch(e) {
+      // un lote es atomico: basta con que otro aparato haya borrado UN movimiento para
+      // que se caiga entero. Se reintenta uno por uno y solo se omite el que ya no
+      // existe; cualquier otro error (permisos, red) detiene y se reporta.
+      console.error('reclasificarCat lote', e);
+      let fallo = null;
+      for (const d of docs) {
+        try { await updateDoc(d.ref, {cat: B}); movidos++; movidosIds.push(d.id); }
+        catch(e2) { if (e2 && e2.code === 'not-found') continue; fallo = e2; break; }
+      }
+      if (fallo) {
+        catAplicarEnMemoria(tipo, A, B, movidosIds);
+        showToast('se movieron '+movidos+' y ahi se detuvo ('+((fallo&&fallo.code)||'error')+'): vuelve a intentarlo');
+        return false;
+      }
+    }
+  }
+  // 3. comprobar contra el servidor y solo entonces retirar el origen
+  let quedan = -1;
+  try { quedan = (await getDocsFromServer(query(collection(db, COL), where('cat','==',A)))).size; }
+  catch(e) { console.error('reclasificarCat verificar', e); }
+  // si el servidor ya no tiene NADA en el origen, la memoria se barre entera; si quedo
+  // algo a medias, solo se reasigna lo confirmado, para que la pantalla no diga que ya
+  // se movio todo mientras el servidor sigue teniendo movimientos en la categoria vieja
+  catAplicarEnMemoria(tipo, A, B, quedan === 0 ? null : movidosIds);
+  if (quedan === 0) {
+    const r3 = await txCatalogo((g,i) => {
+      const arr = tipo==='gasto' ? g : i;
+      const k = arr.findIndex(c => c===A);
+      if (k >= 0) arr.splice(k, 1);
+      return {gasto:g, ingreso:i};
+    });
+    if (r3 && r3.error) { showToast(r3.error); return false; }
+    showToast(movidos ? (movidos+' movimiento'+(movidos===1?'':'s')+' ahora en "'+B+'"') : 'listo');
+    return true;
+  }
+  showToast(quedan > 0
+    ? ('quedaron '+quedan+' sin mover: vuelve a apretar para terminar')
+    : 'se movieron '+movidos+', pero no se pudo comprobar: revisa la lista');
+  return false;
+}
+// el estado en memoria se pone al dia sin volver a bajar todo
+function catAplicarEnMemoria(tipo, A, B, ids) {
+  const movs = (tipo==='gasto' ? state.gastos : state.ingresos) || [];
+  const confirmados = ids ? new Set(ids) : null;   // null = el servidor ya no tiene ninguno
+  movs.forEach(it => { if (it && it.cat === A && (!confirmados || confirmados.has(it.id))) it.cat = B; });
+}
+// el panel se pinta desde memoria (para eso alcanza); lo que EJECUTA lee del servidor
+function catsResumen(tipo) {
+  const m = new Map();
+  const put = nombre => {
+    if (!m.has(nombre)) m.set(nombre, {nombre, n:0, monto:0, enLista:false});
+    return m.get(nombre);
+  };
+  (catArr(tipo)||[]).forEach(c => { if (typeof c==='string' && c) put(c).enLista = true; });
+  ((tipo==='gasto' ? state.gastos : state.ingresos)||[]).forEach(it => {
+    if (!it || typeof it.cat !== 'string' || !it.cat) return;
+    const e = put(it.cat); e.n++;
+    if (typeof it.monto === 'number' && isFinite(it.monto)) e.monto += it.monto;
+  });
+  const arr = [...m.values()];
+  const porNorm = new Map();
+  arr.forEach(e => { const k = normCat(e.nombre); if (!porNorm.has(k)) porNorm.set(k, 0); porNorm.set(k, porNorm.get(k)+1); });
+  arr.forEach(e => { e.repetida = porNorm.get(normCat(e.nombre)) > 1; });
+  arr.sort((a,b) => b.n - a.n || a.nombre.localeCompare(b.nombre));
+  return arr;
+}
+let catsPintadas = {gasto:[], ingreso:[]};
+let catEditando = null;   // {tipo, nombre, modo:'renombrar'|'juntar'}
+let movSubActual = 'registrar';
+window.movSub = function(cual) {
+  movSubActual = cual === 'cats' ? 'cats' : 'registrar';
+  const a = document.getElementById('mov-sub-registrar'), b = document.getElementById('mov-sub-cats');
+  if (a) a.style.display = movSubActual === 'registrar' ? '' : 'none';
+  if (b) b.style.display = movSubActual === 'cats' ? '' : 'none';
+  const ta = document.getElementById('mtab-registrar'), tb = document.getElementById('mtab-cats');
+  if (ta && tb) { ta.classList.toggle('active', movSubActual==='registrar'); tb.classList.toggle('active', movSubActual==='cats'); }
+  if (movSubActual === 'cats') { catEditando = null; renderCategorias(); }
+};
+function renderCategorias() {
+  const el = document.getElementById('cats-admin-panel'); if (!el) return;
+  const bloque = (tipo, titulo) => {
+    const arr = catsResumen(tipo); catsPintadas[tipo] = arr;
+    const filas = arr.map((e, i) => {
+      const edit = catEditando && catEditando.tipo === tipo && catEditando.nombre === e.nombre;
+      const badges = (e.repetida ? '<span class="cat-badge warn">repetida</span>' : '')
+                   + (!e.enLista ? '<span class="cat-badge">no esta en tu lista</span>' : '');
+      const meta = e.n
+        ? (e.n + ' movimiento' + (e.n===1?'':'s') + ' · ' + fmt(e.monto))
+        : 'sin movimientos';
+      if (edit && catEditando.modo === 'renombrar') {
+        return '<div class="cat-fila"><div class="cat-edit">'
+          + '<input type="text" id="cat-edit-input" value="' + escapeHtml(e.nombre) + '" maxlength="40" placeholder="nuevo nombre">'
+          + '</div><div class="cat-fila-acc">'
+          + '<button type="button" class="cat-act pri" data-t="' + tipo + '" data-i="' + i + '" data-a="okRenombrar" onclick="catAccion(this)">guardar</button>'
+          + '<button type="button" class="cat-act" data-a="cancelar" onclick="catAccion(this)">cancelar</button>'
+          + '</div></div>';
+      }
+      if (edit && catEditando.modo === 'juntar') {
+        const otras = arr.filter(o => o.nombre !== e.nombre);
+        if (!otras.length) return '<div class="cat-fila"><div class="cat-fila-info"><div class="item-meta">no hay otra categoria con la cual juntarla</div></div>'
+          + '<div class="cat-fila-acc"><button type="button" class="cat-act" data-a="cancelar" onclick="catAccion(this)">cerrar</button></div></div>';
+        return '<div class="cat-fila"><div class="cat-edit">'
+          + '<span class="item-meta">' + escapeHtml(e.nombre) + ' &rarr;</span>'
+          + '<select id="cat-edit-sel">' + otras.map(o => '<option value="' + escapeHtml(o.nombre) + '">' + escapeHtml(o.nombre) + '</option>').join('') + '</select>'
+          + '</div><div class="cat-fila-acc">'
+          + '<button type="button" class="cat-act pri" data-t="' + tipo + '" data-i="' + i + '" data-a="okJuntar" onclick="catAccion(this)">juntar</button>'
+          + '<button type="button" class="cat-act" data-a="cancelar" onclick="catAccion(this)">cancelar</button>'
+          + '</div></div>';
+      }
+      const acc = [];
+      if (!e.enLista) acc.push('<button type="button" class="cat-act pri" data-t="' + tipo + '" data-i="' + i + '" data-a="adoptar" onclick="catAccion(this)">agregar a mi lista</button>');
+      acc.push('<button type="button" class="cat-act" data-t="' + tipo + '" data-i="' + i + '" data-a="renombrar" onclick="catAccion(this)">renombrar</button>');
+      acc.push('<button type="button" class="cat-act" data-t="' + tipo + '" data-i="' + i + '" data-a="juntar" onclick="catAccion(this)">juntar con...</button>');
+      if (!e.n && e.enLista) acc.push('<button type="button" class="cat-act" data-t="' + tipo + '" data-i="' + i + '" data-a="quitar" onclick="catAccion(this)">quitar</button>');
+      return '<div class="cat-fila"><div class="cat-fila-info">'
+        + '<div class="item-cat">' + escapeHtml(e.nombre) + '</div>'
+        + '<div class="item-meta">' + meta + badges + '</div>'
+        + '</div><div class="cat-fila-acc">' + acc.join('') + '</div></div>';
+    }).join('');
+    // el alta tambien se captura en la fila, sin prompt(): prompt() ya mordio una vez
+    // (el boton de nueva persona) y ademas se ve como aviso del navegador, no como la app
+    const filaNueva = (catEditando && catEditando.tipo === tipo && catEditando.modo === 'nueva')
+      ? '<div class="cat-fila"><div class="cat-edit">'
+        + '<input type="text" id="cat-nueva-input" maxlength="40" placeholder="nombre de la categoria">'
+        + '</div><div class="cat-fila-acc">'
+        + '<button type="button" class="cat-act pri" data-t="' + tipo + '" data-a="okNueva" onclick="catAccion(this)">agregar</button>'
+        + '<button type="button" class="cat-act" data-a="cancelar" onclick="catAccion(this)">cancelar</button>'
+        + '</div></div>'
+      : '';
+    const repes = arr.filter(x => x.repetida).length;
+    const aviso = repes
+      ? '<div class="item-meta" style="padding:6px 0 2px;color:var(--gold)">hay ' + repes + ' que se llaman casi igual: juntalas para que no se te partan las cuentas</div>'
+      : '';
+    return '<div class="section-title" style="margin-top:0">' + titulo + '</div>'
+      + '<div class="panel">' + aviso + (filas || '<div class="empty-state">sin categorias</div>') + filaNueva
+      + '<div style="padding-top:12px"><button type="button" class="cat-act pri" data-t="' + tipo + '" data-a="nueva" onclick="catAccion(this)">+ agregar categoria</button></div>'
+      + '</div>';
+  };
+  el.outerHTML = '<div id="cats-admin-panel">' + bloque('gasto', 'de gastos')
+    + '<div style="height:14px"></div>' + bloque('ingreso', 'de ingresos') + '</div>';
+}
+window.catAccion = async function(btn) {
+  if (catOcupado) return;
+  const a = btn.dataset.a, tipo = btn.dataset.t;
+  if (a === 'cancelar') { catEditando = null; renderCategorias(); return; }
+  if (a === 'nueva') { catEditando = {tipo, nombre:null, modo:'nueva'}; renderCategorias();
+    const inp = document.getElementById('cat-nueva-input'); if (inp) inp.focus(); return; }
+  if (a === 'okNueva') {
+    const nombre = String(((document.getElementById('cat-nueva-input')||{}).value)||'').trim();
+    if (!nombre) { catEditando = null; renderCategorias(); return; }
+    const err = catNombreInvalido(nombre);
+    if (err) { showToast(err); return; }
+    if ((catsPintadas[tipo]||[]).some(x => normCat(x.nombre) === normCat(nombre))) { showToast('ya tienes una categoria que se llama asi'); return; }
+    catOcupado = true;
+    const r = await txCatalogo((g,i) => { (tipo==='gasto'?g:i).push(nombre); return {gasto:g, ingreso:i}; });
+    catOcupado = false; catEditando = null;
+    if (r && r.error) showToast(r.error); else showToast('categoria "' + nombre + '" agregada');
+    renderCategorias(); return;
+  }
+  const e = (catsPintadas[tipo] || [])[Number(btn.dataset.i)];
+  if (!e) { renderCategorias(); return; }
+  if (a === 'renombrar' || a === 'juntar') { catEditando = {tipo, nombre: e.nombre, modo: a}; renderCategorias(); return; }
+  if (a === 'adoptar') {
+    catOcupado = true;
+    const r = await txCatalogo((g,i) => { const arr = tipo==='gasto'?g:i; if (!arr.some(c => c===e.nombre)) arr.push(e.nombre); return {gasto:g, ingreso:i}; });
+    catOcupado = false;
+    if (r && r.error) showToast(r.error); else showToast('"' + e.nombre + '" ya esta en tu lista');
+    renderCategorias(); return;
+  }
+  if (a === 'quitar') {
+    // el conteo de la pantalla viene de memoria: antes de quitar se comprueba de verdad
+    catOcupado = true;
+    let usados = -1;
+    try { usados = (await getDocsFromServer(query(collection(db, CAT_COL(tipo)), where('cat','==',e.nombre)))).size; }
+    catch(err) { console.error('catAccion quitar', err); }
+    if (usados !== 0) {
+      catOcupado = false;
+      showToast(usados > 0 ? ('esa categoria tiene ' + usados + ' movimientos: juntala con otra') : 'no se pudo comprobar — revisa tu conexion');
+      renderCategorias(); return;
+    }
+    if (!confirm('Quitar la categoria "' + e.nombre + '"? No tiene movimientos, asi que no se pierde nada.')) { catOcupado = false; return; }
+    const r = await txCatalogo((g,i) => { const arr = tipo==='gasto'?g:i; const k = arr.findIndex(c => c===e.nombre); if (k>=0) arr.splice(k,1); return {gasto:g, ingreso:i}; });
+    catOcupado = false;
+    if (r && r.error) showToast(r.error); else showToast('categoria quitada');
+    renderCategorias(); return;
+  }
+  if (a === 'okRenombrar' || a === 'okJuntar') {
+    const destino = a === 'okRenombrar'
+      ? (document.getElementById('cat-edit-input')||{}).value
+      : (document.getElementById('cat-edit-sel')||{}).value;
+    const A = e.nombre;
+    let B = String(destino||'').trim();
+    if (!B || B === A) { catEditando = null; renderCategorias(); return; }
+    const err = catNombreInvalido(B);
+    if (err) { showToast(err); return; }
+    // si el nombre tecleado difiere de una que ya tienes SOLO en mayusculas o acentos, es
+    // esa misma: se adopta su nombre exacto. El catalogo compara con igualdad exacta, asi
+    // que sin esto "Comida" -> "comida" creaba la duplicada que esta pantalla evita.
+    const gemela = (catsPintadas[tipo]||[]).find(x => x.nombre !== A && normCat(x.nombre) === normCat(B));
+    if (gemela) B = gemela.nombre;
+    if (B === A) { catEditando = null; renderCategorias(); return; }
+    const yaExiste = !!gemela;
+    const bloqueo = catMotivoBloqueo(A, B);
+    if (bloqueo) { showToast(bloqueo); return; }
+    const aviso = catAvisoSemantica(A, B);
+    const pregunta = (a === 'okRenombrar' && yaExiste)
+      ? ('Ya tienes "' + B + '". Se van a juntar las dos: ' + e.n + ' movimiento' + (e.n===1?'':'s') + ' de "' + A + '" pasan a "' + B + '". Continuar?')
+      : (e.n ? ('Se van a reescribir ' + e.n + ' movimiento' + (e.n===1?'':'s') + ' de "' + A + '" a "' + B + '". Continuar?') : null);
+    // un solo aviso: dos confirm() seguidos se leen como que la app no se decide
+    const texto = [aviso, pregunta].filter(Boolean).join('\n\n') || null;
+    if (texto && !confirm(texto.endsWith('?') ? texto : (texto + '\n\nContinuar?'))) return;
+    catOcupado = true;
+    const btns = document.querySelectorAll('.cat-act'); btns.forEach(x => x.disabled = true);
+    showToast('moviendo movimientos...');
+    let ok = false;
+    try { ok = await reclasificarCat(tipo, A, B); }
+    catch(err2) { console.error('catAccion reclasificar', err2); showToast('no se pudo completar — revisa tu conexion'); }
+    catOcupado = false; catEditando = null;
+    rerenderTodo();
+    if (movSubActual === 'cats') renderCategorias();
+    return ok;
+  }
+};
+function catNombreInvalido(nombre) {
+  const t = String(nombre||'').trim();
+  if (!t) return 'ponle un nombre';
+  if (t === '__nueva__') return 'ese nombre esta reservado por la app';
+  if (t.length > 40) return 'el nombre es muy largo';
+  return null;
+}
 // ── NAVIGATION ────────────────────────────────────────────────
 window.showPage = function(p) {
   document.querySelectorAll('.page').forEach(el => el.classList.remove('active'));
@@ -2884,7 +3230,7 @@ window.showPage = function(p) {
   if(p==='dashboard') renderDashboard();
   if(p==='fondo') renderFondo();
   if(p==='resumen') renderResumen();
-  if(p==='movimientos') renderMovimientos();
+  if(p==='movimientos'){ renderMovimientos(); if(movSubActual==='cats') renderCategorias(); }
   if(p==='deudas') renderDeudas();
   if(p==='noticias') abrirNoticias(); // carga perezosa: cache primero, refresco si esta viejo
   if(p==='perfil'){ renderPerfil(); renderScore(); renderDecisiones(); if(perfilSubActual==='amigos') perfilSub('amigos'); }
@@ -2941,17 +3287,41 @@ function proxiesPara(url) {
     {u:`https://api.allorigins.win/get?url=${e}&_r=${Date.now()%1000}`,json:true},
   ];
 }
-async function fetchTextoViaProxies(url) {
-  for(const {u,json} of proxiesPara(url)){
-    try{
-      const r=await fetch(u,{signal:AbortSignal.timeout(20000)});
-      if(!r.ok) continue;
-      const txt=await r.text();
-      if(json){ try{ const o=JSON.parse(txt); if(o&&o.status&&Number(o.status.http_code)>=400) continue; if(typeof o.contents==='string'&&o.contents.trim()) return o.contents; }catch(e){} continue; }
-      if(txt&&txt.trim()) return txt;
-    }catch(e){ /* proxy caido o timeout: se intenta el siguiente */ }
+// Los proxies COMPITEN en vez de probarse en fila. Antes se intentaban los cuatro uno
+// tras otro con 20 s de espera cada uno: un proxy caido costaba 20 s POR SIMBOLO, y abrir
+// la app con cinco posiciones se iba a mas de un minuto de "actualizando...". Ahora se
+// lanzan de dos en dos (son solo dos servidores distintos, y el navegador encola las
+// peticiones al mismo servidor, asi que lanzar las cuatro juntas no ganaria nada) y se
+// toma la primera respuesta VALIDA. La espera baja a 8 s: un proxy que no contesto en 8 s
+// no va a contestar. 17-sep-2026, Roberto: "se tarda un buen actualizando Revolut Stocks".
+const ESPERA_PROXY = 8000;
+async function carreraProxies(url, validar) {
+  const lista = proxiesPara(url);
+  const intento = ({u, json}) => (async () => {
+    const r = await fetch(u, {signal: AbortSignal.timeout(ESPERA_PROXY)});
+    if (!r.ok) throw new Error('http ' + r.status);
+    const txt = await r.text();
+    let raw = txt;
+    if (json) {
+      const o = JSON.parse(txt);
+      if (o && o.status && Number(o.status.http_code) >= 400) throw new Error('proxy ' + o.status.http_code);
+      raw = typeof o.contents === 'string' ? o.contents : JSON.stringify(o);
+    }
+    if (!raw || !raw.trim()) throw new Error('vacio');
+    const v = validar ? validar(raw) : raw;
+    // un proxy que contesta 200 con basura no sirve: cuenta como fallo para que gane otro
+    if (v === null || v === undefined || v === false) throw new Error('respuesta no valida');
+    return v;
+  })();
+  for (let i = 0; i < lista.length; i += 2) {
+    const tanda = lista.slice(i, i + 2).map(intento);
+    try { return await Promise.any(tanda); }
+    catch (e) { /* toda la tanda fallo: va la siguiente */ }
   }
   return null;
+}
+async function fetchTextoViaProxies(url) {
+  return await carreraProxies(url, null);
 }
 // parsea un RSS/Atom y devuelve items validados; enlaces solo https
 function parseRSS(xmlTexto,fuente,ticker) {
@@ -3093,7 +3463,7 @@ function actualizarOjo() {
 }
 // re-renderiza TODAS las paginas (tambien las inactivas, para no dejar montos viejos en el DOM)
 function rerenderTodo() {
-  render(); renderTransferencias(); renderMovimientos(); renderDeudas(); renderResumen(); if(dashboardEncendido()) renderDashboard(); aplicarVisibilidadAmigos(); if(amigosVisible()){ publicarFicha(); } if(fondoVisible()) renderFondo();
+  render(); renderTransferencias(); renderMovimientos(); if(movSubActual==='cats') renderCategorias(); renderDeudas(); renderResumen(); if(dashboardEncendido()) renderDashboard(); aplicarVisibilidadAmigos(); if(amigosVisible()){ publicarFicha(); } if(fondoVisible()) renderFondo();
   renderNoticias(); // el modo privado tambien oculta los tickers de las noticias
 }
 // detalle por cuenta: al tocar una tarjeta de inicio se listan sus movimientos del ultimo
@@ -7114,34 +7484,41 @@ window.cambiarMes=d=>{state.mesOffset+=d;renderResumen();};
 // ── COTIZACIONES (Yahoo Finance) ──────────────────────────────
 // helper unico: baja la serie diaria de un simbolo con validacion completa
 // (HTTP, JSON del proxy, chart.error, timestamps y precios finitos positivos)
-async function fetchYahooSeries(symbol) {
-  const url=`https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?interval=1d&range=1y&events=div`;
-  for(const {u,json} of proxiesPara(url)){
-    try{
-      const r=await fetch(u,{signal:AbortSignal.timeout(20000)});
-      if(!r.ok) continue;
-      const txt=await r.text();
-      let raw=txt;
-      if(json){ const outer=JSON.parse(txt); raw=typeof outer.contents==='string'?outer.contents:JSON.stringify(outer); }
-      const d=JSON.parse(raw);
-      if(!d.chart||d.chart.error||!Array.isArray(d.chart.result)||!d.chart.result[0]) continue;
-      const res=d.chart.result[0];
-      const ts=res.timestamp||[];
-      const closes=(res.indicators&&res.indicators.quote&&res.indicators.quote[0]&&res.indicators.quote[0].close)||[];
-      const hist=[];
-      for(let i=0;i<ts.length;i++){ if(Number.isFinite(closes[i])&&closes[i]>0) hist.push({t:new Date(ts[i]*1000).toISOString().split('T')[0], c:closes[i]}); }
-      if(hist.length){
-        hist.moneda=(res.meta&&res.meta.currency)||'';
-        // dividendos pagados en los ultimos 12 meses (se piden con events=div). Si Yahoo no manda
-        // eventos es que no pago ninguno en el rango: eso es un cero real, no un dato faltante.
-        const ev=(res.events&&res.events.dividends&&typeof res.events.dividends==='object')?Object.values(res.events.dividends):[];
-        const desde=Date.now()/1000-365*86400;
-        hist.div12m=+ev.filter(x=>x&&Number.isFinite(x.amount)&&x.amount>0&&Number.isFinite(x.date)&&x.date>=desde).reduce((t,x)=>t+x.amount,0).toFixed(4);
-        return hist;
-      }
-    }catch(e){ console.error('fetchYahooSeries '+symbol,e); }
-  }
-  return null;
+async function fetchYahooSeries(symbol, rango) {
+  // el ano completo pesa ~50 veces mas que cinco dias y solo hace falta una vez al dia:
+  // la historia vieja ya esta guardada y no cambia. Los dividendos solo vienen en la
+  // pasada larga, por eso la corta conserva el div12m que ya se tenia.
+  const largo = rango !== '5d';
+  const url=`https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?interval=1d&range=${largo?'1y':'5d'}${largo?'&events=div':''}`;
+  const serie = await carreraProxies(url, raw => {
+    let d; try{ d=JSON.parse(raw); }catch(e){ return null; }
+    if(!d.chart||d.chart.error||!Array.isArray(d.chart.result)||!d.chart.result[0]) return null;
+    const res=d.chart.result[0];
+    const ts=res.timestamp||[];
+    const closes=(res.indicators&&res.indicators.quote&&res.indicators.quote[0]&&res.indicators.quote[0].close)||[];
+    const hist=[];
+    for(let i=0;i<ts.length;i++){ if(Number.isFinite(closes[i])&&closes[i]>0) hist.push({t:new Date(ts[i]*1000).toISOString().split('T')[0], c:closes[i]}); }
+    if(!hist.length) return null;
+    hist.moneda=(res.meta&&res.meta.currency)||'';
+    hist.largo=largo;
+    if(largo){
+      // dividendos pagados en los ultimos 12 meses (se piden con events=div). Si Yahoo no manda
+      // eventos es que no pago ninguno en el rango: eso es un cero real, no un dato faltante.
+      const ev=(res.events&&res.events.dividends&&typeof res.events.dividends==='object')?Object.values(res.events.dividends):[];
+      const desde=Date.now()/1000-365*86400;
+      hist.div12m=+ev.filter(x=>x&&Number.isFinite(x.amount)&&x.amount>0&&Number.isFinite(x.date)&&x.date>=desde).reduce((t,x)=>t+x.amount,0).toFixed(4);
+    }
+    return hist;
+  });
+  if(!serie) console.error('fetchYahooSeries '+symbol+': ningun proxy contesto');
+  return serie;
+}
+// pega los dias nuevos sobre la historia guardada, sin duplicar fechas ni perder lo viejo
+function fundirHist(viejo, nuevo) {
+  const m = new Map();
+  (Array.isArray(viejo)?viejo:[]).forEach(p => { if(p&&p.t&&Number.isFinite(p.c)) m.set(p.t, +p.c); });
+  (Array.isArray(nuevo)?nuevo:[]).forEach(p => { if(p&&p.t&&Number.isFinite(p.c)) m.set(p.t, +p.c); });
+  return [...m.entries()].sort((a,b)=>a[0]<b[0]?-1:1).map(([t,c])=>({t, c:+c.toFixed(2)}));
 }
 
 // BOLSA: cotizaciones de todos los simbolos con posicion abierta + tipo de cambio.
@@ -7156,23 +7533,38 @@ async function fetchStocks() {
   // VOO (S&P 500) se baja siempre como referencia para comparar decisiones, aunque no se tenga
   const REF=REF_MERCADO;
   const pedir=[...syms,...(syms.includes(REF)?[]:[REF])];
-  const res=await Promise.allSettled([...pedir.map(sm=>fetchYahooSeries(sm)),fetchYahooSeries('MXN=X')]);
+  // el ano completo solo se baja una vez al dia por simbolo; el resto de las aperturas
+  // piden cinco dias y se pegan sobre la historia guardada. La historia vieja no cambia,
+  // asi que volver a bajarla en cada apertura era casi todo el tiempo de espera.
+  const hoyMkt=hoyLocal();
+  const rangoDe=sm=>{ const mk=state.accionesMkt[sm];
+    return (mk&&Array.isArray(mk.hist)&&mk.hist.length>5&&mk.full===hoyMkt)?'5d':'1y'; };
+  // el tipo de cambio no tiene dividendos, asi que basta con ya tener el ano guardado
+  const rangoFx=()=> (Array.isArray(state.usdMxnHistory)&&state.usdMxnHistory.length>200)?'5d':'1y';
+  const res=await Promise.allSettled([...pedir.map(sm=>fetchYahooSeries(sm,rangoDe(sm))),
+    fetchYahooSeries('MXN=X',rangoFx())]);
   const cambios={}; let algun=false, todo=true;
   const nuevoMkt={...state.accionesMkt};
   pedir.forEach((sm,i)=>{
     const serie=res[i].status==='fulfilled'?res[i].value:null;
     if(serie&&serie.length){
-      nuevoMkt[sm]={precio:serie[serie.length-1].c, prev:serie.length>=2?serie[serie.length-2].c:null,
-        fecha:serie[serie.length-1].t, moneda:serie.moneda||'', div12m:Number.isFinite(serie.div12m)?serie.div12m:null, hist:serie.map(p=>({t:p.t,c:+p.c.toFixed(2)}))};
+      const ant=state.accionesMkt[sm]||{};
+      // en la pasada corta se conserva lo que solo trae la larga: los dividendos de 12 meses
+      const hist=serie.largo?serie.map(p=>({t:p.t,c:+p.c.toFixed(2)})):fundirHist(ant.hist,serie);
+      nuevoMkt[sm]={precio:hist[hist.length-1].c, prev:hist.length>=2?hist[hist.length-2].c:null,
+        fecha:hist[hist.length-1].t, moneda:serie.moneda||ant.moneda||'',
+        div12m:serie.largo?(Number.isFinite(serie.div12m)?serie.div12m:null):(Number.isFinite(ant.div12m)?ant.div12m:null),
+        full:serie.largo?hoyMkt:(ant.full||null), hist};
       algun=true;
     } else if(syms.includes(sm)) todo=false; // si falla solo la referencia, no rompe el total
   });
   const fxRes=res[res.length-1]; const fxS=fxRes.status==='fulfilled'?fxRes.value:null;
   if(fxS&&fxS.length){
-    state.usdMxn=fxS[fxS.length-1].c;
-    state.usdMxnPrev=fxS.length>=2?fxS[fxS.length-2].c:null;
-    state.usdMxnFecha=fxS[fxS.length-1].t;
-    state.usdMxnHistory=fxS.map(p=>({t:p.t,c:+p.c.toFixed(4)}));
+    const fxHist=fxS.largo?fxS.map(p=>({t:p.t,c:+p.c.toFixed(4)})):fundirHist(state.usdMxnHistory,fxS);
+    state.usdMxn=fxHist[fxHist.length-1].c;
+    state.usdMxnPrev=fxHist.length>=2?fxHist[fxHist.length-2].c:null;
+    state.usdMxnFecha=fxHist[fxHist.length-1].t;
+    state.usdMxnHistory=fxHist;
     cambios.usdMxn=state.usdMxn; cambios.usdMxnPrev=state.usdMxnPrev;
     cambios.usdMxnFecha=state.usdMxnFecha; cambios.usdMxnHistory=state.usdMxnHistory;
     algun=true;
