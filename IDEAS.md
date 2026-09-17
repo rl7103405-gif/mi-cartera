@@ -203,3 +203,15 @@ capturado, y "dividendos cobrados" = ingresos con categoria "Dividendos".
 - **Rendimiento historico: la semilla.** La historia de intereses empieza hoy; lo ganado antes se
   captura una vez en "actualizar saldos > rendimiento historico" (lo que el banco reporta hasta una
   fecha). Cajita 2 (retirada) queda fuera del seguimiento a proposito.
+
+## Amigos y competencia entre carteras (pedido 16-sep-2026, para la siguiente sesion)
+
+Roberto: "ya es hora de ponerlos como amigos y empezar la competitividad" (Eli, Tono y Zoe ya
+tienen su app). Hoy las cuatro carteras estan AISLADAS a proposito por reglas de Firestore (cada
+correo solo lee su namespace). Compartir algo requiere: (1) decidir QUE se compara — propuesta:
+solo indicadores sin montos (score de manejo del dinero, % de ahorro del mes, racha de meses
+buenos, constancia de aportes), nunca saldos ni gastos; (2) un documento publico por persona
+(p. ej. coleccion `ranking/{uid}`) que cada app escribe con SUS indicadores y todos pueden leer,
+con reglas nuevas; (3) que cada quien acepte participar desde su perfil (apagado por defecto);
+(4) una pestaña o tarjeta "amigos" con la tabla y quien va ganando el mes. Diseño a debatir con
+Codex antes de construir; una feature, una sesion.
