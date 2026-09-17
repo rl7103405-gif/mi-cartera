@@ -74,12 +74,12 @@ const HAY_FONDO = fuente.includes("'fondo'");
 const fondoSrc = HAY_FONDO ? extrae('// ── fondo: saneo', '// ── fin saneo fondo') : '';
 const ARGS = ['db','doc','collection','query','orderBy','getDocFromCache','getDocsFromCache',
   'state','derivarPosiciones','document','localStorage','console',
-  'NS','C_GASTOS','C_INGRESOS','C_TRANSF','C_OPS',
+  'NS','C_GASTOS','C_INGRESOS','C_TRANSF','C_OPS','C_REND',
   'window','loadFromFirebase','showToast','renderCatSelect','refrescar',
   'renderPersonaSelect','render','renderMovimientos','renderTransferencias','datosCargados'];
 const VALS = [db, doc, collection, query, orderBy, getDocFromCache, getDocsFromCache,
   state, derivarPosiciones, document, localStorage, console,
-  NS, PFX+'gastos', PFX+'ingresos', PFX+'transferencias', PFX+'stocksOps',
+  NS, PFX+'gastos', PFX+'ingresos', PFX+'transferencias', PFX+'stocksOps', PFX+'rendimientos',
   window, loadFromFirebase, showToast, renderCatSelect, refrescar,
   renderPersonaSelect, render, renderMovimientos, renderTransferencias, datosCargados];
 const { pintarDesdeCache, marcarCopiaLocal, marcarSincronizado } = new Function(
@@ -112,6 +112,8 @@ function cacheCompleta() {
     [PFX+'transferencias']: [{id:'t1',monto:400,origen:'efectivo',destino:'nu',fecha:'2026-09-01T00:00:00Z'}],
   };
   if (HAY_STOCKS) COLS[PFX+'stocksOps'] = [{id:'o1',simbolo:'NVDA',acciones:0.19,tipo:'compra',fecha:'2026-07-23'}];
+  // tramos de rendimiento: en un aparato recien actualizado la coleccion esta vacia, y eso NO invalida la copia local
+  COLS[PFX+'rendimientos'] = [];
 }
 
 console.log('\n=== pintarDesdeCache: hidratacion instantanea desde la copia local ===');

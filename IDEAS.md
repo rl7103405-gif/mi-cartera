@@ -184,3 +184,22 @@ Revolut MXN). Queda para decidirlo con el.
 Hecho el mismo dia: sector automatico para tickers conocidos (SECTOR_CONOCIDO; SPCX = SpaceX
 cuenta como Industrial, se puede cambiar), dividendo de 12 meses desde Yahoo cuando no esta
 capturado, y "dividendos cobrados" = ingresos con categoria "Dividendos".
+
+## Pendientes del 16-sep-2026
+
+- **Proxy propio para Yahoo.** corsproxy.io dejo de aceptar uso anonimo (exige clave de pago) y
+  allorigins responde una de cada dos o tres veces (500/522). Hoy la app reintenta con varios proxies
+  publicos, pero la solucion durable es un Cloudflare Worker propio (gratis) que haga de proxy:
+  necesita una cuenta de Roberto. Mientras, precios y dividendos pueden tardar o quedarse en los
+  ultimos guardados; el dividendo por accion se puede capturar a mano en "datos de cada accion".
+- **La plantilla esta desactualizada.** mi-cartera-plantilla sigue en la arquitectura de dinero
+  anterior al 27-ago (aplicarDelta/backupCuentas, sin txDinero), asi que no recibio ni el fondo ni
+  los tramos de rendimiento. Antes de clonar una copia nueva hay que ponerla al dia (o clonar desde
+  cartera-eli, que si esta al corriente).
+- **Excel de deudas.** Roberto quiere descargar la cuenta con una persona (papa) como Excel bonito,
+  con periodo (1 semana / 1 mes / 3 / 6 / 1 año / todo / rango). Ejemplo generado con sus datos:
+  Desktop/CARTERA/manuales/ejemplo-cuenta-papa.xlsx. Falta su OK al formato para construirlo en la
+  app (ExcelJS desde cdnjs, carga perezosa al pulsar "descargar").
+- **Rendimiento historico: la semilla.** La historia de intereses empieza hoy; lo ganado antes se
+  captura una vez en "actualizar saldos > rendimiento historico" (lo que el banco reporta hasta una
+  fecha). Cajita 2 (retirada) queda fuera del seguimiento a proposito.

@@ -238,6 +238,11 @@ nav{position:sticky;top:0;z-index:100;background:var(--nav-bg);backdrop-filter:b
 .deuda-person{background:var(--bg2);border:0.5px solid var(--border);border-radius:var(--r);padding:16px;margin-bottom:10px;box-shadow:var(--sombra)}
 .deuda-header{display:flex;justify-content:space-between;align-items:center;cursor:pointer}
 .deuda-name{font-size:16px;font-weight:600}.deuda-total{font-size:17px;font-weight:700}
+/* Excel de la cuenta con una persona: periodo + descarga, dentro del detalle */
+.xl-panel{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:10px 0 8px;padding-bottom:10px;border-bottom:0.5px solid var(--border)}
+.xl-panel select,.xl-panel input{flex:1;min-width:130px;padding:8px 10px;border-radius:10px;border:1px solid var(--border2);background:var(--bg2s);color:var(--text);font-size:13px}
+.xl-panel .btn{width:auto;margin-top:0;padding:8px 14px;flex-shrink:0;font-size:13px}
+.xl-fechas{display:flex;gap:6px;flex:1 1 100%}
 .deuda-sub{font-size:12px;color:var(--muted);margin-top:2px}
 .deuda-detail{display:none;margin-top:12px;padding-top:12px;border-top:0.5px solid var(--border)}
 .deuda-detail.open{display:block}
@@ -296,6 +301,15 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
 .pie-amt{font-weight:600}
 #res-periodo-toggle .type-opt,#mov-periodo-toggle .type-opt{min-width:calc(25% - 5px)}
 .del-btn{background:none;border:none;color:var(--muted);font-size:17px;padding:4px 0 4px 12px;cursor:pointer;line-height:1;flex-shrink:0}
+/* desglose por categoria en el resumen: la barra se toca y despliega sus movimientos */
+.resumen-bar{cursor:pointer;border-radius:8px;padding:2px 4px;margin:0 -4px}
+.resumen-bar.abierta,.resumen-bar:hover{background:var(--bg2s)}
+.bar-n{font-size:11px;color:var(--muted);font-weight:400;margin-left:4px}
+.cat-desglose{margin:6px 0 10px;padding-left:6px;border-left:2px solid var(--sup-borde)}
+.cat-mov{display:flex;gap:10px;align-items:baseline;font-size:12.5px;padding:4px 0;border-bottom:1px solid var(--sup-borde)}
+.cat-mov:last-child{border-bottom:none}
+.cat-mov-f{color:var(--muted);flex:0 0 52px}.cat-mov-n{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.cat-mov-m{font-weight:600;flex-shrink:0}
+.cat-mov-m.neg{color:var(--red)}.cat-mov-m.pos{color:var(--green)}
 /* con dos botones por fila (editar + borrar) el texto se encoge (y hace wrap), no ellos */
 .item-row>div:first-child{min-width:0}
 .del-btn:active{color:var(--red)}
@@ -306,7 +320,10 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
   #page-inicio{max-width:1060px}
   #page-movimientos{max-width:1060px}
   #page-metas{max-width:1060px}
+  #page-perfil{max-width:1060px}
   #page-resumen{max-width:1080px}
+  /* las dos columnas arrancan a la misma altura: el primer titulo de cada una no lleva el margen superior */
+  .summary-grid>.sec>.section-title.mt:first-child,.inicio-grid>.sec>.section-title.mt:first-child{margin-top:0}
   nav,.tabs{padding-left:32px;padding-right:32px}
   .hero-grid{display:grid;grid-template-columns:1fr 1.1fr;gap:0 24px;align-items:center;margin-bottom:8px}
   .cards{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;align-items:start;margin-bottom:28px}
@@ -349,7 +366,7 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
    se estiran a la misma altura. Solo #page-dashboard: la pestaña del fondo tiene su propio acomodo */
 @media(min-width:760px){
   #page-dashboard .dgrid{grid-template-columns:repeat(2,minmax(0,1fr));align-items:stretch;
-    grid-template-areas:"wl costo" "wl crec" "pie merc" "sector notas" "proy proy" "datos datos"}
+    grid-template-areas:"wl costo" "crec pie" "merc sector" "proy proy" "notas notas" "datos datos"}
   #page-dashboard .dg-wl{grid-area:wl}#page-dashboard .dg-costo{grid-area:costo}#page-dashboard .dg-crec{grid-area:crec}
   #page-dashboard .dg-pie{grid-area:pie}#page-dashboard .dg-merc{grid-area:merc}
   #page-dashboard .dg-sector{grid-area:sector}#page-dashboard .dg-proy{grid-area:proy}#page-dashboard .dg-notas{grid-area:notas}
@@ -357,7 +374,7 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
 }
 @media(min-width:1200px){
   #page-dashboard .dgrid{grid-template-columns:repeat(3,minmax(0,1fr));
-    grid-template-areas:"wl costo crec" "wl pie merc" "sector proy proy" "notas proy proy" "datos datos datos"}
+    grid-template-areas:"wl costo crec" "sector pie merc" "proy proy notas" "datos datos datos"}
 }
 .dgrid .acc{grid-column:1/-1;margin-bottom:0}
 .dkv{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:3px 12px;font-size:13px;align-items:baseline}
@@ -499,7 +516,8 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
       </div>
       <div class="card-detail" id="nu1-detail">
         <div class="detail-row"><span class="detail-label">saldo base</span><span class="detail-val" id="nu1-base-val">$—</span></div>
-        <div class="detail-row"><span class="detail-label">rendimiento acumulado</span><span class="detail-val pos" id="nu1-rend-val">$—</span></div>
+        <div class="detail-row"><span class="detail-label">ganado en total (toda la historia)</span><span class="detail-val pos" id="nu1-acum-val">$—</span></div>
+        <div class="detail-row"><span class="detail-label">de eso, desde la ultima fecha base</span><span class="detail-val pos" id="nu1-rend-val">$—</span></div>
         <div id="movs-cajita1"></div>
       </div>
     </div>
@@ -568,7 +586,8 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
       </div>
       <div class="card-detail" id="rev-savings-detail">
         <div class="detail-row"><span class="detail-label">saldo base</span><span class="detail-val" id="rev-savings-base-val">$—</span></div>
-        <div class="detail-row"><span class="detail-label">rendimiento acumulado</span><span class="detail-val pos" id="rev-savings-rend-val">$—</span></div>
+        <div class="detail-row"><span class="detail-label">ganado en total (toda la historia)</span><span class="detail-val pos" id="rev-savings-acum-val">$—</span></div>
+        <div class="detail-row"><span class="detail-label">de eso, desde la ultima fecha base</span><span class="detail-val pos" id="rev-savings-rend-val">$—</span></div>
         <div id="movs-revSavings"></div>
       </div>
     </div>
@@ -626,6 +645,17 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
     </div>
     <div class="field"><label>Rev Savings — retencion ISR anual % (2026: 0.90, se resta del interes)</label><input type="number" id="input-rev-savings-ret" placeholder="ej. 0.90" step="0.01" inputmode="decimal"></div>
     <button class="btn btn-purple" id="manuales-btn" onclick="guardarManuales()">guardar</button>
+    <div class="section-title mt">rendimiento historico</div>
+    <div class="item-meta" style="line-height:1.5;margin-bottom:8px">lo que tu banco dice que has ganado HASTA una fecha. Cubre todo lo anterior a esa fecha; de ahi en adelante la app lo lleva sola, tramo por tramo, aunque muevas dinero. Cambiarlo corrige, no suma.</div>
+    <div class="row2" style="gap:8px">
+      <div class="field"><label>cajita NU 1 — ganado hasta la fecha</label><input type="number" id="input-cajita1-semilla" placeholder="ej. 1250.40" step="0.01" inputmode="decimal"></div>
+      <div class="field"><label>cajita NU 1 — fecha de corte (YYYY-MM-DD)</label><input type="text" id="input-cajita1-semilla-fecha" placeholder="ej. 2026-09-16"></div>
+    </div>
+    <div class="row2" style="gap:8px">
+      <div class="field"><label>Rev Savings — ganado hasta la fecha</label><input type="number" id="input-rev-savings-semilla" placeholder="ej. 380.12" step="0.01" inputmode="decimal"></div>
+      <div class="field"><label>Rev Savings — fecha de corte (YYYY-MM-DD)</label><input type="text" id="input-rev-savings-semilla-fecha" placeholder="ej. 2026-09-16"></div>
+    </div>
+    <button class="btn" id="semilla-btn" onclick="guardarRendimientoHistorico()">guardar rendimiento historico</button>
   </div>
   </div>
   </details>
@@ -876,6 +906,8 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
   <div class="sec">
     <div class="section-title">tu manejo del dinero</div>
     <div class="panel" id="score-panel"><div class="empty-state">calculando...</div></div>
+    <div class="section-title mt">tus inversiones frente a otras opciones</div>
+    <div class="panel" id="decisiones-panel"><div class="empty-state">calculando...</div></div>
   </div>
   <div class="sec">
     <div class="section-title">tu referencia personal</div>
@@ -884,8 +916,6 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
       <div class="item-meta" style="margin-top:8px" id="perfil-fuente">—</div>
       <button type="button" class="btn btn-red" style="margin-top:12px" onclick="quitarFoto()">quitar foto de perfil</button>
     </div>
-    <div class="section-title mt">tus inversiones frente a otras opciones</div>
-    <div class="panel" id="decisiones-panel"><div class="empty-state">calculando...</div></div>
     <!-- interruptor del tablero de inversiones: no todo el mundo invierte, y a quien no
          lo hace una pestaña llena de graficas vacias solo le estorba -->
     <div class="section-title mt">tablero de inversiones</div>
@@ -1501,6 +1531,7 @@ let state = {
   ivvPrecio:154, ivvVar:null, ivvHistory:[],
   nvdaPrecio:null, nvdaPrev:null, nvdaFecha:'', usdMxn:null, usdMxnPrev:null, usdMxnFecha:'',
   nvdaHistory:[], usdMxnHistory:[],
+  rendimientos:[], // tramos cerrados de interes de las cuentas compuestas: un doc por tramo (ver C_REND)
   stocksOps:[], posiciones:{}, accionesMkt:{}, // ledger de operaciones de bolsa, posiciones derivadas y cotizaciones por simbolo
   // datos por ticker que NINGUNA API gratis da (el tablero del video los saca de un
   // complemento de paga): sector y dividendo anual por accion, en dolares. Se capturan
@@ -1555,12 +1586,13 @@ async function pintarDesdeCache() {
       getDocsFromCache(query(collection(db,'ingresos'), orderBy('fecha','desc'))),
       getDocsFromCache(query(collection(db,'transferencias'), orderBy('fecha','desc'))),
       getDocsFromCache(query(collection(db,'stocksOps'), orderBy('fecha','asc'))),
+      getDocsFromCache(query(collection(db,C_REND), orderBy('fin','asc'))),
     ]);
   } catch(e) { return false; }
   // getDocFromCache/getDocsFromCache LANZAN si eso no esta guardado en el aparato:
   // si alguna falto, la copia local no alcanza para una pantalla coherente
   if (r.some(x => x.status !== 'fulfilled')) return false;
-  const [sD,tD,trvD,pD,cD,hD,mD,fD,gS,iS,trS,opS] = r.map(x => x.value);
+  const [sD,tD,trvD,pD,cD,hD,mD,fD,gS,iS,trS,opS,rS] = r.map(x => x.value);
   // sin saldos, personas o tarjeta no alcanza para una pantalla coherente: pintar
   // personas vacio enseñaria los PERSONAS_DEFAULT del codigo como si fueran deudas reales
   if (!sD.exists() || !pD.exists() || !tD.exists()) return false;
@@ -1610,6 +1642,7 @@ async function pintarDesdeCache() {
     state.gastos         = gS.docs.map(x => ({id:x.id, ...x.data()})).sort(ord);
     state.ingresos       = iS.docs.map(x => ({id:x.id, ...x.data()})).sort(ord);
     state.transferencias = trS.docs.map(x => ({id:x.id, ...x.data()})).sort(ord);
+    state.rendimientos = rS.docs.map(x => ({id:x.id, ...x.data()}));
     state.stocksOps = opS.docs.map(x => ({id:x.id, ...x.data()}))
       .filter(o => o && typeof o.simbolo==='string' && Number.isFinite(o.acciones) && o.acciones>0
                 && (o.tipo==='compra'||o.tipo==='venta') && typeof o.fecha==='string');
@@ -1672,7 +1705,7 @@ async function loadFromFirebase() {
       sDoc, mDoc, pDoc, perDoc, tDoc,
       trvDoc, hDoc, aDoc, mtDoc, cDoc, tkDoc, fDoc,
       gSnap, iSnap, trSnap, opSnap
-    ] = await Promise.all([
+    , rendSnap] = await Promise.all([
       getDoc(doc(db,'cartera','saldos')),
       getDoc(doc(db,'cartera','mercado')),
       getDoc(doc(db,'cartera','personas')),
@@ -1689,6 +1722,7 @@ async function loadFromFirebase() {
       getDocs(query(collection(db,'ingresos'), orderBy('fecha','desc'))),
       getDocs(query(collection(db,'transferencias'), orderBy('fecha','desc'))),
       getDocs(query(collection(db,'stocksOps'), orderBy('fecha','asc'))),
+      getDocs(query(collection(db,C_REND), orderBy('fin','asc'))),
     ]);
     // si los datos vinieron de la cache local (red caida o lentisima) NO se corren
     // las siembras/migraciones: decidirian sobre un estado viejo y podrian reaplicar
@@ -1926,6 +1960,7 @@ async function loadFromFirebase() {
     state.gastos = gSnap.docs.map(d => ({id:d.id, ...d.data()})).sort(ordFecha);
     state.ingresos = iSnap.docs.map(d => ({id:d.id, ...d.data()})).sort(ordFecha);
     state.transferencias = trSnap.docs.map(d => ({id:d.id, ...d.data()})).sort(ordFecha);
+    state.rendimientos = rendSnap.docs.map(d => ({id:d.id, ...d.data()}));
     const opsCrudas = opSnap.docs.map(d => ({id:d.id, ...d.data()}));
     state.stocksOps = opsCrudas.filter(o=>o&&typeof o.simbolo==='string'&&/^[A-Z][A-Z0-9.\-]{0,9}$/.test(o.simbolo)
         &&Number.isFinite(o.acciones)&&o.acciones>0&&(o.tipo==='compra'||o.tipo==='venta')
@@ -2306,6 +2341,16 @@ function suscribirEnVivo() {
     }, err=>{ console.error('onSnapshot',err); setSyncDot('err'); });
     unsubs.push(u);
   });
+  // la coleccion de tramos tambien en vivo: un movimiento hecho en otro dispositivo cierra un
+  // tramo alla, y 'ganado en total' aqui debe verlo sin recargar. Mismo candado que los docs.
+  const uR=onSnapshot(query(collection(db,C_REND), orderBy('fin','asc')), snap=>{
+    if(!datosCargados) return;
+    const docs=snap.docs.map(d=>({id:d.id, ...d.data()}));
+    const aplica=d=>{ state.rendimientos=d; }, pinta=()=>refrescar(render,renderResumen);
+    if(dineroOcupado){ snapsPendientes.set('__rendimientos',{datos:docs,aplica,pinta}); return; }
+    try { aplica(docs); pinta(); setSyncDot('ok'); } catch(e) { console.error('snapshot rendimientos',e); }
+  }, err=>{ console.error('onSnapshot rendimientos',err); setSyncDot('err'); });
+  unsubs.push(uR);
 }
 // se vacia al liberar el candado (ver liberarDinero)
 function drenarSnapshots() {
@@ -2330,6 +2375,12 @@ function desuscribir() { unsubs.forEach(u=>{ try{ u(); }catch(e){} }); unsubs=[]
 const nFin = (v,d=0) => Number.isFinite(v) ? v : d;   // lo que llegue corrupto vale 0
 const c2   = n => Math.round(n*100)/100;              // corta el ruido de punto flotante
 const cent = n => Math.round(n*100);                  // comparaciones exactas, en centavos
+// coleccion de tramos de rendimiento: un documento por tramo CERRADO de una cuenta de interes
+const C_REND = (typeof PFX === 'string' ? PFX : '') + 'rendimientos';
+// fecha REAL, no solo con forma de fecha: '2026-02-30' se normaliza a marzo y '2026-13-01' no existe
+const esFechaReal = f => { if (typeof f !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(f)) return false;
+  const [y, m, d] = f.split('-').map(Number); const t = parseFechaLocal(f);
+  return !isNaN(t.getTime()) && t.getFullYear() === y && t.getMonth() + 1 === m && t.getDate() === d; };
 let dineroOcupado=false; // guard de doble toque: UNA sola operacion de dinero a la vez
 // soltar el candado SIEMPRE por aqui: al liberar hay que aplicar los cambios remotos
 // que llegaron durante la operacion y se dejaron en espera
@@ -2418,6 +2469,10 @@ async function txDinero(plan) {
   const mb = plan.movBorrar || null;
   // instante FIJO: los reintentos de la transaccion deben calcular el mismo interes
   const ahora = Date.now(), hoy = hoyLocal();
+  // referencias FIJAS para los tramos de rendimiento: se crean fuera de la transaccion para
+  // que un reintento escriba el MISMO documento y no uno nuevo por intento
+  const rendRefs = {};
+  for (const s of Object.keys(CAMPO_COMP)) rendRefs[s] = doc(collection(db, C_REND));
   try {
     const res = await runTransaction(db, async tx => {
       // COPIA FRESCA en cada intento. Firestore puede reejecutar este callback (maxAttempts:8)
@@ -2452,6 +2507,47 @@ async function txDinero(plan) {
       const slotsAplicar = (mb && !aplicaMov) ? [] :
         Object.keys(deltas).filter(k => (CAMPO_SIMPLE[k] || CAMPO_COMP[k]) && cent(deltas[k]) !== 0);
       const sal = (sSnap && sSnap.exists()) ? sSnap.data() : {};
+      // ── TRAMOS DE RENDIMIENTO: toda cuenta de interes que esta operacion reancla (por un
+      // movimiento, por cambio de tasa o por captura manual) cierra UN tramo con el interes que
+      // genero desde su fecha base, calculado con el modelo VIGENTE en el servidor. Asi la
+      // historia no se borra al mover dinero. Una captura con fecha pasada cierra el tramo en ESA
+      // fecha (lo posterior lo cubre la nueva ancla): ningun dia se cuenta dos veces. Un segundo
+      // movimiento el mismo dia no genera tramo (cero dias completos = cero interes).
+      const tramos = [];
+      if (usaSaldos) {
+        const cierra = new Set([...cristal, ...slotsAplicar.filter(k => CAMPO_COMP[k])]);
+        for (const k of Object.keys(CAMPO_COMP)) {
+          const cfg = CAMPO_COMP[k];
+          if (absolutos[cfg.base] !== undefined || absolutos[cfg.fecha] !== undefined) cierra.add(k);
+        }
+        const esFecha = esFechaReal;
+        for (const k of cierra) {
+          const cfg = CAMPO_COMP[k]; if (!cfg || !rendRefs[k]) continue;
+          const b = nFin(sal[cfg.base]), f0 = sal[cfg.fecha];
+          if (!(b > 0) || !esFecha(f0)) continue;
+          const capF = absolutos[cfg.fecha];
+          // una fecha base anterior a la vigente pisaria dias que ya cerraron en otro tramo: se rechaza
+          if (esFecha(capF) && capF < f0)
+            return {error:'la fecha base de ' + (CUENTAS[k]||k) + ' no puede ser anterior a la ultima (' + f0 + ')'};
+          // capturar y mover la misma cuenta a la vez dejaria sin tramo los dias entre la captura y hoy
+          if ((absolutos[cfg.base] !== undefined || esFecha(capF)) && slotsAplicar.includes(k))
+            return {error:'no se puede capturar y mover ' + (CUENTAS[k]||k) + ' en la misma operacion'};
+          const fin = (esFecha(capF) && capF < hoy) ? capF : hoy;
+          if (!(fin > f0)) continue;
+          const msFin = fin === hoy ? ahora : parseFechaLocal(fin).getTime();
+          const mod = modeloComp(sal, cfg);
+          const saldoFin = calcCompoundAt(b, f0, msFin, mod);
+          const monto = c2(saldoFin - b);   // puede ser cero (tasa 0 o saldo chico): el tramo se guarda igual, es capital
+          const motivo = (absolutos[cfg.base] !== undefined || absolutos[cfg.fecha] !== undefined) ? 'captura'
+                       : cristal.includes(k) ? 'tasa' : 'movimiento';
+          const t = {slot:k, ini:f0, fin, base:c2(b), saldoFin:c2(saldoFin), monto, motivo,
+                     modelo:{tasa:mod.tasa, tope:mod.tope, tasaExc:mod.tasaExc, ret:mod.ret, dias:mod.dias},
+                     creado:new Date(ahora).toISOString()};
+          // lo que el usuario teclea manda sobre el modelo; la diferencia se guarda como AJUSTE, no como interes
+          if (absolutos[cfg.base] !== undefined) t.ajuste = c2(nFin(absolutos[cfg.base]) - saldoFin);
+          tramos.push({ref:rendRefs[k], data:t});
+        }
+      }
       const campos = {};      // lo que se escribira en cartera/saldos
       const saldosFinales = {}; // slot -> saldo resultante (para avisar y refrescar memoria)
       // CRISTALIZAR: consolida el interes ya generado con la tasa VIEJA sobre el valor
@@ -2624,7 +2720,9 @@ async function txDinero(plan) {
       if (fondo) tx.set(doc(db,'cartera','fondo'), fondo);
       for (const c of (plan.crear||[])) tx.set(c.ref, c.data);
       for (const r of (plan.borrar||[])) tx.delete(r);
+      for (const t of tramos) tx.set(t.ref, t.data);
       return {ok:true, saldos:saldosFinales, campos, tarjeta, tdcRev, persona, fondo,
+              tramos: tramos.map(t => ({id:t.ref.id || null, ...t.data})),
               movAplicaba: mb ? !movSinEfecto(mbSnap.data()) : undefined};
     }, {maxAttempts:8});
     setSyncDot('ok'); // la transaccion llego al servidor (aunque haya devuelto {error})
@@ -2665,6 +2763,7 @@ function aplicarRes(res) {
   if (res.tarjeta) { state.tarjetaDeuda = res.tarjeta.deuda; state.tarjetaMovimientos = res.tarjeta.movimientos; }
   if (res.fondo)   state.fondo = saneaFondo(res.fondo);
   if (res.tdcRev)  { state.revTdcDeuda = res.tdcRev.deuda; state.revTdcDeposito = res.tdcRev.deposito; state.revTdcMovs = res.tdcRev.movimientos; }
+  if (Array.isArray(res.tramos) && res.tramos.length) state.rendimientos = [...(state.rendimientos||[]), ...res.tramos];
 }
 // un fallo pintando la pantalla NO debe reportarse como "no se guardo": ya se guardo
 function refrescar(...fns) { for (const f of fns) { try { f(); } catch(e) { console.error('render',e); } } }
@@ -2703,6 +2802,9 @@ async function saveCategorias() {
 // ── CATEGORIAS PERSONALIZADAS ─────────────────────────────────
 function renderCatSelect(selectId, cats) {
   const sel=document.getElementById(selectId);
+  // los dividendos se registran como ingreso 'Dividendos' (asi los cuentan el tablero y el resumen):
+  // la categoria se ofrece aunque el usuario no la haya creado, sin escribirla hasta que la use
+  if(selectId==='ingreso-cat'&&Array.isArray(cats)&&!cats.some(c=>/dividend/i.test(String(c)))) cats=[...cats,'Dividendos'];
   const prev=sel.value;
   sel.innerHTML=cats.map(c=>`<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join('')+'<option value="__nueva__">+ agregar categoria...</option>';
   if(cats.includes(prev)) sel.value=prev;
@@ -2781,16 +2883,26 @@ try{ const w=JSON.parse(localStorage.getItem('watchlist')||'[]');
   if(Array.isArray(w)) watchlist=w.filter(s=>typeof s==='string'&&/^[A-Z][A-Z0-9.\-]{0,9}$/.test(s)).slice(0,NOTI_MAX_WATCH); }catch(e){}
 
 // descarga texto crudo por los proxies (allorigins envuelve en JSON; corsproxy no)
+// Proxies CORS publicos, del mas confiable al menos. corsproxy.io dejo de aceptar uso anonimo el
+// 16-sep-2026 (exige clave de pago) y se quito; allorigins responde intermitente (500/522 una de
+// cada dos veces), por eso aparece dos veces: la segunda con un parametro distinto para no pegarle
+// a su cache. json=true significa que el cuerpo viene envuelto en {contents:"..."}.
+function proxiesPara(url) {
+  const e=encodeURIComponent(url);
+  return [
+    {u:`https://api.allorigins.win/get?url=${e}`,json:true},
+    {u:`https://api.codetabs.com/v1/proxy?quest=${e}`,json:false},
+    {u:`https://api.allorigins.win/raw?url=${e}`,json:false},
+    {u:`https://api.allorigins.win/get?url=${e}&_r=${Date.now()%1000}`,json:true},
+  ];
+}
 async function fetchTextoViaProxies(url) {
-  const proxies=[u=>({u:`https://api.allorigins.win/get?url=${encodeURIComponent(u)}`,json:true}),
-                 u=>({u:`https://corsproxy.io/?${encodeURIComponent(u)}`,json:false})];
-  for(const mk of proxies){
-    const {u,json}=mk(url);
+  for(const {u,json} of proxiesPara(url)){
     try{
-      const r=await fetch(u,{signal:AbortSignal.timeout(12000)});
+      const r=await fetch(u,{signal:AbortSignal.timeout(20000)});
       if(!r.ok) continue;
       const txt=await r.text();
-      if(json){ try{ const o=JSON.parse(txt); if(typeof o.contents==='string'&&o.contents.trim()) return o.contents; }catch(e){} continue; }
+      if(json){ try{ const o=JSON.parse(txt); if(o&&o.status&&Number(o.status.http_code)>=400) continue; if(typeof o.contents==='string'&&o.contents.trim()) return o.contents; }catch(e){} continue; }
       if(txt&&txt.trim()) return txt;
     }catch(e){ /* proxy caido o timeout: se intenta el siguiente */ }
   }
@@ -3154,6 +3266,105 @@ function calcRevSavings() {
   const saldo=calcRevSavingsAt(Date.now());
   return {saldo, rend:saldo-(state.revSavingsBase||0)};
 }
+// ── RENDIMIENTO HISTORICO POR TRAMOS ──────────────────────────
+// Cada vez que una cuenta de interes se reancla, txDinero guarda el tramo que cerro (base, fechas,
+// modelo y monto) en la coleccion C_REND. Con eso el interes de CUALQUIER periodo se recalcula exacto
+// sobre la interseccion con cada tramo, y mover dinero ya no borra la historia. La 'semilla' es lo
+// que el banco reporta ganado HASTA una fecha de corte: cubre todo lo anterior y nada de eso se
+// vuelve a sumar. Los documentos se guardan crudos en state.rendimientos y se sanean al leerlos.
+function saneaTramo(t) {
+  if (!t || typeof t !== 'object' || !CAMPO_COMP[t.slot]) return null;
+  const f = esFechaReal;
+  if (!f(t.fin) || !Number.isFinite(t.monto)) return null;
+  if (t.motivo === 'semilla') return {id:t.id||null, slot:t.slot, motivo:'semilla', ini:null, fin:t.fin, monto:c2(t.monto), base:0, modelo:null};
+  if (!f(t.ini) || !(t.ini < t.fin) || !Number.isFinite(t.base) || t.base <= 0) return null;
+  const m = (t.modelo && typeof t.modelo === 'object') ? t.modelo : {};
+  return {id:t.id||null, slot:t.slot, motivo:typeof t.motivo==='string'?t.motivo:'movimiento', ini:t.ini, fin:t.fin,
+          base:t.base, monto:c2(t.monto), ajuste:Number.isFinite(t.ajuste)?t.ajuste:0,
+          modelo:{tasa:nFin(m.tasa), tope:Number.isFinite(m.tope)?m.tope:null, tasaExc:nFin(m.tasaExc), ret:nFin(m.ret), dias:nFin(m.dias,365)}};
+}
+function tramosDe(slot) { return (state.rendimientos||[]).map(saneaTramo).filter(t => t && t.slot === slot); }
+function semillaDe(slot) { return tramosDe(slot).find(t => t.motivo === 'semilla') || null; }
+// interes que genero un tramo entre dos instantes [a,b) en ms: diferencia exacta del modelo
+function interesTramoEn(t, a, b) {
+  const ia = Math.max(a, parseFechaLocal(t.ini).getTime());
+  const ib = Math.min(b, t.fin ? parseFechaLocal(t.fin).getTime() : b);
+  if (!(ib > ia)) return 0;
+  return calcCompoundAt(t.base, t.ini, ib, t.modelo) - calcCompoundAt(t.base, t.ini, ia, t.modelo);
+}
+// el tramo ABIERTO de una cuenta: su ancla vigente (base + fecha + modelo actual), sin fin
+function tramoAbierto(slot) {
+  const cfg = CAMPO_COMP[slot]; if (!cfg) return null;
+  const base = nFin(state[cfg.base]), ini = state[cfg.fecha];
+  if (!(base > 0) || typeof ini !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(ini)) return null;
+  return {slot, ini, fin:null, base, modelo:modeloComp(state, cfg)};
+}
+// interes de una cuenta en [a,b): tramos cerrados + tramo abierto, nunca antes del corte de la semilla
+function interesEnRango(slot, a, b) {
+  const sem = semillaDe(slot);
+  if (sem) a = Math.max(a, parseFechaLocal(sem.fin).getTime());
+  let t = 0;
+  for (const x of tramosDe(slot)) if (x.motivo !== 'semilla') t += interesTramoEn(x, a, b);
+  const ab = tramoAbierto(slot); if (ab) t += interesTramoEn(ab, a, b);
+  return t;
+}
+// desde cuando hay historia de una cuenta (la semilla o el tramo mas viejo); null si no hay nada
+function inicioHistoria(slot) {
+  const sem = semillaDe(slot); if (sem) return sem.fin;
+  const inis = tramosDe(slot).map(t => t.ini).filter(Boolean);
+  const ab = tramoAbierto(slot); if (ab) inis.push(ab.ini);
+  return inis.length ? inis.sort()[0] : null;
+}
+// todo lo que la cuenta ha ganado en su vida: semilla + tramos cerrados + lo que corre desde la ultima ancla
+function rendAcumulado(slot) {
+  const sem = semillaDe(slot);
+  return (sem ? sem.monto : 0) + interesEnRango(slot, -8.64e15, Date.now());
+}
+// saldo de una cuenta en un instante pasado segun el tramo que lo cubria; null si ninguno lo cubre
+function saldoCuentaEn(slot, ms) {
+  // en la frontera exacta manda el tramo que CIERRA ahi: es el saldo antes del movimiento que
+  // reanclo la cuenta; ese movimiento entra despues como flujo, y asi no se cuenta dos veces
+  const c = tramosDe(slot).find(x => x.motivo !== 'semilla' && parseFechaLocal(x.ini).getTime() <= ms && ms <= parseFechaLocal(x.fin).getTime());
+  if (c) return calcCompoundAt(c.base, c.ini, ms, c.modelo);
+  const ab = tramoAbierto(slot);
+  return (ab && parseFechaLocal(ab.ini).getTime() <= ms) ? calcCompoundAt(ab.base, ab.ini, ms, ab.modelo) : null;
+}
+// SEMILLA del rendimiento historico: lo que el banco reporta ganado hasta una fecha de corte.
+// No es dinero que se mueva (no toca saldos), asi que se escribe directo: un solo documento
+// por cuenta, con id fijo, para que corregirlo reemplace y nunca sume dos veces.
+window.guardarRendimientoHistorico = async function() {
+  const lee=id=>{ const v=document.getElementById(id).value.trim(); return v===''?null:v; };
+  const pares=[['cajita1','input-cajita1-semilla','input-cajita1-semilla-fecha'],
+               ['revSavings','input-rev-savings-semilla','input-rev-savings-semilla-fecha']];
+  const escrituras=[];
+  for(const [slot,idM,idF] of pares){
+    const m=lee(idM), f=lee(idF);
+    if(m===null&&f===null) continue;
+    const monto=parseFloat(m);
+    if(!Number.isFinite(monto)||monto<0){ showToast('monto invalido en '+(CUENTAS[slot]||slot)); return; }
+    if(!esFechaReal(f)||f>hoyLocal()){ showToast('fecha invalida en '+(CUENTAS[slot]||slot)); return; }
+    const viejo=tramosDe(slot).filter(t=>t.motivo!=='semilla').map(t=>t.ini).sort()[0];
+    if(viejo&&f>viejo){ showToast('en '+(CUENTAS[slot]||slot)+' ya hay historia desde el '+viejo+': la fecha de corte debe ser anterior'); return; }
+    escrituras.push({slot,monto:c2(monto),fin:f});
+  }
+  if(!escrituras.length){ showToast('no capturaste ningun dato'); return; }
+  const btn=document.getElementById('semilla-btn'); if(btn) btn.disabled=true;
+  try{
+    // un solo batch: o se guardan las dos semillas o ninguna (sin exitos a medias)
+    const lote=writeBatch(db), nuevos=[];
+    for(const e of escrituras){
+      const data={slot:e.slot,motivo:'semilla',ini:null,fin:e.fin,monto:e.monto,creado:new Date().toISOString()};
+      lote.set(doc(db,C_REND,'semilla_'+e.slot),data); nuevos.push({id:'semilla_'+e.slot,...data});
+    }
+    await lote.commit();
+    const tocadas=new Set(escrituras.map(e=>e.slot));
+    state.rendimientos=(state.rendimientos||[]).filter(t=>!(t&&tocadas.has(t.slot)&&t.motivo==='semilla')).concat(nuevos);
+    setSyncDot('ok'); showToast('rendimiento historico guardado');
+    pares.forEach(([,a,b])=>{ document.getElementById(a).value=''; document.getElementById(b).value=''; });
+    refrescar(render, renderResumen);
+  }catch(e){ setSyncDot('err'); console.error('semilla',e); showToast('no se pudo guardar — revisa tu conexion'); }
+  finally{ if(btn) btn.disabled=false; }
+};
 function diasParaCorte() {
   const now=new Date();
   let corte=new Date(now.getFullYear(),now.getMonth(),18);
@@ -3180,7 +3391,9 @@ function render() {
   const nu1=calcNu1();
   document.getElementById('nu-cajita1-display').textContent=fmt(nu1.saldo);
   document.getElementById('nu1-sub').textContent=descModelo('cajita1')+(apartadoDe('cajita1')>0?' · incluye '+fmt(apartadoDe('cajita1'))+' del fondo · libres '+fmt(Math.max(0,disponibleCuenta('cajita1'))):'');
-  document.getElementById('nu1-rend').textContent=nu1.rend>0?'+'+fmt(nu1.rend):fmt(0);
+  const ac1=rendAcumulado('cajita1');
+  document.getElementById('nu1-rend').textContent=ac1>0.005?'+'+fmt(ac1):fmt(0);
+  document.getElementById('nu1-acum-val').textContent='+'+fmt(Math.max(0,ac1));
   document.getElementById('nu1-base-val').textContent=fmt(state.nuCajita1Base);
   document.getElementById('nu1-rend-val').textContent='+'+fmt(nu1.rend);
   document.getElementById('nu-saldo-display').textContent=fmt(state.nuSaldo);
@@ -3193,7 +3406,9 @@ function render() {
   const rs=calcRevSavings();
   document.getElementById('rev-savings-display').textContent=fmt(rs.saldo);
   document.getElementById('rev-savings-sub').textContent=descModelo('revSavings')+(apartadoDe('revSavings')>0?' · incluye '+fmt(apartadoDe('revSavings'))+' del fondo · libres '+fmt(Math.max(0,disponibleCuenta('revSavings'))):'');
-  document.getElementById('rev-savings-rend').textContent=rs.rend>0?'+'+fmt(rs.rend):fmt(0);
+  const acRS=rendAcumulado('revSavings');
+  document.getElementById('rev-savings-rend').textContent=acRS>0.005?'+'+fmt(acRS):fmt(0);
+  document.getElementById('rev-savings-acum-val').textContent='+'+fmt(Math.max(0,acRS));
   document.getElementById('rev-savings-base-val').textContent=fmt(state.revSavingsBase);
   document.getElementById('rev-savings-rend-val').textContent='+'+fmt(rs.rend);
   // BOLSA: valor total de las posiciones abiertas (acciones x precio USD x tipo de cambio)
@@ -4096,10 +4311,112 @@ function renderDeudas() {
       const del=(m.id&&m.v===2)?`<button class="del-btn" onclick="eliminarDeuda('${key}','${m.id}')">&times;</button>`:'';
       return`<div class="item-row"><div><div class="item-cat">${escapeHtml(m.subcat)}</div><div class="item-meta">${meta}</div></div><div style="display:flex;align-items:center"><div class="${isNeg?'item-amt-neg':'item-amt-pos'}">${isNeg?'-':'+'}${fmt(m.monto)}</div>${del}</div></div>`;
     }).join('');
-    return`<div class="deuda-person"><div class="deuda-header" onclick="toggleDeuda('d-${key}')"><div><div class="deuda-name">${escapeHtml(p.nombre)}</div><div class="deuda-sub">${isPos?'te debe':'le debes'}</div></div><div class="deuda-total ${isPos?'pos':'neg'}">${fmt(Math.abs(p.saldo))}</div></div><div class="deuda-detail" id="d-${key}">${movs||'<div class="empty-state" style="padding:12px 0">sin movimientos</div>'}</div></div>`;
+    return`<div class="deuda-person"><div class="deuda-header" onclick="toggleDeuda('d-${key}')"><div><div class="deuda-name">${escapeHtml(p.nombre)}</div><div class="deuda-sub">${isPos?'te debe':'le debes'}</div></div><div class="deuda-total ${isPos?'pos':'neg'}">${fmt(Math.abs(p.saldo))}</div></div><div class="deuda-detail" id="d-${key}">${excelPanelHTML(key)}${movs||'<div class="empty-state" style="padding:12px 0">sin movimientos</div>'}</div></div>`;
   }).join('');
 }
 window.toggleDeuda=id=>document.getElementById(id).classList.toggle('open');
+
+// ── EXCEL DE UNA CUENTA (deudas) ──────────────────────────────
+// 16-sep-2026, Roberto: "poder descargar un Excel de mi cuenta con mi papa, de una semana, un mes,
+// tres, seis, un año, todo, o de fecha a fecha". La libreria (ExcelJS, cdnjs) se carga SOLO al
+// pulsar descargar: pesa ~900 KB y casi nunca se usa. El saldo se reconstruye HACIA ATRAS desde
+// el saldo actual de la persona, para que el Excel cuadre con lo que la app muestra hoy aunque la
+// suma de movimientos viejos no coincida (datos legados editados a mano).
+function excelPanelHTML(key) {
+  const k=escapeHtml(key);
+  return `<div class="xl-panel" onclick="event.stopPropagation()">`+
+    `<select id="xl-per-${k}" onchange="xlPeriodo('${k}')" aria-label="periodo del Excel">`+
+    `<option value="1m">ultimo mes</option><option value="1s">ultima semana</option><option value="3m">ultimos 3 meses</option>`+
+    `<option value="6m">ultimos 6 meses</option><option value="1a">ultimo año</option><option value="todo" selected>todo</option>`+
+    `<option value="rango">de fecha a fecha…</option></select>`+
+    `<span class="xl-fechas" id="xl-fechas-${k}" style="display:none"><input type="text" id="xl-desde-${k}" placeholder="desde YYYY-MM-DD">`+
+    `<input type="text" id="xl-hasta-${k}" placeholder="hasta YYYY-MM-DD"></span>`+
+    `<button type="button" class="btn" id="xl-btn-${k}" onclick="excelDeuda('${k}')">descargar Excel</button></div>`;
+}
+window.xlPeriodo=function(k){ const f=document.getElementById('xl-fechas-'+k), s=document.getElementById('xl-per-'+k); if(f&&s) f.style.display=s.value==='rango'?'':'none'; };
+let excelJsCarga=null;
+function cargarExcelJS() {
+  if(window.ExcelJS) return Promise.resolve(window.ExcelJS);
+  if(!excelJsCarga) excelJsCarga=new Promise((ok,no)=>{
+    const sc=document.createElement('script');
+    sc.src='https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js';
+    sc.onload=()=>ok(window.ExcelJS); sc.onerror=()=>{ excelJsCarga=null; no(new Error('no se pudo cargar ExcelJS')); };
+    document.head.appendChild(sc);
+  });
+  return excelJsCarga;
+}
+// [a,b] en ms y una etiqueta legible; null si las fechas no sirven
+function rangoExcel(sel, desde, hasta) {
+  const fin=new Date(); fin.setHours(23,59,59,999);
+  if(sel==='todo') return {a:-8.64e15, b:fin.getTime(), etiq:'todo el historial', arch:'todo'};
+  if(sel==='rango'){
+    if(!esFechaReal(desde)||!esFechaReal(hasta)||desde>hasta) return null;
+    const a=parseFechaLocal(desde), b=parseFechaLocal(hasta); b.setHours(23,59,59,999);
+    return {a:a.getTime(), b:b.getTime(), etiq:'del '+desde+' al '+hasta, arch:desde+'_'+hasta};
+  }
+  const dias={'1s':7,'1m':30,'3m':91,'6m':182,'1a':365}[sel]; if(!dias) return null;
+  const ini=new Date(fin); ini.setHours(0,0,0,0); ini.setDate(ini.getDate()-dias+1);
+  const nom={'1s':'ultima semana','1m':'ultimo mes','3m':'ultimos 3 meses','6m':'ultimos 6 meses','1a':'ultimo año'}[sel];
+  return {a:ini.getTime(), b:fin.getTime(), etiq:nom+' ('+ini.toLocaleDateString('es-MX')+' al '+fin.toLocaleDateString('es-MX')+')', arch:sel};
+}
+window.excelDeuda=async function(key) {
+  const p=(state.personas||{})[key]; if(!p){ showToast('esa persona ya no existe — recarga la app'); return; }
+  const sel=(document.getElementById('xl-per-'+key)||{}).value||'todo';
+  const d1=((document.getElementById('xl-desde-'+key)||{}).value||'').trim(), d2=((document.getElementById('xl-hasta-'+key)||{}).value||'').trim();
+  const r=rangoExcel(sel,d1,d2); if(!r){ showToast('revisa las fechas (YYYY-MM-DD, la primera antes de la segunda)'); return; }
+  const btn=document.getElementById('xl-btn-'+key); if(btn){ btn.disabled=true; btn.textContent='preparando…'; }
+  try{
+    const ExcelJS=await cargarExcelJS();
+    const signo=m=>((DEUDA_TIPOS[m.tipo]||{deuda:-1}).deuda)*nFin(m.monto);
+    const movs=(p.movimientos||[]).filter(m=>m&&Number.isFinite(m.monto)&&msFechaMov(m.fecha)!==null)
+      .sort((x,y)=>String(x.fecha||'').localeCompare(String(y.fecha||'')));
+    // un movimiento con fecha corrupta (dato viejo) no se puede ubicar en el tiempo: queda fuera del
+    // Excel, pero se AVISA cuantos fueron, en el archivo y en pantalla, en vez de callarlo
+    const excluidos=(p.movimientos||[]).length-movs.length;
+    const dentro=movs.filter(m=>{ const t=msFechaMov(m.fecha); return t>=r.a&&t<=r.b; });
+    const despues=movs.filter(m=>msFechaMov(m.fecha)>r.b);
+    const saldoFinal=c2(nFin(p.saldo)-despues.reduce((t,m)=>t+signo(m),0));
+    const saldoInicial=c2(saldoFinal-dentro.reduce((t,m)=>t+signo(m),0));
+    const nombre=String(p.nombre||key);
+    const wb=new ExcelJS.Workbook(); wb.creator='Mi Cartera'; wb.created=new Date();
+    const ws=wb.addWorksheet('Cuenta con '+nombre.slice(0,20),{views:[{showGridLines:false,state:'frozen',ySplit:8}]});
+    const VERDE='FF1F5F45', VCLARO='FFE8F1EC', GRIS='FFF5F7F6', ROJO='FFB42318', MON='"$"#,##0.00;[Red]-"$"#,##0.00';
+    const relleno=c=>({type:'pattern',pattern:'solid',fgColor:{argb:c}});
+    ws.columns=[{width:12},{width:18},{width:36},{width:18},{width:22},{width:15}];
+    ws.getCell('A1').value='Cuenta con '+nombre; ws.getCell('A1').font={bold:true,size:16,color:{argb:VERDE}};
+    ws.getCell('A2').value='Mi Cartera'; ws.getCell('A2').font={color:{argb:'FF6B7773'}};
+    ws.getCell('A4').value='Periodo'; ws.getCell('B4').value=r.etiq;
+    ws.getCell('A5').value='Generado'; ws.getCell('B5').value=new Date(); ws.getCell('B5').numFmt='dd/mm/yyyy';
+    ws.getCell('A6').value='Movimientos'; ws.getCell('B6').value=dentro.length;
+    ['A4','A5','A6'].forEach(c=>ws.getCell(c).font={bold:true});
+    const h=ws.getRow(8); h.values=['Fecha','Concepto','Nota','Me debe mas (+)','Me pago / le debo (−)','Saldo']; h.height=30;
+    h.eachCell(c=>{ c.font={bold:true,color:{argb:'FFFFFFFF'}}; c.fill=relleno(VERDE); c.alignment={horizontal:'center',vertical:'middle',wrapText:true}; });
+    let fila=9, saldo=saldoInicial;
+    const pre=ws.getRow(fila++); pre.values=['','Saldo al inicio del periodo','','','',saldoInicial];
+    pre.getCell(2).font={italic:true,color:{argb:'FF6B7773'}}; pre.getCell(6).numFmt=MON; pre.getCell(6).font={bold:true};
+    dentro.forEach((m,i)=>{
+      const sg=signo(m); saldo=c2(saldo+sg);
+      const row=ws.getRow(fila++);
+      row.values=[new Date(msFechaMov(m.fecha)), String(m.subcat||''), String(m.nota||''), sg>0?nFin(m.monto):null, sg<0?nFin(m.monto):null, saldo];
+      row.getCell(1).numFmt='dd/mm/yyyy'; [4,5,6].forEach(k=>row.getCell(k).numFmt=MON);
+      row.getCell(6).font={bold:true,color:{argb:saldo>=0?VERDE:ROJO}};
+      for(let k=1;k<=6;k++){ row.getCell(k).border={bottom:{style:'thin',color:{argb:'FFD0D7D3'}}}; if(i%2) row.getCell(k).fill=relleno(GRIS); }
+    });
+    const mas=dentro.filter(m=>signo(m)>0).reduce((t,m)=>t+nFin(m.monto),0), menos=dentro.filter(m=>signo(m)<0).reduce((t,m)=>t+nFin(m.monto),0);
+    const tot=ws.getRow(fila++); tot.values=['','Totales del periodo','',c2(mas),c2(menos),saldoFinal];
+    for(let k=1;k<=6;k++){ tot.getCell(k).font={bold:true}; tot.getCell(k).fill=relleno(VCLARO); } [4,5,6].forEach(k=>tot.getCell(k).numFmt=MON);
+    const fin=ws.getRow(fila++); fin.values=['',saldoFinal>=0?'Saldo final: '+nombre+' me debe':'Saldo final: le debo a '+nombre,'','','',Math.abs(saldoFinal)];
+    fin.getCell(2).font={bold:true,color:{argb:VERDE}}; fin.getCell(6).numFmt=MON; fin.getCell(6).font={bold:true,size:12,color:{argb:VERDE}};
+    if(excluidos>0){ const av=ws.getRow(fila+1); av.values=['',excluidos+' movimiento(s) sin fecha valida no se incluyeron: revisalos en la app']; av.getCell(2).font={italic:true,color:{argb:ROJO}}; }
+    const buf=await wb.xlsx.writeBuffer();
+    const blob=new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+    const a=document.createElement('a'); a.href=URL.createObjectURL(blob);
+    a.download='cuenta-'+nombre.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')+'-'+r.arch+'.xlsx';
+    document.body.appendChild(a); a.click(); setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); },1500);
+    showToast('Excel listo: '+dentro.length+' movimientos'+(excluidos>0?' · '+excluidos+' sin fecha valida quedaron fuera':''));
+  }catch(e){ console.error('excelDeuda',e); showToast('no se pudo generar el Excel — revisa tu conexion'); }
+  finally{ if(btn){ btn.disabled=false; btn.textContent='descargar Excel'; } }
+};
 
 window.eliminarDeuda = async function(personaKey, movId) {
   if(dineroOcupado) return;
@@ -6437,16 +6754,32 @@ function renderResumen() {
   const byCat={}; gastos.forEach(i=>byCat[i.cat]=(byCat[i.cat]||0)+i.monto);
   const sortedG=Object.entries(byCat).sort((a,b)=>b[1]-a[1]); const maxG=sortedG[0]?sortedG[0][1]:1;
   document.getElementById('res-pie').innerHTML=pieChart(sortedG);
-  document.getElementById('resumen-cats').innerHTML=sortedG.length?sortedG.map(([cat,amt])=>`<div class="resumen-bar"><div class="bar-header"><span class="bar-label">${escapeHtml(cat)}</span><span class="bar-amt neg">${fmt(amt)}</span></div><div class="bar-track"><div class="bar-fill" style="width:${(amt/maxG*100).toFixed(1)}%"></div></div></div>`).join(''):'<div class="empty-state">sin gastos en este periodo</div>';
+  document.getElementById('resumen-cats').innerHTML=sortedG.length?sortedG.map(([cat,amt])=>`<div class="resumen-bar" onclick="toggleCatDesglose(this,event)" title="ver los movimientos de esta categoria"><div class="bar-header"><span class="bar-label">${escapeHtml(cat)} <span class="bar-n">${gastos.filter(i=>i.cat===cat).length}</span></span><span class="bar-amt neg">${fmt(amt)}</span></div><div class="bar-track"><div class="bar-fill" style="width:${(amt/maxG*100).toFixed(1)}%"></div></div>${desgloseCatHTML(gastos.filter(i=>i.cat===cat),'neg')}</div>`).join(''):'<div class="empty-state">sin gastos en este periodo</div>';
   const byIng={}; ingresos.forEach(i=>byIng[i.cat]=(byIng[i.cat]||0)+i.monto);
   const sortedI=Object.entries(byIng).sort((a,b)=>b[1]-a[1]); const maxI=sortedI[0]?sortedI[0][1]:1;
   document.getElementById('res-pie-ingresos').innerHTML=pieChart(sortedI);
-  document.getElementById('resumen-ingresos-cats').innerHTML=sortedI.length?sortedI.map(([cat,amt])=>`<div class="resumen-bar"><div class="bar-header"><span class="bar-label">${escapeHtml(cat)}</span><span class="bar-amt pos">${fmt(amt)}</span></div><div class="bar-track"><div class="bar-fill bar-fill-green" style="width:${(amt/maxI*100).toFixed(1)}%"></div></div></div>`).join(''):'<div class="empty-state">sin ingresos en este periodo</div>';
+  document.getElementById('resumen-ingresos-cats').innerHTML=sortedI.length?sortedI.map(([cat,amt])=>`<div class="resumen-bar" onclick="toggleCatDesglose(this,event)" title="ver los movimientos de esta categoria"><div class="bar-header"><span class="bar-label">${escapeHtml(cat)} <span class="bar-n">${ingresos.filter(i=>i.cat===cat).length}</span></span><span class="bar-amt pos">${fmt(amt)}</span></div><div class="bar-track"><div class="bar-fill bar-fill-green" style="width:${(amt/maxI*100).toFixed(1)}%"></div></div>${desgloseCatHTML(ingresos.filter(i=>i.cat===cat),'pos')}</div>`).join(''):'<div class="empty-state">sin ingresos en este periodo</div>';
 
   renderRendimientos(start, end, balance);
   renderUtilidades(start, end);
   renderGBMResumen();
 }
+
+// ── DESGLOSE POR CATEGORIA (16-sep-2026, Roberto: "que aparezca el desglose de cada una") ──
+// cada barra de 'gastos/ingresos por categoria' se abre al tocarla y lista SUS movimientos del
+// periodo: fecha, nota y monto, del mas reciente al mas viejo. Va oculto para que la lista de
+// barras siga leyendose de un vistazo.
+function desgloseCatHTML(items, cls) {
+  const ord=items.slice().sort((a,b)=>String(b.fecha||'').localeCompare(String(a.fecha||'')));
+  const filas=ord.map(m=>`<div class="cat-mov"><span class="cat-mov-f">${escapeHtml(fmtFechaMov(m.fecha,{day:'numeric',month:'short'}))}</span><span class="cat-mov-n">${escapeHtml(m.nota||'sin nota')}</span><span class="cat-mov-m ${cls}">${fmt(m.monto)}</span></div>`).join('');
+  return `<div class="cat-desglose" style="display:none">${filas||'<div class="item-meta">sin movimientos</div>'}</div>`;
+}
+window.toggleCatDesglose=function(el,ev){
+  const d=el.querySelector('.cat-desglose'); if(!d) return;
+  if(ev&&ev.target&&ev.target.closest&&ev.target.closest('.cat-desglose')) return;  // leer el desglose no lo cierra
+  const abierto=d.style.display!=='none';
+  d.style.display=abierto?'none':''; el.classList.toggle('abierta',!abierto);
+};
 
 // ── UTILIDADES: cuanto gano tu dinero ─────────────────────────
 // valor de la bolsa en una fecha: usa el ULTIMO cierre comun (accion + tipo de cambio)
@@ -6486,18 +6819,21 @@ function renderUtilidades(start,end) {
   const dias=Math.max(0,(endC-start)/86400000);
   const filas=[];
   const fila=(ico,tit,meta,val)=>filas.push(`<div class="item-row"><div><div class="item-cat">${ico} ${escapeHtml(tit)}</div><div class="item-meta">${escapeHtml(meta)}</div></div><div style="font-size:14px;font-weight:600">${escapeHtml(val)}</div></div>`);
-  // 1) intereses: SOLO desde la fecha base vigente de cada cuenta. Un movimiento reancla
-  // base+fecha, asi que no se puede reconstruir el interes de periodos anteriores
-  const c1Fecha=state.nuCajita1Fecha?parseFechaLocal(state.nuCajita1Fecha).getTime():null;
-  const rsFecha=state.revSavingsFecha?parseFechaLocal(state.revSavingsFecha).getTime():null;
-  const iniC1=Math.max(start.getTime(),Number.isFinite(c1Fecha)?c1Fecha:start.getTime());
-  const iniRS=Math.max(start.getTime(),Number.isFinite(rsFecha)?rsFecha:start.getTime());
-  const int1=(dias>0&&endC.getTime()>iniC1)?Math.max(0,calcNu1At(endC.getTime())-calcNu1At(iniC1)):0;
-  const int2=(dias>0&&endC.getTime()>iniRS)?Math.max(0,calcRevSavingsAt(endC.getTime())-calcRevSavingsAt(iniRS)):0;
+  // 1) intereses: se recalculan exactos sobre los TRAMOS guardados (cerrados + el abierto), asi
+  // que mover dinero ya no borra la historia. Solo es parcial si la historia de una cuenta
+  // empieza dentro del periodo (antes de eso no hay tramos ni semilla)
+  const int1=(dias>0)?interesEnRango('cajita1',start.getTime(),endC.getTime()):0;
+  const int2=(dias>0)?interesEnRango('revSavings',start.getTime(),endC.getTime()):0;
   const intereses=int1+int2-rendFondoEnRango(start,endC); // lo conciliado al fondo no es tuyo
-  const parcialInt=(Number.isFinite(c1Fecha)&&c1Fecha>start.getTime()&&c1Fecha<endC.getTime())||(Number.isFinite(rsFecha)&&rsFecha>start.getTime()&&rsFecha<endC.getTime());
+  const h1=inicioHistoria('cajita1'), h2=inicioHistoria('revSavings');
+  const dentro=h=>!!h&&parseFechaLocal(h).getTime()>start.getTime()&&parseFechaLocal(h).getTime()<endC.getTime();
+  // cobertura: si una cuenta tiene historia pero ningun tramo cubre el arranque del periodo, esos
+  // dias no tienen interes conocido y su capital inicial tampoco (la semilla no reconstruye capital)
+  const cubre=k=>!inicioHistoria(k)||saldoCuentaEn(k,start.getTime())!==null;
+  const hueco=!cubre('cajita1')||!cubre('revSavings');
+  const parcialInt=dentro(h1)||dentro(h2)||hueco;
   fila('🏦','intereses de tus cuentas',
-    'cajita NU y Revolut Savings'+(parcialInt?' · parcial: solo desde la fecha base actual':''),'+'+fmt(intereses));
+    'cajita NU y Revolut Savings · descontando lo conciliado al fondo'+(parcialInt?' · parcial: '+(hueco?'hay dias sin historia en este periodo':'sin historia antes del '+(dentro(h1)?h1:h2)):''),(intereses>=0?'+':'−')+fmt(Math.abs(intereses)));
   // 2) plusvalia de bolsa = valorFin - valorIni - aportes netos del periodo (compras-ventas)
   const vIni=valorBolsaEn(start.getTime()-1), vFin=valorBolsaEn(endC.getTime());
   let plus=null, motivo='';
@@ -6512,18 +6848,20 @@ function renderUtilidades(start,end) {
   }
   if(plus===null) fila('📈','plusvalia de tus acciones',motivo,'—');
   else fila('📈','plusvalia de tus acciones','cambio de valor sin contar lo que aportaste'+(vFin.fecha?(' · al cierre del '+vFin.fecha):''),(plus>=0?'+':'−')+fmt(Math.abs(plus)));
-  // 3) utilidad total del periodo
-  const util=intereses+(plus||0);
-  fila(util>=0?'💰':'⚠️','utilidad total',plus===null?'solo intereses (la plusvalia no se pudo calcular)':'intereses + plusvalia',(util>=0?'+':'−')+fmt(Math.abs(util)));
+  // 3) dividendos que YA te pagaron en el periodo: se registran como ingreso "Dividendos"
+  const divs=(state.ingresos||[]).filter(i=>i&&movValido(i)&&/dividend/i.test(String(i.cat||'')))
+    .reduce((t,i)=>{ const ms=msFechaMov(i.fecha); return (ms!==null&&ms>=start.getTime()&&ms<endC.getTime())?t+i.monto:t; },0);
+  fila('💵','dividendos cobrados',divs>0.005?'lo que te pagaron tus acciones, registrado como ingreso':'registra lo que te paguen como ingreso "Dividendos"','+'+fmt(divs));
+  // 4) utilidad total del periodo
+  const util=intereses+(plus||0)+divs;
+  fila(util>=0?'💰':'⚠️','utilidad total',plus===null?'intereses + dividendos (la plusvalia no se pudo calcular)':'intereses + plusvalia + dividendos',(util>=0?'+':'−')+fmt(Math.abs(util)));
   // 4) rendimiento sobre el capital, ponderando los flujos por el tiempo que estuvieron
   // dentro del periodo (Modified Dietz): un deposito de ayer no infla el porcentaje
-  const capIni=(Number.isFinite(c1Fecha)&&c1Fecha<=start.getTime()?calcNu1At(start.getTime()):0)
-    +(Number.isFinite(rsFecha)&&rsFecha<=start.getTime()?calcRevSavingsAt(start.getTime()):0)
-    +(vIni?vIni.valor:0);
-  // si una cuenta de interes reanclo su base DENTRO del periodo y tenia saldo, ese
-  // saldo se cae del capital inicial (no hay forma de reconstruirlo): no calcular el %
-  const capIncompleto=(Number.isFinite(c1Fecha)&&c1Fecha>start.getTime()&&calcNu1At(c1Fecha)>0)
-    ||(Number.isFinite(rsFecha)&&rsFecha>start.getTime()&&calcRevSavingsAt(rsFecha)>0);
+  // el capital inicial de cada cuenta de interes sale del tramo que cubria el arranque del periodo
+  const capC1=saldoCuentaEn('cajita1',start.getTime()), capRS=saldoCuentaEn('revSavings',start.getTime());
+  const capIni=(capC1||0)+(capRS||0)+(vIni?vIni.valor:0);
+  // si la historia de una cuenta empieza DENTRO del periodo, su capital inicial es desconocido: no calcular el %
+  const capIncompleto=parcialInt;
   const flujos=[];
   (state.transferencias||[]).forEach(t=>{
     if(!t||!Number.isFinite(t.monto)||t.monto<=0) return;
@@ -6536,8 +6874,11 @@ function renderUtilidades(start,end) {
   });
   opsRango.forEach(o=>{ if(Number.isFinite(o.montoMxn)&&o.montoMxn>0)
     flujos.push({monto:(o.tipo==='venta'?-1:1)*o.montoMxn,ms:parseFechaLocal(o.fecha).getTime()}); });
+  // una captura manual que no coincidio con el modelo guardo la diferencia como AJUSTE en su tramo:
+  // no fue una transferencia, pero si movio el capital ese dia, y entra como flujo para el %
+  ['cajita1','revSavings'].forEach(k=>tramosDe(k).forEach(t=>{ if(t.motivo==='captura'&&Math.abs(t.ajuste)>0.005){ const ms=parseFechaLocal(t.fin).getTime(); if(ms>=start.getTime()&&ms<endC.getTime()) flujos.push({monto:t.ajuste,ms}); } }));
   const capPond=capIni+flujos.reduce((s,f)=>s+f.monto*Math.max(0,Math.min(1,(endC.getTime()-f.ms)/(endC.getTime()-start.getTime()||1))),0);
-  if(capIncompleto) fila('%','rendimiento de tu capital','no se puede calcular: una cuenta reanclo su saldo base dentro del periodo','—');
+  if(capIncompleto) fila('%','rendimiento de tu capital','no se puede calcular: la historia de una cuenta empieza dentro del periodo','—');
   else if(capPond>0&&dias>0&&plus!==null){
     const r=util/capPond;
     let txt=(r>=0?'+':'−')+Math.abs(r*100).toFixed(2)+'%';
@@ -6559,28 +6900,28 @@ function renderRendimientos(start, end, balance) {
   const endC=new Date(Math.min(Date.now(), end.getTime()));
   const dias=Math.max(0,(endC-start)/86400000);
   // si el periodo termina antes de la fecha base de la cajita, no hay rendimiento que calcular (no "sin datos" con +$0.00)
-  const c1FechaValida=state.nuCajita1Fecha&&!isNaN(parseFechaLocal(state.nuCajita1Fecha).getTime());
-  const rsFechaValida=state.revSavingsFecha&&!isNaN(parseFechaLocal(state.revSavingsFecha).getTime());
-  const sinDatosC1=c1FechaValida&&endC.getTime()<=parseFechaLocal(state.nuCajita1Fecha).getTime();
-  const sinDatosRS=rsFechaValida&&endC.getTime()<=parseFechaLocal(state.revSavingsFecha).getTime();
-  const rend1=(!sinDatosC1&&dias>0)?Math.max(0,calcNu1At(endC.getTime())-calcNu1At(start.getTime())):0;
-  const rendRS=(!sinDatosRS&&dias>0)?Math.max(0,calcRevSavingsAt(endC.getTime())-calcRevSavingsAt(start.getTime())):0;
+  // misma fuente que 'cuanto gano tu dinero': los tramos guardados, no solo el ancla vigente
+  const h1=inicioHistoria('cajita1'), h2=inicioHistoria('revSavings');
+  const sinDatosC1=!h1||endC.getTime()<=parseFechaLocal(h1).getTime();
+  const sinDatosRS=!h2||endC.getTime()<=parseFechaLocal(h2).getTime();
+  const rend1=(!sinDatosC1&&dias>0)?interesEnRango('cajita1',start.getTime(),endC.getTime()):0;
+  const rendRS=(!sinDatosRS&&dias>0)?interesEnRango('revSavings',start.getTime(),endC.getTime()):0;
   // si la fecha base de la cajita cae DENTRO del periodo, el rendimiento calculado
   // solo cubre desde esa fecha, no el periodo completo: se etiqueta como parcial
   const fd=d=>d.toLocaleDateString('es-MX',{day:'numeric',month:'short'});
-  const parcialC1=c1FechaValida&&!sinDatosC1&&start.getTime()<parseFechaLocal(state.nuCajita1Fecha).getTime()&&parseFechaLocal(state.nuCajita1Fecha).getTime()<endC.getTime();
-  const parcialRS=rsFechaValida&&!sinDatosRS&&start.getTime()<parseFechaLocal(state.revSavingsFecha).getTime()&&parseFechaLocal(state.revSavingsFecha).getTime()<endC.getTime();
+  const parcialC1=!sinDatosC1&&start.getTime()<parseFechaLocal(h1).getTime();
+  const parcialRS=!sinDatosRS&&start.getTime()<parseFechaLocal(h2).getTime();
   // lo que el banco abono por el dinero del FONDO (conciliado en su pestaña) no es rendimiento tuyo
   const rendFondo=rendFondoEnRango(start,endC);
   const rendTotal=rend1+rendRS-rendFondo;
   const real=balance+rendTotal;
   const sgn=(v,cls)=>`<span class="${v>=0?'item-amt-pos':'item-amt-neg'}"${cls?' style="font-size:15px"':''}>${v>=0?'+':'−'}${fmt(Math.abs(v))}</span>`;
   const rowC1=sinDatosC1
-    ?`<div class="item-row"><div><div class="item-cat">NU cajita 1</div><div class="item-meta">sin datos anteriores a la fecha base</div></div><span class="item-meta">—</span></div>`
-    :`<div class="item-row"><div><div class="item-cat">NU cajita 1</div><div class="item-meta">${descModelo('cajita1')}${parcialC1?' · desde el '+fd(parseFechaLocal(state.nuCajita1Fecha))+' (parcial)':''}</div></div>${sgn(rend1)}</div>`;
+    ?`<div class="item-row"><div><div class="item-cat">NU cajita 1</div><div class="item-meta">sin historia en este periodo</div></div><span class="item-meta">—</span></div>`
+    :`<div class="item-row"><div><div class="item-cat">NU cajita 1</div><div class="item-meta">${descModelo('cajita1')}${parcialC1?' · desde el '+fd(parseFechaLocal(h1))+' (parcial)':''}</div></div>${sgn(rend1)}</div>`;
   const rowRS=sinDatosRS
-    ?`<div class="item-row"><div><div class="item-cat">Revolut Savings</div><div class="item-meta">sin datos anteriores a la fecha base</div></div><span class="item-meta">—</span></div>`
-    :`<div class="item-row"><div><div class="item-cat">Revolut Savings</div><div class="item-meta">${descModelo('revSavings')}${parcialRS?' · desde el '+fd(parseFechaLocal(state.revSavingsFecha))+' (parcial)':''}</div></div>${sgn(rendRS)}</div>`;
+    ?`<div class="item-row"><div><div class="item-cat">Revolut Savings</div><div class="item-meta">sin historia en este periodo</div></div><span class="item-meta">—</span></div>`
+    :`<div class="item-row"><div><div class="item-cat">Revolut Savings</div><div class="item-meta">${descModelo('revSavings')}${parcialRS?' · desde el '+fd(parseFechaLocal(h2))+' (parcial)':''}</div></div>${sgn(rendRS)}</div>`;
   document.getElementById('res-rendimientos').innerHTML=
     rowC1+rowRS+
     (rendFondo>0?`<div class="item-row"><div><div class="item-cat">del fondo de la universidad</div><div class="item-meta">rendimiento conciliado en la pestaña fondo: no es tuyo</div></div>${sgn(-rendFondo)}</div>`:'')+
@@ -6599,13 +6940,13 @@ window.cambiarMes=d=>{state.mesOffset+=d;renderResumen();};
 // (HTTP, JSON del proxy, chart.error, timestamps y precios finitos positivos)
 async function fetchYahooSeries(symbol) {
   const url=`https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?interval=1d&range=1y&events=div`;
-  const proxies=[u=>`https://api.allorigins.win/get?url=${encodeURIComponent(u)}`,u=>`https://corsproxy.io/?${encodeURIComponent(u)}`];
-  for(const proxy of proxies){
+  for(const {u,json} of proxiesPara(url)){
     try{
-      const r=await fetch(proxy(url),{signal:AbortSignal.timeout(15000)});
+      const r=await fetch(u,{signal:AbortSignal.timeout(20000)});
       if(!r.ok) continue;
-      const outer=await r.json();
-      const raw=typeof outer.contents==='string'?outer.contents:JSON.stringify(outer);
+      const txt=await r.text();
+      let raw=txt;
+      if(json){ const outer=JSON.parse(txt); raw=typeof outer.contents==='string'?outer.contents:JSON.stringify(outer); }
       const d=JSON.parse(raw);
       if(!d.chart||d.chart.error||!Array.isArray(d.chart.result)||!d.chart.result[0]) continue;
       const res=d.chart.result[0];
