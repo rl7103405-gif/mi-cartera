@@ -327,7 +327,6 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
   #page-inicio{max-width:1060px}
   #page-movimientos{max-width:1060px}
   #page-metas{max-width:1060px}
-  #page-amigos{max-width:760px}
   #page-perfil{max-width:1060px}
   #page-resumen{max-width:1080px}
   /* las dos columnas arrancan a la misma altura: el primer titulo de cada una no lleva el margen superior */
@@ -466,7 +465,6 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
   <div class="tab" data-page="perfil" onclick="showPage('perfil')">perfil</div>
   <div class="tab" data-page="noticias" onclick="showPage('noticias')">noticias</div>
   <div class="tab" data-page="deudas" onclick="showPage('deudas')">deudas</div>
-  <div class="tab" data-page="amigos" id="tab-amigos" hidden onclick="showPage('amigos')">amigos</div>
   <div class="tab" data-page="resumen" onclick="showPage('resumen')">resumen</div>
 </div>
 
@@ -915,6 +913,12 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
     <button type="button" class="btn" style="margin-top:0" onclick="editarPerfil()">editar mis datos</button>
     <button type="button" class="btn" style="margin-top:0" onclick="cambiarFoto()">cambiar foto</button>
   </div>
+  <!-- subpestañas: "tu perfil" (lo de siempre) y "amigos" (la competencia de la familia) -->
+  <div class="type-toggle" id="perfil-subtabs" style="margin-bottom:16px">
+    <div class="type-opt active" id="ptab-perfil" onclick="perfilSub('perfil')">tu perfil</div>
+    <div class="type-opt" id="ptab-amigos" onclick="perfilSub('amigos')">amigos</div>
+  </div>
+  <div id="perfil-sub-perfil">
   <div class="inicio-grid">
   <div class="sec">
     <div class="section-title">tu manejo del dinero</div>
@@ -942,15 +946,7 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
         <div class="type-opt" id="dash-off" onclick="setDashboard(false)">apagado</div>
         <div class="type-opt" id="dash-on" onclick="setDashboard(true)">encendido</div>
       </div>
-      <div class="item-meta" style="line-height:1.5;margin:14px 0 8px">
-        <b>Amigos.</b> Compite con tus amigos que tambien usan la app: se comparte tu calificacion del
-        mes, en que banda quedaron tu gasto y tu ahorro (nunca el porcentaje exacto) y tu racha — jamas tus saldos ni tus movimientos. Al
-        apagarlo, tu ficha desaparece para los demas.
-      </div>
-      <div class="type-toggle" id="amigos-toggle">
-        <div class="type-opt" id="amigos-off" onclick="setAmigos(false)">no participo</div>
-        <div class="type-opt" id="amigos-on" onclick="setAmigos(true)">participo</div>
-      </div>
+
       <div class="item-meta" style="line-height:1.5;margin:14px 0 8px">
         <b>Pestaña del fondo de la universidad.</b> Para llevar ese dinero apartado de tus cuentas:
         no cuenta como tuyo en inicio, en tus metas ni en tu score, y ninguna operacion normal lo
@@ -979,6 +975,24 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
       <button type="button" class="btn" style="margin-top:12px" onclick="exportarMisDatos()">descargar todos mis datos</button>
     </div>
   </div>
+  </div>
+  </div>
+  <div id="perfil-sub-amigos" style="display:none">
+    <div class="section-title">quien va ganando el mes</div>
+    <div class="panel" id="amigos-panel"><div class="empty-state">calculando...</div></div>
+    <div class="section-title mt">participar</div>
+    <div class="panel">
+      <div class="item-meta" style="line-height:1.5;margin-bottom:10px">
+        Se compara la calificacion del ultimo mes completo (la misma de tu perfil), en que banda
+        quedo tu gasto y tu ahorro (por ejemplo "ahorra 10–20%", nunca el porcentaje exacto), tu
+        racha de meses buenos y como va tu ahorro este mes. <b>Jamas tus saldos, montos ni
+        movimientos.</b> Viene encendido; si sales, tu ficha desaparece para los demas.
+      </div>
+      <div class="type-toggle" id="amigos-toggle">
+        <div class="type-opt" id="amigos-off" onclick="setAmigos(false)">no participo</div>
+        <div class="type-opt" id="amigos-on" onclick="setAmigos(true)">participo</div>
+      </div>
+    </div>
   </div>
   </div>
 </div>
@@ -1151,16 +1165,6 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
     </div></div>
     <div class="dcard"><div class="dcard-h">Dónde está el fondo</div><div class="dcard-b" id="fondo-cuentas"><div class="empty-state">calculando...</div></div></div>
     <div class="dcard ancha"><div class="dcard-h">Movimientos del fondo</div><div class="dcard-b" id="fondo-movs"><div class="empty-state">calculando...</div></div></div>
-  </div>
-</div>
-
-<!-- AMIGOS: competencia entre las carteras de la familia. Se comparten INDICADORES (calificacion,
-     porcentajes, racha), nunca saldos ni movimientos; cada quien decide participar desde su perfil -->
-<div class="page" id="page-amigos">
-  <div class="mt">
-  <div class="section-title">tus amigos · quien va ganando</div>
-  <div class="panel" id="amigos-panel"><div class="empty-state">calculando...</div></div>
-  <div class="item-meta" style="margin-top:10px;line-height:1.5">Se compara la calificacion del ultimo mes completo (la misma de tu perfil), en que banda quedo tu gasto y tu ahorro (por ejemplo "ahorra 10–20%"), tu racha de meses buenos y como va tu ahorro este mes. <b>Nunca se comparten saldos, montos ni movimientos.</b> Puedes salir cuando quieras desde tu perfil.</div>
   </div>
 </div>
 
@@ -2876,11 +2880,10 @@ window.showPage = function(p) {
   if(p==='dashboard') renderDashboard();
   if(p==='fondo') renderFondo();
   if(p==='resumen') renderResumen();
-  if(p==='amigos'){ (amigosVisible()?publicarFicha():Promise.resolve()).then(()=>renderAmigos()); }
   if(p==='movimientos') renderMovimientos();
   if(p==='deudas') renderDeudas();
   if(p==='noticias') abrirNoticias(); // carga perezosa: cache primero, refresco si esta viejo
-  if(p==='perfil'){ renderPerfil(); renderScore(); renderDecisiones(); }
+  if(p==='perfil'){ renderPerfil(); renderScore(); renderDecisiones(); if(perfilSubActual==='amigos') perfilSub('amigos'); }
 };
 window.togglePrivado = function() {
   modoPrivado=!modoPrivado;
@@ -5087,12 +5090,19 @@ function renderPerfil() {
 // calificacion y racha no permiten deducir cuanto tiene nadie.
 const AMIGO_ID=(typeof NS==='string')?NS:'cartera';
 const AMIGO_NOMBRES={cartera:'Roberto',eli:'Eli',zoe:'Zoe',tono:'Toño'};
-function amigosVisible(){ return !!(state.perfil&&state.perfil.amigos); }
+// participar viene ENCENDIDO: solo se apaga si el usuario lo apago expresamente (perfil.amigos === false)
+function amigosVisible(){ return !(state.perfil&&state.perfil.amigos===false); }
+let perfilSubActual='perfil';
+window.perfilSub=function(cual){
+  perfilSubActual=cual==='amigos'?'amigos':'perfil';
+  const a=document.getElementById('perfil-sub-perfil'), b=document.getElementById('perfil-sub-amigos');
+  if(a) a.style.display=perfilSubActual==='perfil'?'':'none'; if(b) b.style.display=perfilSubActual==='amigos'?'':'none';
+  const ta=document.getElementById('ptab-perfil'), tb=document.getElementById('ptab-amigos');
+  if(ta&&tb){ ta.classList.toggle('active',perfilSubActual==='perfil'); tb.classList.toggle('active',perfilSubActual==='amigos'); }
+  if(perfilSubActual==='amigos') (amigosVisible()?publicarFicha():Promise.resolve()).then(()=>renderAmigos());
+};
 function aplicarVisibilidadAmigos(){
   const on=amigosVisible();
-  const tab=document.getElementById('tab-amigos'); if(tab) tab.hidden=!on;
-  const pag=document.getElementById('page-amigos');
-  if(!on&&pag&&pag.classList.contains('active')) showPage('inicio');
   const off=document.getElementById('amigos-off'), onEl=document.getElementById('amigos-on');
   if(off&&onEl){ off.classList.toggle('active',!on); onEl.classList.toggle('active',on); }
   // al arrancar (y en cada repintado general) la ficha propia se pone al dia; el memo evita escribir de mas
@@ -5133,7 +5143,7 @@ async function retirarFicha(){
 }
 let amigosOcupado=false;
 window.setAmigos=async function(valor){
-  if(!!(state.perfil&&state.perfil.amigos)===!!valor||amigosOcupado) return;
+  if(amigosVisible()===!!valor||amigosOcupado) return;
   amigosOcupado=true;
   try{
   if(!valor){ if(!(await retirarFicha())) return; }
@@ -5146,7 +5156,7 @@ window.setAmigos=async function(valor){
 const MESES_CORTO=['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
 async function renderAmigos(){
   const el=document.getElementById('amigos-panel'); if(!el) return;
-  if(!amigosVisible()){ el.innerHTML='<div class="empty-state">enciende "amigos" en tu perfil para participar</div>'; return; }
+  if(!amigosVisible()){ el.innerHTML='<div class="empty-state">no participas: enciende "participo" aqui abajo para ver a tus amigos y que te vean</div>'; return; }
   el.innerHTML='<div class="empty-state">cargando...</div>';
   let docs=[];
   try{ const snap=await getDocs(collection(db,'amigos')); snap.forEach(d=>docs.push({id:d.id,...d.data()})); }
@@ -5167,9 +5177,9 @@ async function renderAmigos(){
   };
   const filas=act.map((d,i)=>fila(d,i+1)).join('')
     +(fuera.length?`<div class="item-meta" style="padding-top:8px">sin calificacion este mes (sin ingresos capturados o ficha de otro mes):</div>`+fuera.map(d=>fila(d,null)).join(''):'');
-  const faltan=Object.keys(AMIGO_NOMBRES).filter(k=>!act.some(d=>d.id===k)).map(k=>AMIGO_NOMBRES[k]);
+  const faltan=Object.keys(AMIGO_NOMBRES).filter(k=>!todos.some(d=>d.id===k)).map(k=>AMIGO_NOMBRES[k]);
   el.innerHTML=(filas||'<div class="empty-state">todavia nadie participa</div>')
-    +(faltan.length?`<div class="item-meta" style="padding-top:10px">aun no participan: ${escapeHtml(faltan.join(', '))} — se enciende en su perfil</div>`:'')
+    +(faltan.length?`<div class="item-meta" style="padding-top:10px">todavia no aparecen: ${escapeHtml(faltan.join(', '))} — su ficha se publica en cuanto abran su app</div>`:'')
     +`<div class="item-meta" style="padding-top:6px">la calificacion es la del ultimo mes completo (${escapeHtml(mesTxt(mia.mes))}), la misma que ves en tu perfil: mide habitos contra la referencia de cada quien, no cuanto dinero tiene. Es una competencia de confianza: cada app reporta lo que su dueño registra.</div>`;
 }
 function dashboardEncendido() { return !!(state.perfil && state.perfil.dashboard); }
