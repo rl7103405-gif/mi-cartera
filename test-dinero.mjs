@@ -147,6 +147,20 @@ const r2 = await txDinero({ requerirDocs: [rx], borrar: [rx], deltas: { efectivo
 chk('el primero resta', r1.ok === true && ef() === 800, 'quedo ' + ef());
 chk('el segundo se rechaza y NO resta de nuevo', !!r2.error && ef() === 800, JSON.stringify(r2));
 
+// ═══════════════ 2b. EL MISMO PAGO DE SUSCRIPCION DESDE DOS APARATOS ═══════════════
+// 22-sep-2026: el aviso "hoy toca" sale en TODOS los aparatos a la vez (y en la cartera de
+// la casa, a tres personas). Cada pago lleva id fijo por mes y requerirAusentes hace que el
+// segundo choque DENTRO de la transaccion, en vez de cobrar dos veces.
+console.log('\n2b. Dos registros del MISMO pago de suscripcion (dos aparatos a la vez)');
+SERVIDOR = { [R('cartera/saldos')]: { efectivo: 1000 } };
+const rs = { path: R(PFX + 'gastos/sus_limpieza01_2026-09') };
+const pago = { cat: 'Casa', monto: 300, nota: 'limpieza', fuente: 'efectivo', suscripcion: 'limpieza01' };
+const s1 = await txDinero({ requerirAusentes: [rs], crear: [{ ref: rs, data: pago }], deltas: { efectivo: -300 }, permitirNegativo: true });
+const s2 = await txDinero({ requerirAusentes: [rs], crear: [{ ref: rs, data: pago }], deltas: { efectivo: -300 }, permitirNegativo: true });
+chk('el primero registra y resta', s1.ok === true && ef() === 700, 'quedo ' + ef());
+chk('el segundo se rechaza y NO resta de nuevo', !!s2.error && ef() === 700, JSON.stringify(s2) + ' quedo ' + ef());
+chk('queda UN solo gasto de ese pago', Object.keys(SERVIDOR).filter(k => k.endsWith('sus_limpieza01_2026-09')).length === 1);
+
 // ═══════════════ 3. NO PISA CAMPOS QUE NO TOCA ═══════════════
 console.log('\n3. Un delta a efectivo no debe tocar los demas campos');
 SERVIDOR = { [R('cartera/saldos')]: { efectivo: 100, nuSaldo: 5000, revMXN: 77, nuCajita1Base: 25000, nuCajita1Fecha: '2026-01-01', nuCajita1Tasa: 13 } };

@@ -436,6 +436,24 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
   .dtabla th,.dtabla td{padding:5px 3px}
   .dcard select,.dcard input[type=number],.dcard textarea{font-size:16px;min-height:40px}
 }
+
+/* ── suscripciones ── */
+.sus-fila{display:flex;align-items:center;gap:10px 12px;padding:10px 0;border-bottom:1px solid var(--sup-borde);flex-wrap:wrap}
+.sus-fila:last-child{border-bottom:none}
+.sus-info{flex:1 1 200px;min-width:0}
+.sus-acc{display:flex;gap:6px;flex-shrink:0;flex-wrap:wrap;justify-content:flex-end}
+.sus-act{background:var(--bg3);border:1px solid var(--sup-borde);color:var(--muted);font-size:11.5px;padding:4px 9px;border-radius:7px;cursor:pointer;font-family:inherit}
+.sus-act:hover{color:var(--fg)}.sus-act[disabled]{opacity:.45;cursor:default}
+.sus-act.pri{color:var(--accent);border-color:var(--accent)}
+.sus-est{font-size:10.5px;padding:1px 6px;border-radius:5px;background:var(--bg3);color:var(--muted);margin-left:6px;white-space:nowrap;display:inline-block}
+.sus-est.ok{color:var(--green)}.sus-est.toca{color:var(--gold)}
+.sus-form{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px;padding:10px 0}
+.sus-form label{font-size:11px;color:var(--muted);display:block;margin-bottom:3px}
+.sus-form input,.sus-form select{width:100%;padding:7px 8px;font-size:13px;box-sizing:border-box}
+.sus-form-acc{grid-column:1/-1;display:flex;gap:8px;justify-content:flex-end}
+.sus-aviso{border-color:rgba(47,111,79,0.45)}
+.sus-aviso+.sus-aviso{margin-top:8px}
+@media(max-width:560px){.sus-acc{flex:1 0 100%;justify-content:flex-start}}
 </style>
 </head>
 <body>
@@ -502,15 +520,10 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
   </div>
   </div>
 
-  <!-- AVISO PREMIUM (dia 22 de cada mes) -->
-  <div class="panel" id="premium-aviso" hidden style="border-color:rgba(47,111,79,0.45)">
-    <div style="font-size:13px;font-weight:600;margin-bottom:3px">se acerca el cobro del plan Premium de Revolut</div>
-    <div class="item-meta" style="margin-bottom:10px">registralo con un tap para que tus cuentas cuadren</div>
-    <div class="row2" style="gap:8px">
-      <button type="button" class="btn btn-purple" id="premium-btn" style="margin-top:0" onclick="registrarPremium()">registrar</button>
-      <button type="button" class="btn" style="margin-top:0" onclick="descartarPremium()">luego</button>
-    </div>
-  </div>
+
+  <!-- pagos fijos del mes: el dia que toca, desde la madrugada (ver SUSCRIPCIONES).
+       Reemplaza al aviso fijo de Revolut Premium, que tenia el monto quemado -->
+  <div id="sus-avisos" hidden style="margin-bottom:14px"></div>
 
   <div class="section-title">como vas este mes</div>
   <div class="panel" id="inicio-coach" style="margin-bottom:20px"><div class="item-meta">calculando...</div></div>
@@ -847,6 +860,7 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
   <div class="subtabs" id="mov-subtabs">
     <div class="stab active" id="mtab-registrar" onclick="movSub('registrar')">registrar</div>
     <div class="stab" id="mtab-cats" onclick="movSub('cats')">categorias</div>
+    <div class="stab" id="mtab-sus" onclick="movSub('sus')">suscripciones</div>
   </div>
   <div id="mov-sub-registrar">
   <div class="inicio-grid">
@@ -924,6 +938,9 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
       que la usan</b>, para que tu historial y tu resumen sigan cuadrando. Solo se puede
       quitar una categoria que ya no tenga movimientos: si tiene, juntala con otra.
     </div>
+  </div>
+  <div id="mov-sub-sus" style="display:none">
+    <div id="sus-panel"><div class="panel"><div class="empty-state">cargando...</div></div></div>
   </div>
   </div>
 </div>
@@ -2563,9 +2580,15 @@ async function txDinero(plan) {
       const fSnap  = (usaSaldos || usaDep || mb) ? await tx.get(doc(db,'cartera','fondo')) : null;
       const req = [];
       for (const r of (plan.requerirDocs||[])) req.push(await tx.get(r));
+      // requerirAusentes: aborta si alguno YA existe. Es lo que impide registrar dos veces
+      // el pago de una suscripcion cuando dos aparatos (o dos personas en la cartera de la
+      // casa) ven el mismo aviso: el id es fijo por mes y el segundo choca aqui.
+      const aus = [];
+      for (const r of (plan.requerirAusentes||[])) aus.push(await tx.get(r));
       const mbSnap = mb ? await tx.get(mb.ref) : null;
       // ── FASE 2: validar contra lo LEIDO. Cualquier return aborta sin escribir nada ──
       for (const s of req) if (!s.exists()) return {error:'ese movimiento ya lo elimino alguien mas — recarga la app'};
+      for (const s of aus) if (s.exists()) return {error:'ese pago ya lo registro alguien mas este mes — recarga la app'};
       // el movimiento a borrar: si otro dispositivo ya lo aplico (o lo rechazo), lo que
       // manda es SU documento, no lo que esta pantalla creia
       let aplicaMov = true;
@@ -3071,13 +3094,14 @@ let catsPintadas = {gasto:[], ingreso:[]};
 let catEditando = null;   // {tipo, nombre, modo:'renombrar'|'juntar'}
 let movSubActual = 'registrar';
 window.movSub = function(cual) {
-  movSubActual = cual === 'cats' ? 'cats' : 'registrar';
-  const a = document.getElementById('mov-sub-registrar'), b = document.getElementById('mov-sub-cats');
-  if (a) a.style.display = movSubActual === 'registrar' ? '' : 'none';
-  if (b) b.style.display = movSubActual === 'cats' ? '' : 'none';
-  const ta = document.getElementById('mtab-registrar'), tb = document.getElementById('mtab-cats');
-  if (ta && tb) { ta.classList.toggle('active', movSubActual==='registrar'); tb.classList.toggle('active', movSubActual==='cats'); }
+  movSubActual = (cual === 'cats' || cual === 'sus') ? cual : 'registrar';
+  [['registrar','mov-sub-registrar','mtab-registrar'],['cats','mov-sub-cats','mtab-cats'],['sus','mov-sub-sus','mtab-sus']].forEach(([k,p,t]) => {
+    const pe = document.getElementById(p), te = document.getElementById(t);
+    if (pe) pe.style.display = movSubActual === k ? '' : 'none';
+    if (te) te.classList.toggle('active', movSubActual === k);
+  });
   if (movSubActual === 'cats') { catEditando = null; renderCategorias(); }
+  if (movSubActual === 'sus') { susEditando = null; renderSuscripciones(); }
 };
 function renderCategorias() {
   const el = document.getElementById('cats-admin-panel'); if (!el) return;
@@ -3231,6 +3255,363 @@ function catNombreInvalido(nombre) {
   if (t.length > 40) return 'el nombre es muy largo';
   return null;
 }
+// ── SUSCRIPCIONES ─────────────────────────────────────────────
+// 22-sep-2026, Roberto: "hay que ver como manejar las suscripciones". Reemplaza el aviso
+// FIJO de Revolut Premium, que traia el monto y el dia quemados en el codigo (el cobro
+// subio de 145 a 172.84 y la app seguia ofreciendo 145). Cada suscripcion es un
+// RECORDATORIO mensual: el dia que toca, desde la madrugada, inicio ofrece registrar el
+// gasto con un tap. Nada se registra solo: pagar sigue siendo decision del usuario, y el
+// gasto entra por altaGasto, o sea por la transaccion de dinero de siempre.
+// El mismo bloque vive en las cinco carteras (incluida la de la casa, para pagos fijos
+// como el de la señora que ayuda), por eso no depende de nada que no tengan todas.
+const SUS_MAX = 40;
+const SUS_DOC = () => doc(db, (typeof NS === 'string' ? NS : 'cartera'), 'suscripciones');
+const susNorm = x => String(x || '').normalize('NFD').replace(/[̀-ͯ]/g, '')
+                      .toLowerCase().replace(/\s+/g, ' ').trim();
+// dia del mes de un movimiento, en hora LOCAL (una fecha ISO en UTC puede caer en otro dia)
+function susDiaDe(f) {
+  if (typeof f === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(f)) return +f.slice(8, 10);
+  // los retroactivos se guardan como 'YYYY-MM-DDT00:00:00Z': leido con new Date() en Mexico
+  // cae el dia ANTERIOR (mismo caso que ya resuelven mesLocalDe y fmtFechaMov)
+  const m = typeof f === 'string' && /^\d{4}-\d{2}-(\d{2})T00:00:00(\.000)?Z$/.exec(f);
+  if (m) return +m[1];
+  const d = new Date(f); return isNaN(d) ? null : d.getDate();
+}
+function susFuentes() {
+  const base = (typeof FUENTES_GASTO !== 'undefined' && Array.isArray(FUENTES_GASTO)) ? FUENTES_GASTO : [];
+  return typeof ctaActiva === 'function' ? base.filter(k => ctaActiva(k)) : base;
+}
+const susCuenta = k => (typeof CUENTAS !== 'undefined' && CUENTAS[k]) ? CUENTAS[k] : k;
+// todo lo que entra al catalogo pasa por aqui: un documento raro no puede romper la pantalla
+function susSanea(x) {
+  if (!x || typeof x !== 'object') return null;
+  const nombre = String(x.nombre || '').trim().slice(0, 40);
+  const monto = Math.round(Number(x.monto) * 100) / 100;
+  const dia = Math.round(Number(x.dia));
+  if (!nombre || !(monto > 0) || monto > 1e6 || !(dia >= 1 && dia <= 31)) return null;
+  const id = (typeof x.id === 'string' && /^[a-z0-9]{6,24}$/.test(x.id)) ? x.id : null;
+  if (!id) return null;
+  return {id, nombre, monto, dia, fuente: String(x.fuente || ''), cat: String(x.cat || 'Suscripciones').slice(0, 40),
+          activa: x.activa !== false, creada: typeof x.creada === 'string' ? x.creada : ''};
+}
+const susId = () => (Date.now().toString(36) + Math.random().toString(36).slice(2, 8)).slice(0, 16);
+// el 31 en un mes de 30 (o el 30 en febrero) cae el ULTIMO dia de ese mes, no se salta
+function susDiaEn(s, anio, mes0) {
+  const ult = new Date(anio, mes0 + 1, 0).getDate();
+  return Math.min(Math.max(1, s.dia), ult);
+}
+// ¿ya se pago ESTE mes? Por el vinculo (el gasto registrado desde el aviso guarda
+// suscripcion:<id>) o, si se capturo a mano, porque su nota nombra a la suscripcion.
+// A proposito NO se compara solo por monto: con dos suscripciones parecidas (Netflix y
+// Spotify) pagar una escondería la otra. Es preferible avisar de mas que esconder un
+// cobro que si toca.
+function susPagadaEn(s, mesKey) {
+  const palabras = susNorm(s.nombre).split(' ');
+  // se busca como PALABRA completa: con includes(), "nu" aparecia dentro de "continua" y
+  // el aviso se apagaba solo. Y un nombre sin ninguna palabra de 3+ letras no se busca
+  // en notas: solo cuenta el vinculo del gasto registrado desde el aviso.
+  const clave = palabras.find(w => w.length >= 4) || palabras.find(w => w.length >= 3) || '';
+  const re = clave ? new RegExp('(^|[^a-z0-9])' + clave.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '($|[^a-z0-9])') : null;
+  return (state.gastos || []).some(g => g && mesLocalDe(g.fecha) === mesKey
+    && (typeof movValido !== 'function' || movValido(g))
+    && (g.suscripcion === s.id || (re && re.test(susNorm(g.nota)))));
+}
+// "luego": se guarda por aparato y por mes (es un recordatorio, no un dato financiero)
+const susLuegoKey = () => (typeof NS === 'string' ? NS : 'cartera') + ':susLuego';
+function susLuegoMap() { try { return JSON.parse(localStorage.getItem(susLuegoKey()) || '{}') || {}; } catch (e) { return {}; } }
+let susLuegoMem = {};
+function susPendientes() {
+  const hoy = new Date(), mesKey = hoyLocal().slice(0, 7), dHoy = hoy.getDate();
+  const luego = Object.assign({}, susLuegoMap(), susLuegoMem);
+  return (state.suscripciones || []).filter(s => s.activa
+    && dHoy >= susDiaEn(s, hoy.getFullYear(), hoy.getMonth())
+    && luego[s.id] !== mesKey && !susPagadaEn(s, mesKey));
+}
+
+// ── carga: aparte del arranque, para no tocar el cargador (y sus pruebas) ──
+let susCargadas = false, susCargando = null, susUltIntento = 0;
+function susAsegurarCarga() {
+  if (susCargadas || susCargando || !datosCargados) return susCargando;
+  if (Date.now() - susUltIntento < 60000) return null;  // sin red: no martillar en cada render
+  susUltIntento = Date.now();
+  susCargando = (async () => {
+    try {
+      const snap = await getDoc(SUS_DOC());
+      const d = (snap && snap.exists()) ? (snap.data() || {}) : {};
+      state.suscripciones = (Array.isArray(d.items) ? d.items : []).map(susSanea).filter(Boolean);
+      susCargadas = true;
+    } catch (e) { console.error('suscripciones cargar', e); }
+    finally { susCargando = null; }
+    renderAvisosSus();
+    if (typeof movSubActual !== 'undefined' && movSubActual === 'sus') renderSuscripciones();
+  })();
+  return susCargando;
+}
+// toda escritura del catalogo: transaccion sobre el documento VIGENTE (setDoc completo
+// desde memoria pisaba lo que otro aparato acabara de agregar — leccion de categorias)
+async function txSuscripciones(aplicar) {
+  const ref = SUS_DOC();
+  try {
+    const res = await runTransaction(db, async tx => {
+      const snap = await tx.get(ref);
+      const d = (snap && snap.exists()) ? (snap.data() || {}) : {};
+      const items = (Array.isArray(d.items) ? d.items : []).map(susSanea).filter(Boolean);
+      const out = aplicar(items);
+      if (!out || out.error) return {error: (out && out.error) || 'no se pudo aplicar el cambio'};
+      if (out.items.length > SUS_MAX) return {error: 'ya tienes demasiadas suscripciones'};
+      tx.set(ref, {items: out.items});
+      return {ok: true, items: out.items};
+    });
+    if (res && res.ok) { state.suscripciones = res.items; susCargadas = true; setSyncDot('ok'); }
+    return res;
+  } catch (e) {
+    console.error('txSuscripciones', e); setSyncDot('err');
+    return {error: 'no se pudo guardar — revisa tu conexion'};
+  }
+}
+
+// ── el aviso en inicio ──
+function renderAvisosSus() {
+  const el = document.getElementById('sus-avisos'); if (!el) return;
+  if (!susCargadas) { susAsegurarCarga(); el.hidden = true; return; }
+  const p = susPendientes();
+  if (!p.length) { el.innerHTML = ''; el.hidden = true; return; }
+  el.hidden = false;
+  el.innerHTML = p.map(s => {
+    const hoyDia = new Date().getDate() === susDiaEn(s, new Date().getFullYear(), new Date().getMonth());
+    return '<div class="panel sus-aviso">'
+      + '<div style="font-size:13px;font-weight:600;margin-bottom:3px">' + (hoyDia ? 'hoy toca ' : 'ya toco ') + escapeHtml(s.nombre) + '</div>'
+      + '<div class="item-meta" style="margin-bottom:10px">' + fmt(s.monto) + ' con ' + escapeHtml(susCuenta(s.fuente))
+      + ' · registralo con un tap para que tus cuentas cuadren</div>'
+      + '<div class="row2" style="gap:8px">'
+      + '<button type="button" class="btn btn-purple" style="margin-top:0" data-id="' + escapeHtml(s.id) + '" onclick="susRegistrar(this)">registrar ' + fmt(s.monto) + '</button>'
+      + '<button type="button" class="btn" style="margin-top:0" data-id="' + escapeHtml(s.id) + '" onclick="susLuego(this)">luego</button>'
+      + '</div></div>';
+  }).join('');
+}
+let susRegistrando = false;
+window.susRegistrar = async function(btn) {
+  if (susRegistrando) return;
+  const s = (state.suscripciones || []).find(x => x.id === btn.dataset.id);
+  if (!s) { renderAvisosSus(); return; }
+  // doble tap o ya registrado en otro aparato: no se cobra dos veces
+  if (susPagadaEn(s, hoyLocal().slice(0, 7))) { renderAvisosSus(); showToast('ya estaba registrada este mes'); return; }
+  if (!susFuentes().includes(s.fuente)) { showToast('la cuenta de esta suscripcion ya no esta activa: editala en movimientos'); return; }
+  susRegistrando = true;
+  const mesKey = hoyLocal().slice(0, 7), idFijo = 'sus_' + s.id + '_' + mesKey;
+  try {
+    const ok = await altaGasto(s.cat, s.monto, s.nombre, s.fuente, btn, undefined, {suscripcion: s.id, idFijo});
+    // si no paso, puede ser porque OTRO aparato ya lo registro (esta pantalla no lo sabe:
+    // la app no escucha gastos en vivo). Se pregunta al servidor y, si existe, se deja de avisar.
+    if (!ok) {
+      try {
+        const col = (typeof C_GASTOS === 'string') ? C_GASTOS : 'gastos';
+        if ((await getDoc(doc(db, col, idFijo))).exists()) susLuegoMem[s.id] = mesKey;
+      } catch (e) {}
+    }
+  }
+  finally { susRegistrando = false; renderAvisosSus(); if (typeof movSubActual !== 'undefined' && movSubActual === 'sus') renderSuscripciones(); }
+};
+// no hay reloj que repinte a medianoche: basta con repintar cuando la pestaña vuelve a verse
+document.addEventListener('visibilitychange', () => { if (!document.hidden && datosCargados) renderAvisosSus(); });
+window.susLuego = function(btn) {
+  const mesKey = hoyLocal().slice(0, 7);
+  susLuegoMem[btn.dataset.id] = mesKey;
+  try { const m = susLuegoMap(); m[btn.dataset.id] = mesKey; localStorage.setItem(susLuegoKey(), JSON.stringify(m)); } catch (e) {}
+  renderAvisosSus();
+};
+
+// ── deteccion de patrones: "esto parece una suscripcion" ──
+// Una suscripcion se cobra UNA vez al mes, por un monto parecido, cerca del mismo dia y
+// con la misma cuenta. La regla de UNA vez al mes es la que separa al gimnasio del
+// supermercado: el super tambien es mensual, pero son varias compras.
+const SUS_NO_KEY = () => (typeof NS === 'string' ? NS : 'cartera') + ':susNoEs';
+function susNoEsMap() { try { return JSON.parse(localStorage.getItem(SUS_NO_KEY()) || '{}') || {}; } catch (e) { return {}; } }
+const susFirma = x => susNorm(x.cat) + '|' + x.fuente + '|' + Math.round(x.monto);
+// ya cubierta si se LLAMA igual, o si es el mismo gasto (categoria, cuenta y monto a +-15%).
+// El nombre importa: cuando una suscripcion sube de precio (Premium paso de 145 a 172.84,
+// un 19%) la comparacion por monto sola la volvia a sugerir como si fuera nueva.
+function susCubierta(c, lista) {
+  const nc = susNorm(c.nombre);
+  return lista.some(s => {
+    const ns = susNorm(s.nombre);
+    const mismoNombre = !!(ns && nc && (ns === nc || ns.includes(nc) || nc.includes(ns)));
+    const mismoGasto = susNorm(s.cat) === susNorm(c.cat) && s.fuente === c.fuente
+      && Math.abs(s.monto - c.monto) <= Math.max(s.monto, c.monto) * 0.15;
+    return mismoNombre || mismoGasto;
+  });
+}
+function susDetectar() {
+  const hoy = new Date(), meses = [];
+  for (let i = 1; i <= 6; i++) { const d = new Date(hoy.getFullYear(), hoy.getMonth() - i, 1);
+    meses.push(d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0')); }
+  const enRango = new Set(meses);
+  const porGrupo = new Map();
+  (state.gastos || []).forEach(g => {
+    if (!g || !(g.monto > 0)) return;
+    if (typeof movValido === 'function' && !movValido(g)) return;
+    const mk = mesLocalDe(g.fecha); if (!enRango.has(mk)) return;
+    const k = susNorm(g.cat) + '|' + g.fuente;
+    if (!porGrupo.has(k)) porGrupo.set(k, []);
+    porGrupo.get(k).push({mk, dia: susDiaDe(g.fecha), monto: g.monto, fuente: g.fuente, cat: g.cat, nota: g.nota || ''});
+  });
+  const mediana = a => { const b = [...a].sort((x, y) => x - y), m = b.length >> 1; return b.length % 2 ? b[m] : (b[m - 1] + b[m]) / 2; };
+  const out = [];
+  porGrupo.forEach(lista => {
+    const usados = new Set();
+    lista.forEach((anc, ia) => {
+      if (usados.has(ia)) return;
+      const cerca = lista.map((x, i) => ({x, i})).filter(({x}) => Math.abs(x.monto - anc.monto) <= anc.monto * 0.12);
+      const porMes = new Map(); cerca.forEach(({x}) => porMes.set(x.mk, (porMes.get(x.mk) || 0) + 1));
+      if (porMes.size < 3) return;
+      if ([...porMes.values()].some(v => v !== 1)) return;          // mas de una vez al mes: no es suscripcion
+      const dias = cerca.map(({x}) => x.dia).filter(Number.isFinite);
+      if (dias.length < 3 || Math.max(...dias) - Math.min(...dias) > 10) return;
+      cerca.forEach(({i}) => usados.add(i));
+      const notas = cerca.map(({x}) => x.nota.trim()).filter(Boolean);
+      const cuenta = {}; notas.forEach(t => cuenta[t] = (cuenta[t] || 0) + 1);
+      const nota = Object.keys(cuenta).sort((a, b) => cuenta[b] - cuenta[a])[0];
+      out.push({nombre: (nota || anc.cat).slice(0, 40), monto: Math.round(mediana(cerca.map(({x}) => x.monto)) * 100) / 100,
+                dia: Math.round(mediana(dias)), fuente: anc.fuente, cat: anc.cat, meses: porMes.size});
+    });
+  });
+  const lista = (state.suscripciones || []);
+  const no = susNoEsMap();
+  const sug = [];
+  // el aviso fijo de Revolut Premium se retiro: en la cartera de Roberto se ofrece como la
+  // primera sugerencia para que lo confirme con su monto de hoy, sin sembrar nada en la base
+  if (typeof NS !== 'string' && !lista.some(s => /premium/.test(susNorm(s.nombre)))) {
+    const ult = [...(state.gastos || [])].filter(g => g && /premium/.test(susNorm(g.nota))).sort((a, b) => String(b.fecha).localeCompare(String(a.fecha)))[0];
+    const leg = {nombre: 'Revolut Premium', monto: ult ? ult.monto : (typeof PREMIUM_MONTO === 'number' ? PREMIUM_MONTO : 0),
+                 dia: 22, fuente: 'revolut', cat: 'Suscripciones', meses: 0, legado: true};
+    if (leg.monto > 0 && !no[susFirma(leg)]) sug.push(leg);
+  }
+  out.sort((a, b) => b.meses - a.meses || b.monto - a.monto).forEach(c => {
+    if (no[susFirma(c)] || susCubierta(c, lista) || susCubierta(c, sug)) return;
+    sug.push(c);
+  });
+  return sug.slice(0, 8);
+}
+
+// ── la pestaña ──
+let susEditando = null;       // {id|null, pre:{...}} : null = no hay formulario abierto
+let susSugPintadas = [];
+function susEstadoTxt(s) {
+  if (!s.activa) return '<span class="sus-est">en pausa</span>';
+  const hoy = new Date(), mesKey = hoyLocal().slice(0, 7);
+  if (susPagadaEn(s, mesKey)) return '<span class="sus-est ok">pagada este mes</span>';
+  const d = susDiaEn(s, hoy.getFullYear(), hoy.getMonth());
+  if (hoy.getDate() >= d) return '<span class="sus-est toca">' + (hoy.getDate() === d ? 'toca hoy' : 'pendiente') + '</span>';
+  return '<span class="sus-est">el ' + d + '</span>';
+}
+function susFormHTML(pre, id) {
+  const cats = [...new Set([...(state.catsGasto || []), pre.cat].filter(Boolean))];
+  const fu = susFuentes();
+  if (pre.fuente && !fu.includes(pre.fuente)) fu.push(pre.fuente);
+  return '<div class="sus-form">'
+    + '<div><label>nombre</label><input id="sus-f-nombre" maxlength="40" value="' + escapeHtml(pre.nombre || '') + '" placeholder="ej. gimnasio"></div>'
+    + '<div><label>monto</label><input id="sus-f-monto" type="number" step="0.01" inputmode="decimal" value="' + (pre.monto > 0 ? pre.monto : '') + '" placeholder="0.00"></div>'
+    + '<div><label>dia del mes</label><input id="sus-f-dia" type="number" min="1" max="31" inputmode="numeric" value="' + (pre.dia || '') + '" placeholder="1 a 31"></div>'
+    + '<div><label>se paga con</label><select id="sus-f-fuente">' + fu.map(k => '<option value="' + escapeHtml(k) + '"' + (k === pre.fuente ? ' selected' : '') + '>' + escapeHtml(susCuenta(k)) + '</option>').join('') + '</select></div>'
+    + '<div><label>categoria</label><select id="sus-f-cat">' + cats.map(c => '<option value="' + escapeHtml(c) + '"' + (c === pre.cat ? ' selected' : '') + '>' + escapeHtml(c) + '</option>').join('') + '</select></div>'
+    + '<div class="sus-form-acc">'
+    + '<button type="button" class="sus-act" onclick="susCancelar()">cancelar</button>'
+    + '<button type="button" class="sus-act pri" data-id="' + escapeHtml(id || '') + '" onclick="susGuardar(this)">guardar</button>'
+    + '</div></div>';
+}
+function renderSuscripciones() {
+  const el = document.getElementById('sus-panel'); if (!el) return;
+  if (!susCargadas) { el.innerHTML = '<div class="panel"><div class="empty-state">cargando...</div></div>'; susAsegurarCarga(); return; }
+  const lista = [...(state.suscripciones || [])].sort((a, b) => (b.activa - a.activa) || a.dia - b.dia);
+  const filas = lista.map(s => {
+    if (susEditando && susEditando.id === s.id) return '<div class="sus-fila" style="display:block">' + susFormHTML(susEditando.pre, s.id) + '</div>';
+    return '<div class="sus-fila"><div class="sus-info">'
+      + '<div class="item-cat">' + escapeHtml(s.nombre) + susEstadoTxt(s) + '</div>'
+      + '<div class="item-meta">' + fmt(s.monto) + ' · el dia ' + s.dia + ' de cada mes · con ' + escapeHtml(susCuenta(s.fuente)) + ' · ' + escapeHtml(s.cat) + '</div>'
+      + '</div><div class="sus-acc">'
+      + '<button type="button" class="sus-act" data-id="' + escapeHtml(s.id) + '" onclick="susEditar(this)">editar</button>'
+      + '<button type="button" class="sus-act" data-id="' + escapeHtml(s.id) + '" onclick="susPausar(this)">' + (s.activa ? 'pausar' : 'activar') + '</button>'
+      + '<button type="button" class="sus-act" data-id="' + escapeHtml(s.id) + '" onclick="susQuitar(this)">quitar</button>'
+      + '</div></div>';
+  }).join('');
+  const nueva = (susEditando && susEditando.id === null) ? '<div class="sus-fila" style="display:block">' + susFormHTML(susEditando.pre, null) + '</div>' : '';
+  const total = lista.filter(s => s.activa).reduce((t, s) => t + s.monto, 0);
+  susSugPintadas = susDetectar();
+  const sug = susSugPintadas.map((c, i) => '<div class="sus-fila"><div class="sus-info">'
+    + '<div class="item-cat">' + escapeHtml(c.nombre) + '</div>'
+    + '<div class="item-meta">' + fmt(c.monto) + ' · cerca del dia ' + c.dia + ' · con ' + escapeHtml(susCuenta(c.fuente)) + ' · ' + escapeHtml(c.cat)
+    + (c.legado ? ' · <b>era el aviso fijo de la app: confirmalo con tu monto de hoy</b>' : ' · ' + c.meses + ' meses seguidos') + '</div>'
+    + '</div><div class="sus-acc">'
+    + '<button type="button" class="sus-act pri" data-i="' + i + '" onclick="susAdoptar(this)">agregar</button>'
+    + '<button type="button" class="sus-act" data-i="' + i + '" onclick="susNoEs(this)">no es</button>'
+    + '</div></div>').join('');
+  el.innerHTML = '<div class="section-title" style="margin-top:0">tus suscripciones</div>'
+    + '<div class="panel">'
+    + (lista.length ? '<div class="item-meta" style="padding-bottom:6px">' + lista.filter(s => s.activa).length + ' activas · ' + fmt(total) + ' al mes</div>' : '')
+    + (filas || (nueva ? '' : '<div class="empty-state">todavia no tienes ninguna</div>')) + nueva
+    + (susEditando && susEditando.id === null ? '' : '<div style="padding-top:12px"><button type="button" class="sus-act pri" onclick="susNueva()">+ agregar suscripcion</button></div>')
+    + '</div>'
+    + (sug ? '<div class="section-title mt">parecen suscripciones</div><div class="panel">'
+         + '<div class="item-meta" style="padding-bottom:6px">gastos que se repiten una vez al mes, por un monto parecido y cerca del mismo dia</div>' + sug + '</div>' : '')
+    + '<div class="item-meta" style="margin-top:10px;line-height:1.5">El dia que toca, desde la madrugada, en inicio te aparece para registrarla con un tap. <b>Nada se registra solo</b>: si ese mes no la pagaste, no la registras.</div>';
+}
+window.susNueva = function() { susEditando = {id: null, pre: {cat: 'Suscripciones', fuente: susFuentes()[0] || ''}}; renderSuscripciones(); const e = document.getElementById('sus-f-nombre'); if (e) e.focus(); };
+window.susCancelar = function() { susEditando = null; renderSuscripciones(); };
+window.susEditar = function(btn) { const s = (state.suscripciones || []).find(x => x.id === btn.dataset.id); if (!s) return; susEditando = {id: s.id, pre: {...s}}; renderSuscripciones(); };
+window.susAdoptar = function(btn) { const c = susSugPintadas[Number(btn.dataset.i)]; if (!c) return; susEditando = {id: null, pre: {...c}}; renderSuscripciones(); };
+window.susNoEs = function(btn) {
+  const c = susSugPintadas[Number(btn.dataset.i)]; if (!c) return;
+  try { const m = susNoEsMap(); m[susFirma(c)] = 1; localStorage.setItem(SUS_NO_KEY(), JSON.stringify(m)); } catch (e) {}
+  renderSuscripciones();
+};
+let susOcupado = false;
+window.susGuardar = async function(btn) {
+  if (susOcupado) return;
+  const v = id => (document.getElementById(id) || {}).value;
+  const nombre = String(v('sus-f-nombre') || '').trim();
+  const monto = Math.round(Number(v('sus-f-monto')) * 100) / 100;
+  const dia = Math.round(Number(v('sus-f-dia')));
+  const fuente = String(v('sus-f-fuente') || ''), cat = String(v('sus-f-cat') || '');
+  if (!nombre) { showToast('ponle un nombre'); return; }
+  if (!(monto > 0)) { showToast('pon el monto que te cobran'); return; }
+  if (!(dia >= 1 && dia <= 31)) { showToast('el dia tiene que ser del 1 al 31'); return; }
+  if (!susFuentes().includes(fuente)) { showToast('elige con que cuenta se paga'); return; }
+  if (!cat) { showToast('elige una categoria'); return; }
+  const id = btn.dataset.id || null;
+  susOcupado = true; btn.disabled = true;
+  const r = await txSuscripciones(items => {
+    const dup = items.find(x => x.id !== id && susNorm(x.nombre) === susNorm(nombre));
+    if (dup) return {error: 'ya tienes una que se llama "' + dup.nombre + '"'};
+    if (id) {
+      const k = items.findIndex(x => x.id === id);
+      if (k < 0) return {error: 'esa suscripcion ya no existe — recarga'};
+      items[k] = {...items[k], nombre, monto, dia, fuente, cat};
+    } else items.push({id: susId(), nombre, monto, dia, fuente, cat, activa: true, creada: new Date().toISOString()});
+    return {items};
+  });
+  susOcupado = false; btn.disabled = false;
+  if (r && r.error) { showToast(r.error); return; }
+  susEditando = null;
+  showToast(id ? 'suscripcion actualizada' : ('"' + nombre + '" agregada: el dia ' + dia + ' te la recuerdo'));
+  renderSuscripciones(); renderAvisosSus();
+};
+window.susPausar = async function(btn) {
+  if (susOcupado) return; susOcupado = true;
+  const r = await txSuscripciones(items => { const k = items.findIndex(x => x.id === btn.dataset.id);
+    if (k < 0) return {error: 'esa suscripcion ya no existe — recarga'}; items[k] = {...items[k], activa: !items[k].activa}; return {items}; });
+  susOcupado = false;
+  if (r && r.error) showToast(r.error);
+  renderSuscripciones(); renderAvisosSus();
+};
+window.susQuitar = async function(btn) {
+  const s = (state.suscripciones || []).find(x => x.id === btn.dataset.id); if (!s || susOcupado) return;
+  if (!confirm('Quitar "' + s.nombre + '"? Los pagos que ya registraste se quedan en tu historial; solo deja de recordartela.')) return;
+  susOcupado = true;
+  const r = await txSuscripciones(items => ({items: items.filter(x => x.id !== s.id)}));
+  susOcupado = false;
+  if (r && r.error) showToast(r.error); else showToast('suscripcion quitada');
+  renderSuscripciones(); renderAvisosSus();
+};
 // ── NAVIGATION ────────────────────────────────────────────────
 window.showPage = function(p) {
   document.querySelectorAll('.page').forEach(el => el.classList.remove('active'));
@@ -3239,7 +3620,7 @@ window.showPage = function(p) {
   if(p==='dashboard') renderDashboard();
   if(p==='fondo') renderFondo();
   if(p==='resumen') renderResumen();
-  if(p==='movimientos'){ renderMovimientos(); if(movSubActual==='cats') renderCategorias(); }
+  if(p==='movimientos'){ renderMovimientos(); if(movSubActual==='cats') renderCategorias(); if(movSubActual==='sus') renderSuscripciones(); }
   if(p==='deudas') renderDeudas();
   if(p==='noticias') abrirNoticias(); // carga perezosa: cache primero, refresco si esta viejo
   if(p==='perfil'){ renderPerfil(); renderScore(); renderDecisiones(); if(perfilSubActual==='amigos') perfilSub('amigos'); }
@@ -3472,7 +3853,7 @@ function actualizarOjo() {
 }
 // re-renderiza TODAS las paginas (tambien las inactivas, para no dejar montos viejos en el DOM)
 function rerenderTodo() {
-  render(); renderTransferencias(); renderMovimientos(); if(movSubActual==='cats') renderCategorias(); renderDeudas(); renderResumen(); if(dashboardEncendido()) renderDashboard(); aplicarVisibilidadAmigos(); if(amigosVisible()){ publicarFicha(); } if(fondoVisible()) renderFondo();
+  render(); renderTransferencias(); renderMovimientos(); if(movSubActual==='cats') renderCategorias(); if(movSubActual==='sus') renderSuscripciones(); renderDeudas(); renderResumen(); if(dashboardEncendido()) renderDashboard(); aplicarVisibilidadAmigos(); if(amigosVisible()){ publicarFicha(); } if(fondoVisible()) renderFondo();
   renderNoticias(); // el modo privado tambien oculta los tickers de las noticias
 }
 // detalle por cuenta: al tocar una tarjeta de inicio se listan sus movimientos del ultimo
@@ -3949,7 +4330,7 @@ function render() {
   renderStockDatalist();
   renderResumenCorto();
   renderScore(); renderPerfil(); renderDecisiones();
-  checkPremium();
+  renderAvisosSus();
   const now=new Date();
   document.getElementById('last-update').textContent='actualizado '+now.toLocaleDateString('es-MX',{day:'numeric',month:'short'})+' · '+now.toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'});
   // si falta el precio de alguna posicion, el total esta incompleto y no debe quedar como snapshot del dia
@@ -4312,20 +4693,27 @@ function renderTransferencias() {
 // nucleo compartido: lo usan el formulario normal y el registro rapido del movil.
 // Valida, muta, guarda con batch atomico y revierte si falla. Cada formulario
 // limpia sus propios inputs SOLO si esta funcion regresa true.
-async function altaGasto(cat,monto,nota,fuente,btn,fecha) {
+async function altaGasto(cat,monto,nota,fuente,btn,fecha,extra) {
   if(!Number.isFinite(monto)||monto<=0){showToast('ingresa un monto valido');return false;}
   if(!FUENTES_GASTO.includes(fuente)){showToast('fuente no valida');return false;}
   if(dineroOcupado){showToast('espera, hay otra operacion en curso');return false;}
   const m=c2(monto);
-  const ref=doc(collection(db,'gastos'));
+  // un pago de suscripcion lleva id FIJO por mes (ver requerirAusentes en txDinero): asi
+  // dos registros del mismo aviso no pueden ser dos gastos
+  const idFijo=(extra&&typeof extra.idFijo==='string'&&/^sus_[a-z0-9]{6,24}_\d{4}-\d{2}$/.test(extra.idFijo))?extra.idFijo:null;
+  const ref=idFijo?doc(db,'gastos',idFijo):doc(collection(db,'gastos'));
   // fecha = cuando OCURRIO (puede ser retro); creado = cuando se registro. El saldo
   // se afecta hoy en ambos casos (ver fechaMovOpcional)
   const creado=new Date().toISOString();
   const gasto={cat,monto:m,nota,fuente,fecha:fecha||creado,creado};
+  // vinculo con la suscripcion que lo origino: asi 'ya se pago este mes' no se adivina.
+  // Solo se acepta ESE campo: 'extra' nunca puede pisar monto, cuenta ni categoria.
+  if(extra&&typeof extra.suscripcion==='string') gasto.suscripcion=extra.suscripcion.slice(0,24);
   // el gasto YA OCURRIO en la vida real: si el saldo registrado no alcanza se avisa,
   // pero no se bloquea — perder el registro es peor que quedar en rojo. El limite de
   // la TDC Revolut SI es bloqueante y lo valida txDinero contra el deposito canonico.
   const plan={crear:[{ref,data:gasto}], permitirNegativo:true};
+  if(idFijo) plan.requerirAusentes=[ref];
   if(fuente==='tarjeta') plan.tarjetaDelta=m;
   else if(fuente==='tarjetaRev') plan.tdcRevDelta=m;
   else plan.deltas={[fuente]:-m};
@@ -6110,34 +6498,6 @@ window.eliminarApartado = async function(id) {
   finally{ apartadoOcupado=false; }
 };
 
-// recordatorio del Premium: aparece a partir del dia 22 si el gasto del mes no existe
-let premiumDescartadoMem='';
-function checkPremium() {
-  const el=document.getElementById('premium-aviso'); if(!el) return;
-  const mesKey=hoyLocal().slice(0,7);
-  let ocultar = new Date().getDate()<22;
-  if(!ocultar){ try{ if(localStorage.getItem('premiumDescartado')===mesKey) ocultar=true; }catch(e){} }
-  if(!ocultar && premiumDescartadoMem===mesKey) ocultar=true;
-  if(!ocultar){
-    // se compara NORMALIZADO: con igualdad exacta, renombrar la categoria a "suscripciones"
-    // hacia que este aviso dejara de reconocer un Premium ya pagado y lo volviera a ofrecer
-    const ya=state.gastos.some(g=>g.fuente==='revolut'&&esCatSuscripcion(g.cat)&&mesLocalDe(g.fecha)===mesKey&&diaLocalDe(g.fecha)>=20);
-    if(ya) ocultar=true;
-  }
-  if(!ocultar) document.getElementById('premium-btn').textContent='registrar '+fmt(PREMIUM_MONTO);
-  el.hidden=ocultar;
-}
-window.registrarPremium = async function() {
-  // si falla, el banner se queda visible para reintentar; si funciona, el render() interno
-  // de altaGasto ya re-ejecuta checkPremium() y lo oculta
-  await altaGasto('Suscripciones',PREMIUM_MONTO,'Revolut Premium','revolut',document.getElementById('premium-btn'));
-};
-window.descartarPremium = function() {
-  const mesKey=hoyLocal().slice(0,7);
-  premiumDescartadoMem=mesKey; // respaldo en memoria por si localStorage falla
-  try{ localStorage.setItem('premiumDescartado',mesKey); }catch(e){}
-  checkPremium();
-};
 
 // aviso SIN tope: solo avisa si el mes actual ya supera claramente el promedio historico
 let avisoCatTimer=null;
