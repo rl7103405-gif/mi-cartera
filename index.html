@@ -452,6 +452,10 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
 .sus-form input,.sus-form select{width:100%;padding:7px 8px;font-size:13px;box-sizing:border-box}
 .sus-form-acc{grid-column:1/-1;display:flex;gap:8px;justify-content:flex-end}
 .sus-aviso{border-color:rgba(47,111,79,0.45)}
+.sus-av-cta{display:flex;align-items:center;gap:8px;margin:0 0 10px}
+.sus-av-cta label{font-size:11px;color:var(--muted);white-space:nowrap}
+.sus-av-cta select{flex:1;min-width:0;padding:6px 8px;font-size:13px}
+.sus-av-mas{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
 .sus-aviso+.sus-aviso{margin-top:8px}
 @media(max-width:560px){.sus-acc{flex:1 0 100%;justify-content:flex-start}}
 </style>
@@ -3377,15 +3381,22 @@ function renderAvisosSus() {
   const p = susPendientes();
   if (!p.length) { el.innerHTML = ''; el.hidden = true; return; }
   el.hidden = false;
+  const fu = susFuentes();
   el.innerHTML = p.map(s => {
     const hoyDia = new Date().getDate() === susDiaEn(s, new Date().getFullYear(), new Date().getMonth());
+    // la cuenta se puede cambiar SOLO por esta vez: hay suscripciones que un mes se pagan
+    // con tarjeta y otro en efectivo, y cambiarla aqui no debe reescribir la de siempre
+    const ops = (fu.includes(s.fuente) ? fu : [s.fuente, ...fu]);
     return '<div class="panel sus-aviso">'
       + '<div style="font-size:13px;font-weight:600;margin-bottom:3px">' + (hoyDia ? 'hoy toca ' : 'ya toco ') + escapeHtml(s.nombre) + '</div>'
-      + '<div class="item-meta" style="margin-bottom:10px">' + fmt(s.monto) + ' con ' + escapeHtml(susCuenta(s.fuente))
-      + ' · registralo con un tap para que tus cuentas cuadren</div>'
-      + '<div class="row2" style="gap:8px">'
+      + '<div class="item-meta" style="margin-bottom:8px">' + fmt(s.monto) + ' · normalmente con ' + escapeHtml(susCuenta(s.fuente)) + '</div>'
+      + '<div class="sus-av-cta"><label>esta vez con</label><select id="sus-av-f-' + escapeHtml(s.id) + '">'
+      + ops.map(k => '<option value="' + escapeHtml(k) + '"' + (k === s.fuente ? ' selected' : '') + '>' + escapeHtml(susCuenta(k)) + '</option>').join('')
+      + '</select></div>'
       + '<button type="button" class="btn btn-purple" style="margin-top:0" data-id="' + escapeHtml(s.id) + '" onclick="susRegistrar(this)">registrar ' + fmt(s.monto) + '</button>'
-      + '<button type="button" class="btn" style="margin-top:0" data-id="' + escapeHtml(s.id) + '" onclick="susLuego(this)">luego</button>'
+      + '<div class="sus-av-mas">'
+      + '<button type="button" class="sus-act" data-id="' + escapeHtml(s.id) + '" onclick="susLuego(this)">luego</button>'
+      + '<button type="button" class="sus-act" data-id="' + escapeHtml(s.id) + '" onclick="susYaNo(this)">ya no la tengo</button>'
       + '</div></div>';
   }).join('');
 }
@@ -3396,11 +3407,15 @@ window.susRegistrar = async function(btn) {
   if (!s) { renderAvisosSus(); return; }
   // doble tap o ya registrado en otro aparato: no se cobra dos veces
   if (susPagadaEn(s, hoyLocal().slice(0, 7))) { renderAvisosSus(); showToast('ya estaba registrada este mes'); return; }
-  if (!susFuentes().includes(s.fuente)) { showToast('la cuenta de esta suscripcion ya no esta activa: editala en movimientos'); return; }
+  // la del select gana SOLO para este pago; la suscripcion sigue con la suya
+  const sel = document.getElementById('sus-av-f-' + s.id);
+  const fuente = (sel && susFuentes().includes(sel.value)) ? sel.value : s.fuente;
+  if (!susFuentes().includes(fuente)) { showToast('la cuenta de esta suscripcion ya no esta activa: editala en movimientos'); return; }
   susRegistrando = true;
   const mesKey = hoyLocal().slice(0, 7), idFijo = 'sus_' + s.id + '_' + mesKey;
   try {
-    const ok = await altaGasto(s.cat, s.monto, s.nombre, s.fuente, btn, undefined, {suscripcion: s.id, idFijo});
+    const ok = await altaGasto(s.cat, s.monto, s.nombre, fuente, btn, undefined, {suscripcion: s.id, idFijo});
+    if (ok && fuente !== s.fuente) showToast('registrado con ' + susCuenta(fuente) + ' solo esta vez');
     // si no paso, puede ser porque OTRO aparato ya lo registro (esta pantalla no lo sabe:
     // la app no escucha gastos en vivo). Se pregunta al servidor y, si existe, se deja de avisar.
     if (!ok) {
@@ -3414,6 +3429,20 @@ window.susRegistrar = async function(btn) {
 };
 // no hay reloj que repinte a medianoche: basta con repintar cuando la pestaña vuelve a verse
 document.addEventListener('visibilitychange', () => { if (!document.hidden && datosCargados) renderAvisosSus(); });
+// "ya no la tengo": deja de recordarla sin tocar los pagos ya registrados. Se PAUSA en vez
+// de borrarla, para poder volver a encenderla si resulta que solo fue un mes
+window.susYaNo = async function(btn) {
+  const s = (state.suscripciones || []).find(x => x.id === btn.dataset.id);
+  if (!s || susOcupado) return;
+  if (!confirm('Ya no tienes "' + s.nombre + '"?\n\nDejo de recordartela. Los pagos que ya registraste se quedan en tu historial, y puedes volver a encenderla en movimientos > suscripciones.')) return;
+  susOcupado = true;
+  const r = await txSuscripciones(items => { const k = items.findIndex(x => x.id === s.id);
+    if (k < 0) return {error: 'esa suscripcion ya no existe — recarga'}; items[k] = {...items[k], activa: false}; return {items}; });
+  susOcupado = false;
+  if (r && r.error) showToast(r.error); else showToast('"' + s.nombre + '" queda en pausa: ya no te la recuerdo');
+  renderAvisosSus();
+  if (typeof movSubActual !== 'undefined' && movSubActual === 'sus') renderSuscripciones();
+};
 window.susLuego = function(btn) {
   const mesKey = hoyLocal().slice(0, 7);
   susLuegoMem[btn.dataset.id] = mesKey;
