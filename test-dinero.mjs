@@ -161,6 +161,25 @@ chk('el primero registra y resta', s1.ok === true && ef() === 700, 'quedo ' + ef
 chk('el segundo se rechaza y NO resta de nuevo', !!s2.error && ef() === 700, JSON.stringify(s2) + ' quedo ' + ef());
 chk('queda UN solo gasto de ese pago', Object.keys(SERVIDOR).filter(k => k.endsWith('sus_limpieza01_2026-09')).length === 1);
 
+// ═══════════════ 2c. BORRAR UN PAGO QUE OTRO YA RECREO ═══════════════
+// Como los pagos de suscripcion reusan el id del mes, un aparato con la copia VIEJA podia
+// borrar el pago que otro acababa de recrear por otro monto y devolver el monto viejo:
+// el saldo quedaba descuadrado. verificarIguales compara contra el documento del servidor.
+console.log('\n2c. Borrar un pago de suscripcion que otro aparato ya recreo por otro monto');
+SERVIDOR = { [R('cartera/saldos')]: { efectivo: 1000 },
+             [R(PFX + 'gastos/sus_gym000001_2026-09')]: { monto: 200, fuente: 'efectivo', cat: 'Salud' } };
+const rg = { path: R(PFX + 'gastos/sus_gym000001_2026-09') };
+// esta pantalla todavia cree que el pago era de $100
+const malo = await txDinero({ verificarIguales: [{ ref: rg, campos: { monto: 100, fuente: 'efectivo' } }],
+  movBorrar: { ref: rg, slot: 'efectivo', signo: 1, monto: 100 }, permitirNegativo: true });
+chk('se rechaza borrar con el monto viejo', !!malo.error, JSON.stringify(malo));
+chk('no se devolvio dinero de mas', ef() === 1000, 'quedo ' + ef());
+chk('el gasto recreado sigue ahi', !!SERVIDOR[R(PFX + 'gastos/sus_gym000001_2026-09')]);
+// con el monto correcto si borra
+const bueno = await txDinero({ verificarIguales: [{ ref: rg, campos: { monto: 200, fuente: 'efectivo' } }],
+  movBorrar: { ref: rg, slot: 'efectivo', signo: 1, monto: 200 }, permitirNegativo: true });
+chk('con el monto correcto si borra y devuelve $200', bueno.ok === true && ef() === 1200, JSON.stringify(bueno) + ' quedo ' + ef());
+
 // ═══════════════ 3. NO PISA CAMPOS QUE NO TOCA ═══════════════
 console.log('\n3. Un delta a efectivo no debe tocar los demas campos');
 SERVIDOR = { [R('cartera/saldos')]: { efectivo: 100, nuSaldo: 5000, revMXN: 77, nuCajita1Base: 25000, nuCajita1Fecha: '2026-01-01', nuCajita1Tasa: 13 } };

@@ -2589,10 +2589,24 @@ async function txDinero(plan) {
       // casa) ven el mismo aviso: el id es fijo por mes y el segundo choca aqui.
       const aus = [];
       for (const r of (plan.requerirAusentes||[])) aus.push(await tx.get(r));
+      // verificarIguales: no basta con que el documento EXISTA, tiene que seguir siendo el
+      // mismo. Los pagos de suscripcion reusan el id del mes, asi que un aparato con la
+      // copia vieja podia borrar un pago YA RECREADO por otro y devolver el monto viejo.
+      const ver = [];
+      for (const v of (plan.verificarIguales||[])) ver.push({v, snap: await tx.get(v.ref)});
       const mbSnap = mb ? await tx.get(mb.ref) : null;
       // ── FASE 2: validar contra lo LEIDO. Cualquier return aborta sin escribir nada ──
       for (const s of req) if (!s.exists()) return {error:'ese movimiento ya lo elimino alguien mas — recarga la app'};
       for (const s of aus) if (s.exists()) return {error:'ese pago ya lo registro alguien mas este mes — recarga la app'};
+      for (const {v, snap} of ver) {
+        if (!snap.exists()) return {error:'ese movimiento ya lo elimino alguien mas — recarga la app'};
+        const d = snap.data() || {};
+        for (const k in (v.campos||{})) {
+          const a = v.campos[k], b = d[k];
+          const igual = (typeof a === 'number') ? cent(nFin(a)) === cent(nFin(b)) : a === b;
+          if (!igual) return {error:'ese movimiento cambio en otro aparato — recarga la app'};
+        }
+      }
       // el movimiento a borrar: si otro dispositivo ya lo aplico (o lo rechazo), lo que
       // manda es SU documento, no lo que esta pantalla creia
       let aplicaMov = true;
@@ -3288,7 +3302,13 @@ function susFuentes() {
 const susCuenta = k => (typeof CUENTAS !== 'undefined' && CUENTAS[k]) ? CUENTAS[k] : k;
 // todo lo que entra al catalogo pasa por aqui: un documento raro no puede romper la pantalla
 function susSanea(x) {
+  try { return susSanea1(x); } catch (e) { console.error('suscripcion invalida', e); return null; }
+}
+// un solo elemento con basura (por ejemplo nombre:{toString:7}) reventaba el .map entero y
+// con el la carga y CUALQUIER cambio del catalogo, incluidos los elementos sanos
+function susSanea1(x) {
   if (!x || typeof x !== 'object') return null;
+  if (x.nombre != null && typeof x.nombre !== 'string' && typeof x.nombre !== 'number') return null;
   const nombre = String(x.nombre || '').trim().slice(0, 40);
   const monto = Math.round(Number(x.monto) * 100) / 100;
   const dia = Math.round(Number(x.dia));
@@ -3310,15 +3330,21 @@ function susDiaEn(s, anio, mes0) {
 // Spotify) pagar una escondería la otra. Es preferible avisar de mas que esconder un
 // cobro que si toca.
 function susPagadaEn(s, mesKey) {
-  const palabras = susNorm(s.nombre).split(' ');
-  // se busca como PALABRA completa: con includes(), "nu" aparecia dentro de "continua" y
-  // el aviso se apagaba solo. Y un nombre sin ninguna palabra de 3+ letras no se busca
-  // en notas: solo cuenta el vinculo del gasto registrado desde el aviso.
-  const clave = palabras.find(w => w.length >= 4) || palabras.find(w => w.length >= 3) || '';
-  const re = clave ? new RegExp('(^|[^a-z0-9])' + clave.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '($|[^a-z0-9])') : null;
-  return (state.gastos || []).some(g => g && mesLocalDe(g.fecha) === mesKey
-    && (typeof movValido !== 'function' || movValido(g))
-    && (g.suscripcion === s.id || (re && re.test(susNorm(g.nota)))));
+  // El VINCULO manda: si el gasto dice a que suscripcion pertenece, esa y ninguna otra.
+  // Antes se buscaba una palabra del nombre en la nota aunque el gasto ya viniera vinculado,
+  // y "Amazon Prime" marcaba pagada a "Amazon Music" por compartir "amazon".
+  // Para los gastos capturados a mano (sin vinculo) se busca el nombre COMPLETO como
+  // palabra: es mas estricto, y errar hacia avisar de mas es lo correcto.
+  const nombre = susNorm(s.nombre);
+  const re = nombre.length >= 3
+    ? new RegExp('(^|[^a-z0-9])' + nombre.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '($|[^a-z0-9])')
+    : null;
+  return (state.gastos || []).some(g => {
+    if (!g || mesLocalDe(g.fecha) !== mesKey) return false;
+    if (typeof movValido === 'function' && !movValido(g)) return false;
+    if (typeof g.suscripcion === 'string' && g.suscripcion) return g.suscripcion === s.id;
+    return !!(re && re.test(susNorm(g.nota)));
+  });
 }
 // "luego": se guarda por aparato y por mes (es un recordatorio, no un dato financiero)
 const susLuegoKey = () => (typeof NS === 'string' ? NS : 'cartera') + ':susLuego';
@@ -3362,7 +3388,8 @@ async function txSuscripciones(aplicar) {
       const items = (Array.isArray(d.items) ? d.items : []).map(susSanea).filter(Boolean);
       const out = aplicar(items);
       if (!out || out.error) return {error: (out && out.error) || 'no se pudo aplicar el cambio'};
-      if (out.items.length > SUS_MAX) return {error: 'ya tienes demasiadas suscripciones'};
+      // el tope solo frena CRECER: con el catalogo pasado de tope habia que poder quitar
+      if (out.items.length > SUS_MAX && out.items.length > items.length) return {error: 'ya tienes demasiadas suscripciones'};
       tx.set(ref, {items: out.items});
       return {ok: true, items: out.items};
     });
@@ -3382,6 +3409,9 @@ function renderAvisosSus() {
   if (!p.length) { el.innerHTML = ''; el.hidden = true; return; }
   el.hidden = false;
   const fu = susFuentes();
+  // el mes que se esta pintando viaja en el boton: un aviso que se quedo abierto hasta el
+  // dia 1 registraba el mes NUEVO, que todavia no tocaba
+  const mesPintado = hoyLocal().slice(0, 7);
   el.innerHTML = p.map(s => {
     const hoyDia = new Date().getDate() === susDiaEn(s, new Date().getFullYear(), new Date().getMonth());
     // la cuenta se puede cambiar SOLO por esta vez: hay suscripciones que un mes se pagan
@@ -3393,9 +3423,9 @@ function renderAvisosSus() {
       + '<div class="sus-av-cta"><label>esta vez con</label><select id="sus-av-f-' + escapeHtml(s.id) + '">'
       + ops.map(k => '<option value="' + escapeHtml(k) + '"' + (k === s.fuente ? ' selected' : '') + '>' + escapeHtml(susCuenta(k)) + '</option>').join('')
       + '</select></div>'
-      + '<button type="button" class="btn btn-purple" style="margin-top:0" data-id="' + escapeHtml(s.id) + '" onclick="susRegistrar(this)">registrar ' + fmt(s.monto) + '</button>'
+      + '<button type="button" class="btn btn-purple" style="margin-top:0" data-id="' + escapeHtml(s.id) + '" data-mes="' + mesPintado + '" onclick="susRegistrar(this)">registrar ' + fmt(s.monto) + '</button>'
       + '<div class="sus-av-mas">'
-      + '<button type="button" class="sus-act" data-id="' + escapeHtml(s.id) + '" onclick="susLuego(this)">luego</button>'
+      + '<button type="button" class="sus-act" data-id="' + escapeHtml(s.id) + '" data-mes="' + mesPintado + '" onclick="susLuego(this)">luego</button>'
       + '<button type="button" class="sus-act" data-id="' + escapeHtml(s.id) + '" onclick="susYaNo(this)">ya no la tengo</button>'
       + '</div></div>';
   }).join('');
@@ -3405,6 +3435,9 @@ window.susRegistrar = async function(btn) {
   if (susRegistrando) return;
   const s = (state.suscripciones || []).find(x => x.id === btn.dataset.id);
   if (!s) { renderAvisosSus(); return; }
+  // el aviso pudo quedarse abierto y cambiar el mes (o la suscripcion pudo pausarse)
+  if (btn.dataset.mes && btn.dataset.mes !== hoyLocal().slice(0, 7)) { renderAvisosSus(); showToast('ya cambio el mes: te lo vuelvo a avisar cuando toque'); return; }
+  if (!s.activa || !susPendientes().some(x => x.id === s.id)) { renderAvisosSus(); return; }
   // doble tap o ya registrado en otro aparato: no se cobra dos veces
   if (susPagadaEn(s, hoyLocal().slice(0, 7))) { renderAvisosSus(); showToast('ya estaba registrada este mes'); return; }
   // la del select gana SOLO para este pago; la suscripcion sigue con la suya
@@ -3445,6 +3478,7 @@ window.susYaNo = async function(btn) {
 };
 window.susLuego = function(btn) {
   const mesKey = hoyLocal().slice(0, 7);
+  if (btn.dataset.mes && btn.dataset.mes !== mesKey) { renderAvisosSus(); return; }
   susLuegoMem[btn.dataset.id] = mesKey;
   try { const m = susLuegoMap(); m[btn.dataset.id] = mesKey; localStorage.setItem(susLuegoKey(), JSON.stringify(m)); } catch (e) {}
   renderAvisosSus();
@@ -3465,6 +3499,9 @@ function susCubierta(c, lista) {
   return lista.some(s => {
     const ns = susNorm(s.nombre);
     const mismoNombre = !!(ns && nc && (ns === nc || ns.includes(nc) || nc.includes(ns)));
+    // dos nombres claramente distintos NO son la misma suscripcion aunque cuesten parecido:
+    // Spotify no queda cubierta por Netflix solo por costar $110 contra $100
+    if (ns && nc && !mismoNombre) return false;
     const mismoGasto = susNorm(s.cat) === susNorm(c.cat) && s.fuente === c.fuente
       && Math.abs(s.monto - c.monto) <= Math.max(s.monto, c.monto) * 0.15;
     return mismoNombre || mismoGasto;
@@ -3480,7 +3517,10 @@ function susDetectar() {
     if (!g || !(g.monto > 0)) return;
     if (typeof movValido === 'function' && !movValido(g)) return;
     const mk = mesLocalDe(g.fecha); if (!enRango.has(mk)) return;
-    const k = susNorm(g.cat) + '|' + g.fuente;
+    // la nota identifica al SERVICIO: sin ella, Netflix y Spotify caian en el mismo grupo
+    // (misma categoria y cuenta) y se anulaban entre si por "dos pagos en el mismo mes"
+    const tok = susNorm(g.nota).split(' ').filter(Boolean)[0] || '';
+    const k = susNorm(g.cat) + '|' + g.fuente + '|' + tok;
     if (!porGrupo.has(k)) porGrupo.set(k, []);
     porGrupo.get(k).push({mk, dia: susDiaDe(g.fecha), monto: g.monto, fuente: g.fuente, cat: g.cat, nota: g.nota || ''});
   });
@@ -3602,7 +3642,7 @@ window.susGuardar = async function(btn) {
   const dia = Math.round(Number(v('sus-f-dia')));
   const fuente = String(v('sus-f-fuente') || ''), cat = String(v('sus-f-cat') || '');
   if (!nombre) { showToast('ponle un nombre'); return; }
-  if (!(monto > 0)) { showToast('pon el monto que te cobran'); return; }
+  if (!(monto > 0) || monto > 1e6) { showToast('pon el monto que te cobran'); return; }
   if (!(dia >= 1 && dia <= 31)) { showToast('el dia tiene que ser del 1 al 31'); return; }
   if (!susFuentes().includes(fuente)) { showToast('elige con que cuenta se paga'); return; }
   if (!cat) { showToast('elige una categoria'); return; }
@@ -4788,7 +4828,8 @@ window.eliminarGasto = async function(id) {
   // saldo a favor — se avisa, no se oculta recortando a cero.
   const enCuenta=CAMPO_SIMPLE[g.fuente]||CAMPO_COMP[g.fuente];
   const plan={permitirNegativo:true, permitirDeudaNegativa:true,
-    movBorrar:{ref, slot:enCuenta?g.fuente:null, signo:1, monto:m}};
+    movBorrar:{ref, slot:enCuenta?g.fuente:null, signo:1, monto:m},
+    verificarIguales:[{ref, campos:{monto:m, fuente:g.fuente}}]};
   if(g.fuente==='tarjeta') plan.tarjetaDelta=-m;
   else if(g.fuente==='tarjetaRev') plan.tdcRevDelta=-m;
   let res=null,err=null;
