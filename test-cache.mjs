@@ -223,7 +223,7 @@ ms();
 chk('al confirmar servidor se esconde', el.hidden === true);
 chk('y guarda la fecha de la ultima sincronizacion', !!localStorage.getItem('ultimaSync'));
 mcl(true);
-chk('esa fecha se le muestra al usuario', /ultima vez al dia/.test(el.textContent), el.textContent);
+chk('esa fecha se le muestra al usuario', /última vez al día/.test(el.textContent), el.textContent);
 
 console.log('\n' + '='.repeat(58));
 console.log(fallos === 0 ? `TODO PASA — ${pruebas}/${pruebas}` : `${fallos} FALLAS de ${pruebas}`);
