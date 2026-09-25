@@ -101,7 +101,10 @@ const nucleoInteres = extraeFuncion('calcCompoundAt') + '\n' + extraeFuncion('mo
 const { calcCompoundAt, modeloComp } = new Function('parseFechaLocal',
   'const nFin = (v,d=0) => Number.isFinite(v) ? v : d;' + '\n' + nucleoInteres + '\nreturn { calcCompoundAt, modeloComp };')(parseFechaLocal);
 
-const fuente = extrae('const nFin = (v,d=0)', '// aplica a memoria el resultado CANONICO');
+// MIFEL_DEF vive arriba del estado (lo usan los defaults); CAMPO_COMP lo referencia. Solo existe en
+// la app de Roberto: en las copias el match queda vacio y no cambia nada
+const mifelDef = (HTML.match(/const MIFEL_DEF=\{[^}]*\};/) || [''])[0];
+const fuente = mifelDef + '\n' + extrae('const nFin = (v,d=0)', '// aplica a memoria el resultado CANONICO');
 const { txDinero, CAMPO_COMP } = new Function('db','datosCargados','doc','collection','runTransaction','setSyncDot',
   'hoyLocal','calcCompoundAt','modeloComp','clampCero','CUENTAS','state','movSinEfecto','NS','C_GASTOS','C_INGRESOS','C_TRANSF','C_OPS','tdcGarantizada','parseFechaLocal','PFX',
   fuente + '\nreturn { txDinero, CAMPO_COMP };')(db, datosCargados, doc, collection, runTransaction, setSyncDot,
@@ -503,6 +506,76 @@ chk('capturar y mover la misma cuenta en una operacion se rechaza (dejaria un hu
 SERVIDOR = { [R('cartera/saldos')]: { nuCajita1Base: 25000, nuCajita1Fecha: '2026-08-01', nuCajita1Tasa: 0 } };
 await txDinero({ deltas: { cajita1: 100 } });
 chk('con tasa cero el tramo se guarda igual: es capital aunque el interes sea 0', T().length === 1 && T()[0].monto === 0, 'hay ' + T().length);
+
+// =============== 19. MIFEL (25-sep-2026) ===============
+// Solo en la app de Roberto. Reloj FIJO en esta seccion: hoyLocal() del arnes dice 2026-08-27 y
+// txDinero toma 'ahora' de Date.now(); si no coinciden, el interes depende del dia en que se corra.
+if (CAMPO_COMP.mifel) {
+  console.log('\n19. Mifel: 10% bruto hasta $500,000, 0% arriba, retencion que no rebasa el interes');
+  const nowReal = Date.now;
+  Date.now = () => parseFechaLocal('2026-08-27').getTime() + 12 * 3600e3;
+  try {
+    const S = R('cartera/saldos'), F = R('cartera/fondo');
+    const mM = modeloComp({}, CAMPO_COMP.mifel);
+    chk('defaults del producto: 10% / tope 500,000 / excedente 0 / ret 0.9 / base 360 / retCap',
+        mM.tasa === 10 && mM.tope === 500000 && mM.tasaExc === 0 && mM.ret === 0.9 && mM.dias === 360 && mM.retCap === true, JSON.stringify(mM));
+    chk('las demas cuentas NO llevan retCap (su calculo no cambia)',
+        modeloComp({}, CAMPO_COMP.revSavings).retCap === false && modeloComp({}, CAMPO_COMP.cajita1).retCap === false);
+    const d1 = parseFechaLocal('2026-08-02').getTime();
+    const m500 = calcCompoundAt(500000, '2026-08-01', d1, mM);
+    chk('$500,000 gana $126.39 en un dia ((10% - 0.9%)/360)', Math.abs(m500 - 500126.39) < 0.005, 'dio ' + m500);
+    const m850 = calcCompoundAt(850000, '2026-08-01', d1, mM);
+    chk('$850,000: el excedente al 0% no resta retencion (+$126.39, no +$117.64)', Math.abs(m850 - 850126.39) < 0.005, 'dio ' + m850);
+    const m850sin = calcCompoundAt(850000, '2026-08-01', d1, { ...mM, retCap: false });
+    chk('sin retCap el motor se comporta como siempre (+$117.64)', Math.abs(m850sin - 850117.64) < 0.005, 'dio ' + m850sin);
+    chk('tope 0 en el doc = sin tope tambien en Mifel', modeloComp({ mifelTope: 0 }, CAMPO_COMP.mifel).tope === null);
+
+    // el deposito del lunes: cuenta nueva (doc sin campos de Mifel), dinero nuevo al fondo
+    SERVIDOR = { [S]: { revMXN: 1000, efectivo: 50 } };
+    let r = await txDinero({ deltas: { mifel: 500000 }, fondo: { delta: { mifel: 500000 }, mov: { id: 'm1', tipo: 'entrada', cuenta: 'mifel', monto: 500000 } } });
+    chk('primer deposito: base, fecha de hoy y apartado en la MISMA transaccion',
+        r.ok && SERVIDOR[S].mifelBase === 500000 && SERVIDOR[S].mifelFecha === '2026-08-27' && SERVIDOR[F].saldosPorCuenta.mifel === 500000, JSON.stringify(r));
+    chk('una cuenta recien creada no inventa un tramo', T().length === 0, 'hay ' + T().length);
+    chk('el total del doc de saldos conserva lo que no toco', SERVIDOR[S].revMXN === 1000 && SERVIDOR[S].efectivo === 50);
+    r = await txDinero({ deltas: { mifel: -1 } });
+    chk('no deja sacar un peso de lo apartado en Mifel', !!r.error && SERVIDOR[S].mifelBase === 500000, JSON.stringify(r));
+    r = await txDinero({ absolutos: { mifelBase: 400000 } });
+    chk('una captura que deja Mifel bajo lo apartado se rechaza', !!r.error && SERVIDOR[S].mifelBase === 500000);
+
+    // traspaso del fondo Revolut Savings -> Mifel: saldo y apartado viajan juntos
+    SERVIDOR = { [S]: { revSavingsBase: 400000, revSavingsFecha: '2026-08-27', mifelBase: 0, mifelFecha: '' },
+                 [F]: { saldosPorCuenta: { revSavings: 350000 }, movs: [] } };
+    r = await txDinero({ deltas: { revSavings: -100000, mifel: 100000 },
+                         fondo: { delta: { revSavings: -100000, mifel: 100000 }, mov: { id: 'm2', tipo: 'traspaso', cuenta: 'revSavings', destino: 'mifel', monto: 100000 } } });
+    chk('traspaso del fondo Savings -> Mifel', r.ok && SERVIDOR[F].saldosPorCuenta.mifel === 100000 && SERVIDOR[F].saldosPorCuenta.revSavings === 250000
+        && SERVIDOR[S].mifelBase === 100000 && SERVIDOR[S].revSavingsBase === 300000, JSON.stringify(SERVIDOR[F].saldosPorCuenta));
+
+    // mover dinero cierra el tramo de Mifel con su modelo (y la opcion retCap viaja en el tramo)
+    SERVIDOR = { [S]: { mifelBase: 500000, mifelFecha: '2026-08-20' } };
+    const esperado7 = calcCompoundAt(500000, '2026-08-20', Date.now(), mM);
+    r = await txDinero({ deltas: { mifel: 100 } });
+    const t7 = T();
+    chk('mover dinero cierra un tramo de Mifel con 7 dias de interes',
+        r.ok && t7.length === 1 && t7[0].slot === 'mifel' && Math.abs(t7[0].monto - Math.round((esperado7 - 500000) * 100) / 100) < 0.01, JSON.stringify(t7[0]));
+    chk('el tramo guarda el modelo de Mifel con retCap', t7.length === 1 && t7[0].modelo.tasa === 10 && t7[0].modelo.tope === 500000 && t7[0].modelo.retCap === true, JSON.stringify(t7[0] && t7[0].modelo));
+
+    // cambiar la tasa (fin de la promocion) consolida con la tasa VIEJA
+    SERVIDOR = { [S]: { mifelBase: 500000, mifelFecha: '2026-08-20' } };
+    r = await txDinero({ cristalizar: ['mifel'], absolutos: { mifelTasa: 7, mifelVigencia: '' } });
+    chk('tasa nueva: la base se consolida con el 10% y el tramo cierra por "tasa"',
+        r.ok && Math.abs(SERVIDOR[S].mifelBase - Math.round(esperado7 * 100) / 100) < 0.01 && T()[0].motivo === 'tasa' && T()[0].modelo.tasa === 10, JSON.stringify(SERVIDOR[S]));
+    chk('la tasa y la vigencia nuevas quedan guardadas', SERVIDOR[S].mifelTasa === 7 && SERVIDOR[S].mifelVigencia === '');
+
+    // una version vieja de la app no debe borrar el apartado de una cuenta que no conoce
+    SERVIDOR = { [S]: { revMXN: 2000 },
+                 [F]: { saldosPorCuenta: { revolut: 1000, cuentaNueva: 5000 },
+                        movs: [{ id: 'aj', tipo: 'entrada', cuenta: 'cuentaNueva', monto: 5000 }, { id: 'k1', tipo: 'entrada', cuenta: 'revolut', monto: 1000 }] } };
+    r = await txDinero({ fondo: { delta: { revolut: 500 }, mov: { id: 'k2', tipo: 'apartar', cuenta: 'revolut', monto: 500 } } });
+    chk('al reescribir el fondo se conserva el apartado de una cuenta desconocida',
+        r.ok && SERVIDOR[F].saldosPorCuenta.cuentaNueva === 5000 && SERVIDOR[F].saldosPorCuenta.revolut === 1500, JSON.stringify(SERVIDOR[F].saldosPorCuenta));
+    chk('y sus movimientos, en su orden', SERVIDOR[F].movs.map(m => m.id).join(',') === 'k2,aj,k1', SERVIDOR[F].movs.map(m => m.id).join(','));
+  } finally { Date.now = nowReal; }
+}
 
 console.log('\n' + '='.repeat(58));
 console.log(fallos === 0 ? `TODO PASA — ${pruebas}/${pruebas}` : `${fallos} FALLAS de ${pruebas}`);

@@ -243,3 +243,31 @@ buenos, constancia de aportes), nunca saldos ni gastos; (2) un documento publico
 con reglas nuevas; (3) que cada quien acepte participar desde su perfil (apagado por defecto);
 (4) una pestaña o tarjeta "amigos" con la tabla y quien va ganando el mes. Diseño a debatir con
 Codex antes de construir; una feature, una sesion.
+
+## Critica de ChatGPT a la app, vista desde un cliente (25-sep-2026)
+
+Salio de la ronda 1 de critica a la landing (las 18 capturas de la demo). App visual 7.2,
+claridad 6.5. Verificado contra el codigo antes de anotarlo:
+
+- **Falsos positivos, NO son bugs:** el "-$1,750/mes" de la meta Laptop es "~$1,750" (tilde de
+  aproximado; ChatGPT la leyo como menos). La diferencia $204,697.58 -> $198,147.58 cuadra:
+  +$2,550 que te deben -$6,800 TDC Nu -$2,300 TDC Revolut. Pero las dos confusiones dicen algo:
+  "~$" se lee como "-$" (poner "unos $1,750") y el neto no se puede reconciliar a simple vista
+  (desglose en un toque: bruto - tarjetas +/- deudas = neto).
+- **Deudas:** "te deben en total" muestra el NETO (`deuda-grand-sub`, index.html ~5152). Decir
+  "balance neto: +$2,550 · te deben $3,400 · tu debes $850". Botones sin signos: "me prestaron",
+  "preste dinero", "me pagaron", "pague una deuda".
+- **Inicio:** tres cifras de "cuanto tengo" (tu dinero sin el fondo, patrimonio neto, fondo
+  aparte). Una dominante y el resto secundario. "Color de la app" no va en el tablero.
+- **Tu calificacion 40/100:** pide quitar el puntaje global ("¿segun quien?") y dejar habitos sin
+  nota. OJO: el plan de "amigos" usa ese puntaje para competir; decidir juntos.
+- **Proyeccion a 30 anos:** fuera del producto inicial o con fuente y metodologia del 8%.
+- **Fondo:** "protegido" promete de mas; "separado del dinero disponible".
+- **Suscripciones:** "NADA se registra solo" suena a regano: "Tu confirmas cada cargo".
+- **Graficas:** etiquetas cortadas ("Comi...", "Suscripc..."); barras horizontales con nombre
+  completo.
+- **Inversiones y Revolut Savings:** demasiados conceptos a la vez; lo principal arriba y
+  "ver como se calculo" desplegable (vende confianza: el usuario audita el calculo).
+- **Resumen:** "🎉 Este mes va excelente" califica como maestra; decir los porcentajes.
+- **Estilo:** "SaaS bonito de 2025" (salvia, tarjetas dentro de tarjetas). Numeros tabulares y una
+  sans mas neutra para importes.

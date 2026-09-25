@@ -131,6 +131,9 @@ nav{position:sticky;top:0;z-index:100;background:var(--nav-bg);backdrop-filter:b
 .tabs::-webkit-scrollbar{display:none}
 .tab{flex:0 0 auto;background:none;border:0;font:inherit;min-height:44px;padding:12px 14px;font-size:13px;color:var(--muted);text-align:center;cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap}
 .tab.active{color:var(--purple);border-bottom-color:var(--purple)}
+/* en arena, rosa y fucsia el acento da 3.3–4.0:1 como texto; el tono oscuro pasa de 5.5:1 (la raya se queda con el acento) */
+html[data-tema='arena'] .tab.active,html[data-tema='rosa'] .tab.active,html[data-tema='fucsia'] .tab.active,
+html[data-tema='arena'] .subtabs .stab.active,html[data-tema='rosa'] .subtabs .stab.active,html[data-tema='fucsia'] .subtabs .stab.active{color:var(--accent-dark)}
 html[data-tema='grafito'] .tabs{--sombra-scroll:rgba(255,255,255,.16)}
 /* Foco visible con teclado (antes outline:none en los campos). El selector gana a .field input / .login-field input. */
 .field input:focus-visible,.field select:focus-visible,.field textarea:focus-visible,.login-field input:focus-visible,button:focus-visible,a:focus-visible,summary:focus-visible,[role="button"]:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
@@ -155,7 +158,7 @@ html[data-tema='grafito'] .tabs{--sombra-scroll:rgba(255,255,255,.16)}
 .card-left{display:flex;align-items:center;gap:11px}
 .card-icon{width:38px;height:38px;border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:19px}
 /* paleta minima: todos los iconos en el mismo verde salvia */
-.icon-nu,.icon-cash,.icon-tarjeta,.icon-rev{background:rgba(47,111,79,0.10);color:var(--accent)}
+.icon-nu,.icon-cash,.icon-tarjeta,.icon-rev,.icon-mifel{background:rgba(47,111,79,0.10);color:var(--accent)}
 .card-icon svg{display:block}
 
 /* DISTRIBUCION: donde esta mi dinero */
@@ -364,6 +367,8 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
   .hero-grid{display:grid;grid-template-columns:1fr 1.1fr;gap:0 24px;align-items:center;margin-bottom:8px}
   .cards{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;align-items:stretch;margin-bottom:28px}
   .cards>.card{margin-bottom:0}
+  /* con Mifel quedan 5 tarjetas chicas: la ultima (bolsa) va a lo ancho para no dejar un hueco */
+  .cards>.card.card-ancha{grid-column:1/-1}
   .tarjeta-card{grid-column:1/-1;margin-bottom:0}
   .inicio-grid,.summary-grid{display:grid;grid-template-columns:1fr 1fr;gap:0 20px;align-items:start}
   /* resumen: las dos tarjetas de cada fila arrancan y terminan a la misma altura */
@@ -648,7 +653,21 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
         <div id="movs-revSavings"></div>
       </div>
     </div>
-    <div class="card" onclick="toggleDetail('rev-stocks-detail')">
+    <div class="card" onclick="toggleCuenta('mifel','mifel-detail')">
+      <div class="card-header" role="button" tabindex="0" aria-controls="mifel-detail" aria-expanded="false">
+        <div class="card-left"><div class="card-icon icon-mifel"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10 12 4l9 6"/><path d="M5 10v8M9.5 10v8M14.5 10v8M19 10v8"/><path d="M3 20h18"/></svg></div>
+          <div><div class="card-name">Mifel</div><div class="card-sub" id="mifel-sub">—</div><div class="card-sub" id="mifel-aviso" style="color:var(--red)" hidden></div></div>
+        </div>
+        <div class="card-right"><div class="card-amount" id="mifel-display">$—</div><div class="card-change pos" id="mifel-rend">—</div></div>
+      </div>
+      <div class="card-detail" id="mifel-detail">
+        <div class="detail-row"><span class="detail-label">saldo base</span><span class="detail-val" id="mifel-base-val">$—</span></div>
+        <div class="detail-row"><span class="detail-label">ganado en total (estimado)</span><span class="detail-val" id="mifel-acum-val">$—</span></div>
+        <div class="detail-row"><span class="detail-label">de eso, desde la última fecha base</span><span class="detail-val" id="mifel-rend-val">$—</span></div>
+        <div id="movs-mifel"></div>
+      </div>
+    </div>
+    <div class="card card-ancha" onclick="toggleDetail('rev-stocks-detail')">
       <div class="card-header" role="button" tabindex="0" aria-controls="rev-stocks-detail" aria-expanded="false">
         <div class="card-left"><div class="card-icon icon-rev"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l6-6 4 4 8-8"/><path d="M15 7h6v6"/></svg></div>
           <div><div class="card-name">Revolut Stocks</div><div class="card-sub" id="rev-stocks-sub">—</div></div>
@@ -701,6 +720,19 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
       <div class="field"><label>Rev Savings — tasa % sobre el excedente</label><input type="number" id="input-rev-savings-tasa-exc" placeholder="ej. 7.3" step="0.01" inputmode="decimal"></div>
     </div>
     <div class="field"><label>Rev Savings — retención ISR anual % (2026: 0.90, se resta del interés)</label><input type="number" id="input-rev-savings-ret" placeholder="ej. 0.90" step="0.01" inputmode="decimal"></div>
+    <div class="field"><label>Mifel — saldo base (lo que muestra Mifel hoy)</label><input type="number" id="input-mifel-base" placeholder="ej. 500000" step="0.01" inputmode="decimal"></div>
+    <div class="row2" style="gap:8px">
+      <div class="field"><label>Mifel — fecha base (YYYY-MM-DD)</label><input type="text" id="input-mifel-fecha" placeholder="vacía = hoy"></div>
+      <div class="field"><label>Mifel — tasa anual %</label><input type="number" id="input-mifel-tasa" placeholder="ej. 10" step="0.01" inputmode="decimal"></div>
+    </div>
+    <div class="row2" style="gap:8px">
+      <div class="field"><label>Mifel — tope de la tasa (0 = sin tope)</label><input type="number" id="input-mifel-tope" placeholder="ej. 500000" step="0.01" inputmode="decimal"></div>
+      <div class="field"><label>Mifel — tasa % sobre el excedente</label><input type="number" id="input-mifel-tasa-exc" placeholder="ej. 0" step="0.01" inputmode="decimal"></div>
+    </div>
+    <div class="row2" style="gap:8px">
+      <div class="field"><label>Mifel — retención ISR anual % (2026: 0.90)</label><input type="number" id="input-mifel-ret" placeholder="ej. 0.90" step="0.01" inputmode="decimal"></div>
+      <div class="field"><label>Mifel — tasa confirmada hasta (YYYY-MM-DD · 0 = sin fecha)</label><input type="text" id="input-mifel-vigencia" placeholder="ej. 2026-10-31"></div>
+    </div>
     <button class="btn btn-purple" id="manuales-btn" onclick="guardarManuales()">guardar</button>
     <div class="section-title mt">rendimiento histórico</div>
     <div class="item-meta" style="line-height:1.5;margin-bottom:8px">lo que tu banco dice que has ganado HASTA una fecha. Cubre todo lo anterior a esa fecha; de ahí en adelante la app lo lleva sola, tramo por tramo, aunque muevas dinero. Cambiarlo corrige, no suma.</div>
@@ -734,6 +766,7 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
           <option value="cajita1">NU cajita 1</option>
           <option value="revolut">Revolut MXN</option>
           <option value="revSavings">Revolut Savings</option>
+          <option value="mifel">Mifel</option>
           <option value="revTdcDep">depósito TDC Revolut (solo retirable)</option>
         </select>
       </div>
@@ -744,6 +777,7 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
           <option value="cajita1">NU cajita 1</option>
           <option value="revolut">Revolut MXN</option>
           <option value="revSavings">Revolut Savings</option>
+          <option value="mifel">Mifel</option>
           <option value="tarjeta">tarjeta NU (pago)</option>
           <option value="tarjetaRev">TDC Revolut (pago)</option>
           <option value="revTdcDep">depósito TDC Revolut (sube tu límite)</option>
@@ -1387,11 +1421,15 @@ const META_SAVINGS_DEF = 25000, META_STOCKS_DEF = 12000, META_FECHA_DEF = '2026-
 // Cuentas que una meta puede seguir. La meta se mide SOLA contra el saldo real de esa
 // cuenta; por eso el catalogo es cerrado (una meta a una cuenta que no existe no se
 // podria medir). 'patrimonio' es el total de todo.
-const METAS_CUENTAS={revSavings:'Revolut Savings', stocks:'invertido en bolsa', efectivo:'efectivo',
+const METAS_CUENTAS={revSavings:'Revolut Savings', mifel:'Mifel', stocks:'invertido en bolsa', efectivo:'efectivo',
   nu:'NU saldo', cajita1:'NU cajita 1', revolut:'Revolut MXN', patrimonio:'patrimonio total'};
 // de esas, las unicas cuyas APORTACIONES sabemos medir (aportacionesEnRango): solo estas
 // se pueden proyectar en "el camino"; el resto se muestra sin proyeccion
-const METAS_PROYECTABLES=['cajita1','revSavings','stocks'];
+const METAS_PROYECTABLES=['cajita1','revSavings','mifel','stocks'];
+// cuentas de ahorro con interes que son TUYAS: aportaciones, intereses del resumen y 'cuanto gana tu dinero'
+const CTAS_AHORRO=['cajita1','revSavings','mifel'];
+const apTotal=ap=>Object.values(ap).reduce((s,v)=>s+v,0);   // aportacion neta de todas las cuentas de ahorro + bolsa
+const apHay=ap=>Object.values(ap).some(v=>v!==0);
 // ── ESTANDAR PERSONAL ─────────────────────────────────────────
 // UNICA fuente de umbrales: coach, cierre, score y metas lo consumen. Cada uno declara
 // su procedencia para no vender como "oficial" lo que es criterio propio.
@@ -1412,7 +1450,11 @@ function estandarDe(p) {
     :((p&&(p.vivienda==='renta'||p.vivienda==='propia'))?ESTANDARES.renta:ESTANDARES.generico);
   return {...base,ver:ESTANDAR_VER};
 }
-const CUENTAS = {efectivo:'efectivo', nu:'NU saldo', cajita1:'NU cajita 1', cajita2:'NU cajita 2', gbm:'GBM efectivo', revolut:'Revolut MXN', revSavings:'Revolut Savings', tarjeta:'tarjeta NU', tarjetaRev:'TDC Revolut', revTdcDep:'deposito TDC Revolut', stocks:'Stocks (bolsa)'};
+const CUENTAS = {efectivo:'efectivo', nu:'NU saldo', cajita1:'NU cajita 1', cajita2:'NU cajita 2', gbm:'GBM efectivo', revolut:'Revolut MXN', revSavings:'Revolut Savings', mifel:'Mifel', tarjeta:'tarjeta NU', tarjetaRev:'TDC Revolut', revTdcDep:'deposito TDC Revolut', stocks:'Stocks (bolsa)'};
+// Mifel (25-sep-2026): Cuenta Digital con promocion de 10% BRUTO de $100 a $500,000 y 0% arriba,
+// abono diario en dias habiles, vigente al 31-oct-2026 (terminos publicados de Mifel). retCap: la
+// retencion de ISR no rebasa el interes de la banda (una banda al 0% no resta); solo esta cuenta la usa.
+const MIFEL_DEF={dias:360,tasa:10,tope:500000,tasaExc:0,ret:0.9,retCap:true};
 const CTAS_STOCK_OP=['efectivo','nu','revolut','externo']; // cuentas desde las que se puede comprar/vender bolsa ('externo' no toca saldos)
 const FUENTES_GASTO=['efectivo','nu','tarjeta','revolut','tarjetaRev'];
 const DESTINOS_INGRESO=['efectivo','nu','revolut']; // gbm retirado (los ingresos legados con gbm solo se muestran/deshacen)
@@ -1574,6 +1616,9 @@ let state = {
   // tope 0 significa "sin tope" (ver modeloComp)
   nuCajita1Tope:25000, nuCajita1TasaExc:6.5, nuCajita1Ret:0,
   revSavingsTope:25000, revSavingsTasaExc:7.3, revSavingsRet:0.9,
+  // Mifel: vigencia = hasta cuando esta CONFIRMADA la tasa (la promocion vence el 31-oct); '' = sin fecha
+  mifelBase:0, mifelFecha:'', mifelTasa:MIFEL_DEF.tasa, mifelTope:MIFEL_DEF.tope, mifelTasaExc:MIFEL_DEF.tasaExc,
+  mifelRet:MIFEL_DEF.ret, mifelVigencia:'2026-10-31',
   nuCajita2Base:0, nuCajita2Fecha:'', nuCajita2Tasa:6.5,
   nuSaldo:523.58, efectivo:2200,
   reporto:99.74, efectivoGBM:46.16,
@@ -1800,8 +1845,12 @@ async function loadFromFirebase() {
       ['revMXN','revSavingsBase','revSavingsTasa','revNvdaShares'].forEach(k => {
         if (!Number.isFinite(state[k])) state[k] = 0;
       });
-      ['nuCajita1Fecha','nuCajita2Fecha','revSavingsFecha'].forEach(k => {
+      ['nuCajita1Fecha','nuCajita2Fecha','revSavingsFecha','mifelFecha','mifelVigencia'].forEach(k => {
         if (typeof state[k] !== 'string') state[k] = '';
+      });
+      if (!Number.isFinite(state.mifelBase)) state.mifelBase = 0;
+      [['mifelTasa','tasa'],['mifelTope','tope'],['mifelTasaExc','tasaExc'],['mifelRet','ret']].forEach(([k,dk]) => {
+        if (!Number.isFinite(state[k])) state[k] = MIFEL_DEF[dk];
       });
       if (state.ivvVar!==null && !Number.isFinite(state.ivvVar)) state.ivvVar = null;
     }
@@ -2343,7 +2392,11 @@ function aplicarSaldosRemotos(d) {
   state.revSavingsBase=num('revSavingsBase',state.revSavingsBase);
   state.revSavingsTasa=num('revSavingsTasa',state.revSavingsTasa);
   if(typeof d.revSavingsFecha==='string') state.revSavingsFecha=d.revSavingsFecha;
-  ['nuCajita1Tope','nuCajita1TasaExc','nuCajita1Ret','revSavingsTope','revSavingsTasaExc','revSavingsRet']
+  state.mifelBase=num('mifelBase',state.mifelBase);
+  state.mifelTasa=num('mifelTasa',state.mifelTasa);
+  if(typeof d.mifelFecha==='string') state.mifelFecha=d.mifelFecha;
+  if(typeof d.mifelVigencia==='string') state.mifelVigencia=d.mifelVigencia;
+  ['nuCajita1Tope','nuCajita1TasaExc','nuCajita1Ret','revSavingsTope','revSavingsTasaExc','revSavingsRet','mifelTope','mifelTasaExc','mifelRet']
     .forEach(k=>{ state[k]=num(k,state[k]); });
   state.nuSaldo=num('nuSaldo',state.nuSaldo);
   state.efectivo=num('efectivo',state.efectivo);
@@ -2449,7 +2502,7 @@ const CAMPO_SIMPLE={efectivo:'efectivo', nu:'nuSaldo', revolut:'revMXN', gbm:'ef
 // lo apartado, y ninguna operacion normal puede dejar una cuenta bajo lo apartado. El interes
 // NO se aparta solo (txDinero reinicia base/fecha y no hay historia para atribuirlo): se
 // muestra una estimacion y Roberto concilia lo que el banco abono (tipo 'rendimiento').
-const CTAS_FONDO = ['revolut', 'revSavings', 'nu', 'efectivo', 'cajita1'];
+const CTAS_FONDO = ['revolut', 'revSavings', 'nu', 'efectivo', 'cajita1', 'mifel'];
 const TIPOS_FONDO = ['entrada', 'salida', 'traspaso', 'apartar', 'rendimiento', 'liberar'];
 function saneaFondo(d) {
   const out = {saldosPorCuenta:{}, movs:[]};
@@ -2462,6 +2515,29 @@ function saneaFondo(d) {
       Number.isFinite(m.monto) && m.monto > 0 && CTAS_FONDO.includes(m.cuenta) &&
       (m.tipo !== 'traspaso' || (CTAS_FONDO.includes(m.destino) && m.destino !== m.cuenta))).slice(0, 2000);
   return out;
+}
+// lo que ESTA version no reconoce del fondo (una cuenta que agrego una version mas nueva) se conserva
+// tal cual al reescribir cartera/fondo. Sin esto, una version vieja abierta en otro aparato borraba el
+// apartado de la cuenta nueva al registrar cualquier cosa del fondo (Codex, al agregar Mifel).
+function fondoAjeno(d) {
+  const out = {saldos:{}};
+  if (!d || typeof d !== 'object') return out;
+  const sp = d.saldosPorCuenta;
+  if (sp && typeof sp === 'object' && !Array.isArray(sp))
+    Object.keys(sp).forEach(k => { if (!CTAS_FONDO.includes(k) && /^[A-Za-z][A-Za-z0-9]{0,30}$/.test(k) && Number.isFinite(sp[k]) && sp[k] > 0) out.saldos[k] = sp[k]; });
+  return out;
+}
+// los movimientos del fondo en su orden original: los validos de esta version y, sin tocarlos, los de
+// cuentas que esta version no conoce
+function movsFondoConservados(d) {
+  if (!d || !Array.isArray(d.movs)) return [];
+  const idOk = v => typeof v === 'string' && /^[A-Za-z][A-Za-z0-9]{0,30}$/.test(v);
+  return d.movs.filter(m => {
+    if (!m || typeof m !== 'object' || !TIPOS_FONDO.includes(m.tipo) || !Number.isFinite(m.monto) || !(m.monto > 0)) return false;
+    if (saneaFondo({movs:[m]}).movs.length === 1) return true;
+    const ajena = (idOk(m.cuenta) && !CTAS_FONDO.includes(m.cuenta)) || (m.tipo === 'traspaso' && idOk(m.destino) && !CTAS_FONDO.includes(m.destino));
+    return ajena;
+  }).slice(0, 2000);
 }
 const fmtFondo = v => '$' + (Math.round(nFin(v) * 100) / 100).toLocaleString('es-MX', {minimumFractionDigits:2, maximumFractionDigits:2});
 // saldo FISICO de una cuenta tras esta operacion, con lo que la transaccion leyo y lo que va a escribir
@@ -2487,7 +2563,10 @@ const CAMPO_COMP={
               def:{dias:360,tasa:6.5,tope:null,tasaExc:0,ret:0}},
   revSavings:{base:'revSavingsBase',fecha:'revSavingsFecha',tasa:'revSavingsTasa',
               tope:'revSavingsTope',tasaExc:'revSavingsTasaExc',ret:'revSavingsRet',
-              def:{dias:360,tasa:15,tope:25000,tasaExc:7.3,ret:0.9}}
+              def:{dias:360,tasa:15,tope:25000,tasaExc:7.3,ret:0.9}},
+  mifel:     {base:'mifelBase', fecha:'mifelFecha', tasa:'mifelTasa',
+              tope:'mifelTope', tasaExc:'mifelTasaExc', ret:'mifelRet',
+              def:MIFEL_DEF}
 };
 
 // plan: {
@@ -2615,7 +2694,7 @@ async function txDinero(plan) {
           const motivo = (absolutos[cfg.base] !== undefined || absolutos[cfg.fecha] !== undefined) ? 'captura'
                        : cristal.includes(k) ? 'tasa' : 'movimiento';
           const t = {slot:k, ini:f0, fin, base:c2(b), saldoFin:c2(saldoFin), monto, motivo,
-                     modelo:{tasa:mod.tasa, tope:mod.tope, tasaExc:mod.tasaExc, ret:mod.ret, dias:mod.dias},
+                     modelo:{tasa:mod.tasa, tope:mod.tope, tasaExc:mod.tasaExc, ret:mod.ret, dias:mod.dias, ...(mod.retCap?{retCap:true}:{})},
                      creado:new Date(ahora).toISOString()};
           // lo que el usuario teclea manda sobre el modelo; la diferencia se guarda como AJUSTE, no como interes
           if (absolutos[cfg.base] !== undefined) t.ajuste = c2(nFin(absolutos[cfg.base]) - saldoFin);
@@ -2708,7 +2787,10 @@ async function txDinero(plan) {
             return {error:'eso tomaría dinero del fondo de la universidad: en ' + (CUENTAS[k]||k) + ' quedarían ' +
                           fmtFondo(fin) + ' y hay ' + fmtFondo(ap[k]) + ' apartados'};
         }
-        if (plan.fondo) fondo = {saldosPorCuenta: ap, movs: [plan.fondo.mov, ...fd.movs]};
+        if (plan.fondo) {
+          const crudo = fSnap.exists() ? fSnap.data() : null;
+          fondo = {saldosPorCuenta: {...fondoAjeno(crudo).saldos, ...ap}, movs: [plan.fondo.mov, ...movsFondoConservados(crudo)]};
+        }
       }
       // tarjeta NU
       let tarjeta = null;
@@ -2824,13 +2906,16 @@ function aplicarRes(res) {
     if (cp.nuCajita1Base !== undefined) { state.nuCajita1Base = cp.nuCajita1Base; state.nuCajita1Fecha = cp.nuCajita1Fecha; }
     if (cp.nuCajita2Base !== undefined) { state.nuCajita2Base = cp.nuCajita2Base; state.nuCajita2Fecha = cp.nuCajita2Fecha; }
     if (cp.revSavingsBase!== undefined) { state.revSavingsBase= cp.revSavingsBase;state.revSavingsFecha= cp.revSavingsFecha; }
+    if (cp.mifelBase     !== undefined) { state.mifelBase     = cp.mifelBase;     state.mifelFecha     = cp.mifelFecha; }
     // las TASAS tambien: al cambiarlas en "actualizar saldos" se escriben en Firestore, y
     // sin esto calcNu1()/calcRevSavings() pintarian el saldo con la tasa VIEJA hasta que
     // llegara el snapshot (que puede tardar con mala senal o la pestana en segundo plano)
     if (cp.nuCajita1Tasa  !== undefined) state.nuCajita1Tasa  = cp.nuCajita1Tasa;
     if (cp.nuCajita2Tasa  !== undefined) state.nuCajita2Tasa  = cp.nuCajita2Tasa;
     if (cp.revSavingsTasa !== undefined) state.revSavingsTasa = cp.revSavingsTasa;
-    ['nuCajita1Tope','nuCajita1TasaExc','nuCajita1Ret','revSavingsTope','revSavingsTasaExc','revSavingsRet']
+    if (cp.mifelTasa      !== undefined) state.mifelTasa      = cp.mifelTasa;
+    if (cp.mifelVigencia  !== undefined) state.mifelVigencia  = cp.mifelVigencia;
+    ['nuCajita1Tope','nuCajita1TasaExc','nuCajita1Ret','revSavingsTope','revSavingsTasaExc','revSavingsRet','mifelTope','mifelTasaExc','mifelRet']
       .forEach(k=>{ if (cp[k] !== undefined) state[k]=cp[k]; });
     if (cp.reporto        !== undefined) state.reporto        = cp.reporto;
   }
@@ -2855,7 +2940,9 @@ function saldosPayload() {
     revMXN:state.revMXN, revSavingsBase:state.revSavingsBase, revSavingsFecha:state.revSavingsFecha,
     revSavingsTasa:state.revSavingsTasa,
     nuCajita1Tope:state.nuCajita1Tope, nuCajita1TasaExc:state.nuCajita1TasaExc, nuCajita1Ret:state.nuCajita1Ret,
-    revSavingsTope:state.revSavingsTope, revSavingsTasaExc:state.revSavingsTasaExc, revSavingsRet:state.revSavingsRet
+    revSavingsTope:state.revSavingsTope, revSavingsTasaExc:state.revSavingsTasaExc, revSavingsRet:state.revSavingsRet,
+    mifelBase:state.mifelBase, mifelFecha:state.mifelFecha, mifelTasa:state.mifelTasa, mifelTope:state.mifelTope,
+    mifelTasaExc:state.mifelTasaExc, mifelRet:state.mifelRet, mifelVigencia:state.mifelVigencia
   };
 }
 // saveSaldos() se elimino el 27-ago-2026: era el ultimo setDoc COMPLETO del documento
@@ -3641,7 +3728,11 @@ window.susQuitar = async function(btn) {
   renderSuscripciones(); renderAvisosSus();
 };
 // ── NAVIGATION ────────────────────────────────────────────────
-window.showPage = function(p) {
+// cada pestaña recuerda hasta dónde bajaste (solo en esta sesión); `arriba` la abre desde el principio
+const scrollPorPagina = {};
+window.showPage = function(p, arriba) {
+  const antes = document.querySelector('.page.active');
+  if (antes) scrollPorPagina[antes.id.replace('page-','')] = window.scrollY;
   document.querySelectorAll('.page').forEach(el => el.classList.remove('active'));
   document.querySelectorAll('.tab').forEach(el => { const es=el.dataset.page===p; el.classList.toggle('active', es); if(es) el.setAttribute('aria-current','page'); else el.removeAttribute('aria-current'); });
   // la pestaña elegida a la vista, moviendo SOLO la barra (scrollIntoView movería también la página)
@@ -3656,6 +3747,7 @@ window.showPage = function(p) {
   if(p==='deudas') renderDeudas();
   if(p==='noticias') abrirNoticias(); // carga perezosa: cache primero, refresco si esta viejo
   if(p==='perfil'){ renderPerfil(); renderScore(); renderDecisiones(); if(perfilSubActual==='amigos') perfilSub('amigos'); }
+  window.scrollTo(0, arriba ? 0 : (scrollPorPagina[p] || 0));
 };
 window.togglePrivado = function() {
   modoPrivado=!modoPrivado;
@@ -3890,7 +3982,7 @@ function rerenderTodo() {
 }
 // detalle por cuenta: al tocar una tarjeta de inicio se listan sus movimientos del ultimo
 // mes (gastos, ingresos y transferencias; excluye pendientes/rechazados del atajo)
-const CUENTAS_DETALLE=['efectivo','nu','revolut','revSavings','cajita1'];
+const CUENTAS_DETALLE=['efectivo','nu','revolut','revSavings','cajita1','mifel'];
 window.toggleCuenta = function(key, detailId) {
   if(!CUENTAS_DETALLE.includes(key)) return;
   const cont=document.getElementById('movs-'+key);
@@ -4052,9 +4144,11 @@ function calcCompoundAt(base, fechaStr, ms, mod) {
   // cap de 100 anos: una fecha corrupta no debe colgar el render con millones de vueltas
   const dias=Math.max(0,Math.min(36600,Math.floor((ms-t0)/86400000)));
   const m=mod||{dias:365,tasa:0,tope:null,tasaExc:0,ret:0};
-  const rDia=((m.tasa||0)-(m.ret||0))/100/(m.dias||365);
+  // retCap (solo Mifel): la retencion nunca rebasa el interes de su banda; sin la opcion, lo de siempre
+  const neto=x=>m.retCap?Math.max(0,x):x;
+  const rDia=neto((m.tasa||0)-(m.ret||0))/100/(m.dias||365);
   if(m.tope==null) return base*Math.pow(1+rDia,dias);
-  const rExc=((m.tasaExc||0)-(m.ret||0))/100/(m.dias||365);
+  const rExc=neto((m.tasaExc||0)-(m.ret||0))/100/(m.dias||365);
   let s=base;
   for(let i=0;i<dias;i++){
     // se conserva la precision completa dia a dia; el redondeo a centavos ocurre
@@ -4076,7 +4170,8 @@ function modeloComp(src, cfg) {
     tasa:nv(src[cfg.tasa],d.tasa),
     tope:Number.isFinite(rawTope)?(rawTope>0?rawTope:(rawTope===0?null:d.tope)):d.tope,
     tasaExc:nv(src[cfg.tasaExc],d.tasaExc),
-    ret:Math.max(0,nv(src[cfg.ret],d.ret))
+    ret:Math.max(0,nv(src[cfg.ret],d.ret)),
+    retCap:d.retCap===true
   };
 }
 // descripcion corta del modelo de una cuenta para las etiquetas de la UI
@@ -4103,6 +4198,19 @@ function calcRevSavings() {
   const saldo=calcRevSavingsAt(Date.now());
   return {saldo, rend:saldo-(state.revSavingsBase||0)};
 }
+// Mifel: el banco abona diario en dias habiles; la app compone diario con base 360 (ESTIMADO)
+function calcMifelAt(ms) { return calcCompoundAt(state.mifelBase, state.mifelFecha, ms, modeloComp(state,CAMPO_COMP.mifel)); }
+function calcMifel() {
+  const saldo=calcMifelAt(Date.now());
+  return {saldo, rend:saldo-(state.mifelBase||0)};
+}
+// pasada la fecha hasta la que se CONFIRMO la tasa, todo lo de Mifel es estimado con la tasa vieja
+function avisoTasaMifel() {
+  const v=state.mifelVigencia;
+  if(typeof v!=='string'||!/^\d{4}-\d{2}-\d{2}$/.test(v)||hoyLocal()<=v) return '';
+  if(!(nFin(state.mifelBase)>0)) return '';
+  return '⚠️ la tasa de Mifel estaba confirmada hasta el '+v+': confírmala en "actualizar saldos"';
+}
 // ── RENDIMIENTO HISTORICO POR TRAMOS ──────────────────────────
 // Cada vez que una cuenta de interes se reancla, txDinero guarda el tramo que cerro (base, fechas,
 // modelo y monto) en la coleccion C_REND. Con eso el interes de CUALQUIER periodo se recalcula exacto
@@ -4118,7 +4226,7 @@ function saneaTramo(t) {
   const m = (t.modelo && typeof t.modelo === 'object') ? t.modelo : {};
   return {id:t.id||null, slot:t.slot, motivo:typeof t.motivo==='string'?t.motivo:'movimiento', ini:t.ini, fin:t.fin,
           base:t.base, monto:c2(t.monto), ajuste:Number.isFinite(t.ajuste)?t.ajuste:0,
-          modelo:{tasa:nFin(m.tasa), tope:Number.isFinite(m.tope)?m.tope:null, tasaExc:nFin(m.tasaExc), ret:nFin(m.ret), dias:nFin(m.dias,365)}};
+          modelo:{tasa:nFin(m.tasa), tope:Number.isFinite(m.tope)?m.tope:null, tasaExc:nFin(m.tasaExc), ret:nFin(m.ret), dias:nFin(m.dias,365), retCap:m.retCap===true}};
 }
 function tramosDe(slot) { return (state.rendimientos||[]).map(saneaTramo).filter(t => t && t.slot === slot); }
 function semillaDe(slot) { return tramosDe(slot).find(t => t.motivo === 'semilla') || null; }
@@ -4248,6 +4356,18 @@ function render() {
   document.getElementById('rev-savings-acum-val').textContent='+'+fmt(Math.max(0,acRS));
   document.getElementById('rev-savings-base-val').textContent=fmt(state.revSavingsBase);
   document.getElementById('rev-savings-rend-val').textContent='+'+fmt(rs.rend);
+  // Mifel (sin ocultar negativos: un ajuste de conciliacion puede dejar el acumulado abajo de cero)
+  const mf=calcMifel(), sgnF=v=>(v<-0.005?'−':'+')+fmt(Math.abs(v));
+  document.getElementById('mifel-display').textContent=fmt(mf.saldo);
+  document.getElementById('mifel-sub').textContent=descModelo('mifel')+' · estimado'+(apartadoDe('mifel')>0?' · incluye '+fmt(apartadoDe('mifel'))+' del fondo · libres '+fmt(Math.max(0,disponibleCuenta('mifel'))):'');
+  const acMF=rendAcumulado('mifel'), mifelRendEl=document.getElementById('mifel-rend');
+  mifelRendEl.textContent=sgnF(acMF);
+  mifelRendEl.className='card-change '+(acMF<-0.005?'neg':'pos');
+  document.getElementById('mifel-acum-val').textContent=sgnF(acMF);
+  document.getElementById('mifel-base-val').textContent=fmt(state.mifelBase);
+  document.getElementById('mifel-rend-val').textContent=sgnF(mf.rend);
+  const avMF=avisoTasaMifel(), avEl=document.getElementById('mifel-aviso');
+  if(avEl){ avEl.hidden=!avMF; avEl.textContent=avMF; }
   // BOLSA: valor total de las posiciones abiertas (acciones x precio USD x tipo de cambio)
   const posAbiertas=Object.entries(state.posiciones).filter(([k,p])=>p.acciones>0);
   const fxOk=Number.isFinite(state.usdMxn);
@@ -4339,7 +4459,7 @@ function render() {
 
   // GBM retirado (vendido jul-2026, el dinero migro a Revolut): fuera del total.
   // El deposito de la TDC Revolut SI es activo (dinero propio, aunque congelado)
-  const totalFisico=nu1.saldo+state.nuSaldo+state.efectivo+state.revMXN+rs.saldo+nvdaVal+tdcDep;
+  const totalFisico=nu1.saldo+state.nuSaldo+state.efectivo+state.revMXN+rs.saldo+mf.saldo+nvdaVal+tdcDep;
   // el fondo de la universidad vive DENTRO de estas cuentas pero no es dinero para el dia a dia:
   // inicio, metas, distribucion, el snapshot y el coach usan TU dinero (fisico menos apartado)
   const fondoTot=fondoTotal();
@@ -4355,7 +4475,7 @@ function render() {
   totalesInicio={fisico:totalFisico, tuyo:total, neto, listo:true};
   refrescar(aplicarVisibilidadFondo);
   // lo apartado se resta POR CUENTA: en Savings reduce 'ahorro', en MXN reduce 'disponible'
-  renderDistribucion(nu1.saldo+rs.saldo-apartadoDe('cajita1')-apartadoDe('revSavings'), nvdaVal,
+  renderDistribucion(nu1.saldo+rs.saldo+mf.saldo-apartadoDe('cajita1')-apartadoDe('revSavings')-apartadoDe('mifel'), nvdaVal,
     state.efectivo+state.nuSaldo+state.revMXN-apartadoDe('efectivo')-apartadoDe('nu')-apartadoDe('revolut'), tdcDep, posAbiertas.length>0&&!stocksCompleto);
   renderMetas({stocks:nvdaVal, stocksPendiente:posAbiertas.length>0&&!stocksCompleto, patrimonio:total});
   renderApartados();
@@ -4400,39 +4520,51 @@ window.guardarManuales = async function() {
     ns:'input-nu-saldo',ef:'input-efectivo',
     rvm:'input-rev-mxn',rsb:'input-rev-savings-base',rsf:'input-rev-savings-fecha',rst:'input-rev-savings-tasa',
     rstope:'input-rev-savings-tope',rsexc:'input-rev-savings-tasa-exc',rsret:'input-rev-savings-ret',
+    mfb:'input-mifel-base',mff:'input-mifel-fecha',mft:'input-mifel-tasa',mftope:'input-mifel-tope',
+    mfexc:'input-mifel-tasa-exc',mfret:'input-mifel-ret',mfvig:'input-mifel-vigencia',
     rtd:'input-rev-tdc-dep'};
   const labels={c1b:'cajita 1 - saldo base',c1f:'cajita 1 - fecha base',c1t:'cajita 1 - tasa',
     c1tope:'cajita 1 - tope',c1exc:'cajita 1 - tasa excedente',
     ns:'NU saldo',ef:'efectivo',
     rvm:'Revolut MXN',rsb:'Revolut Savings - saldo base',rsf:'Revolut Savings - fecha base',rst:'Revolut Savings - tasa',
     rstope:'Rev Savings - tope',rsexc:'Rev Savings - tasa excedente',rsret:'Rev Savings - retención ISR',
+    mfb:'Mifel - saldo base',mff:'Mifel - fecha base',mft:'Mifel - tasa',mftope:'Mifel - tope',
+    mfexc:'Mifel - tasa excedente',mfret:'Mifel - retención ISR',mfvig:'Mifel - tasa confirmada hasta',
     rtd:'depósito TDC Revolut'};
   const raw={}; Object.keys(ids).forEach(k=>raw[k]=document.getElementById(ids[k]).value.trim());
   const vals={};
-  for(const k of ['c1b','ns','ef','rvm','rsb']) {
+  for(const k of ['c1b','ns','ef','rvm','rsb','mfb']) {
     if(raw[k]===''){ vals[k]=null; continue; }
     const n=parseFloat(raw[k]);
     if(!Number.isFinite(n)){ showToast('monto inválido en '+labels[k]); return; }
     vals[k]=n;
   }
-  for(const k of ['c1t','rst','c1exc','rsexc']) {
+  for(const k of ['c1t','rst','c1exc','rsexc','mft','mfexc']) {
     if(raw[k]===''){ vals[k]=null; continue; }
     const n=parseFloat(raw[k]);
-    if(!Number.isFinite(n)||n<=-100){ showToast('tasa inválida en '+labels[k]); return; }
+    // Mifel no admite tasa negativa: el motor (retCap) la deja en 0 pero la etiqueta mostraria el negativo
+    if(!Number.isFinite(n)||n<=-100||((k==='mft'||k==='mfexc')&&n<0)){ showToast('tasa inválida en '+labels[k]); return; }
     vals[k]=n;
   }
   // tope: 0 explicito = quitar el tope (se guarda 0, modeloComp lo lee como "sin tope")
-  for(const k of ['c1tope','rstope']) {
+  for(const k of ['c1tope','rstope','mftope']) {
     if(raw[k]===''){ vals[k]=null; continue; }
     const n=parseFloat(raw[k]);
     if(!Number.isFinite(n)||n<0){ showToast('tope inválido en '+labels[k]); return; }
     vals[k]=n;
   }
-  if(raw.rsret===''){ vals.rsret=null; }
+  for(const k of ['rsret','mfret']) {
+    if(raw[k]===''){ vals[k]=null; continue; }
+    const n=parseFloat(raw[k]);
+    if(!Number.isFinite(n)||n<0||n>10){ showToast('retención inválida en '+labels[k]+' (0 a 10%)'); return; }
+    vals[k]=n;
+  }
+  // vigencia de la tasa de Mifel: una fecha real (puede ser futura), 0 = quitarla, vacio = no cambiar
+  if(raw.mfvig===''){ vals.mfvig=null; }
+  else if(raw.mfvig==='0'){ vals.mfvig=''; }
   else {
-    const n=parseFloat(raw.rsret);
-    if(!Number.isFinite(n)||n<0||n>10){ showToast('retención inválida en '+labels.rsret+' (0 a 10%)'); return; }
-    vals.rsret=n;
+    if(!fechaCalendarioValida(raw.mfvig)){ showToast('fecha inválida en '+labels.mfvig); return; }
+    vals.mfvig=raw.mfvig;
   }
   // deposito TDC Revolut: limite = deposito (regla del producto); rango oficial $250-$75,000
   // y nunca por debajo de la deuda usada (Revolut no permite bajar el limite bajo el saldo)
@@ -4443,7 +4575,7 @@ window.guardarManuales = async function() {
     if(Math.round(n*100)<Math.round(Math.max(0,state.revTdcDeuda)*100)){ showToast('el depósito no puede ser menor que la deuda usada de la TDC Revolut'); return; }
     vals.rtd=n;
   }
-  for(const k of ['c1f','rsf']) {
+  for(const k of ['c1f','rsf','mff']) {
     if(raw[k]===''){ vals[k]=null; continue; }
     if(!/^\d{4}-\d{2}-\d{2}$/.test(raw[k])){ showToast('fecha inválida en '+labels[k]); return; }
     const d=parseFechaLocal(raw[k]);
@@ -4456,6 +4588,7 @@ window.guardarManuales = async function() {
   // fecha sin base reancla la base vieja e inventa/borra rendimiento: se rechaza
   if(vals.c1f!==null&&vals.c1b===null){ showToast('captura también el saldo base de cajita 1'); return; }
   if(vals.rsf!==null&&vals.rsb===null){ showToast('captura también el saldo base de Revolut Savings'); return; }
+  if(vals.mff!==null&&vals.mfb===null){ showToast('captura también el saldo base de Mifel'); return; }
   // tasa nueva SIN saldo base: hay que consolidar el saldo actual (con la tasa vieja)
   // como nueva base antes de aplicar la tasa nueva; si no, la tasa nueva se aplicaria
   // retroactivamente a dias que ya generaron interes con la anterior. Se hace DENTRO de
@@ -4465,10 +4598,14 @@ window.guardarManuales = async function() {
   const cristalizar=[];
   if((vals.c1t!==null||vals.c1tope!==null||vals.c1exc!==null)&&vals.c1b===null) cristalizar.push('cajita1');
   if((vals.rst!==null||vals.rstope!==null||vals.rsexc!==null||vals.rsret!==null)&&vals.rsb===null) cristalizar.push('revSavings');
+  if((vals.mft!==null||vals.mftope!==null||vals.mfexc!==null||vals.mfret!==null)&&vals.mfb===null) cristalizar.push('mifel');
   // base sin fecha: la base capturada es el saldo observado HOY; sin esto la fecha
   // queda vacia (la cajita nunca crece) o vieja (genera de golpe interes ya contado)
   if(vals.c1b!==null&&vals.c1f===null) vals.c1f=hoyLocal();
   if(vals.rsb!==null&&vals.rsf===null) vals.rsf=hoyLocal();
+  if(vals.mfb!==null&&vals.mff===null) vals.mff=hoyLocal();
+  // capturar una tasa de Mifel despues de que vencio la confirmada ES confirmarla: se quita el aviso
+  if(vals.mft!==null&&vals.mfvig===null&&typeof state.mifelVigencia==='string'&&state.mifelVigencia&&state.mifelVigencia<hoyLocal()) vals.mfvig='';
   const btn=document.getElementById('manuales-btn');
   if(dineroOcupado){showToast('espera, hay otra operación en curso');return;}
   // SOLO los campos que el usuario realmente tecleo. Antes se escribia el documento
@@ -4489,6 +4626,13 @@ window.guardarManuales = async function() {
   if(vals.rstope!==null) absolutos.revSavingsTope=vals.rstope;
   if(vals.rsexc!==null)  absolutos.revSavingsTasaExc=vals.rsexc;
   if(vals.rsret!==null)  absolutos.revSavingsRet=vals.rsret;
+  if(vals.mfb!==null)    absolutos.mifelBase=vals.mfb;
+  if(vals.mff!==null)    absolutos.mifelFecha=vals.mff;
+  if(vals.mft!==null)    absolutos.mifelTasa=vals.mft;
+  if(vals.mftope!==null) absolutos.mifelTope=vals.mftope;
+  if(vals.mfexc!==null)  absolutos.mifelTasaExc=vals.mfexc;
+  if(vals.mfret!==null)  absolutos.mifelRet=vals.mfret;
+  if(vals.mfvig!==null)  absolutos.mifelVigencia=vals.mfvig;
   if(!Object.keys(absolutos).length&&!cristalizar.length&&vals.rtd===null){ showToast('no capturaste ningún dato'); return; }
   const plan={absolutos,cristalizar};
   if(vals.rtd!==null) plan.tdcRevDeposito=vals.rtd; // vive en cartera/tarjetaRev
@@ -4609,6 +4753,7 @@ function getSaldoCuenta(c) {
   if(c==='gbm') return state.efectivoGBM;
   if(c==='revolut') return state.revMXN;
   if(c==='revSavings') return calcRevSavings().saldo;
+  if(c==='mifel') return calcMifel().saldo;
   // OJO: para el deposito de la TDC devuelve el RETIRABLE (piso $250 y deuda usada
   // quedan bloqueados por Revolut), NO el deposito total — no usar para mostrarlo
   if(c==='revTdcDep') return Math.max(0,Math.min((state.revTdcDeposito||0)-250,(state.revTdcDeposito||0)-Math.max(0,state.revTdcDeuda||0)));
@@ -4617,6 +4762,18 @@ function getSaldoCuenta(c) {
 // ── FONDO: lo apartado y lo libre de cada cuenta ──
 function apartadoDe(c) { const sp = state.fondo && state.fondo.saldosPorCuenta; const v = sp ? sp[c] : 0; return Number.isFinite(v) ? v : 0; }
 function fondoTotal() { return CTAS_FONDO.reduce((t, k) => t + apartadoDe(k), 0); }
+// fondo total reconstruido a una fecha, sumando los movimientos anteriores a ella
+// (traspaso no cambia el total, solo mueve entre cuentas): sirve para saber si el
+// fondo estuvo presente DURANTE un periodo aunque hoy ya no tenga saldo
+function fondoAl(ms) {
+  return ((state.fondo && state.fondo.movs) || []).reduce((t, m) => {
+    const tm = msFechaMov(m.fecha || m.creado);
+    if (tm === null || tm >= ms) return t;
+    if (m.tipo === 'entrada' || m.tipo === 'apartar' || m.tipo === 'rendimiento') return t + m.monto;
+    if (m.tipo === 'salida' || m.tipo === 'liberar') return t - m.monto;
+    return t; // traspaso: no cambia el total
+  }, 0);
+}
 // lo que SI se puede usar de una cuenta: su saldo menos lo apartado del fondo
 function disponibleCuenta(c) { return getSaldoCuenta(c) - apartadoDe(c); }
 // totales que calcula render(): la pestaña del fondo los reusa en vez de repetir la formula
@@ -4640,7 +4797,7 @@ window.registrarTransferencia = async function() {
   const monto=Math.round(parseFloat(document.getElementById('transfer-monto').value)*100)/100;
   const nota=document.getElementById('transfer-nota').value.trim();
   if(!Number.isFinite(monto)||monto<=0){showToast('ingresa un monto válido');return;}
-  const CTAS_TRANSFER=['efectivo','nu','cajita1','revolut','revSavings','revTdcDep'];
+  const CTAS_TRANSFER=['efectivo','nu','cajita1','revolut','revSavings','mifel','revTdcDep'];
   if(!CTAS_TRANSFER.includes(origen)||!(CTAS_TRANSFER.includes(destino)||destino==='tarjeta'||destino==='tarjetaRev')){showToast('cuenta no válida');return;}
   if(origen===destino){showToast('elige cuentas distintas');return;}
   // avisos tempranos con el estado en pantalla; txDinero revalida TODO contra la nube.
@@ -4687,7 +4844,7 @@ window.eliminarTransferencia = async function(id) {
   if(t.origen==='gbm'||t.destino==='gbm'){showToast('las transferencias del GBM retirado ya no se pueden deshacer');return;}
   if(t.origen==='stocks'||t.destino==='stocks'||t.opId){showToast('las operaciones de bolsa no se deshacen: registra la operación inversa');return;}
   // si la transferencia toca una cajita/savings, el interes que ese dinero ya genero no se revierte al deshacer
-  const CTAS_INTERES=['cajita1','cajita2','revSavings'];
+  const CTAS_INTERES=['cajita1','cajita2','revSavings','mifel'];
   const tocaCajitaTr=CTAS_INTERES.includes(t.origen)||CTAS_INTERES.includes(t.destino);
   if(dineroOcupado){showToast('espera, hay otra operación en curso');return;}
   if(!confirm('¿Deshacer transferencia de '+fmt(t.monto)+' ('+(CUENTAS[t.origen]||t.origen)+' → '+(CUENTAS[t.destino]||t.destino)+')? El dinero regresa a su cuenta original'+(tocaCajitaTr?' (el rendimiento que ese dinero ya generó no se revierte)':'')))return;
@@ -5638,7 +5795,7 @@ function renderDistribucion(ahorro, inversiones, disponible, garantia, nvdaPendi
   // medio=ahorro, claro=disponible. Van como var() y no como hex fijo para que cambiar
   // el color de la app recoloree tambien el donut, al instante y sin re-render.
   const grupos=[
-    {nombre:'Ahorro con rendimiento',sub:'cajita NU 1 + Revolut Savings',monto:g1,color:'var(--d1)',txt:'var(--d1t)'},
+    {nombre:'Ahorro con rendimiento',sub:'cajita NU 1 + Revolut Savings + Mifel',monto:g1,color:'var(--d1)',txt:'var(--d1t)'},
     {nombre:'Inversiones',sub:'acciones (Revolut)'+(nvdaPendiente?' · precio pendiente':''),monto:g2,color:'var(--d2)',txt:'var(--d2t)'},
     {nombre:'Disponible',sub:'efectivo + NU + Revolut',monto:g3,color:'var(--d3)',txt:'var(--d3t)'},
     {nombre:'Garantía congelada',sub:'depósito TDC Revolut',monto:g4,color:'var(--d4)',txt:'var(--d4t)'}
@@ -6096,7 +6253,7 @@ window.fondoTipoCambio = function() {
 // para no dejar a Roberto sacando la cuenta: el banco le abona uno solo mezclado con el suyo
 function rendFondoSugerido(slot) {
   if (!CAMPO_COMP[slot] || !(apartadoDe(slot) > 0)) return null;
-  const S = slot === 'cajita1' ? calcNu1().saldo : slot === 'revSavings' ? calcRevSavings().saldo : null;
+  const S = getSaldoCuenta(slot);
   if (S === null) return null;
   const F = Math.min(apartadoDe(slot), Math.max(0, S)), hoy = hoyLocal(), m = modeloComp(state, CAMPO_COMP[slot]);
   const gana = x => x > 0 ? calcCompoundAt(x, hoy, parseFechaLocal(hoy).getTime() + 360 * 86400000, m) - x : 0;
@@ -6110,7 +6267,7 @@ function rendFondoSugerido(slot) {
 function rendEstimadoFondoMes() {
   let anual = 0;
   const hoy = hoyLocal(), en360 = parseFechaLocal(hoy).getTime() + 360 * 86400000;
-  [['cajita1', calcNu1().saldo], ['revSavings', calcRevSavings().saldo]].forEach(([slot, S]) => {
+  CTAS_FONDO.filter(k => CAMPO_COMP[k]).map(k => [k, getSaldoCuenta(k)]).forEach(([slot, S]) => {
     const F = Math.min(apartadoDe(slot), Math.max(0, S)); if (!(F > 0)) return;
     const m = modeloComp(state, CAMPO_COMP[slot]);
     const gana = x => x > 0 ? calcCompoundAt(x, hoy, en360, m) - x : 0;
@@ -6135,7 +6292,8 @@ function renderFondo() {
     kpi('tu dinero', T.listo ? fmt(T.tuyo) : '—', 'lo tuyo, sin el fondo') +
     kpi('patrimonio completo', T.listo ? fmt(T.fisico) : '—', 'tu dinero + el fondo') +
     kpi('neto completo', T.listo ? fmt(T.neto + F) : '—', 'suma lo que te deben y resta tus tarjetas') +
-    kpi('rinde al mes', estMes > 0.005 ? '≈' + fmt(estMes) : '—', 'estimado: el interés que agrega el fondo') +
+    kpi('rinde al mes', estMes > 0.005 ? '≈' + fmt(estMes) : '—', 'estimado: el interés que agrega el fondo' +
+      (apartadoDe('mifel') > 0 && state.mifelVigencia ? ' · supone que Mifel sigue al ' + state.mifelTasa + '% después del ' + state.mifelVigencia : '')) +
     kpi('ha entrado', fmt(suma(['entrada', 'apartar', 'rendimiento'])), 'entradas, apartados y rendimientos') +
     kpi('se ha usado', fmt(suma(['salida', 'liberar'])), 'pagos y lo liberado a tu dinero');
   const cu = document.getElementById('fondo-cuentas');
@@ -7273,13 +7431,11 @@ window.setResPeriodo = p => {
 // y ajustes manuales de saldos no pasan por aqui (es flujo registrado, no saldos)
 function aportacionesEnRango(start,end) {
   const enR=f=>{const t=msFechaMov(f);return t!==null&&t>=start.getTime()&&t<end.getTime();};
-  const neto={cajita1:0,revSavings:0,stocks:0};
+  const neto={stocks:0}; CTAS_AHORRO.forEach(k=>{ neto[k]=0; });
   state.transferencias.forEach(t=>{
     if(!t||!Number.isFinite(t.monto)||t.monto<=0||!enR(t.fecha)) return;
-    if(t.destino==='cajita1') neto.cajita1+=t.monto;
-    if(t.origen==='cajita1') neto.cajita1-=t.monto;
-    if(t.destino==='revSavings') neto.revSavings+=t.monto;
-    if(t.origen==='revSavings') neto.revSavings-=t.monto;
+    // entre dos cuentas de ahorro se cancela solo (una sube y la otra baja lo mismo)
+    CTAS_AHORRO.forEach(k=>{ if(t.destino===k) neto[k]+=t.monto; if(t.origen===k) neto[k]-=t.monto; });
   });
   state.stocksOps.forEach(o=>{
     if(!Number.isFinite(o.montoMxn)||o.montoMxn<=0) return;
@@ -7296,8 +7452,8 @@ function mesStats(y,m) {
   const gs=state.gastos.filter(enR), is=state.ingresos.filter(enR);
   const ap=aportacionesEnRango(ini,fin);
   return {totalI:is.reduce((s,i)=>s+i.monto,0), totalG:gs.reduce((s,i)=>s+i.monto,0),
-    aporte:ap.cajita1+ap.revSavings+ap.stocks,
-    tieneDatos:gs.length>0||is.length>0||ap.cajita1!==0||ap.revSavings!==0||ap.stocks!==0};
+    aporte:apTotal(ap),
+    tieneDatos:gs.length>0||is.length>0||apHay(ap)};
 }
 // 'mes bueno': hubo ingresos, no se gasto mas de lo que entro, y se aporto >= 20%
 // (comparaciones en centavos: el punto flotante no debe romper el umbral exacto)
@@ -7336,8 +7492,8 @@ function calcularCierre(start,end,modo) {
   const gastosR=state.gastos.filter(enR), ingresosR=state.ingresos.filter(enR);
   const totalG=gastosR.reduce((s,i)=>s+i.monto,0), totalI=ingresosR.reduce((s,i)=>s+i.monto,0);
   const ap=aportacionesEnRango(start,end);
-  const aporte=ap.cajita1+ap.revSavings+ap.stocks;
-  const vacio=totalI===0&&totalG===0&&ap.cajita1===0&&ap.revSavings===0&&ap.stocks===0;
+  const aporte=apTotal(ap);
+  const vacio=totalI===0&&totalG===0&&!apHay(ap);
   const estPre=estandarDe(state.perfil);
   const gPct=totalI>0?totalG/totalI*100:null;
   const aPct=totalI>0?aporte/totalI*100:null;
@@ -7367,7 +7523,7 @@ function calcularCierre(start,end,modo) {
     const pg=state.gastos.filter(enP).reduce((s,i)=>s+i.monto,0);
     const pi=state.ingresos.filter(enP).reduce((s,i)=>s+i.monto,0);
     const pAp=aportacionesEnRango(prevIni,prevFin);
-    const hayPrev=pg>0||pi>0||pAp.cajita1!==0||pAp.revSavings!==0||pAp.stocks!==0;
+    const hayPrev=pg>0||pi>0||apHay(pAp);
     if(hayPrev) comp={mes:MESES[prevIni.getMonth()],parcial:!!esActual,
       dG:pg>0?(totalG-pg)/pg*100:null, dI:pi>0?(totalI-pi)/pi*100:null, prevG:pg, prevI:pi};
   }
@@ -7383,7 +7539,7 @@ function calcularCierre(start,end,modo) {
     posA.forEach(([k,p])=>{ const mk=state.accionesMkt[k]; if(mk&&Number.isFinite(mk.precio)&&stCompleto) stVal+=p.acciones*mk.precio*state.usdMxn; else stCompleto=false; });
     // patrimonio con la MISMA formula del total de inicio ('total' no existe en este
     // scope: referirlo aqui tronaba calcularCierre y dejaba el coach en "calculando...")
-    const patTot=calcNu1().saldo+state.nuSaldo+state.efectivo+state.revMXN+calcRevSavings().saldo+stVal+(Number.isFinite(state.revTdcDeposito)?state.revTdcDeposito:0)-fondoTotal();
+    const patTot=calcNu1().saldo+state.nuSaldo+state.efectivo+state.revMXN+calcRevSavings().saldo+calcMifel().saldo+stVal+(Number.isFinite(state.revTdcDeposito)?state.revTdcDeposito:0)-fondoTotal();
     const ctxM={stocks:stVal, stocksPendiente:posA.length>0&&!stCompleto, patrimonio:patTot};
     // una entrada por meta: el coach las recorre en vez de hablar de dos cuentas fijas
     const lista=(MT.items||[]).map(m=>({
@@ -7448,7 +7604,7 @@ function calcScore(m) {
   // deposito congelado de la TDC, sin lo que te deben) contra el objetivo del estandar
   const gastoRef=promedioGastoMensual();
   if(gastoRef>0){
-    const liquido=Math.max(0,state.efectivo)+Math.max(0,state.nuSaldo)+Math.max(0,state.revMXN)+Math.max(0,calcNu1().saldo)+Math.max(0,calcRevSavings().saldo);
+    const liquido=['efectivo','nu','revolut','cajita1','revSavings','mifel'].reduce((s,c)=>s+Math.max(0,disponibleCuenta(c)),0);
     const meses=liquido/gastoRef;
     comps.push({nombre:'colchón de emergencia',max:10,puntos:Math.round(10*Math.min(1,meses/est.emergenciaMeses)),
       detalle:'tu dinero disponible cubre '+meses.toFixed(1)+' mes(es) de gasto · la referencia para ti es '+est.emergenciaMeses});
@@ -7539,7 +7695,7 @@ function cierreMesHTML(m,label,capturar) {
       est.fuente,fmt(falta20));
   } else {
     fila('ℹ️','sin ingresos registrados este '+per,'los porcentajes del cierre se calculan sobre tus ingresos','');
-    if(ap.cajita1!==0||ap.revSavings!==0||ap.stocks!==0){
+    if(apHay(ap)){
       if(aporte>0) fila('✅','aportaste a ahorro e inversión','aportaciones netas registradas',fmt(aporte));
       else if(aporte<0) fila('⚠️','retiraste de ahorro/inversión','aportaciones netas registradas','−'+fmt(Math.abs(aporte)));
       else fila('·','aportaciones netas en cero','aportaciones netas registradas',fmt(0));
@@ -7617,7 +7773,7 @@ function renderResumenCorto() {
     +'<div class="bar-header" style="margin-top:8px">'
     +'<span class="item-meta">'+(m.gPct!==null?('gasto '+m.gPct.toFixed(0)+'% · aporte '+Math.max(0,m.aPct).toFixed(0)+'%'+(m.maduro?'':' · parcial')):'sin ingresos este mes')
     +(m.racha>=1?' · 🔥 '+(m.racha>=24?'24+':m.racha):'')+'</span>'
-    +'<button type="button" class="del-btn" style="font-size:12px;color:var(--accent);padding:2px 0 2px 10px" onclick="showPage(\'resumen\')">ver detalle</button></div>';
+    +'<button type="button" class="del-btn" style="font-size:12px;color:var(--accent);padding:2px 0 2px 10px" onclick="showPage(\'resumen\',true)">ver detalle</button></div>';
 }
 
 // dibuja el cierre en un canvas propio (sin librerias) y lo comparte o descarga como PNG
@@ -7797,18 +7953,17 @@ function renderUtilidades(start,end) {
   // 1) intereses: se recalculan exactos sobre los TRAMOS guardados (cerrados + el abierto), asi
   // que mover dinero ya no borra la historia. Solo es parcial si la historia de una cuenta
   // empieza dentro del periodo (antes de eso no hay tramos ni semilla)
-  const int1=(dias>0)?interesEnRango('cajita1',start.getTime(),endC.getTime()):0;
-  const int2=(dias>0)?interesEnRango('revSavings',start.getTime(),endC.getTime()):0;
-  const intereses=int1+int2-rendFondoEnRango(start,endC); // lo conciliado al fondo no es tuyo
-  const h1=inicioHistoria('cajita1'), h2=inicioHistoria('revSavings');
+  const intBruto=(dias>0)?CTAS_AHORRO.reduce((s,k)=>s+interesEnRango(k,start.getTime(),endC.getTime()),0):0;
+  const intereses=intBruto-rendFondoEnRango(start,endC); // lo conciliado al fondo no es tuyo
   const dentro=h=>!!h&&parseFechaLocal(h).getTime()>start.getTime()&&parseFechaLocal(h).getTime()<endC.getTime();
+  const hDentro=CTAS_AHORRO.map(k=>inicioHistoria(k)).find(dentro);
   // cobertura: si una cuenta tiene historia pero ningun tramo cubre el arranque del periodo, esos
   // dias no tienen interes conocido y su capital inicial tampoco (la semilla no reconstruye capital)
   const cubre=k=>!inicioHistoria(k)||saldoCuentaEn(k,start.getTime())!==null;
-  const hueco=!cubre('cajita1')||!cubre('revSavings');
-  const parcialInt=dentro(h1)||dentro(h2)||hueco;
+  const hueco=CTAS_AHORRO.some(k=>!cubre(k));
+  const parcialInt=!!hDentro||hueco;
   fila('🏦','intereses de tus cuentas',
-    'cajita NU y Revolut Savings · descontando lo conciliado al fondo'+(parcialInt?' · parcial: '+(hueco?'hay días sin historia en este periodo':'sin historia antes del '+(dentro(h1)?h1:h2)):''),(intereses>=0?'+':'−')+fmt(Math.abs(intereses)));
+    'cajita NU, Revolut Savings y Mifel (estimado) · descontando lo conciliado al fondo'+(avisoTasaMifel()?' · tasa de Mifel por confirmar':'')+(parcialInt?' · parcial: '+(hueco?'hay días sin historia en este periodo':'sin historia antes del '+hDentro):''),(intereses>=0?'+':'−')+fmt(Math.abs(intereses)));
   // 2) plusvalia de bolsa = valorFin - valorIni - aportes netos del periodo (compras-ventas)
   const vIni=valorBolsaEn(start.getTime()-1), vFin=valorBolsaEn(endC.getTime());
   let plus=null, motivo='';
@@ -7833,8 +7988,7 @@ function renderUtilidades(start,end) {
   // 4) rendimiento sobre el capital, ponderando los flujos por el tiempo que estuvieron
   // dentro del periodo (Modified Dietz): un deposito de ayer no infla el porcentaje
   // el capital inicial de cada cuenta de interes sale del tramo que cubria el arranque del periodo
-  const capC1=saldoCuentaEn('cajita1',start.getTime()), capRS=saldoCuentaEn('revSavings',start.getTime());
-  const capIni=(capC1||0)+(capRS||0)+(vIni?vIni.valor:0);
+  const capIni=CTAS_AHORRO.reduce((s,k)=>s+(saldoCuentaEn(k,start.getTime())||0),0)+(vIni?vIni.valor:0);
   // si la historia de una cuenta empieza DENTRO del periodo, su capital inicial es desconocido: no calcular el %
   const capIncompleto=parcialInt;
   const flujos=[];
@@ -7843,17 +7997,18 @@ function renderUtilidades(start,end) {
     // para ponderar capital manda CUANDO se movio el dinero de verdad (creado), no la
     // fecha economica: una transferencia retrofechada aplico su delta el dia del registro
     const ms=msFechaMov(t.creado||t.fecha); if(ms===null||ms<start.getTime()||ms>=endC.getTime()) return;
-    const dentro=['cajita1','revSavings'];
-    const sgn=(dentro.includes(t.destino)?1:0)-(dentro.includes(t.origen)?1:0);
+    const sgn=(CTAS_AHORRO.includes(t.destino)?1:0)-(CTAS_AHORRO.includes(t.origen)?1:0);
     if(sgn!==0) flujos.push({monto:sgn*t.monto,ms});
   });
   opsRango.forEach(o=>{ if(Number.isFinite(o.montoMxn)&&o.montoMxn>0)
     flujos.push({monto:(o.tipo==='venta'?-1:1)*o.montoMxn,ms:parseFechaLocal(o.fecha).getTime()}); });
   // una captura manual que no coincidio con el modelo guardo la diferencia como AJUSTE en su tramo:
   // no fue una transferencia, pero si movio el capital ese dia, y entra como flujo para el %
-  ['cajita1','revSavings'].forEach(k=>tramosDe(k).forEach(t=>{ if(t.motivo==='captura'&&Math.abs(t.ajuste)>0.005){ const ms=parseFechaLocal(t.fin).getTime(); if(ms>=start.getTime()&&ms<endC.getTime()) flujos.push({monto:t.ajuste,ms}); } }));
+  CTAS_AHORRO.forEach(k=>tramosDe(k).forEach(t=>{ if(t.motivo==='captura'&&Math.abs(t.ajuste)>0.005){ const ms=parseFechaLocal(t.fin).getTime(); if(ms>=start.getTime()&&ms<endC.getTime()) flujos.push({monto:t.ajuste,ms}); } }));
   const capPond=capIni+flujos.reduce((s,f)=>s+f.monto*Math.max(0,Math.min(1,(endC.getTime()-f.ms)/(endC.getTime()-start.getTime()||1))),0);
+  const conFondo=fondoTotal()>0.005||fondoAl(start.getTime())>0.005||((state.fondo&&state.fondo.movs)||[]).some(m=>{ const t=msFechaMov(m.fecha||m.creado); return t!==null&&t>=start.getTime()&&t<endC.getTime(); });
   if(capIncompleto) fila('%','rendimiento de tu capital','no se puede calcular: la historia de una cuenta empieza dentro del periodo','—');
+  else if(conFondo) fila('%','rendimiento de tu capital','no se calcula mientras el fondo de la universidad esté en tus cuentas: su capital se mezcla con el tuyo','—');
   else if(capPond>0&&dias>0&&plus!==null){
     const r=util/capPond;
     let txt=(r>=0?'+':'−')+Math.abs(r*100).toFixed(2)+'%';
@@ -7887,8 +8042,13 @@ function renderRendimientos(start, end, balance) {
   const parcialC1=!sinDatosC1&&start.getTime()<parseFechaLocal(h1).getTime();
   const parcialRS=!sinDatosRS&&start.getTime()<parseFechaLocal(h2).getTime();
   // lo que el banco abono por el dinero del FONDO (conciliado en su pestaña) no es rendimiento tuyo
+  // Mifel: solo aparece cuando ya tiene historia (una cuenta sin usar no llena el resumen)
+  const h3=inicioHistoria('mifel');
+  const sinDatosMF=!h3||endC.getTime()<=parseFechaLocal(h3).getTime();
+  const rendMF=(!sinDatosMF&&dias>0)?interesEnRango('mifel',start.getTime(),endC.getTime()):0;
+  const parcialMF=!sinDatosMF&&start.getTime()<parseFechaLocal(h3).getTime();
   const rendFondo=rendFondoEnRango(start,endC);
-  const rendTotal=rend1+rendRS-rendFondo;
+  const rendTotal=rend1+rendRS+rendMF-rendFondo;
   const real=balance+rendTotal;
   const sgn=(v,cls)=>`<span class="${v>=0?'item-amt-pos':'item-amt-neg'}"${cls?' style="font-size:15px"':''}>${v>=0?'+':'−'}${fmt(Math.abs(v))}</span>`;
   const rowC1=sinDatosC1
@@ -7897,8 +8057,11 @@ function renderRendimientos(start, end, balance) {
   const rowRS=sinDatosRS
     ?`<div class="item-row"><div><div class="item-cat">Revolut Savings</div><div class="item-meta">sin historia en este periodo</div></div><span class="item-meta">—</span></div>`
     :`<div class="item-row"><div><div class="item-cat">Revolut Savings</div><div class="item-meta">${descModelo('revSavings')}${parcialRS?' · desde el '+fd(parseFechaLocal(h2))+' (parcial)':''}</div></div>${sgn(rendRS)}</div>`;
+  const rowMF=!h3?'':sinDatosMF
+    ?`<div class="item-row"><div><div class="item-cat">Mifel</div><div class="item-meta">sin historia en este periodo</div></div><span class="item-meta">—</span></div>`
+    :`<div class="item-row"><div><div class="item-cat">Mifel</div><div class="item-meta">${descModelo('mifel')} · estimado${avisoTasaMifel()?' · tasa por confirmar':''}${parcialMF?' · desde el '+fd(parseFechaLocal(h3))+' (parcial)':''}</div></div>${sgn(rendMF)}</div>`;
   document.getElementById('res-rendimientos').innerHTML=
-    rowC1+rowRS+
+    rowC1+rowRS+rowMF+
     (rendFondo>0?`<div class="item-row"><div><div class="item-cat">del fondo de la universidad</div><div class="item-meta">rendimiento conciliado en la pestaña fondo: no es tuyo</div></div>${sgn(-rendFondo)}</div>`:'')+
     `<div class="item-row"><div class="item-cat" style="font-weight:600">total rendimientos</div>${sgn(rendTotal,1)}</div>`+
     `<div class="item-row"><div><div class="item-cat" style="font-weight:600">balance real del periodo</div><div class="item-meta">ingresos − gastos + rendimientos</div></div>${sgn(real,1)}</div>`;
