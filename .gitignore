@@ -7,6 +7,8 @@
 .playwright-mcp/
 demo/
 *.png.bak
+AGENTS.md
+APRENDIZAJES.md
 
 # dependencias y basura de herramientas
 node_modules/

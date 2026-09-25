@@ -4,7 +4,7 @@ PWA de finanzas personales de Roberto, hosteada en GitHub Pages. Repo: `rl710340
 
 ## Stack
 
-- **HTML/CSS/JS puro en un solo archivo `index.html`** (~1200 líneas). Sin frameworks, sin build process, sin bundler, sin npm. Todo va directo a GitHub Pages tal cual está en el repo.
+- **HTML/CSS/JS puro en un solo archivo `index.html`** (~8,100 líneas al 24/09/2026). Sin frameworks, sin build process, sin bundler, sin npm. Todo va directo a GitHub Pages tal cual está en el repo.
 - **Firebase Firestore** para sincronización en la nube entre dispositivos.
 - **Firebase Authentication** (email/password) para login.
 - Archivos del repo: `index.html`, `manifest.json`, `sw.js` (service worker), `icon-192.png`, `icon-512.png`.
@@ -41,7 +41,11 @@ Este archivo se generó tras varias sesiones de trabajo con Claude en modo web/C
 - **Refactor grande de las cajitas NU (el cambio más importante técnicamente):** originalmente Cajita 1 sumaba **$9.03 fijos por día** (un valor hardcoded que ya no correspondía a la realidad) y Cajita 2 usaba **6% anual hardcoded**. Roberto reportó una discrepancia de $0.07 entre lo que mostraba la app y lo que mostraba la app real de Nu, y mandó una captura de pantalla de Nu mostrando que "Cajita Turbo" en realidad paga **13% anual compuesto** y "cajita 2" paga **6.5% anual**. Se rediseñó todo el modelo: ambas cajitas ahora usan el mismo esquema — `saldoBase + fechaBase + tasaAnual%` con interés compuesto diario real (`calcCompoundAt()`), y la tasa es **editable desde la UI** ("actualizar saldos") en vez de estar quemada en el código. Así, si Nu cambia el porcentaje en el futuro, solo se actualiza un número.
 - Se volvió a repetir el mismo patrón de deploy: subir varios cambios en commits separados vuelve a saturar la cola de Pages. Ya con permiso de escritura de la GitHub App activo, el flujo que funcionó fue: commitear en la rama de trabajo, y luego aplicar el mismo `index.html` directo sobre `main` en un solo commit (`git show <rama>:index.html > main`, commit, push a main) para evitar duplicar el historial de commits raros que ya tiene `main` (viene de subidas manuales por la interfaz web con nombres tipo "Rename index (4).html to index.html").
 
-## Estructura de la app — 5 pestañas
+## Estructura de la app
+
+**Al 24/09/2026 son 9 pestañas** (botones `<button class="tab">`): inicio, movimientos, inversiones*, fondo*, metas, perfil, noticias, deudas y resumen (* se prenden desde perfil). La lista de abajo es la de las primeras sesiones, cuando eran 5; se conserva como historia.
+
+### Las 5 originales
 
 1. **Inicio** — patrimonio total + tarjetas de cada cuenta (con detalle expandible) + formulario "actualizar saldos" + "transferir entre cuentas" + tarjeta de crédito NU.
 2. **Gastos** — registro con categoría (personalizable), fuente de pago, historial con opción de eliminar.
@@ -68,7 +72,7 @@ Este archivo se generó tras varias sesiones de trabajo con Claude en modo web/C
 ## Estructura de datos en Firestore
 
 - `cartera/saldos` — doc único: todos los saldos manuales/base de cajitas, efectivo, GBM, historial de precios IVVPESO.
-- `cartera/personas` — doc único: `{data: {Papa: {...}, Elita: {...}, Mama: {...}}}`, cada persona con `saldo` y array `movimientos`.
+- `cartera/personas` — doc único: `{data: {<clave>: {nombre, saldo, movimientos}}}`, cada persona con `saldo` y array `movimientos`.
 - `cartera/tarjeta` — doc único: `{deuda, movimientos}`.
 - `cartera/historial` — doc único: `{snapshots: [{f: 'YYYY-MM-DD', total, gbm}, ...]}`, un snapshot diario para las gráficas de patrimonio.
 - `cartera/categorias` — doc único: `{catsGasto: [...], catsIngreso: [...]}`.
@@ -78,24 +82,25 @@ Este archivo se generó tras varias sesiones de trabajo con Claude en modo web/C
 
 Las tres colecciones (`gastos`, `ingresos`, `transferencias`) se leen completas al cargar (sin paginación) y se guarda el `id` del doc en el objeto en memoria para poder borrarlo (`deleteDoc`) desde el botón × del historial.
 
-## Deudas — datos actuales (junio/julio 2026)
+## Deudas — esquema (sin cifras reales aquí, el repo es público)
 
-- **Papá:** ~$40,973 (le debe). 63+ movimientos históricos desde enero 2025 — préstamos mensuales de $4,500–$5,000, gasolina que él paga (resta), eventos, medicina, etc. Están hardcodeados como `PERSONAS_DEFAULT` en el JS (solo se usan si Firestore no tiene el doc todavía — después de la primera carga, Firestore manda).
-- **Elita (hermana):** ~$144 (le debe). 5 movimientos históricos.
-- **Mamá:** $0.
+- `state.personas` es un objeto `{clave: {nombre, saldo, movimientos:[...]}}`, una entrada por persona a la que se le presta o se le debe. Se agregan/quitan personas desde la propia app (pantalla Deudas).
+- `PERSONAS_DEFAULT` en el JS está vacío (`{}`) a propósito: los saldos y movimientos reales viven SOLO en Firestore (`cartera/personas`); no se escriben en el código ni en esta documentación porque el repo es público. El default vacío solo sirve de estado inicial antes de que cargue la copia local o el servidor.
 - **Lógica:** positivo (+) = le deben más, negativo (−) = pagaron o él debe.
 
 ## Diseño
 
-Dark mode. Colores: purple `#a78bfa`, green `#34d399`, red `#f87171`, gold `#fbbf24`. Estilo minimalista tipo iOS. Sin frameworks CSS, todo en un `<style>` dentro de `index.html`.
+Tema por defecto **claro, verde salvia** (tokens en `:root`: `--bg`, `--text`, `--muted`, `--accent`…) y 6 temas más vía `html[data-tema]`: azul, morado, arena, rosa, fucsia y **grafito** (el único oscuro). El tema se aplica antes de pintar (script al inicio del `<head>`); si nunca se eligió uno (`localStorage` sin la clave `tema`, que NO es lo mismo que `''` = verde elegido) y el sistema está en oscuro, arranca en grafito sin guardarlo.
+
+**Accesibilidad que ya se cuida (no romperla):** `--muted` da ≥4.5:1 contra `--bg`, `--bg3` y `--g5` en los temas claros (recalcular si se toca un color); foco visible con `:focus-visible`; las pestañas son `<button>` con `aria-current`; los encabezados de cuentas/tarjetas son `role="button"` con `aria-controls`/`aria-expanded` y responden a Enter/Espacio (un solo listener en el script); Enter en monto o nota de gasto/ingreso pulsa su botón; el aviso `#toast` es `role="status"`; objetivos táctiles de 44 px. Pendientes conscientes: los `confirm()` de borrados (flujos de dinero) y las fechas siguen como texto AAAA-MM-DD (un `type=date` a medio escribir llega vacío y se registraría como "hoy").
 
 ## Cosas importantes que debes saber para trabajar en este repo
 
 1. **Todo vive en un solo archivo `index.html`.** No hay build step. Cualquier cambio se sube tal cual.
 2. **El sitio en vivo se publica desde la rama `main`** (GitHub Pages, "Deploy from a branch"). No hay workflow de GitHub Actions custom — es el deploy clásico de Pages.
 3. **SIEMPRE subir en un solo commit.** Ya se atascó la cola de deploys de Pages dos veces por subir varios commits seguidos muy rápido. Si vas a cambiar algo, junta todos los cambios y haz un solo commit/push.
-4. **El service worker (`sw.js`) cachea el HTML con estrategia network-first** (`cartera-v2`). Si cambias la lógica de cacheo, sube también la versión del `CACHE` const para invalidar el caché viejo de los usuarios.
-5. **`ALLOWED_EMAIL` es solo un gate de UI, no seguridad real.** No hay reglas de Firestore restrictivas conocidas — cualquiera con las credenciales del proyecto Firebase (visibles en el propio `index.html`, es código cliente) técnicamente podría leer/escribir. Esto es aceptable para un proyecto personal de un solo usuario, pero es relevante si se toca el tema de multiusuario.
+4. **El service worker (`sw.js`, `cartera-v9`) usa stale-while-revalidate:** abre al instante con lo cacheado, baja el HTML nuevo en segundo plano, lo compara y muestra "hay una versión nueva". Cambiar solo `index.html` NO requiere subir `CACHE`; súbelo solo si cambias `sw.js`, su estrategia o recursos que se sirven de caché primero.
+5. **`ALLOWED_EMAIL` es solo un gate de UI.** La seguridad real está en `firestore.rules` (en el repo): exige sesión y solo deja pasar dos correos (el de Roberto y el de Zoe), **sin aislar los documentos de uno y otro**. Que ese archivo sea lo que está desplegado en Firebase no está verificado desde aquí. No convertir esto en multiusuario por iniciativa propia.
 6. **Interés compuesto de cajitas:** `calcCompoundAt(base, fechaStr, tasaPct, ms)` es la función central — cualquier cajita nueva o cambio de tasa debe pasar por ahí, nunca hardcodear un monto fijo por día otra vez.
 7. **`parseFechaLocal()`** existe específicamente para evitar el bug de timezone (parsear `YYYY-MM-DD` como local en vez de UTC). Úsalo siempre que se lea una fecha en ese formato desde el estado.
 

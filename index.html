@@ -9,10 +9,14 @@
 <meta name="theme-color" content="#ecf2ea">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-192.png">
+<link rel="icon" href="icon-192.png">
 <title>Mi Cartera</title>
 <script>
 // tema ANTES de pintar (evita el destello del tema anterior); allowlist estricta
-(function(){try{var t=localStorage.getItem('tema');
+(function(){var t=null;try{t=localStorage.getItem('tema');}catch(e){}
+  // '' es una elección válida (verde salvia): solo null significa "nunca eligió"
+  try{if(t===null&&window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches) t='grafito';}catch(e){}
+  try{
   if(['azul','morado','arena','grafito','rosa','fucsia'].indexOf(t)>=0){
     document.documentElement.setAttribute('data-tema',t);
     var colores={azul:'#eaf0f7',morado:'#f1ecf7',arena:'#f6f1e7',grafito:'#14171a',rosa:'#f8ecf1',fucsia:'#fce9f1'};
@@ -22,19 +26,19 @@
 </script>
 <style>
 /* tema verde salvia claro: paleta minima (verde + blanco + gris), estilo Revolut en claro */
-:root{--bg:#ecf2ea;--bg2:rgba(255,255,255,0.85);--bg2s:#ffffff;--bg3:#eef3ec;--border:rgba(28,92,63,0.10);--border2:rgba(26,46,34,0.18);--text:#1a2e22;--muted:#64766b;--green:#1d7d55;--red:#c04a3a;--accent:#2f6f4f;--accent-dark:#1c5c3f;--purple:var(--accent);--r:18px;--rs:12px;--sombra:0 1px 2px rgba(26,46,34,0.04),0 12px 36px rgba(28,92,63,0.10);
+:root{--bg:#ecf2ea;--bg2:rgba(255,255,255,0.85);--bg2s:#ffffff;--bg3:#eef3ec;--border:rgba(28,92,63,0.10);--border2:rgba(26,46,34,0.18);--text:#1a2e22;--muted:#5c6d62;--green:#1d7d55;--red:#c04a3a;--accent:#2f6f4f;--accent-dark:#1c5c3f;--purple:var(--accent);--r:18px;--rs:12px;--sombra:0 1px 2px rgba(26,46,34,0.04),0 12px 36px rgba(28,92,63,0.10);
   --g1:rgba(255,255,255,0.55);--g2:rgba(47,111,79,0.10);--g3:#e7efe4;--g4:#f2f7ef;--g5:#e4eee2;
   --nav-bg:rgba(240,245,238,0.75);--tj1:#12331f;--tj2:#2f6f4f;--tj-borde:rgba(47,111,79,0.35);--chip-r:rgba(47,111,79,0.10);--sup-borde:rgba(255,255,255,0.85)}
 /* TEMAS: cada uno redefine los tokens; el resto del CSS ya los consume */
-html[data-tema='azul']{--bg:#eaf0f7;--bg3:#eef3f9;--border:rgba(30,64,110,0.10);--border2:rgba(24,40,66,0.18);--text:#16263c;--muted:#5f7189;--green:#1a6f8c;--red:#c04a3a;--accent:#2f5f9f;--accent-dark:#1e4370;--sombra:0 1px 2px rgba(24,40,66,0.05),0 12px 36px rgba(30,64,110,0.12);
+html[data-tema='azul']{--bg:#eaf0f7;--bg3:#eef3f9;--border:rgba(30,64,110,0.10);--border2:rgba(24,40,66,0.18);--text:#16263c;--muted:#596a80;--green:#1a6f8c;--red:#c04a3a;--accent:#2f5f9f;--accent-dark:#1e4370;--sombra:0 1px 2px rgba(24,40,66,0.05),0 12px 36px rgba(30,64,110,0.12);
   --g1:rgba(255,255,255,0.55);--g2:rgba(47,95,159,0.10);--g3:#e4ecf6;--g4:#f1f6fc;--g5:#e2ebf5;--nav-bg:rgba(238,243,249,0.75);--tj1:#12233d;--tj2:#2f5f9f;--tj-borde:rgba(47,95,159,0.35);--chip-r:rgba(47,95,159,0.10);--sup-borde:rgba(255,255,255,0.85)}
-html[data-tema='morado']{--bg:#f1ecf7;--bg3:#f3eff9;--border:rgba(88,44,140,0.10);--border2:rgba(43,26,66,0.18);--text:#291a3d;--muted:#6f6285;--green:#1d7d55;--red:#c04a3a;--accent:#6b3fa0;--accent-dark:#4d2b78;--sombra:0 1px 2px rgba(43,26,66,0.05),0 12px 36px rgba(88,44,140,0.12);
+html[data-tema='morado']{--bg:#f1ecf7;--bg3:#f3eff9;--border:rgba(88,44,140,0.10);--border2:rgba(43,26,66,0.18);--text:#291a3d;--muted:#6c6082;--green:#1d7d55;--red:#c04a3a;--accent:#6b3fa0;--accent-dark:#4d2b78;--sombra:0 1px 2px rgba(43,26,66,0.05),0 12px 36px rgba(88,44,140,0.12);
   --g1:rgba(255,255,255,0.55);--g2:rgba(107,63,160,0.10);--g3:#ece4f6;--g4:#f6f1fc;--g5:#eae2f5;--nav-bg:rgba(243,239,249,0.75);--tj1:#251437;--tj2:#6b3fa0;--tj-borde:rgba(107,63,160,0.35);--chip-r:rgba(107,63,160,0.10);--sup-borde:rgba(255,255,255,0.85)}
-html[data-tema='arena']{--bg:#f6f1e7;--bg3:#f8f4ec;--border:rgba(140,105,45,0.12);--border2:rgba(60,48,30,0.18);--text:#33291a;--muted:#7d715e;--green:#1d7d55;--red:#c04a3a;--accent:#a97c2f;--accent-dark:#7d5a1f;--sombra:0 1px 2px rgba(60,48,30,0.05),0 12px 36px rgba(140,105,45,0.12);
+html[data-tema='arena']{--bg:#f6f1e7;--bg3:#f8f4ec;--border:rgba(140,105,45,0.12);--border2:rgba(60,48,30,0.18);--text:#33291a;--muted:#706655;--green:#1d7d55;--red:#c04a3a;--accent:#a97c2f;--accent-dark:#7d5a1f;--sombra:0 1px 2px rgba(60,48,30,0.05),0 12px 36px rgba(140,105,45,0.12);
   --g1:rgba(255,255,255,0.55);--g2:rgba(169,124,47,0.10);--g3:#f2ebdd;--g4:#faf6ee;--g5:#efe7d8;--nav-bg:rgba(248,244,236,0.78);--tj1:#3a2c14;--tj2:#a97c2f;--tj-borde:rgba(169,124,47,0.35);--chip-r:rgba(169,124,47,0.12);--sup-borde:rgba(255,255,255,0.85)}
-html[data-tema='rosa']{--bg:#f8ecf1;--bg3:#faeff3;--border:rgba(150,50,95,0.10);--border2:rgba(60,26,40,0.18);--text:#3a1a29;--muted:#836170;--green:#1d7d55;--red:#c04a3a;--accent:#bf5388;--accent-dark:#8e3560;--sombra:0 1px 2px rgba(60,26,40,0.05),0 12px 36px rgba(150,50,95,0.12);
+html[data-tema='rosa']{--bg:#f8ecf1;--bg3:#faeff3;--border:rgba(150,50,95,0.10);--border2:rgba(60,26,40,0.18);--text:#3a1a29;--muted:#7c5c6a;--green:#1d7d55;--red:#c04a3a;--accent:#bf5388;--accent-dark:#8e3560;--sombra:0 1px 2px rgba(60,26,40,0.05),0 12px 36px rgba(150,50,95,0.12);
   --g1:rgba(255,255,255,0.55);--g2:rgba(191,83,136,0.10);--g3:#f5e2ea;--g4:#fbf1f5;--g5:#f2dfe8;--nav-bg:rgba(249,240,244,0.78);--tj1:#5a2540;--tj2:#bf5388;--tj-borde:rgba(191,83,136,0.35);--chip-r:rgba(191,83,136,0.12);--sup-borde:rgba(255,255,255,0.85)}
-html[data-tema='fucsia']{--bg:#fce9f1;--bg3:#fdecf4;--border:rgba(190,35,110,0.10);--border2:rgba(70,20,48,0.18);--text:#3f1329;--muted:#8a5c70;--green:#1d7d55;--red:#c04a3a;--accent:#d42d80;--accent-dark:#a41f60;--sombra:0 1px 2px rgba(70,20,48,0.05),0 12px 36px rgba(190,35,110,0.12);
+html[data-tema='fucsia']{--bg:#fce9f1;--bg3:#fdecf4;--border:rgba(190,35,110,0.10);--border2:rgba(70,20,48,0.18);--text:#3f1329;--muted:#84586b;--green:#1d7d55;--red:#c04a3a;--accent:#d42d80;--accent-dark:#a41f60;--sombra:0 1px 2px rgba(70,20,48,0.05),0 12px 36px rgba(190,35,110,0.12);
   --g1:rgba(255,255,255,0.55);--g2:rgba(212,45,128,0.10);--g3:#fbe0ec;--g4:#fef0f5;--g5:#f9dde9;--nav-bg:rgba(252,235,242,0.78);--tj1:#6d1443;--tj2:#d42d80;--tj-borde:rgba(212,45,128,0.35);--chip-r:rgba(212,45,128,0.12);--sup-borde:rgba(255,255,255,0.85)}
 html[data-tema='grafito']{color-scheme:dark;--bg:#14171a;--bg2:rgba(32,36,40,0.85);--bg2s:#202428;--bg3:#1b1f23;--border:rgba(255,255,255,0.08);--border2:rgba(255,255,255,0.16);--text:#e9edf0;--muted:#95a0a8;--green:#39b98a;--red:#e2705f;--accent:#4fa882;--accent-dark:#6fc79f;--sombra:0 1px 2px rgba(0,0,0,0.4),0 12px 36px rgba(0,0,0,0.5);
   --g1:rgba(255,255,255,0.04);--g2:rgba(79,168,130,0.10);--g3:#131719;--g4:#181c20;--g5:#111417;--nav-bg:rgba(20,23,26,0.8);--tj1:#0f2a1d;--tj2:#2c6b4d;--tj-borde:rgba(79,168,130,0.35);--chip-r:rgba(79,168,130,0.14);--sup-borde:rgba(255,255,255,0.06)}
@@ -71,7 +75,7 @@ html[data-tema='grafito']{
   cursor:pointer;overflow:hidden;background-size:cover;background-position:center;box-shadow:var(--sombra)}
 .perfil-nombre{font-size:20px;font-weight:700;letter-spacing:-0.3px}
 .temas-row{display:flex;gap:10px;flex-wrap:wrap}
-.tema-chip{width:38px;height:38px;border-radius:50%;border:2px solid transparent;cursor:pointer;padding:0;box-shadow:var(--sombra)}
+.tema-chip{width:44px;height:44px;border-radius:50%;border:2px solid transparent;cursor:pointer;padding:0;box-shadow:var(--sombra)}
 .tema-chip[aria-pressed='true']{border-color:var(--accent);transform:scale(1.06)}
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 button,input,select,textarea{font-family:inherit} /* los controles nativos no heredan la fuente del body por default */
@@ -107,7 +111,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI',Ro
 .modal-card{background:var(--bg2s);border:1px solid var(--sup-borde);border-radius:var(--r);padding:18px;width:100%;max-width:360px;box-shadow:var(--sombra)}
 .modal-tit{font-size:16px;font-weight:600;color:var(--text)}
 .modal-sub{font-size:13px;color:var(--muted);margin:2px 0 14px}
-.edit-btn{background:none;border:none;color:var(--muted);font-size:14px;padding:4px 0 4px 12px;cursor:pointer;line-height:1;flex-shrink:0}
+.edit-btn{background:none;border:none;color:var(--muted);font-size:14px;padding:4px 0 4px 12px;min-width:44px;min-height:44px;display:inline-flex;align-items:center;justify-content:flex-end;cursor:pointer;line-height:1;flex-shrink:0}
 .loading-text{font-size:14px;color:var(--muted)}
 
 /* NAV */
@@ -123,10 +127,18 @@ nav{position:sticky;top:0;z-index:100;background:var(--nav-bg);backdrop-filter:b
 @keyframes spin{to{transform:rotate(360deg)}}
 
 /* TABS */
-.tabs{display:flex;border-bottom:0.5px solid var(--border);background:var(--bg);position:sticky;top:54px;z-index:99;overflow-x:auto}
+.tabs{display:flex;border-bottom:0.5px solid var(--border);background:linear-gradient(90deg,var(--bg) 30%,transparent) left center/40px 100% no-repeat local,linear-gradient(270deg,var(--bg) 30%,transparent) right center/40px 100% no-repeat local,radial-gradient(farthest-side at 0 50%,var(--sombra-scroll,rgba(26,46,34,.18)),transparent) left center/14px 100% no-repeat scroll,radial-gradient(farthest-side at 100% 50%,var(--sombra-scroll,rgba(26,46,34,.18)),transparent) right center/14px 100% no-repeat scroll,var(--bg);position:sticky;top:54px;z-index:99;overflow-x:auto}
 .tabs::-webkit-scrollbar{display:none}
-.tab{flex:0 0 auto;padding:12px 14px;font-size:13px;color:var(--muted);text-align:center;cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap}
+.tab{flex:0 0 auto;background:none;border:0;font:inherit;min-height:44px;padding:12px 14px;font-size:13px;color:var(--muted);text-align:center;cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap}
 .tab.active{color:var(--purple);border-bottom-color:var(--purple)}
+html[data-tema='grafito'] .tabs{--sombra-scroll:rgba(255,255,255,.16)}
+/* Foco visible con teclado (antes outline:none en los campos). El selector gana a .field input / .login-field input. */
+.field input:focus-visible,.field select:focus-visible,.field textarea:focus-visible,.login-field input:focus-visible,button:focus-visible,a:focus-visible,summary:focus-visible,[role="button"]:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.tab:focus-visible{outline-offset:-3px}
+/* .tarjeta-card tiene fondo degradado que termina en --accent: el outline verde se pierde
+   ahi mismo. Contorno doble (claro + sombra oscura) que se ve encima de cualquier color. */
+.tarjeta-card [role="button"]:focus-visible{outline:2px solid #fff;outline-offset:2px;box-shadow:0 0 0 4px rgba(0,0,0,.55)}
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
 .page{display:none;padding:20px;max-width:430px;margin:0 auto}.page.active{display:block}
 
 /* TOTAL */
@@ -209,7 +221,7 @@ nav{position:sticky;top:0;z-index:100;background:var(--nav-bg);backdrop-filter:b
 .btn-green{background:rgba(29,125,85,0.08);border-color:var(--green);color:var(--green)}
 .btn-red{background:rgba(192,74,58,0.07);border-color:var(--red);color:var(--red)}
 .type-toggle{display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap}
-.type-opt{flex:1;min-width:calc(33% - 4px);padding:8px 4px;background:var(--bg3);border:0.5px solid var(--border);border-radius:var(--rs);color:var(--muted);font-size:12px;cursor:pointer;text-align:center;font-family:inherit}
+.type-opt{flex:1;min-width:calc(33% - 4px);min-height:44px;padding:8px 4px;background:var(--bg3);border:0.5px solid var(--border);border-radius:var(--rs);color:var(--muted);font-size:12px;cursor:pointer;text-align:center;font-family:inherit}
 .type-opt.active{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600;box-shadow:var(--sombra-acc-s)}
 
 /* ITEMS */
@@ -248,7 +260,7 @@ nav{position:sticky;top:0;z-index:100;background:var(--nav-bg);backdrop-filter:b
 .amigo-yo{background:var(--bg3);border-radius:10px;padding-left:6px;padding-right:6px;margin:0 -6px}
 .amigo-fila{gap:14px}.amigo-der{text-align:right;flex-shrink:0;min-width:64px}.amigo-comp{font-size:11px;color:var(--muted);margin-top:2px}
 .subtabs{display:flex;gap:22px;border-bottom:1px solid var(--border2);margin:4px 0 18px}
-.subtabs .stab{padding:8px 2px 10px;font-size:15px;font-weight:600;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px}
+.subtabs .stab{background:none;border:0;font:inherit;min-height:44px;padding:8px 2px 10px;font-size:15px;font-weight:600;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px}
 .subtabs .stab.active{color:var(--accent);border-bottom-color:var(--accent)}
 .cat-fila{display:flex;align-items:center;gap:10px 12px;padding:9px 0;border-bottom:1px solid var(--sup-borde);flex-wrap:wrap}
 .cat-fila:last-child{border-bottom:none}
@@ -291,7 +303,7 @@ nav{position:sticky;top:0;z-index:100;background:var(--nav-bg);backdrop-filter:b
 .chart-dates{display:flex;justify-content:space-between;font-size:10px;color:var(--muted);margin-top:4px}
 /* control segmentado: una capsula con la opcion activa rellena */
 .chart-ranges{display:flex;gap:2px;margin-bottom:12px;background:var(--bg3);border-radius:12px;padding:3px}
-.chart-range-btn{flex:1;padding:7px 0;background:transparent;border:none;border-radius:9px;color:var(--muted);font-size:11px;cursor:pointer;text-align:center;font-family:inherit;font-weight:500}
+.chart-range-btn{flex:1;min-height:44px;padding:7px 0;background:transparent;border:none;border-radius:9px;color:var(--muted);font-size:11px;cursor:pointer;text-align:center;font-family:inherit;font-weight:500}
 .chart-range-btn.active{background:var(--accent);color:#fff;font-weight:600;box-shadow:var(--sombra-acc-s)}
 .chart-range-btn:disabled{opacity:0.3;cursor:default}
 .chart-last-pulse{transform-box:fill-box;transform-origin:center;animation:chartPulse 2s ease-out infinite}
@@ -467,10 +479,10 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
   <div class="login-box">
     <div class="login-logo">mi <span>cartera</span></div>
     <div class="login-sub">ingresa para continuar</div>
-    <div class="login-field"><input type="email" id="login-email" placeholder="correo" autocomplete="email"></div>
-    <div class="login-field"><input type="password" id="login-pass" placeholder="contraseña" autocomplete="current-password"></div>
+    <div class="login-field"><label class="sr-only" for="login-email">correo</label><input type="email" id="login-email" placeholder="correo" autocomplete="email"></div>
+    <div class="login-field"><label class="sr-only" for="login-pass">contraseña</label><input type="password" id="login-pass" placeholder="contraseña" autocomplete="current-password"></div>
     <button class="login-btn" onclick="doLogin()">entrar</button>
-    <div class="login-error" id="login-error"></div>
+    <div class="login-error" id="login-error" role="alert"></div>
   </div>
 </div>
 
@@ -495,16 +507,16 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
   </div>
 </nav>
 <div class="tabs">
-  <div class="tab active" data-page="inicio" onclick="showPage('inicio')">inicio</div>
-  <div class="tab" data-page="movimientos" onclick="showPage('movimientos')">movimientos</div>
+  <button type="button" class="tab active" data-page="inicio" onclick="showPage('inicio')" aria-current="page">inicio</button>
+  <button type="button" class="tab" data-page="movimientos" onclick="showPage('movimientos')">movimientos</button>
   <!-- solo se ve si esta encendido en el perfil (ver aplicarVisibilidadDashboard) -->
-  <div class="tab" data-page="dashboard" id="tab-dashboard" hidden onclick="showPage('dashboard')">inversiones</div>
-  <div class="tab" data-page="fondo" id="tab-fondo" hidden onclick="showPage('fondo')">fondo</div>
-  <div class="tab" data-page="metas" onclick="showPage('metas')">metas</div>
-  <div class="tab" data-page="perfil" onclick="showPage('perfil')">perfil</div>
-  <div class="tab" data-page="noticias" onclick="showPage('noticias')">noticias</div>
-  <div class="tab" data-page="deudas" onclick="showPage('deudas')">deudas</div>
-  <div class="tab" data-page="resumen" onclick="showPage('resumen')">resumen</div>
+  <button type="button" class="tab" data-page="dashboard" id="tab-dashboard" hidden onclick="showPage('dashboard')">inversiones</button>
+  <button type="button" class="tab" data-page="fondo" id="tab-fondo" hidden onclick="showPage('fondo')">fondo</button>
+  <button type="button" class="tab" data-page="metas" onclick="showPage('metas')">metas</button>
+  <button type="button" class="tab" data-page="perfil" onclick="showPage('perfil')">perfil</button>
+  <button type="button" class="tab" data-page="noticias" onclick="showPage('noticias')">noticias</button>
+  <button type="button" class="tab" data-page="deudas" onclick="showPage('deudas')">deudas</button>
+  <button type="button" class="tab" data-page="resumen" onclick="showPage('resumen')">resumen</button>
 </div>
 
 <!-- INICIO -->
@@ -553,7 +565,7 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
 
   <div class="cards">
     <div class="card" onclick="toggleCuenta('cajita1','nu1-detail')">
-      <div class="card-header">
+      <div class="card-header" role="button" tabindex="0" aria-controls="nu1-detail" aria-expanded="false">
         <div class="card-left"><div class="card-icon icon-nu"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="4"/><circle cx="12" cy="12" r="4"/><path d="M12 6.5V8M12 16v1.5M6.5 12H8M16 12h1.5"/></svg></div>
           <div><div class="card-name">NU cajita 1</div><div class="card-sub" id="nu1-sub">—</div></div>
         </div>
@@ -567,7 +579,7 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
       </div>
     </div>
     <div class="card" onclick="toggleCuenta('nu','nu-detail')">
-      <div class="card-header">
+      <div class="card-header" role="button" tabindex="0" aria-controls="nu-detail" aria-expanded="false">
         <div class="card-left"><div class="card-icon icon-nu"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9.5 12 4l9 5.5"/><path d="M5 10v8M9.5 10v8M14.5 10v8M19 10v8"/><path d="M3 20h18"/></svg></div>
           <div><div class="card-name">NU saldo</div><div class="card-sub" id="nu-saldo-sub">disponible</div></div>
         </div>
@@ -578,7 +590,7 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
 
     <!-- TARJETA NU -->
     <div class="tarjeta-card" onclick="toggleDetail('tarjeta-detail')">
-      <div class="t-label">tarjeta NU · deuda actual</div>
+      <div class="t-label" role="button" tabindex="0" aria-controls="tarjeta-detail" aria-expanded="false">tarjeta NU · deuda actual</div>
       <div class="t-amount" id="tarjeta-display">$—</div>
       <div class="t-sub" id="tarjeta-corte-sub">corte el 18 de cada mes</div>
       <div class="corte-bar"><div class="corte-fill" id="corte-fill" style="width:0%"></div></div>
@@ -590,7 +602,7 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
 
     <!-- TDC REVOLUT (garantizada: limite = deposito 1:1) -->
     <div class="tarjeta-card" onclick="toggleDetail('tarjeta-rev-detail')">
-      <div class="t-label">TDC Revolut · deuda actual</div>
+      <div class="t-label" role="button" tabindex="0" aria-controls="tarjeta-rev-detail" aria-expanded="false">TDC Revolut · deuda actual</div>
       <div class="t-amount" id="tarjeta-rev-display">$—</div>
       <div class="t-sub" id="tarjeta-rev-sub">límite $— · disponible $—</div>
       <div class="card-detail" id="tarjeta-rev-detail" style="border-top-color:rgba(255,255,255,0.1);margin-top:14px;padding-top:14px">
@@ -603,7 +615,7 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
     </div>
 
     <div class="card" onclick="toggleCuenta('efectivo','cash-detail')">
-      <div class="card-header">
+      <div class="card-header" role="button" tabindex="0" aria-controls="cash-detail" aria-expanded="false">
         <div class="card-left"><div class="card-icon icon-cash"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="7" width="19" height="10" rx="2"/><circle cx="12" cy="12" r="2.6"/><path d="M6 12h.01M18 12h.01"/></svg></div>
           <div><div class="card-name">efectivo</div><div class="card-sub" id="cash-sub">pesos en mano</div></div>
         </div>
@@ -614,7 +626,7 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
 
     <!-- REVOLUT -->
     <div class="card" onclick="toggleCuenta('revolut','rev-mxn-detail')">
-      <div class="card-header">
+      <div class="card-header" role="button" tabindex="0" aria-controls="rev-mxn-detail" aria-expanded="false">
         <div class="card-left"><div class="card-icon icon-rev"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><ellipse cx="12" cy="12" rx="3.6" ry="8.5"/><path d="M3.5 12h17"/></svg></div>
           <div><div class="card-name">Revolut MXN</div><div class="card-sub" id="rev-mxn-sub">cuenta personal</div></div>
         </div>
@@ -623,7 +635,7 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
       <div class="card-detail" id="rev-mxn-detail"><div id="movs-revolut"></div></div>
     </div>
     <div class="card" onclick="toggleCuenta('revSavings','rev-savings-detail')">
-      <div class="card-header">
+      <div class="card-header" role="button" tabindex="0" aria-controls="rev-savings-detail" aria-expanded="false">
         <div class="card-left"><div class="card-icon icon-rev"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M19 5 5 19"/><circle cx="7.2" cy="7.2" r="2.4"/><circle cx="16.8" cy="16.8" r="2.4"/></svg></div>
           <div><div class="card-name">Revolut Savings</div><div class="card-sub" id="rev-savings-sub">—</div></div>
         </div>
@@ -637,7 +649,7 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
       </div>
     </div>
     <div class="card" onclick="toggleDetail('rev-stocks-detail')">
-      <div class="card-header">
+      <div class="card-header" role="button" tabindex="0" aria-controls="rev-stocks-detail" aria-expanded="false">
         <div class="card-left"><div class="card-icon icon-rev"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l6-6 4 4 8-8"/><path d="M15 7h6v6"/></svg></div>
           <div><div class="card-name">Revolut Stocks</div><div class="card-sub" id="rev-stocks-sub">—</div></div>
         </div>
@@ -862,9 +874,9 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
   <div class="mt">
   <!-- subpestanas: "registrar" (lo de siempre) y "categorias" (administrar la lista) -->
   <div class="subtabs" id="mov-subtabs">
-    <div class="stab active" id="mtab-registrar" onclick="movSub('registrar')">registrar</div>
-    <div class="stab" id="mtab-cats" onclick="movSub('cats')">categorías</div>
-    <div class="stab" id="mtab-sus" onclick="movSub('sus')">suscripciones</div>
+    <button type="button" class="stab active" id="mtab-registrar" onclick="movSub('registrar')" aria-current="page">registrar</button>
+    <button type="button" class="stab" id="mtab-cats" onclick="movSub('cats')">categorías</button>
+    <button type="button" class="stab" id="mtab-sus" onclick="movSub('sus')">suscripciones</button>
   </div>
   <div id="mov-sub-registrar">
   <div class="inicio-grid">
@@ -968,8 +980,8 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
   </div>
   <!-- subpestañas: "tu perfil" (lo de siempre) y "amigos" (la competencia de la familia) -->
   <div class="subtabs" id="perfil-subtabs">
-    <div class="stab active" id="ptab-perfil" onclick="perfilSub('perfil')">tu perfil</div>
-    <div class="stab" id="ptab-amigos" onclick="perfilSub('amigos')">amigos</div>
+    <button type="button" class="stab active" id="ptab-perfil" onclick="perfilSub('perfil')" aria-current="page">tu perfil</button>
+    <button type="button" class="stab" id="ptab-amigos" onclick="perfilSub('amigos')">amigos</button>
   </div>
   <div id="perfil-sub-perfil">
   <div class="inicio-grid">
@@ -1331,7 +1343,7 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
     <button type="button" class="btn" id="persona-cancelar" style="margin-top:8px" onclick="cerrarModalPersona()">cancelar</button>
   </form>
 </div>
-<div class="toast" id="toast"></div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 <script type="module">
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
@@ -1424,8 +1436,24 @@ function hoyLocal() {
 function showToast(msg) {
   const el = document.getElementById('toast');
   el.textContent = msg; el.classList.add('show');
-  setTimeout(() => el.classList.remove('show'), 2200);
+  clearTimeout(el._t);
+  el._t = setTimeout(() => el.classList.remove('show'), 2200);
 }
+// Teclado: Enter/Espacio sobre un control no nativo marcado role=button lo activa;
+// Enter en monto o nota de gasto/ingreso pulsa su botón (el bloqueo dineroOcupado sigue mandando).
+// Solo actúa si el foco está EN el control: un Espacio dentro de un campo nunca se intercepta.
+(function teclado(){
+  const NATIVO='button,a,input,select,textarea,summary';
+  const ENTER_BTN={'gasto-monto':'gasto-btn','gasto-nota':'gasto-btn','ingreso-monto':'ingreso-btn','ingreso-nota':'ingreso-btn'};
+  document.addEventListener('keydown',e=>{
+    if(e.defaultPrevented||e.isComposing||e.keyCode===229||e.repeat||e.altKey||e.ctrlKey||e.metaKey) return;
+    const t=e.target; if(!t||!t.matches) return;
+    if(e.key==='Enter'&&ENTER_BTN[t.id]){ e.preventDefault(); const b=document.getElementById(ENTER_BTN[t.id]); if(b&&!b.disabled) b.click(); return; }
+    if((e.key==='Enter'||e.key===' ')&&t.matches('[role="button"][tabindex]')&&!t.matches(NATIVO)&&t.getAttribute('aria-disabled')!=='true'){ e.preventDefault(); t.click(); }
+  });
+  // aria-expanded sigue al detalle que abre cada encabezado (se revisa después de cada clic)
+  document.addEventListener('click',()=>{ document.querySelectorAll('[aria-controls][aria-expanded]').forEach(h=>{ const d=document.getElementById(h.getAttribute('aria-controls')); if(d) h.setAttribute('aria-expanded', d.classList.contains('open')?'true':'false'); }); });
+})();
 function escapeHtml(s) { return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 function toggleDetail(id) { document.getElementById(id).classList.toggle('open'); }
 window.toggleDetail = toggleDetail;
@@ -1452,6 +1480,7 @@ window.doLogin = async function() {
   const pass = document.getElementById('login-pass').value;
   const errEl = document.getElementById('login-error');
   errEl.textContent = '';
+  if (!email || !pass) { errEl.textContent = 'escribe tu correo y tu contraseña'; return; }
   if (email !== ALLOWED_EMAIL) { errEl.textContent = 'acceso no autorizado'; return; }
   try {
     await signInWithEmailAndPassword(auth, email, pass);
@@ -1531,81 +1560,11 @@ onAuthStateChanged(auth, async user => {
 });
 
 // ── DEFAULT DATA ──────────────────────────────────────────────
-const PERSONAS_DEFAULT = {
-  Papa: { nombre:'Papa', saldo:40973.31, movimientos:[
-    {subcat:'Gas',monto:1400,tipo:'pago',nota:'gas - el pago',fecha:'2026-06-10T00:00:00.000Z'},
-    {subcat:'Prestamo',monto:5000,tipo:'cargo',nota:'junio 2026',fecha:'2026-06-01T00:00:00.000Z'},
-    {subcat:'Pago recibido',monto:1000,tipo:'pago',nota:'aporte',fecha:'2026-05-28T00:00:00.000Z'},
-    {subcat:'Otros',monto:700,tipo:'cargo',nota:'traje',fecha:'2026-05-25T00:00:00.000Z'},
-    {subcat:'Gas',monto:1300,tipo:'pago',nota:'gas - el pago',fecha:'2026-05-20T00:00:00.000Z'},
-    {subcat:'Gas',monto:1200,tipo:'pago',nota:'gas - el pago',fecha:'2026-05-10T00:00:00.000Z'},
-    {subcat:'Prestamo',monto:5000,tipo:'cargo',nota:'mayo 2026',fecha:'2026-05-01T00:00:00.000Z'},
-    {subcat:'Gas',monto:1354.93,tipo:'pago',nota:'gasolina - el pago',fecha:'2026-04-25T00:00:00.000Z'},
-    {subcat:'Gas',monto:1100.76,tipo:'pago',nota:'gasolina - el pago',fecha:'2026-04-15T00:00:00.000Z'},
-    {subcat:'Otros',monto:100,tipo:'cargo',nota:'apuesta dominadas',fecha:'2026-04-10T00:00:00.000Z'},
-    {subcat:'Otros',monto:100,tipo:'pago',nota:'Texas - el pago',fecha:'2026-04-05T00:00:00.000Z'},
-    {subcat:'Prestamo',monto:5000,tipo:'cargo',nota:'abril 2026',fecha:'2026-04-01T00:00:00.000Z'},
-    {subcat:'Gas',monto:1318,tipo:'pago',nota:'gas - el pago',fecha:'2026-03-15T00:00:00.000Z'},
-    {subcat:'Prestamo',monto:5000,tipo:'cargo',nota:'marzo 2026',fecha:'2026-03-01T00:00:00.000Z'},
-    {subcat:'Gas',monto:1137,tipo:'pago',nota:'gas - el pago',fecha:'2026-03-01T00:00:00.000Z'},
-    {subcat:'Otros',monto:500,tipo:'cargo',nota:'brownies',fecha:'2026-02-20T00:00:00.000Z'},
-    {subcat:'Eventos',monto:200,tipo:'cargo',nota:'boletos',fecha:'2026-02-15T00:00:00.000Z'},
-    {subcat:'Gas',monto:1000,tipo:'pago',nota:'gas - el pago',fecha:'2026-02-10T00:00:00.000Z'},
-    {subcat:'Prestamo',monto:5000,tipo:'cargo',nota:'febrero 2026',fecha:'2026-02-01T00:00:00.000Z'},
-    {subcat:'Gas',monto:1284,tipo:'pago',nota:'gas - el pago',fecha:'2026-01-10T00:00:00.000Z'},
-    {subcat:'Prestamo',monto:5000,tipo:'cargo',nota:'enero 2026',fecha:'2026-01-01T00:00:00.000Z'},
-    {subcat:'Regalos',monto:1600,tipo:'pago',nota:'regalo Zoe - el pago',fecha:'2025-12-22T00:00:00.000Z'},
-    {subcat:'Regalos',monto:1800,tipo:'pago',nota:'regalo Zoe - el pago',fecha:'2025-12-20T00:00:00.000Z'},
-    {subcat:'Comidas',monto:699,tipo:'cargo',nota:'pinas',fecha:'2025-12-15T00:00:00.000Z'},
-    {subcat:'Gas',monto:1338,tipo:'pago',nota:'gas - el pago',fecha:'2025-12-10T00:00:00.000Z'},
-    {subcat:'Prestamo',monto:5000,tipo:'cargo',nota:'diciembre 2025',fecha:'2025-12-01T00:00:00.000Z'},
-    {subcat:'Gas',monto:1237,tipo:'pago',nota:'gas - el pago',fecha:'2025-11-15T00:00:00.000Z'},
-    {subcat:'Eventos',monto:460,tipo:'cargo',nota:'torneo basket',fecha:'2025-11-10T00:00:00.000Z'},
-    {subcat:'Eventos',monto:430,tipo:'cargo',nota:'torneo atlixco',fecha:'2025-11-05T00:00:00.000Z'},
-    {subcat:'Prestamo',monto:5000,tipo:'cargo',nota:'noviembre 2025',fecha:'2025-11-01T00:00:00.000Z'},
-    {subcat:'Gas',monto:1334,tipo:'pago',nota:'gas - el pago',fecha:'2025-10-20T00:00:00.000Z'},
-    {subcat:'Gas',monto:1292,tipo:'pago',nota:'gas - el pago',fecha:'2025-10-10T00:00:00.000Z'},
-    {subcat:'Eventos',monto:300,tipo:'cargo',nota:'torneo elite',fecha:'2025-10-05T00:00:00.000Z'},
-    {subcat:'Prestamo',monto:5000,tipo:'cargo',nota:'octubre 2025',fecha:'2025-10-01T00:00:00.000Z'},
-    {subcat:'Otros',monto:690,tipo:'cargo',nota:'licencia',fecha:'2025-10-01T00:00:00.000Z'},
-    {subcat:'Pago recibido',monto:1000,tipo:'pago',nota:'pago',fecha:'2025-09-28T00:00:00.000Z'},
-    {subcat:'Gas',monto:1285,tipo:'pago',nota:'gas - el pago',fecha:'2025-09-25T00:00:00.000Z'},
-    {subcat:'Eventos',monto:500,tipo:'pago',nota:'antro - el pago',fecha:'2025-09-20T00:00:00.000Z'},
-    {subcat:'Gas',monto:500,tipo:'pago',nota:'gas - el pago',fecha:'2025-09-15T00:00:00.000Z'},
-    {subcat:'Pago recibido',monto:1000,tipo:'pago',nota:'pago efectivo',fecha:'2025-09-10T00:00:00.000Z'},
-    {subcat:'Prestamo',monto:5000,tipo:'cargo',nota:'septiembre 2025',fecha:'2025-09-01T00:00:00.000Z'},
-    {subcat:'Pago recibido',monto:2000,tipo:'pago',nota:'pago',fecha:'2025-08-25T00:00:00.000Z'},
-    {subcat:'Pago recibido',monto:10000,tipo:'pago',nota:'pago 24/08/25',fecha:'2025-08-24T00:00:00.000Z'},
-    {subcat:'Prestamo',monto:5000,tipo:'cargo',nota:'agosto 2025',fecha:'2025-08-01T00:00:00.000Z'},
-    {subcat:'Salud',monto:443,tipo:'cargo',nota:'medicina',fecha:'2025-07-10T00:00:00.000Z'},
-    {subcat:'Prestamo',monto:4500,tipo:'cargo',nota:'julio 2025',fecha:'2025-07-01T00:00:00.000Z'},
-    {subcat:'Pago recibido',monto:2000,tipo:'pago',nota:'pagado en junio',fecha:'2025-06-20T00:00:00.000Z'},
-    {subcat:'Pago recibido',monto:2000,tipo:'pago',nota:'pagado en junio',fecha:'2025-06-10T00:00:00.000Z'},
-    {subcat:'Prestamo',monto:4500,tipo:'cargo',nota:'junio 2025',fecha:'2025-06-01T00:00:00.000Z'},
-    {subcat:'Comidas',monto:100,tipo:'cargo',nota:'chispas de chocolate',fecha:'2025-05-15T00:00:00.000Z'},
-    {subcat:'Pago recibido',monto:3500,tipo:'pago',nota:'pagado en mayo',fecha:'2025-05-10T00:00:00.000Z'},
-    {subcat:'Prestamo',monto:4500,tipo:'cargo',nota:'mayo 2025',fecha:'2025-05-01T00:00:00.000Z'},
-    {subcat:'Prestamo',monto:4500,tipo:'cargo',nota:'abril 2025',fecha:'2025-04-01T00:00:00.000Z'},
-    {subcat:'Otros',monto:100,tipo:'cargo',nota:'casetas San Rafa',fecha:'2025-03-20T00:00:00.000Z'},
-    {subcat:'Pago recibido',monto:4500,tipo:'pago',nota:'pagado para etiquetas',fecha:'2025-03-15T00:00:00.000Z'},
-    {subcat:'Prestamo',monto:4500,tipo:'cargo',nota:'marzo 2025',fecha:'2025-03-01T00:00:00.000Z'},
-    {subcat:'Prestamo',monto:4500,tipo:'cargo',nota:'febrero 2025',fecha:'2025-02-01T00:00:00.000Z'},
-    {subcat:'Pago recibido',monto:2000,tipo:'pago',nota:'pago',fecha:'2025-01-25T00:00:00.000Z'},
-    {subcat:'Otros',monto:500,tipo:'cargo',nota:'CDMX',fecha:'2025-01-20T00:00:00.000Z'},
-    {subcat:'Pago recibido',monto:50,tipo:'pago',nota:'cambio doctor',fecha:'2025-01-15T00:00:00.000Z'},
-    {subcat:'Otros',monto:270,tipo:'cargo',nota:'ceramica',fecha:'2025-01-10T00:00:00.000Z'},
-    {subcat:'Otros',monto:535,tipo:'cargo',nota:'licencia',fecha:'2025-01-05T00:00:00.000Z'},
-    {subcat:'Prestamo',monto:3500,tipo:'cargo',nota:'enero 2025',fecha:'2025-01-01T00:00:00.000Z'}
-  ]},
-  Elita: { nombre:'Elita', saldo:144, movimientos:[
-    {subcat:'Pago recibido',monto:1398,tipo:'pago',nota:'aerie',fecha:'2025-06-05T00:00:00.000Z'},
-    {subcat:'Pago recibido',monto:708,tipo:'pago',nota:'boletos',fecha:'2025-06-01T00:00:00.000Z'},
-    {subcat:'Pago recibido',monto:1000,tipo:'pago',nota:'pago 25/05',fecha:'2025-05-25T00:00:00.000Z'},
-    {subcat:'Salud',monto:400,tipo:'cargo',nota:'psicologa',fecha:'2025-02-01T00:00:00.000Z'},
-    {subcat:'Otros',monto:2850,tipo:'cargo',nota:'corbata',fecha:'2025-01-01T00:00:00.000Z'}
-  ]},
-  Mama: { nombre:'Mama', saldo:0, movimientos:[] }
-};
+// Vacio a proposito: el repo es publico, asi que los saldos y movimientos reales de
+// deudas de personas viven SOLO en Firestore (cartera/personas). Nunca se quema aqui
+// un dato real de familiares. Solo se usa como estado inicial antes de que cargue la
+// copia local o el servidor (ver pintarDesdeCache y loadFromFirebase, que lo reemplazan).
+const PERSONAS_DEFAULT = {};
 
 // ── STATE ─────────────────────────────────────────────────────
 let state = {
@@ -3116,7 +3075,7 @@ window.movSub = function(cual) {
   [['registrar','mov-sub-registrar','mtab-registrar'],['cats','mov-sub-cats','mtab-cats'],['sus','mov-sub-sus','mtab-sus']].forEach(([k,p,t]) => {
     const pe = document.getElementById(p), te = document.getElementById(t);
     if (pe) pe.style.display = movSubActual === k ? '' : 'none';
-    if (te) te.classList.toggle('active', movSubActual === k);
+    if (te) { const es = movSubActual === k; te.classList.toggle('active', es); if (es) te.setAttribute('aria-current','page'); else te.removeAttribute('aria-current'); }
   });
   if (movSubActual === 'cats') { catEditando = null; renderCategorias(); }
   if (movSubActual === 'sus') { susEditando = null; renderSuscripciones(); }
@@ -3684,7 +3643,11 @@ window.susQuitar = async function(btn) {
 // ── NAVIGATION ────────────────────────────────────────────────
 window.showPage = function(p) {
   document.querySelectorAll('.page').forEach(el => el.classList.remove('active'));
-  document.querySelectorAll('.tab').forEach(el => el.classList.toggle('active', el.dataset.page===p));
+  document.querySelectorAll('.tab').forEach(el => { const es=el.dataset.page===p; el.classList.toggle('active', es); if(es) el.setAttribute('aria-current','page'); else el.removeAttribute('aria-current'); });
+  // la pestaña elegida a la vista, moviendo SOLO la barra (scrollIntoView movería también la página)
+  { const act=document.querySelector('.tab.active'), bar=act&&act.parentElement;
+    if(bar&&bar.scrollWidth>bar.clientWidth){ const l=act.offsetLeft, d=l+act.offsetWidth;
+      if(l<bar.scrollLeft) bar.scrollLeft=Math.max(0,l-24); else if(d>bar.scrollLeft+bar.clientWidth) bar.scrollLeft=d-bar.clientWidth+24; } }
   document.getElementById('page-'+p).classList.add('active');
   if(p==='dashboard') renderDashboard();
   if(p==='fondo') renderFondo();
@@ -5193,7 +5156,7 @@ function renderDeudas() {
       const del=(m.id&&m.v===2)?`<button class="del-btn" onclick="eliminarDeuda('${key}','${m.id}')">&times;</button>`:'';
       return`<div class="item-row"><div><div class="item-cat">${escapeHtml(m.subcat)}</div><div class="item-meta">${meta}</div></div><div style="display:flex;align-items:center"><div class="${isNeg?'item-amt-neg':'item-amt-pos'}">${isNeg?'-':'+'}${fmt(m.monto)}</div>${del}</div></div>`;
     }).join('');
-    return`<div class="deuda-person"><div class="deuda-header" onclick="toggleDeuda('d-${key}')"><div><div class="deuda-name">${escapeHtml(p.nombre)}</div><div class="deuda-sub">${isPos?'te debe':'le debes'}</div></div><div class="deuda-total ${isPos?'pos':'neg'}">${fmt(Math.abs(p.saldo))}</div></div><div class="deuda-detail" id="d-${key}">${excelPanelHTML(key)}${movs||'<div class="empty-state" style="padding:12px 0">sin movimientos</div>'}</div></div>`;
+    return`<div class="deuda-person"><div class="deuda-header" role="button" tabindex="0" onclick="toggleDeuda('d-${key}')"><div><div class="deuda-name">${escapeHtml(p.nombre)}</div><div class="deuda-sub">${isPos?'te debe':'le debes'}</div></div><div class="deuda-total ${isPos?'pos':'neg'}">${fmt(Math.abs(p.saldo))}</div></div><div class="deuda-detail" id="d-${key}">${excelPanelHTML(key)}${movs||'<div class="empty-state" style="padding:12px 0">sin movimientos</div>'}</div></div>`;
   }).join('');
 }
 window.toggleDeuda=id=>document.getElementById(id).classList.toggle('open');
@@ -5939,7 +5902,11 @@ window.perfilSub=function(cual){
   const a=document.getElementById('perfil-sub-perfil'), b=document.getElementById('perfil-sub-amigos');
   if(a) a.style.display=perfilSubActual==='perfil'?'':'none'; if(b) b.style.display=perfilSubActual==='amigos'?'':'none';
   const ta=document.getElementById('ptab-perfil'), tb=document.getElementById('ptab-amigos');
-  if(ta&&tb){ ta.classList.toggle('active',perfilSubActual==='perfil'); tb.classList.toggle('active',perfilSubActual==='amigos'); }
+  if(ta&&tb){
+    ta.classList.toggle('active',perfilSubActual==='perfil'); tb.classList.toggle('active',perfilSubActual==='amigos');
+    if(perfilSubActual==='perfil'){ ta.setAttribute('aria-current','page'); tb.removeAttribute('aria-current'); }
+    else { tb.setAttribute('aria-current','page'); ta.removeAttribute('aria-current'); }
+  }
   if(perfilSubActual==='amigos') (amigosVisible()?publicarFicha():Promise.resolve()).then(()=>renderAmigos());
 };
 function aplicarVisibilidadAmigos(){
@@ -7753,11 +7720,11 @@ function renderResumen() {
   const byCat={}; gastos.forEach(i=>byCat[i.cat]=(byCat[i.cat]||0)+i.monto);
   const sortedG=Object.entries(byCat).sort((a,b)=>b[1]-a[1]); const maxG=sortedG[0]?sortedG[0][1]:1;
   document.getElementById('res-pie').innerHTML=pieChart(sortedG);
-  document.getElementById('resumen-cats').innerHTML=sortedG.length?sortedG.map(([cat,amt])=>`<div class="resumen-bar${catsAbiertas.has('g|'+cat)?' abierta':''}" data-k="g|${escapeHtml(cat)}" onclick="toggleCatDesglose(this,event)" title="ver los movimientos de esta categoría"><div class="bar-header"><span class="bar-label">${escapeHtml(cat)} <span class="bar-n">${gastos.filter(i=>i.cat===cat).length}</span></span><span class="bar-amt neg">${fmt(amt)}<span class="bar-chev">&#9662;</span></span></div><div class="bar-track"><div class="bar-fill" style="width:${(amt/maxG*100).toFixed(1)}%"></div></div>${desgloseCatHTML(gastos.filter(i=>i.cat===cat),'neg',catsAbiertas.has('g|'+cat))}</div>`).join(''):'<div class="empty-state">sin gastos en este periodo</div>';
+  document.getElementById('resumen-cats').innerHTML=sortedG.length?sortedG.map(([cat,amt])=>`<div class="resumen-bar${catsAbiertas.has('g|'+cat)?' abierta':''}" data-k="g|${escapeHtml(cat)}" onclick="toggleCatDesglose(this,event)" title="ver los movimientos de esta categoría"><div class="bar-header" role="button" tabindex="0"><span class="bar-label">${escapeHtml(cat)} <span class="bar-n">${gastos.filter(i=>i.cat===cat).length}</span></span><span class="bar-amt neg">${fmt(amt)}<span class="bar-chev">&#9662;</span></span></div><div class="bar-track"><div class="bar-fill" style="width:${(amt/maxG*100).toFixed(1)}%"></div></div>${desgloseCatHTML(gastos.filter(i=>i.cat===cat),'neg',catsAbiertas.has('g|'+cat))}</div>`).join(''):'<div class="empty-state">sin gastos en este periodo</div>';
   const byIng={}; ingresos.forEach(i=>byIng[i.cat]=(byIng[i.cat]||0)+i.monto);
   const sortedI=Object.entries(byIng).sort((a,b)=>b[1]-a[1]); const maxI=sortedI[0]?sortedI[0][1]:1;
   document.getElementById('res-pie-ingresos').innerHTML=pieChart(sortedI);
-  document.getElementById('resumen-ingresos-cats').innerHTML=sortedI.length?sortedI.map(([cat,amt])=>`<div class="resumen-bar${catsAbiertas.has('i|'+cat)?' abierta':''}" data-k="i|${escapeHtml(cat)}" onclick="toggleCatDesglose(this,event)" title="ver los movimientos de esta categoría"><div class="bar-header"><span class="bar-label">${escapeHtml(cat)} <span class="bar-n">${ingresos.filter(i=>i.cat===cat).length}</span></span><span class="bar-amt pos">${fmt(amt)}<span class="bar-chev">&#9662;</span></span></div><div class="bar-track"><div class="bar-fill bar-fill-green" style="width:${(amt/maxI*100).toFixed(1)}%"></div></div>${desgloseCatHTML(ingresos.filter(i=>i.cat===cat),'pos',catsAbiertas.has('i|'+cat))}</div>`).join(''):'<div class="empty-state">sin ingresos en este periodo</div>';
+  document.getElementById('resumen-ingresos-cats').innerHTML=sortedI.length?sortedI.map(([cat,amt])=>`<div class="resumen-bar${catsAbiertas.has('i|'+cat)?' abierta':''}" data-k="i|${escapeHtml(cat)}" onclick="toggleCatDesglose(this,event)" title="ver los movimientos de esta categoría"><div class="bar-header" role="button" tabindex="0"><span class="bar-label">${escapeHtml(cat)} <span class="bar-n">${ingresos.filter(i=>i.cat===cat).length}</span></span><span class="bar-amt pos">${fmt(amt)}<span class="bar-chev">&#9662;</span></span></div><div class="bar-track"><div class="bar-fill bar-fill-green" style="width:${(amt/maxI*100).toFixed(1)}%"></div></div>${desgloseCatHTML(ingresos.filter(i=>i.cat===cat),'pos',catsAbiertas.has('i|'+cat))}</div>`).join(''):'<div class="empty-state">sin ingresos en este periodo</div>';
 
   renderRendimientos(start, end, balance);
   renderUtilidades(start, end);
