@@ -305,6 +305,9 @@ html[data-tema='grafito'] .tabs{--sombra-scroll:rgba(255,255,255,.16)}
 .chart-delta{font-size:12px;font-weight:500}
 .chart-dates{display:flex;justify-content:space-between;font-size:10px;color:var(--muted);margin-top:4px}
 /* control segmentado: una capsula con la opcion activa rellena */
+.chart-modos{display:flex;gap:2px;margin-bottom:8px;background:var(--bg3);border-radius:12px;padding:3px}
+.chart-head.chart-head-col{flex-direction:column;align-items:flex-start;gap:2px}
+.chart-nota{font-size:11px;color:var(--muted);margin-top:6px;line-height:1.45}
 .chart-ranges{display:flex;gap:2px;margin-bottom:12px;background:var(--bg3);border-radius:12px;padding:3px}
 .chart-range-btn{flex:1;min-height:44px;padding:7px 0;background:transparent;border:none;border-radius:9px;color:var(--muted);font-size:11px;cursor:pointer;text-align:center;font-family:inherit;font-weight:500}
 .chart-range-btn.active{background:var(--accent);color:#fff;font-weight:600;box-shadow:var(--sombra-acc-s)}
@@ -422,6 +425,9 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
     grid-template-areas:"wl costo crec" "sector pie merc" "proy proy notas" "datos datos datos"}
 }
 .dgrid .acc{grid-column:1/-1;margin-bottom:0}
+/* registrar operacion de bolsa: vive en el tablero (30-sep) */
+.dop{margin:0 0 10px}
+.dop .acc{margin-bottom:0}
 .dkv{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:3px 12px;font-size:13px;align-items:baseline}
 .dkv .k{color:var(--muted)}
 .dkv .v{text-align:right;font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap}
@@ -795,101 +801,8 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
   </details>
   </div>
 
-  <div class="sec">
-  <details class="acc">
-  <summary>
-    <div class="acc-icon chip-nu"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="5" width="19" height="14" rx="2.5"/><path d="M2.5 10h19"/></svg></div>
-    <div><div class="acc-tit">tarjeta NU</div><div class="acc-sub">cargos y pagos de tu crédito Nu</div></div>
-  </summary>
-  <div class="acc-body">
-  <div class="panel">
-    <div class="field"><label>monto</label><input type="number" id="tarjeta-cargo-monto" placeholder="ej. 350" step="0.01" inputmode="decimal"></div>
-    <div class="field"><label>nota</label><input type="text" id="tarjeta-cargo-nota" placeholder="ej. spotify, gasolina..."></div>
-    <div class="field"><label>fecha (YYYY-MM-DD, vacía = hoy)</label><input type="text" id="tarjeta-fecha" placeholder="hoy"></div>
-    <div class="field"><label>si pagas, el dinero sale de</label>
-      <select id="tarjeta-pago-fuente">
-        <option value="nu">NU saldo</option>
-        <option value="efectivo">efectivo</option>
-        <option value="cajita1">NU cajita 1</option>
-        <option value="revolut">Revolut MXN</option>
-        <option value="revSavings">Revolut Savings</option>
-        <option value="externo">otro (no descontar de mis cuentas)</option>
-      </select>
-    </div>
-    <div class="row2" style="gap:8px">
-      <button class="btn btn-red" id="tarjeta-cargo-btn" onclick="registrarTarjeta('cargo')" style="margin-top:0">+ cargo</button>
-      <button class="btn btn-green" id="tarjeta-pago-btn" onclick="registrarTarjeta('pago')" style="margin-top:0">- pagué</button>
-    </div>
-  </div>
-  </div>
-  </details>
-  </div>
 
-  <div class="sec">
-  <details class="acc">
-  <summary>
-    <div class="acc-icon chip-rev"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="5" width="19" height="14" rx="2.5"/><path d="M2.5 10h19"/><path d="M6 15h4"/></svg></div>
-    <div><div class="acc-tit">TDC Revolut</div><div class="acc-sub">cargos, pagos y depósito de garantía</div></div>
-  </summary>
-  <div class="acc-body">
-  <div class="panel">
-    <div class="field"><label>monto</label><input type="number" id="tarjeta-rev-monto" placeholder="ej. 120" step="0.01" inputmode="decimal"></div>
-    <div class="field"><label>nota</label><input type="text" id="tarjeta-rev-nota" placeholder="ej. uber, súper..."></div>
-    <div class="field"><label>fecha (YYYY-MM-DD, vacía = hoy)</label><input type="text" id="tarjeta-rev-fecha" placeholder="hoy"></div>
-    <div class="field"><label>si pagas, el dinero sale de</label>
-      <select id="tarjeta-rev-pago-fuente">
-        <option value="revolut">Revolut MXN</option>
-        <option value="efectivo">efectivo</option>
-        <option value="nu">NU saldo</option>
-        <option value="externo">otro (no descontar de mis cuentas)</option>
-      </select>
-    </div>
-    <div class="row2" style="gap:8px">
-      <button class="btn btn-red" id="tarjeta-rev-cargo-btn" onclick="registrarTarjetaRev('cargo')" style="margin-top:0">+ cargo</button>
-      <button class="btn btn-green" id="tarjeta-rev-pago-btn" onclick="registrarTarjetaRev('pago')" style="margin-top:0">- pagué</button>
-    </div>
-  </div>
-  </div>
-  </details>
-  </div>
 
-  <div class="sec">
-  <details class="acc" id="stock-acc">
-  <summary>
-    <div class="acc-icon chip-oro"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l6-6 4 4 8-8"/><path d="M15 7h6v6"/></svg></div>
-    <div><div class="acc-tit">bolsa · registrar operación</div><div class="acc-sub">compras y ventas de acciones</div></div>
-  </summary>
-  <div class="acc-body">
-  <div class="panel" id="stock-form-panel">
-    <div class="type-toggle" id="stock-tipo-toggle">
-      <div class="type-opt active" onclick="setStockTipo('compra')">compré</div>
-      <div class="type-opt" onclick="setStockTipo('venta')">vendí</div>
-    </div>
-    <div class="row2" style="gap:8px">
-      <div class="field"><label>símbolo (formato válido, ej. MSFT)</label><input type="text" id="stock-simbolo" list="stock-symbols" placeholder="ej. MSFT" autocapitalize="characters" autocomplete="off"></div>
-      <div class="field"><label>acciones</label><input type="number" id="stock-acciones" placeholder="ej. 0.066874" step="0.00000001" inputmode="decimal"></div>
-    </div>
-    <div class="row2" style="gap:8px">
-      <div class="field"><label>total en pesos</label><input type="number" id="stock-monto" placeholder="ej. 523.39" step="0.01" inputmode="decimal"></div>
-      <div class="field"><label>total en dólares (opcional)</label><input type="number" id="stock-usd" placeholder="ej. 30.00" step="0.01" inputmode="decimal"></div>
-    </div>
-    <div class="row2" style="gap:8px">
-      <div class="field"><label>cuenta</label>
-        <select id="stock-cuenta">
-          <option value="revolut">Revolut MXN</option>
-          <option value="efectivo">efectivo</option>
-          <option value="nu">NU saldo</option>
-          <option value="externo">externo · no toca mis cuentas</option>
-        </select>
-      </div>
-      <div class="field"><label>fecha (YYYY-MM-DD, vacía = hoy)</label><input type="text" id="stock-fecha" placeholder="hoy"></div>
-    </div>
-    <button class="btn btn-purple" id="stock-op-btn" onclick="enviarOpStock()">registrar compra</button>
-    <datalist id="stock-symbols"></datalist>
-  </div>
-  </div>
-  </details>
-  </div>
   </div>
   <!-- avisa, con todas sus letras, que lo que se ve es la copia guardada en el aparato
        y todavia no esta confirmada con el servidor -->
@@ -958,6 +871,59 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
       <button class="btn btn-green" id="ingreso-btn" onclick="registrarIngreso()">registrar ingreso</button>
     </div>
     </div>
+    <div class="section-title mt" id="tarjetas-titulo">tarjetas de crédito</div>
+  <details class="acc">
+  <summary>
+    <div class="acc-icon chip-nu"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="5" width="19" height="14" rx="2.5"/><path d="M2.5 10h19"/></svg></div>
+    <div><div class="acc-tit">tarjeta NU</div><div class="acc-sub">cargos y pagos de tu crédito Nu</div></div>
+  </summary>
+  <div class="acc-body">
+  <div class="panel">
+    <div class="field"><label>monto</label><input type="number" id="tarjeta-cargo-monto" placeholder="ej. 350" step="0.01" inputmode="decimal"></div>
+    <div class="field"><label>nota</label><input type="text" id="tarjeta-cargo-nota" placeholder="ej. spotify, gasolina..."></div>
+    <div class="field"><label>fecha (YYYY-MM-DD, vacía = hoy)</label><input type="text" id="tarjeta-fecha" placeholder="hoy"></div>
+    <div class="field"><label>si pagas, el dinero sale de</label>
+      <select id="tarjeta-pago-fuente">
+        <option value="nu">NU saldo</option>
+        <option value="efectivo">efectivo</option>
+        <option value="cajita1">NU cajita 1</option>
+        <option value="revolut">Revolut MXN</option>
+        <option value="revSavings">Revolut Savings</option>
+        <option value="externo">otro (no descontar de mis cuentas)</option>
+      </select>
+    </div>
+    <div class="row2" style="gap:8px">
+      <button class="btn btn-red" id="tarjeta-cargo-btn" onclick="registrarTarjeta('cargo')" style="margin-top:0">+ cargo</button>
+      <button class="btn btn-green" id="tarjeta-pago-btn" onclick="registrarTarjeta('pago')" style="margin-top:0">- pagué</button>
+    </div>
+  </div>
+  </div>
+  </details>
+  <details class="acc">
+  <summary>
+    <div class="acc-icon chip-rev"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="5" width="19" height="14" rx="2.5"/><path d="M2.5 10h19"/><path d="M6 15h4"/></svg></div>
+    <div><div class="acc-tit">TDC Revolut</div><div class="acc-sub">cargos, pagos y depósito de garantía</div></div>
+  </summary>
+  <div class="acc-body">
+  <div class="panel">
+    <div class="field"><label>monto</label><input type="number" id="tarjeta-rev-monto" placeholder="ej. 120" step="0.01" inputmode="decimal"></div>
+    <div class="field"><label>nota</label><input type="text" id="tarjeta-rev-nota" placeholder="ej. uber, súper..."></div>
+    <div class="field"><label>fecha (YYYY-MM-DD, vacía = hoy)</label><input type="text" id="tarjeta-rev-fecha" placeholder="hoy"></div>
+    <div class="field"><label>si pagas, el dinero sale de</label>
+      <select id="tarjeta-rev-pago-fuente">
+        <option value="revolut">Revolut MXN</option>
+        <option value="efectivo">efectivo</option>
+        <option value="nu">NU saldo</option>
+        <option value="externo">otro (no descontar de mis cuentas)</option>
+      </select>
+    </div>
+    <div class="row2" style="gap:8px">
+      <button class="btn btn-red" id="tarjeta-rev-cargo-btn" onclick="registrarTarjetaRev('cargo')" style="margin-top:0">+ cargo</button>
+      <button class="btn btn-green" id="tarjeta-rev-pago-btn" onclick="registrarTarjetaRev('pago')" style="margin-top:0">- pagué</button>
+    </div>
+  </div>
+  </div>
+  </details>
   </div>
   <div class="sec">
     <div class="section-title">movimientos</div>
@@ -1189,6 +1155,43 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
 <div class="page" id="page-dashboard">
   <div class="dhead"><h2>Tablero de inversiones</h2><div class="daviso" id="dash-aviso"></div></div>
   <div class="dkpis" id="dash-kpis"><div class="empty-state">calculando...</div></div>
+  <div class="dop">
+  <details class="acc" id="stock-acc">
+  <summary>
+    <div class="acc-icon chip-oro"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l6-6 4 4 8-8"/><path d="M15 7h6v6"/></svg></div>
+    <div><div class="acc-tit">bolsa · registrar operación</div><div class="acc-sub">compras y ventas de acciones</div></div>
+  </summary>
+  <div class="acc-body">
+  <div class="panel" id="stock-form-panel">
+    <div class="type-toggle" id="stock-tipo-toggle">
+      <div class="type-opt active" onclick="setStockTipo('compra')">compré</div>
+      <div class="type-opt" onclick="setStockTipo('venta')">vendí</div>
+    </div>
+    <div class="row2" style="gap:8px">
+      <div class="field"><label>símbolo (formato válido, ej. MSFT)</label><input type="text" id="stock-simbolo" list="stock-symbols" placeholder="ej. MSFT" autocapitalize="characters" autocomplete="off"></div>
+      <div class="field"><label>acciones</label><input type="number" id="stock-acciones" placeholder="ej. 0.066874" step="0.00000001" inputmode="decimal"></div>
+    </div>
+    <div class="row2" style="gap:8px">
+      <div class="field"><label>total en pesos</label><input type="number" id="stock-monto" placeholder="ej. 523.39" step="0.01" inputmode="decimal"></div>
+      <div class="field"><label>total en dólares (opcional)</label><input type="number" id="stock-usd" placeholder="ej. 30.00" step="0.01" inputmode="decimal"></div>
+    </div>
+    <div class="row2" style="gap:8px">
+      <div class="field"><label>cuenta</label>
+        <select id="stock-cuenta">
+          <option value="revolut">Revolut MXN</option>
+          <option value="efectivo">efectivo</option>
+          <option value="nu">NU saldo</option>
+          <option value="externo">externo · no toca mis cuentas</option>
+        </select>
+      </div>
+      <div class="field"><label>fecha (YYYY-MM-DD, vacía = hoy)</label><input type="text" id="stock-fecha" placeholder="hoy"></div>
+    </div>
+    <button class="btn btn-purple" id="stock-op-btn" onclick="enviarOpStock()">registrar compra</button>
+    <datalist id="stock-symbols"></datalist>
+  </div>
+  </div>
+  </details>
+  </div>
   <div class="dgrid">
     <div class="dcard dg-wl"><div class="dcard-h">Lo que gana y lo que pierde</div><div class="dcard-b" id="dash-winloss"><div class="empty-state">calculando...</div></div></div>
     <div class="dcard dg-costo"><div class="dcard-h">Lo que pusiste y lo que vale</div><div class="dcard-b" id="dash-costo-valor"><div class="empty-state">calculando...</div></div></div>
@@ -5577,6 +5580,7 @@ async function operarStock(tipo) {
       if(res.tr) state.transferencias.unshift(res.tr);
       limpiarFormStock(); // solo tras exito: ante error los valores capturados se conservan
       render(); renderTransferencias();
+      if(dashboardEncendido()) refrescar(renderDashboard); // el tablero tambien se repinta; un fallo de pintado no es fallo de guardado
       const sinPrecio=!state.accionesMkt[d.simbolo];
       showToast((tipo==='compra'?'compra':'venta')+' de '+d.simbolo+' registrada');
       if(sinPrecio) fetchAll();
@@ -5591,6 +5595,10 @@ window.enviarOpStock=()=>operarStock(stockTipoSel);
 function enfocarFormStock() {
   const p=document.getElementById('stock-form-panel');
   if(!p) return;
+  // con el tablero apagado su pestaña queda oculta: navegar ahi rebotaria a Inicio
+  if(!dashboardEncendido()){ showToast('enciende «inversiones» en tu perfil para registrar operaciones de bolsa'); return; }
+  // el formulario vive en el tablero de inversiones (30-sep): primero se va a esa pestaña
+  if(typeof showPage==='function') showPage('dashboard',true);
   const det=p.closest('details'); if(det) det.open=true; // el acordeon puede estar cerrado
   p.scrollIntoView({behavior:'smooth',block:'center'});
   const s=document.getElementById('stock-simbolo'); if(s) setTimeout(()=>s.focus(),350);
@@ -5603,10 +5611,10 @@ window.registrarVentaStock=()=>{ window.setStockTipo('venta'); enfocarFormStock(
 const CHART_W=360,CHART_H=156,CH_PT=10,CH_PR=12,CH_PB=8,CH_PL=46;
 function fmtCorto(v) {
   if (modoPrivado) return '····';
-  const a=Math.abs(v);
-  if(a>=1e6) return '$'+(v/1e6).toFixed(1)+'M';
-  if(a>=1e3) return '$'+(v/1e3).toFixed(1)+'k';
-  return '$'+v.toFixed(0);
+  const a=Math.abs(v), sg=v<0?'−$':'$';
+  if(a>=1e6) return sg+(a/1e6).toFixed(1)+'M';
+  if(a>=1e3) return sg+(a/1e3).toFixed(1)+'k';
+  return sg+a.toFixed(0);
 }
 // curva monotona (Fritsch-Carlson): suave pero NUNCA rebasa los maximos/minimos reales
 function pathSuave(pts) {
@@ -5640,14 +5648,14 @@ function normalizarSerie(data) {
   return out;
 }
 
-function chartBlock(chartId,data,color,deltaLabel) {
+function chartBlock(chartId,data,color,deltaLabel,opts) {
   const serie=normalizarSerie(data);
   const maxXAll=serie.length?serie[serie.length-1].x:0;
   let rango=chartRangoSel[chartId]||'todo';
   // un rango solo tiene sentido si hay datos anteriores a su inicio; si no, se deshabilita
   const cobertura=r=>r.dias===null?serie.length>=2:(serie.length>=2&&serie[0].x<=maxXAll-r.dias*86400000);
   const rDef=CHART_RANGOS.find(r=>r.k===rango);
-  if(rDef&&!cobertura(rDef)){rango='todo';chartRangoSel[chartId]='todo';}
+  if(rDef&&!cobertura(rDef)){rango='todo';} // fallback solo para este render: chartRangoSel conserva lo elegido
   const toolbar='<div class="chart-ranges">'+CHART_RANGOS.map(r=>
     `<button class="chart-range-btn${r.k===rango?' active':''}"${cobertura(r)?'':' disabled'} aria-pressed="${r.k===rango}" onclick="setChartRango('${chartId}','${r.k}')">${r.k}</button>`
   ).join('')+'</div>';
@@ -5660,7 +5668,7 @@ function chartBlock(chartId,data,color,deltaLabel) {
   }
   if(vis.length<2){
     delete CHART_DATA[chartId];
-    return toolbar+'<div class="empty-state">aún no hay suficientes datos — se irá construyendo con el tiempo</div>';
+    return toolbar+'<div class="empty-state">'+((opts&&opts.vacio)||'aún no hay suficientes datos — se irá construyendo con el tiempo')+'</div>';
   }
   const w=CHART_W,h=CHART_H;
   const ys=vis.map(p=>p.y);
@@ -5686,7 +5694,8 @@ function chartBlock(chartId,data,color,deltaLabel) {
   const delta=last-first,up=delta>=0;
   const pctTxt=first?((up?'+':'')+(delta/first*100).toFixed(2)+'%'):'—';
   const fd=ms=>new Date(ms).toLocaleDateString('es-MX',{day:'numeric',month:'short',year:'2-digit'});
-  return `${toolbar}<div class="chart-head"><div class="chart-val">${fmt(last)}</div><div class="chart-delta ${up?'pos':'neg'}">${deltaLabel?deltaLabel+' ':''}${up?'+':'−'}${fmt(Math.abs(delta))} · ${pctTxt}</div></div>
+  const head=(opts&&opts.head)?opts.head(vis,rango):`<div class="chart-head"><div class="chart-val">${fmt(last)}</div><div class="chart-delta ${up?'pos':'neg'}">${deltaLabel?deltaLabel+' ':''}${up?'+':'−'}${fmt(Math.abs(delta))} · ${pctTxt}</div></div>`;
+  return `${toolbar}${head}
 <div class="chart-wrap"><svg viewBox="0 0 ${w} ${h}" style="width:100%;height:auto;display:block">
 <defs>
 <linearGradient id="${gid}" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" style="stop-color:${color};stop-opacity:0.28"/><stop offset="100%" style="stop-color:${color};stop-opacity:0"/></linearGradient>
@@ -5734,9 +5743,78 @@ function seriePortafolio() {
   }).filter(Boolean);
 }
 
+// dos lecturas del portafolio (30-sep): 'valor' = lo que vale hoy (lo que metiste + lo que gano);
+// 'ganancia' = solo el crecimiento: valor de tus acciones - lo que metiste (neto de lo que vendiste).
+// Sin dividendos (se registran como ingreso) y sin GBM, del que no esta registrado lo que se le metio.
+let modoPortafolio='valor';
+try{ if(localStorage.getItem('modoPortafolio')==='ganancia') modoPortafolio='ganancia'; }catch(e){}
+window.setModoPortafolio=m=>{ modoPortafolio=m==='ganancia'?'ganancia':'valor'; try{ localStorage.setItem('modoPortafolio',modoPortafolio); }catch(e){} renderChart('gbm-chart'); };
+function serieGananciaPortafolio() {
+  const ops=(state.stocksOps||[]).slice().sort(ordenOps);
+  if(!ops.length) return {serie:[],motivo:'todavía no registras compras de acciones'};
+  if(ops.some(o=>!fechaCalendarioValida(o.fecha)))
+    return {serie:[],motivo:'hay una operación con fecha inválida'};
+  if(ops.some(o=>!(Number.isFinite(o.montoMxn)&&o.montoMxn>0)))
+    return {serie:[],motivo:'hay operaciones sin el total en pesos: captúralo para ver la ganancia'};
+  const t0=parseFechaLocal(ops[0].fecha).getTime();
+  const mkt=state.accionesMkt||{};
+  // precios y tipo de cambio: solo finitos y >0 (un 0 o NaN cuenta como faltante, no como valor);
+  // copia ordenada por fecha para el ffill, sin mutar el estado
+  const limpia=arr=>(Array.isArray(arr)?arr:[]).filter(p=>p&&typeof p.t==='string'&&Number.isFinite(p.c)&&p.c>0).sort((a,b)=>a.t<b.t?-1:a.t>b.t?1:0);
+  const fx=limpia(state.usdMxnHistory);
+  const ffill=(arr,t)=>{ let v=null; for(const p of arr){ if(p.t<=t) v=p.c; else break; } return v; };
+  const syms=[...new Set(ops.map(o=>o.simbolo))];
+  const hist={}; syms.forEach(sym=>{ hist[sym]=mkt[sym]?limpia(mkt[sym].hist):[]; });
+  const fechasSet=new Set(); Object.values(mkt).forEach(mk=>{ (mk.hist||[]).forEach(p=>fechasSet.add(p.t)); });
+  const serie=[];
+  const sinPrecio=new Set(), monedaRara=new Set(); let sinTc=false;
+  for(const t of [...fechasSet].sort()){
+    const tms=parseFechaLocal(t).getTime();
+    if(!Number.isFinite(tms)||tms<t0) continue;
+    const tc=ffill(fx,t); if(tc===null){ sinTc=true; continue; }
+    let v=0, completo=true;
+    for(const sym of syms){
+      const a=accionesEnFecha(sym,tms); if(!(a>0)) continue;
+      const mk=mkt[sym];
+      // v+=a*c*tc asume dolares: un ticker en otra moneda falsearia el valor
+      if(mk&&mk.moneda&&mk.moneda!=='USD'){ monedaRara.add(sym); completo=false; continue; }
+      const c=mk?ffill(hist[sym],t):null;
+      if(c===null){ sinPrecio.add(sym); completo=false; continue; }   // sin precio ese dia: no se inventa
+      v+=a*c*tc;
+    }
+    if(!completo) continue;
+    let aport=0;
+    for(const o of ops){ const to=parseFechaLocal(o.fecha).getTime(); if(Number.isFinite(to)&&to<=tms) aport+=(o.tipo==='venta'?-1:1)*o.montoMxn; }
+    serie.push({x:tms,y:v-aport,aport});
+  }
+  if(!serie.length){
+    if(monedaRara.size) return {serie,motivo:[...monedaRara].join(', ')+' no cotiza en dólares: todavía no se puede valorar'};
+    if(sinPrecio.size) return {serie,motivo:'falta el precio de '+[...sinPrecio].join(', ')+' para ese periodo'};
+    if(sinTc) return {serie,motivo:'falta el tipo de cambio para ese periodo'};
+  }
+  return {serie};
+}
 function renderChart(chartId) {
-  if(chartId==='gbm-chart')
-    document.getElementById('gbm-chart').innerHTML=chartBlock('gbm-chart',seriePortafolio(),'var(--accent)');
+  if(chartId==='gbm-chart'){
+    const modos='<div class="chart-modos" role="group" aria-label="Qué ver en la gráfica">'+[['valor','con lo que metiste'],['ganancia','solo ganancia']].map(([k,t])=>
+      `<button type="button" class="chart-range-btn${modoPortafolio===k?' active':''}" aria-pressed="${modoPortafolio===k}" onclick="setModoPortafolio('${k}')">${t}</button>`).join('')+'</div>';
+    let html;
+    if(modoPortafolio==='ganancia'){
+      const g=serieGananciaPortafolio();
+      const sinGBM=(state.ivvHistory||[]).some(p=>p.t<=GBM_HASTA);
+      html=chartBlock('gbm-chart',g.serie,'var(--accent)','',{
+        vacio:g.motivo,
+        head:(vis,rango)=>{
+          const u=vis[vis.length-1], G=u.y, A=u.aport, d=G-vis[0].y, up=G>=0;
+          const maxA=Math.max(...g.serie.map(p=>p.aport));
+          const pct=(A>0&&A>=maxA*0.01)?(up?'+':'−')+Math.abs(G/A*100).toFixed(2)+'% sobre '+fmt(A)+' que pusiste':'';
+          const per=rango!=='todo'?(d>=0?'+':'−')+fmt(Math.abs(d))+' en este periodo':'';
+          const txt=['ganancia',pct,per].filter(Boolean).join(' · ');
+          return `<div class="chart-head chart-head-col"><div class="chart-val ${up?'pos':'neg'}">${up?'+':'−'}${fmt(Math.abs(G))}</div><div class="chart-delta ${up?'pos':'neg'}">${txt}</div></div>`;
+        }})+'<div class="chart-nota">solo lo que ganaron tus acciones, sin lo que metiste ni los dividendos'+(sinGBM?' · desde tu primera compra en Revolut (GBM no entra: no está registrado lo que le metiste)':'')+'</div>';
+    } else html=chartBlock('gbm-chart',seriePortafolio(),'var(--accent)');
+    document.getElementById('gbm-chart').innerHTML=modos+html;
+  }
   else
     document.getElementById('patrimonio-chart').innerHTML=chartBlock('patrimonio-chart',(state.snapshots||[]).map(s=>({x:parseFechaLocal(s.f).getTime(),y:s.total})),'var(--d2)','cambio');
 }
@@ -5761,7 +5839,7 @@ function initChartInteraccion(contId) {
     line.setAttribute('x1',cx);line.setAttribute('x2',cx);line.setAttribute('visibility','visible');
     dot.setAttribute('cx',cx);dot.setAttribute('cy',cy);dot.setAttribute('visibility','visible');
     const tip=cont.querySelector('.chart-tip');
-    tip.innerHTML=new Date(best.x).toLocaleDateString('es-MX',{day:'numeric',month:'short',year:'numeric'})+'<div class="tip-val">'+fmt(best.y)+'</div>';
+    tip.innerHTML=new Date(best.x).toLocaleDateString('es-MX',{day:'numeric',month:'short',year:'numeric'})+'<div class="tip-val">'+(best.y<0?'−'+fmt(Math.abs(best.y)):fmt(best.y))+'</div>';
     tip.style.display='block';
     const rect=svg.getBoundingClientRect();
     const lx=Math.max(0,Math.min(rect.width-tip.offsetWidth,cx/CHART_W*rect.width-tip.offsetWidth/2));
@@ -7001,7 +7079,7 @@ function renderDashboard() {
   if (!c.pos.length) {
     set('dash-kpis', kpi('posiciones', '0', null, 'todavía no tienes acciones'));
     ['dash-pie', 'dash-costo-valor', 'dash-crecimiento', 'dash-winloss', 'dash-sector', 'dash-proyeccion']
-      .forEach(id => set(id, vacio('todavía no tienes acciones — regístralas en inicio')));
+      .forEach(id => set(id, vacio('todavía no tienes acciones — regístralas aquí arriba, en «bolsa · registrar operación»')));
     renderTickerUI();
     return;
   }
