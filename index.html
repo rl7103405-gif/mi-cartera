@@ -233,6 +233,7 @@ html[data-tema='grafito'] .tabs{--sombra-scroll:rgba(255,255,255,.16)}
 .item-cat{font-size:13px;font-weight:500}.item-meta{font-size:12px;color:var(--muted);margin-top:2px}
 .item-amt-neg{font-size:14px;font-weight:600;color:var(--red)}
 .item-amt-pos{font-size:14px;font-weight:600;color:var(--green)}
+.item-amt-pago{font-size:14px;font-weight:600;color:var(--muted);white-space:nowrap}
 .empty-state{font-size:13px;color:var(--muted);text-align:center;padding:20px 0}
 
 /* RESUMEN */
@@ -2437,8 +2438,8 @@ function suscribirEnVivo() {
   desuscribir();
   const pares=[
     [doc(db,'cartera','saldos'),     aplicarSaldosRemotos,     ()=>refrescar(render)],
-    [doc(db,'cartera','tarjeta'),    aplicarTarjetaRemota,     ()=>refrescar(render)],
-    [doc(db,'cartera','tarjetaRev'), aplicarTarjetaRevRemota,  ()=>refrescar(render)],
+    [doc(db,'cartera','tarjeta'),    aplicarTarjetaRemota,     ()=>refrescar(render,renderMovimientos)],
+    [doc(db,'cartera','tarjetaRev'), aplicarTarjetaRevRemota,  ()=>refrescar(render,renderMovimientos)],
     [doc(db,'cartera','personas'),   aplicarPersonasRemotas,   ()=>refrescar(render,renderDeudas,renderPersonaSelect)],
     [doc(db,'cartera','fondo'),      d=>{ state.fondo=saneaFondo(d); }, ()=>refrescar(render,renderFondo)]
   ];
@@ -4039,6 +4040,7 @@ window.setMovTipo = t => {
     // con una sola tarjeta encendida, se abre sola
     const vis=[...document.querySelectorAll('#form-tarjeta-wrap details.acc')].filter(d=>d.offsetParent!==null); // offsetParent y no .hidden: zoe esconde la BBVA con CSS
     if(vis.length===1) vis[0].open=true;
+    window.setMovFiltro('todos'); // los pagos de tarjeta solo salen en 'todos'
     return;
   }
   // el historial se filtra al tipo elegido (pedido de Roberto); 'todos' queda manual
@@ -4688,7 +4690,7 @@ window.registrarTarjeta = async function(tipo) {
   if(dineroOcupado){showToast('espera, hay otra operación en curso');return;}
   const fechaMov=fechaMovOpcional('tarjeta-fecha'); if(fechaMov===null) return;
   const m=c2(monto), ahora=new Date().toISOString();
-  const plan={tarjetaMovAdd:{id:nuevoId(),tipo,monto:m,nota,fecha:fechaMov,creado:ahora}};
+  const plan={tarjetaMovAdd:{id:nuevoId(),tipo,monto:m,nota,...(tipo==='pago'?{fuente}:{}),fecha:fechaMov,creado:ahora}};
   let tr=null, ref=null;
   if(tipo==='cargo') plan.tarjetaDelta=m;
   else {
@@ -4712,7 +4714,7 @@ window.registrarTarjeta = async function(tipo) {
   aplicarRes(res);
   if(tr){ tr.id=ref.id; insertarPorFecha(state.transferencias,tr); }
   ['tarjeta-cargo-monto','tarjeta-cargo-nota','tarjeta-fecha'].forEach(id=>document.getElementById(id).value='');
-  refrescar(render,renderTransferencias);
+  refrescar(render,renderTransferencias,renderMovimientos);
   showToast(tipo==='cargo'?'+'+fmt(m)+' a la tarjeta':'pago de '+fmt(m)+' registrado');
 };
 
@@ -4737,7 +4739,7 @@ window.registrarTarjetaRev = async function(tipo) {
   if(dineroOcupado){showToast('espera, hay otra operación en curso');return;}
   const fechaMov=fechaMovOpcional('tarjeta-rev-fecha'); if(fechaMov===null) return;
   const m=c2(monto), ahora=new Date().toISOString();
-  const plan={tdcRevMovAdd:{id:nuevoId(),tipo,monto:m,nota,fecha:fechaMov,creado:ahora}};
+  const plan={tdcRevMovAdd:{id:nuevoId(),tipo,monto:m,nota,...(tipo==='pago'?{fuente}:{}),fecha:fechaMov,creado:ahora}};
   let tr=null, ref=null;
   if(tipo==='cargo') plan.tdcRevDelta=m;   // txDinero rechaza si excede el deposito canonico
   else {
@@ -4760,7 +4762,7 @@ window.registrarTarjetaRev = async function(tipo) {
   aplicarRes(res);
   if(tr){ tr.id=ref.id; insertarPorFecha(state.transferencias,tr); }
   ['tarjeta-rev-monto','tarjeta-rev-nota','tarjeta-rev-fecha'].forEach(id=>document.getElementById(id).value='');
-  refrescar(render,renderTransferencias);
+  refrescar(render,renderTransferencias,renderMovimientos);
   showToast(tipo==='cargo'?'+'+fmt(m)+' a la TDC Revolut':'pago de '+fmt(m)+' registrado');
 };
 
@@ -4836,10 +4838,10 @@ window.registrarTransferencia = async function() {
   const plan={deltas:{[origen]:-m}, crear:[{ref,data:tr}]};
   if(destino==='tarjeta'){
     plan.tarjetaDelta=-m;
-    plan.tarjetaMovAdd={id:nuevoId(),tipo:'pago',monto:m,nota:nota||('pago desde '+CUENTAS[origen]),fecha:fechaTr,creado:ahora};
+    plan.tarjetaMovAdd={id:nuevoId(),tipo:'pago',monto:m,fuente:origen,nota:nota||('pago desde '+CUENTAS[origen]),fecha:fechaTr,creado:ahora};
   } else if(destino==='tarjetaRev'){
     plan.tdcRevDelta=-m;
-    plan.tdcRevMovAdd={id:nuevoId(),tipo:'pago',monto:m,nota:nota||('pago desde '+CUENTAS[origen]),fecha:fechaTr,creado:ahora};
+    plan.tdcRevMovAdd={id:nuevoId(),tipo:'pago',monto:m,fuente:origen,nota:nota||('pago desde '+CUENTAS[origen]),fecha:fechaTr,creado:ahora};
   } else {
     plan.deltas[destino]=m;
   }
@@ -4854,7 +4856,7 @@ window.registrarTransferencia = async function() {
   aplicarRes(res);
   tr.id=ref.id; insertarPorFecha(state.transferencias,tr);
   ['transfer-monto','transfer-nota','transfer-fecha'].forEach(id=>document.getElementById(id).value='');
-  refrescar(render,renderTransferencias);
+  refrescar(render,renderTransferencias,renderMovimientos);
   showToast(fmt(m)+' · '+CUENTAS[origen]+' → '+CUENTAS[destino]);
 };
 window.eliminarTransferencia = async function(id) {
@@ -5005,6 +5007,25 @@ window.setMovPeriodo = p => {
   renderMovimientos();
 };
 window.cambiarPeriodoMov = d => { movOffset+=d; renderMovimientos(); };
+// pagos de las tarjetas de crédito para el historial, saneados: el arreglo viene tal cual de la nube
+function pagosTarjetaHist() {
+  const ok=p=>p&&typeof p==='object'&&p.tipo==='pago'&&Number.isFinite(p.monto)&&p.monto>0&&typeof p.fecha==='string';
+  return [['tarjeta',state.tarjetaMovimientos],['tarjetaRev',state.revTdcMovs]].flatMap(([k,arr])=>
+    // copia normalizada: nota siempre texto, y una fecha AAAA-MM-DD pelada se fija al día local
+    // (msFechaMov la leería como UTC y en México caería un día antes)
+    (Array.isArray(arr)?arr:[]).filter(ok).map(it=>({tipo:'pago',tarjeta:k,it:{...it,
+      nota:typeof it.nota==='string'?it.nota:'',
+      fecha:/^\d{4}-\d{2}-\d{2}$/.test(it.fecha)?it.fecha+'T00:00:00Z':it.fecha}})));
+}
+function renglonPagoTarjeta(m) {
+  const it=m.it, fecha=fmtFechaMov(it.fecha,{day:'numeric',month:'short'});
+  const nomCta=k=>Object.prototype.hasOwnProperty.call(CUENTAS,k)?CUENTAS[k]:'';
+  const cta=it.fuente==='externo'?'otra cuenta':nomCta(it.fuente);
+  // la nota automática de las transferencias ya dice de dónde salió: no repetirlo
+  const desde=cta&&!it.nota.includes(cta)?'desde '+cta:'';
+  const meta=[it.nota||'',fecha,desde,'no cuenta como gasto'].filter(Boolean).map(escapeHtml).join(' · ');
+  return `<div class="item-row"><div><div class="item-cat">pago de ${escapeHtml(nomCta(m.tarjeta)||'tarjeta')}</div><div class="item-meta">${meta}</div></div><div style="display:flex;align-items:center"><div class="item-amt-pago">${fmt(it.monto)}</div></div></div>`;
+}
 function renderMovimientos() {
   const c=document.getElementById('movimientos-historial');
   if(!c) return;
@@ -5015,13 +5036,17 @@ function renderMovimientos() {
   // el filtro se aplica ANTES del cap de 200 para no recortar el tipo elegido
   const todos=[
     ...(movFiltro!=='ingresos'?state.gastos.filter(enRango).map(it=>({tipo:'gasto',it})):[]),
-    ...(movFiltro!=='gastos'?state.ingresos.filter(enRango).map(it=>({tipo:'ingreso',it})):[])
+    ...(movFiltro!=='gastos'?state.ingresos.filter(enRango).map(it=>({tipo:'ingreso',it})):[]),
+    // pagos de tarjeta (30-sep): solo con 'todos' y solo para que se vea CUANDO se pagó. No son
+    // gasto (lo gastado con la tarjeta ya se registró como gasto) ni entran a ningún total
+    ...(movFiltro==='todos'?pagosTarjetaHist().filter(m=>enRango(m.it)):[])
   ];
   if(!todos.length){c.innerHTML='<div class="empty-state">sin '+(movFiltro==='todos'?'movimientos':movFiltro)+' en este periodo</div>';return;}
   todos.sort((a,b)=>(msFechaMov(b.it.fecha)||0)-(msFechaMov(a.it.fecha)||0));
   const recortado=todos.length>200;
   c.innerHTML=(recortado?'<div class="item-meta" style="text-align:center;padding:6px 0">mostrando los 200 más recientes de '+todos.length+'</div>':'')+
   todos.slice(0,200).map(m=>{
+    if(m.tipo==='pago') return renglonPagoTarjeta(m);
     const it=m.it;
     const fecha=fmtFechaMov(it.fecha,{day:'numeric',month:'short'});
     const esGasto=m.tipo==='gasto';
