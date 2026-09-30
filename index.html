@@ -5708,6 +5708,9 @@ function chartBlock(chartId,data,color,deltaLabel,opts) {
     const base=serie.filter(p=>p.x<=cutoff).pop(); // punto base: ultimo dato en o antes del inicio del rango
     vis=base?[base,...serie.filter(p=>p.x>cutoff)]:serie.filter(p=>p.x>cutoff);
   }
+  // "solo ganancia" con un rango (30-sep): la línea arranca en 0 para leer lo ganado EN el
+  // periodo; yTot conserva la ganancia acumulada de cada punto
+  if(opts&&opts.rebase&&rango!=='todo'&&vis.length){ const b0=vis[0].y; vis=vis.map(p=>({...p,y:p.y-b0,yTot:p.y})); }
   if(vis.length<2){
     delete CHART_DATA[chartId];
     return toolbar+'<div class="empty-state">'+((opts&&opts.vacio)||'aún no hay suficientes datos — se irá construyendo con el tiempo')+'</div>';
@@ -5846,13 +5849,24 @@ function renderChart(chartId) {
       const sinGBM=(state.ivvHistory||[]).some(p=>p.t<=GBM_HASTA);
       html=chartBlock('gbm-chart',g.serie,'var(--accent)','',{
         vacio:g.motivo,
+        rebase:true,
         head:(vis,rango)=>{
-          const u=vis[vis.length-1], G=u.y, A=u.aport, d=G-vis[0].y, up=G>=0;
-          const maxA=Math.max(...g.serie.map(p=>p.aport));
-          const pct=(A>0&&A>=maxA*0.01)?(up?'+':'−')+Math.abs(G/A*100).toFixed(2)+'% sobre '+fmt(A)+' que pusiste':'';
-          const per=rango!=='todo'?(d>=0?'+':'−')+fmt(Math.abs(d))+' en este periodo':'';
-          const txt=['ganancia',pct,per].filter(Boolean).join(' · ');
-          return `<div class="chart-head chart-head-wrap"><div class="chart-val ${up?'pos':'neg'}">${up?'+':'−'}${fmt(Math.abs(G))}</div><div class="chart-delta ${up?'pos':'neg'}">${txt}</div></div>`;
+          const u=vis[vis.length-1], A=u.aport, maxA=Math.max(...g.serie.map(p=>p.aport));
+          const firma=x=>(x>=0?'+':'−')+fmt(Math.abs(x)), pctDe=(x,b)=>(x>=0?'+':'−')+Math.abs(x/b*100).toFixed(2)+'%';
+          let big, txt;
+          if(rango==='todo'){
+            big=u.y;
+            txt=['ganancia',(A>0&&A>=maxA*0.01)?pctDe(u.y,A)+' sobre '+fmt(A)+' que pusiste':''];
+          } else {
+            // pedido de Roberto (30-sep): con un rango, la cifra grande es lo ganado EN ese periodo
+            // (la serie viene rebasada: u.y es del periodo, yTot la acumulada)
+            // el % solo si no compraste ni vendiste dentro del rango: con aportes a mitad del
+            // periodo, ganancia / valor inicial exagera (revisión de Codex)
+            const v0=vis[0].aport+vis[0].yTot, sinMovs=vis.every(p=>Math.abs(p.aport-vis[0].aport)<0.01); big=u.y;
+            txt=['ganado en este periodo',(v0>0&&sinMovs)?pctDe(u.y,v0)+' sobre lo que tenías al inicio':'','en total '+firma(u.yTot)];
+          }
+          const up=big>=0;
+          return `<div class="chart-head chart-head-wrap"><div class="chart-val ${up?'pos':'neg'}">${firma(big)}</div><div class="chart-delta ${up?'pos':'neg'}">${txt.filter(Boolean).join(' · ')}</div></div>`;
         }})+(sinGBM?'<div class="chart-nota">sin dividendos · desde tu primera compra en Revolut (GBM no entra)</div>':'');
     } else html=chartBlock('gbm-chart',seriePortafolio(),'var(--accent)');
     const gm=document.getElementById('gbm-modos'); if(gm) gm.innerHTML=modos;
