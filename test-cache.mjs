@@ -72,6 +72,9 @@ const HAY_MERCADO = fuente.includes("'mercado'");
 // el fondo de la universidad (solo la app de Roberto): sin el cacheado, inicio pintaria lo apartado como tuyo
 const HAY_FONDO = fuente.includes("'fondo'");
 const fondoSrc = HAY_FONDO ? extrae('// ── fondo: saneo', '// ── fin saneo fondo') : '';
+// la casa (30-sep): la carga normaliza las categorías de ingreso con conCatPapa ("Mes papá" primero)
+const papaSrc = HTML.includes('const conCatPapa')
+  ? HTML.slice(HTML.indexOf('const CAT_PAPA ='), HTML.indexOf('\n', HTML.indexOf('const conCatPapa'))+1) : '';
 const ARGS = ['db','doc','collection','query','orderBy','getDocFromCache','getDocsFromCache',
   'state','derivarPosiciones','document','localStorage','console',
   'NS','C_GASTOS','C_INGRESOS','C_TRANSF','C_OPS','C_REND',
@@ -83,7 +86,7 @@ const VALS = [db, doc, collection, query, orderBy, getDocFromCache, getDocsFromC
   window, loadFromFirebase, showToast, renderCatSelect, refrescar,
   renderPersonaSelect, render, renderMovimientos, renderTransferencias, datosCargados];
 const { pintarDesdeCache, marcarCopiaLocal, marcarSincronizado } = new Function(
-  ...ARGS, fondoSrc + fuente + '\nreturn { pintarDesdeCache, marcarCopiaLocal, marcarSincronizado };'
+  ...ARGS, papaSrc + fondoSrc + fuente + '\nreturn { pintarDesdeCache, marcarCopiaLocal, marcarSincronizado };'
 )(...VALS);
 
 // ── utilidades ──────────────────────────────────────────────
@@ -211,7 +214,7 @@ const doc2 = { getElementById: id => (id === 'banda-cache' ? el : null),
 // se sustituye 'document' (posicion 9 de ARGS) por uno falso que SI tiene la banda
 const VALS2 = VALS.slice(); VALS2[ARGS.indexOf('document')] = doc2;
 const { marcarCopiaLocal: mcl, marcarSincronizado: ms } = new Function(
-  ...ARGS, fondoSrc + fuente + '\nreturn { marcarCopiaLocal, marcarSincronizado };'
+  ...ARGS, papaSrc + fondoSrc + fuente + '\nreturn { marcarCopiaLocal, marcarSincronizado };'
 )(...VALS2);
 mcl(true);
 chk('al sincronizar se ve y lo dice', el.hidden === false && /copia local/.test(el.textContent), el.textContent);
