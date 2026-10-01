@@ -756,6 +756,10 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
       <div class="field"><label>Rev Savings — ganado en total (lo que dice tu banco)</label><input type="number" id="input-rev-savings-semilla" placeholder="ej. 380.12" step="0.01" inputmode="decimal"></div>
       <div class="field"><label>Rev Savings — ¿de qué día es la cifra? (AAAA-MM-DD, vacía = hoy)</label><input type="text" id="input-rev-savings-semilla-fecha" placeholder="hoy"></div>
     </div>
+    <div class="row2" style="gap:8px">
+      <div class="field"><label>Mifel — ganado en total (lo que dice tu banco)</label><input type="number" id="input-mifel-semilla" placeholder="ej. 3.05" step="0.01" inputmode="decimal"></div>
+      <div class="field"><label>Mifel — ¿de qué día es la cifra? (AAAA-MM-DD, vacía = hoy)</label><input type="text" id="input-mifel-semilla-fecha" placeholder="hoy"></div>
+    </div>
     <button class="btn" id="semilla-btn" onclick="guardarRendimientoHistorico()">guardar rendimiento histórico</button>
   </div>
   </div>
@@ -4304,7 +4308,8 @@ function saldoCuentaEn(slot, ms) {
 window.guardarRendimientoHistorico = async function() {
   const lee=id=>{ const v=document.getElementById(id).value.trim(); return v===''?null:v; };
   const pares=[['cajita1','input-cajita1-semilla','input-cajita1-semilla-fecha'],
-               ['revSavings','input-rev-savings-semilla','input-rev-savings-semilla-fecha']];
+               ['revSavings','input-rev-savings-semilla','input-rev-savings-semilla-fecha'],
+               ['mifel','input-mifel-semilla','input-mifel-semilla-fecha']];
   const escrituras=[];
   for(const [slot,idM,idF] of pares){
     const m=lee(idM), f0=lee(idF);
@@ -4318,7 +4323,7 @@ window.guardarRendimientoHistorico = async function() {
   if(!escrituras.length){ showToast('no capturaste ningún dato'); return; }
   const btn=document.getElementById('semilla-btn'); if(btn) btn.disabled=true;
   try{
-    // un solo batch: o se guardan las dos semillas o ninguna (sin exitos a medias)
+    // un solo batch: o se guardan todas las semillas capturadas o ninguna (sin exitos a medias)
     const lote=writeBatch(db), nuevos=[];
     for(const e of escrituras){
       const data={slot:e.slot,motivo:'semilla',ini:null,fin:e.fin,monto:e.monto,creado:new Date().toISOString()};
