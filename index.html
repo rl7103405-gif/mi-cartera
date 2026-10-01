@@ -747,14 +747,14 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
     </div>
     <button class="btn btn-purple" id="manuales-btn" onclick="guardarManuales()">guardar</button>
     <div class="section-title mt">rendimiento histórico</div>
-    <div class="item-meta" style="line-height:1.5;margin-bottom:8px">lo que tu banco dice que has ganado HASTA una fecha. Cubre todo lo anterior a esa fecha; de ahí en adelante la app lo lleva sola, tramo por tramo, aunque muevas dinero. Cambiarlo corrige, no suma.</div>
+    <div class="item-meta" style="line-height:1.5;margin-bottom:8px">lo que tu banco dice que has ganado en total con esa cuenta: cópialo de la app del banco y deja la fecha vacía si la cifra es de hoy. De ahí en adelante la app lo lleva sola, aunque muevas dinero. Cambiarlo corrige, no suma.</div>
     <div class="row2" style="gap:8px">
-      <div class="field"><label>cajita NU 1 — ganado hasta la fecha</label><input type="number" id="input-cajita1-semilla" placeholder="ej. 1250.40" step="0.01" inputmode="decimal"></div>
-      <div class="field"><label>cajita NU 1 — fecha de corte (YYYY-MM-DD)</label><input type="text" id="input-cajita1-semilla-fecha" placeholder="ej. 2026-09-16"></div>
+      <div class="field"><label>cajita NU 1 — ganado en total (lo que dice tu banco)</label><input type="number" id="input-cajita1-semilla" placeholder="ej. 1250.40" step="0.01" inputmode="decimal"></div>
+      <div class="field"><label>cajita NU 1 — ¿de qué día es la cifra? (AAAA-MM-DD, vacía = hoy)</label><input type="text" id="input-cajita1-semilla-fecha" placeholder="hoy"></div>
     </div>
     <div class="row2" style="gap:8px">
-      <div class="field"><label>Rev Savings — ganado hasta la fecha</label><input type="number" id="input-rev-savings-semilla" placeholder="ej. 380.12" step="0.01" inputmode="decimal"></div>
-      <div class="field"><label>Rev Savings — fecha de corte (YYYY-MM-DD)</label><input type="text" id="input-rev-savings-semilla-fecha" placeholder="ej. 2026-09-16"></div>
+      <div class="field"><label>Rev Savings — ganado en total (lo que dice tu banco)</label><input type="number" id="input-rev-savings-semilla" placeholder="ej. 380.12" step="0.01" inputmode="decimal"></div>
+      <div class="field"><label>Rev Savings — ¿de qué día es la cifra? (AAAA-MM-DD, vacía = hoy)</label><input type="text" id="input-rev-savings-semilla-fecha" placeholder="hoy"></div>
     </div>
     <button class="btn" id="semilla-btn" onclick="guardarRendimientoHistorico()">guardar rendimiento histórico</button>
   </div>
@@ -4237,8 +4237,8 @@ function avisoTasaMifel() {
 // Cada vez que una cuenta de interes se reancla, txDinero guarda el tramo que cerro (base, fechas,
 // modelo y monto) en la coleccion C_REND. Con eso el interes de CUALQUIER periodo se recalcula exacto
 // sobre la interseccion con cada tramo, y mover dinero ya no borra la historia. La 'semilla' es lo
-// que el banco reporta ganado HASTA una fecha de corte: cubre todo lo anterior y nada de eso se
-// vuelve a sumar. Los documentos se guardan crudos en state.rendimientos y se sanean al leerlos.
+// que el banco reporta ganado EN TOTAL a una fecha (vacia = hoy): ancla el acumulado de vida y no
+// recorta los periodos (1-oct-2026). Los documentos se guardan crudos en state.rendimientos y se sanean al leerlos.
 function saneaTramo(t) {
   if (!t || typeof t !== 'object' || !CAMPO_COMP[t.slot]) return null;
   const f = esFechaReal;
@@ -4266,26 +4266,27 @@ function tramoAbierto(slot) {
   if (!(base > 0) || typeof ini !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(ini)) return null;
   return {slot, ini, fin:null, base, modelo:modeloComp(state, cfg)};
 }
-// interes de una cuenta en [a,b): tramos cerrados + tramo abierto, nunca antes del corte de la semilla
+// interes de una cuenta en [a,b): tramos cerrados + tramo abierto. La semilla NO recorta los
+// periodos (1-oct-2026): solo ancla el acumulado de vida en rendAcumulado
 function interesEnRango(slot, a, b) {
-  const sem = semillaDe(slot);
-  if (sem) a = Math.max(a, parseFechaLocal(sem.fin).getTime());
   let t = 0;
   for (const x of tramosDe(slot)) if (x.motivo !== 'semilla') t += interesTramoEn(x, a, b);
   const ab = tramoAbierto(slot); if (ab) t += interesTramoEn(ab, a, b);
   return t;
 }
-// desde cuando hay historia de una cuenta (la semilla o el tramo mas viejo); null si no hay nada
+// desde cuando hay historia de una cuenta: lo mas viejo entre la semilla y los tramos; null si no hay nada
 function inicioHistoria(slot) {
-  const sem = semillaDe(slot); if (sem) return sem.fin;
-  const inis = tramosDe(slot).map(t => t.ini).filter(Boolean);
+  const sem = semillaDe(slot);
+  const inis = tramosDe(slot).filter(t => t.motivo !== 'semilla').map(t => t.ini).filter(Boolean);
   const ab = tramoAbierto(slot); if (ab) inis.push(ab.ini);
+  if (sem) inis.push(sem.fin);
   return inis.length ? inis.sort()[0] : null;
 }
-// todo lo que la cuenta ha ganado en su vida: semilla + tramos cerrados + lo que corre desde la ultima ancla
+// todo lo que la cuenta ha ganado en su vida: lo que dijo el banco al dia de la semilla + lo que la
+// app calcula DESDE esa fecha (tramos cerrados y el abierto). Sin semilla, todo lo calculado
 function rendAcumulado(slot) {
   const sem = semillaDe(slot);
-  return (sem ? sem.monto : 0) + interesEnRango(slot, -8.64e15, Date.now());
+  return (sem ? sem.monto : 0) + interesEnRango(slot, sem ? parseFechaLocal(sem.fin).getTime() : -8.64e15, Date.now());
 }
 // saldo de una cuenta en un instante pasado segun el tramo que lo cubria; null si ninguno lo cubre
 function saldoCuentaEn(slot, ms) {
@@ -4296,7 +4297,8 @@ function saldoCuentaEn(slot, ms) {
   const ab = tramoAbierto(slot);
   return (ab && parseFechaLocal(ab.ini).getTime() <= ms) ? calcCompoundAt(ab.base, ab.ini, ms, ab.modelo) : null;
 }
-// SEMILLA del rendimiento historico: lo que el banco reporta ganado hasta una fecha de corte.
+// SEMILLA del rendimiento historico: lo que el banco reporta ganado en total a una fecha (vacia = hoy).
+// Puede ser posterior a la historia que ya lleva la app: solo ancla el acumulado, no los periodos.
 // No es dinero que se mueva (no toca saldos), asi que se escribe directo: un solo documento
 // por cuenta, con id fijo, para que corregirlo reemplace y nunca sume dos veces.
 window.guardarRendimientoHistorico = async function() {
@@ -4305,13 +4307,12 @@ window.guardarRendimientoHistorico = async function() {
                ['revSavings','input-rev-savings-semilla','input-rev-savings-semilla-fecha']];
   const escrituras=[];
   for(const [slot,idM,idF] of pares){
-    const m=lee(idM), f=lee(idF);
-    if(m===null&&f===null) continue;
+    const m=lee(idM), f0=lee(idF);
+    if(m===null&&f0===null) continue;
+    const f=f0===null?hoyLocal():f0; // la cifra que se copia del banco casi siempre es la de hoy
     const monto=parseFloat(m);
     if(!Number.isFinite(monto)||monto<0){ showToast('monto inválido en '+(CUENTAS[slot]||slot)); return; }
     if(!esFechaReal(f)||f>hoyLocal()){ showToast('fecha inválida en '+(CUENTAS[slot]||slot)); return; }
-    const viejo=tramosDe(slot).filter(t=>t.motivo!=='semilla').map(t=>t.ini).sort()[0];
-    if(viejo&&f>viejo){ showToast('en '+(CUENTAS[slot]||slot)+' ya hay historia desde el '+viejo+': la fecha de corte debe ser anterior'); return; }
     escrituras.push({slot,monto:c2(monto),fin:f});
   }
   if(!escrituras.length){ showToast('no capturaste ningún dato'); return; }
