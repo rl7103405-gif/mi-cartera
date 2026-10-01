@@ -112,7 +112,7 @@ const { txDinero, CAMPO_COMP } = new Function('db','datosCargados','doc','collec
 
 // las copias (Eli, Zoe, Tono) tienen calcCompoundAt(base, fecha, tasa, ms) sin bandas; las
 // expectativas de abajo se calculan con la firma de la copia que se esta probando
-const FIRMA_COPIA = /function calcCompoundAt\(base, fechaStr, tasaPct, ms\)/.test(HTML);
+const FIRMA_COPIA = /function calcCompoundAt\(base, fechaStr, tasaPct, ms(, diasBase)?\)/.test(HTML);
 const calcEsp = FIRMA_COPIA ? ((b, f, ms, m) => calcCompoundAt(b, f, m.tasa, ms)) : calcCompoundAt;
 
 // ── utilidades de prueba ─────────────────────────────────────
@@ -368,7 +368,7 @@ console.log('\n15. Modelo por bandas: Nu 13%/360 con tope, Revolut neto de ISR')
   const dosDias = parseFechaLocal('2026-08-03').getTime();
   const nu2 = calcEsp(25000, '2026-08-01', dosDias, modeloComp({}, CAMPO_COMP.cajita1));
   chk('Nu: el excedente del tope gana la tasa baja (dia 2 = +$9.03)', Math.abs(nu2 - 25018.06) < 0.005, 'dio ' + nu2);
-  // Revolut Savings: saldo real 22,254.95 -> interes del 1-sep +8.72 (15% - 0.90% ISR, /360)
+  // Revolut Savings: saldo real 22,254.95 -> interes del 1-sep +8.72 (15%/360 - 0.90% ISR/365; con la formula vieja tambien redondeaba a 8.72)
   const rev = calcEsp(22254.95, '2026-08-01', unDia, modeloComp({}, CAMPO_COMP.revSavings));
   chk('Revolut: $22,254.95 gana $8.72 en un dia (neto de ISR)', Math.abs(rev - 22263.67) < 0.005, 'dio ' + rev);
   const sinTope = modeloComp({ nuCajita1Tope: 0 }, CAMPO_COMP.cajita1);
@@ -523,11 +523,16 @@ if (CAMPO_COMP.mifel) {
         modeloComp({}, CAMPO_COMP.revSavings).retCap === false && modeloComp({}, CAMPO_COMP.cajita1).retCap === false);
     const d1 = parseFechaLocal('2026-08-02').getTime();
     const m500 = calcCompoundAt(500000, '2026-08-01', d1, mM);
-    chk('$500,000 gana $126.39 en un dia ((10% - 0.9%)/360)', Math.abs(m500 - 500126.39) < 0.005, 'dio ' + m500);
+    // 1-oct-2026: interes /360 y retencion de ISR /365 (como lo documenta Revolut)
+    chk('$500,000 gana $126.56 en un dia (10%/360 - 0.9%/365)', Math.abs(m500 - 500126.56) < 0.005, 'dio ' + m500);
+    // versionado: un tramo cerrado antes del 1-oct no trae retDias y se recalcula con la formula vieja
+    const { retDias: _rd, ...mViejo } = mM;
+    chk('modeloComp marca la retencion sobre 365 (retDias)', mM.retDias === 365, JSON.stringify(mM));
+    chk('tramo viejo sin retDias conserva su formula ((10% - 0.9%)/360 = +$126.39)', Math.abs(calcCompoundAt(500000, '2026-08-01', d1, mViejo) - 500126.39) < 0.005);
     const m850 = calcCompoundAt(850000, '2026-08-01', d1, mM);
-    chk('$850,000: el excedente al 0% no resta retencion (+$126.39, no +$117.64)', Math.abs(m850 - 850126.39) < 0.005, 'dio ' + m850);
+    chk('$850,000: el excedente al 0% no resta retencion (+$126.56, no +$117.93)', Math.abs(m850 - 850126.56) < 0.005, 'dio ' + m850);
     const m850sin = calcCompoundAt(850000, '2026-08-01', d1, { ...mM, retCap: false });
-    chk('sin retCap el motor se comporta como siempre (+$117.64)', Math.abs(m850sin - 850117.64) < 0.005, 'dio ' + m850sin);
+    chk('sin retCap el excedente al 0% resta su retencion (+$117.93)', Math.abs(m850sin - 850117.93) < 0.005, 'dio ' + m850sin);
     chk('tope 0 en el doc = sin tope tambien en Mifel', modeloComp({ mifelTope: 0 }, CAMPO_COMP.mifel).tope === null);
 
     // el deposito del lunes: cuenta nueva (doc sin campos de Mifel), dinero nuevo al fondo
@@ -558,6 +563,12 @@ if (CAMPO_COMP.mifel) {
     chk('mover dinero cierra un tramo de Mifel con 7 dias de interes',
         r.ok && t7.length === 1 && t7[0].slot === 'mifel' && Math.abs(t7[0].monto - Math.round((esperado7 - 500000) * 100) / 100) < 0.01, JSON.stringify(t7[0]));
     chk('el tramo guarda el modelo de Mifel con retCap', t7.length === 1 && t7[0].modelo.tasa === 10 && t7[0].modelo.tope === 500000 && t7[0].modelo.retCap === true, JSON.stringify(t7[0] && t7[0].modelo));
+    // versionado del ISR /365: el tramo nuevo lo recuerda, y recalcularlo da su saldoFin (la frontera no salta)
+    chk('el tramo nuevo guarda retDias:365', t7.length === 1 && t7[0].modelo.retDias === 365, JSON.stringify(t7[0] && t7[0].modelo));
+    if (t7.length === 1 && Number.isFinite(t7[0].saldoFin)) {
+      const rec = calcCompoundAt(t7[0].base, t7[0].ini, parseFechaLocal(t7[0].fin).getTime(), t7[0].modelo);
+      chk('recalcular el tramo nuevo da su saldoFin (sin salto en la frontera)', Math.abs(rec - t7[0].saldoFin) < 0.005, 'rec ' + rec + ' vs ' + t7[0].saldoFin);
+    }
 
     // cambiar la tasa (fin de la promocion) consolida con la tasa VIEJA
     SERVIDOR = { [S]: { mifelBase: 500000, mifelFecha: '2026-08-20' } };

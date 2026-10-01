@@ -2709,7 +2709,7 @@ async function txDinero(plan) {
           const motivo = (absolutos[cfg.base] !== undefined || absolutos[cfg.fecha] !== undefined) ? 'captura'
                        : cristal.includes(k) ? 'tasa' : 'movimiento';
           const t = {slot:k, ini:f0, fin, base:c2(b), saldoFin:c2(saldoFin), monto, motivo,
-                     modelo:{tasa:mod.tasa, tope:mod.tope, tasaExc:mod.tasaExc, ret:mod.ret, dias:mod.dias, ...(mod.retCap?{retCap:true}:{})},
+                     modelo:{tasa:mod.tasa, tope:mod.tope, tasaExc:mod.tasaExc, ret:mod.ret, dias:mod.dias, ...(mod.retCap?{retCap:true}:{}), ...(mod.retDias===365?{retDias:365}:{})}, // retDias: el tramo recuerda que su ISR va /365
                      creado:new Date(ahora).toISOString()};
           // lo que el usuario teclea manda sobre el modelo; la diferencia se guarda como AJUSTE, no como interes
           if (absolutos[cfg.base] !== undefined) t.ajuste = c2(nFin(absolutos[cfg.base]) - saldoFin);
@@ -4172,9 +4172,15 @@ function calcCompoundAt(base, fechaStr, ms, mod) {
   const m=mod||{dias:365,tasa:0,tope:null,tasaExc:0,ret:0};
   // retCap (solo Mifel): la retencion nunca rebasa el interes de su banda; sin la opcion, lo de siempre
   const neto=x=>m.retCap?Math.max(0,x):x;
-  const rDia=neto((m.tasa||0)-(m.ret||0))/100/(m.dias||365);
+  // 1-oct-2026: el interes va sobre la base del banco (360) pero la retencion de ISR va sobre 365
+  // dias (asi lo documenta Revolut: saldo x 0.90% / 365 al dia). Antes ambas iban /360 y la app
+  // retenia ~1.4% de mas. VERSIONADO: solo los modelos con retDias (modeloComp desde el 1-oct) usan
+  // 365; los tramos ya cerrados no lo traen y se recalculan con la formula con la que se guardaron
+  // (su base y saldoFin se escribieron con ella: cambiarla descuadraria las fronteras)
+  const porDia=t=>neto((t||0)/100/(m.dias||365)-(m.ret||0)/100/(m.retDias||m.dias||365));
+  const rDia=porDia(m.tasa);
   if(m.tope==null) return base*Math.pow(1+rDia,dias);
-  const rExc=neto((m.tasaExc||0)-(m.ret||0))/100/(m.dias||365);
+  const rExc=porDia(m.tasaExc);
   let s=base;
   for(let i=0;i<dias;i++){
     // se conserva la precision completa dia a dia; el redondeo a centavos ocurre
@@ -4193,6 +4199,7 @@ function modeloComp(src, cfg) {
   const rawTope=src[cfg.tope];
   return {
     dias:d.dias,
+    retDias:365, // la retencion de ISR va sobre 365 dias (ver calcCompoundAt)
     tasa:nv(src[cfg.tasa],d.tasa),
     tope:Number.isFinite(rawTope)?(rawTope>0?rawTope:(rawTope===0?null:d.tope)):d.tope,
     tasaExc:nv(src[cfg.tasaExc],d.tasaExc),
@@ -4252,7 +4259,7 @@ function saneaTramo(t) {
   const m = (t.modelo && typeof t.modelo === 'object') ? t.modelo : {};
   return {id:t.id||null, slot:t.slot, motivo:typeof t.motivo==='string'?t.motivo:'movimiento', ini:t.ini, fin:t.fin,
           base:t.base, monto:c2(t.monto), ajuste:Number.isFinite(t.ajuste)?t.ajuste:0,
-          modelo:{tasa:nFin(m.tasa), tope:Number.isFinite(m.tope)?m.tope:null, tasaExc:nFin(m.tasaExc), ret:nFin(m.ret), dias:nFin(m.dias,365), retCap:m.retCap===true}};
+          modelo:{tasa:nFin(m.tasa), tope:Number.isFinite(m.tope)?m.tope:null, tasaExc:nFin(m.tasaExc), ret:nFin(m.ret), dias:nFin(m.dias,365), retCap:m.retCap===true, ...(m.retDias===365?{retDias:365}:{})}};
 }
 function tramosDe(slot) { return (state.rendimientos||[]).map(saneaTramo).filter(t => t && t.slot === slot); }
 function semillaDe(slot) { return tramosDe(slot).find(t => t.motivo === 'semilla') || null; }
