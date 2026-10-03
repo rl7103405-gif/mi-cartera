@@ -294,6 +294,57 @@ html[data-tema='grafito'] .tabs{--sombra-scroll:rgba(255,255,255,.16)}
 .corte-bar{height:4px;background:rgba(255,255,255,0.1);border-radius:2px;margin-top:12px;overflow:hidden}
 .corte-fill{height:100%;background:var(--purple);border-radius:2px;transition:width 0.5s}
 
+/* ── BLOQUE B (2-oct-2026): desliza para confirmar + microinteracciones ──
+   Recetas "success check" y "error state shake" de transitions.dev (skill transitions-dev);
+   solo se copian las variables que se usan. */
+:root{--check-opacity-dur:550ms;--check-rotate-dur:550ms;--check-rotate-from:80deg;--check-bob-dur:450ms;--check-y-amount:10px;--check-blur-dur:500ms;--check-blur-from:4px;--check-path-dur:550ms;--check-path-delay:80ms;--check-ease-out:cubic-bezier(0.22,1,0.36,1);--check-ease-opacity:cubic-bezier(0.22,1,0.36,1);--check-ease-rotate:cubic-bezier(0.22,1,0.36,1);--check-ease-bob:cubic-bezier(0.34,1.35,0.64,1);--check-ease-path:cubic-bezier(0.22,1,0.36,1);--shake-distance:6px;--shake-overshoot:4px;--shake-dur-a:80ms;--shake-dur-b:60ms;--shake-ease:cubic-bezier(0.22,1,0.36,1)}
+.desliza-dlg{margin:auto;inset:0;height:fit-content;max-height:calc(100dvh - 40px);border:1px solid var(--sup-borde,var(--border2));border-radius:var(--r);padding:0;width:calc(100% - 40px);max-width:360px;background:var(--bg2s);color:var(--text);box-shadow:var(--sombra)}
+.desliza-dlg::backdrop{background:rgba(0,0,0,0.45)}
+.desliza-dlg:not([open]){display:none}
+.desliza-caja{padding:18px;max-height:calc(100dvh - 40px);overflow:auto}
+.desliza-txt{font-size:14px;line-height:1.45;color:var(--muted);white-space:pre-line;margin-top:6px}
+.desliza-txt:empty{display:none}
+.desliza-riel{position:relative;height:52px;margin:16px 0 10px;border-radius:999px;background:var(--bg3);border:0.5px solid var(--border2);overflow:hidden;display:flex;align-items:center;justify-content:center;user-select:none;-webkit-user-select:none}
+.desliza-relleno{position:absolute;left:0;top:0;bottom:0;width:52px;border-radius:999px;background:rgba(192,74,58,0.14)}
+.desliza-etq{font-size:14px;font-weight:500;color:var(--muted);padding-left:44px;pointer-events:none}
+.desliza-perilla{position:absolute;left:4px;top:3px;width:44px;height:44px;border-radius:50%;border:none;background:var(--red);color:#fff;display:flex;align-items:center;justify-content:center;cursor:grab;touch-action:none;padding:0}
+.desliza-perilla.arrastrando{cursor:grabbing}
+.desliza-perilla.suelta,.desliza-relleno.suelta{transition:transform 220ms cubic-bezier(0.22,1,0.36,1),width 220ms cubic-bezier(0.22,1,0.36,1)}
+.desliza-perilla svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round;pointer-events:none}
+.desliza-si{display:block;background:var(--red);border:none;color:#fff;font-weight:600;min-height:44px}
+/* el botón de confirmar ocupa su lugar aunque esté oculto: la perilla no salta al aparecer.
+   visibility:hidden lo saca del foco y del lector igual que hidden */
+.desliza-si[hidden]{display:none!important}
+.desliza-pista{display:flex;align-items:center;justify-content:center;height:46px;margin-top:4px;font-size:13px;color:var(--muted);text-align:center}
+.desliza-pista[hidden]{display:none}
+/* el monto con error se ve rojo aunque tenga el foco (el anillo verde lo tapaba) */
+.field input.is-error:focus,.field input.is-error:focus-visible{outline-color:var(--red);border-color:var(--red)}
+/* grafito: blanco sobre --red (#e2705f) da 3.13:1; con el rojo de los temas claros da 4.90:1 */
+html[data-tema='grafito'] .desliza-si,html[data-tema='grafito'] .desliza-perilla{background:#c04a3a}
+.desliza-dlg .btn{min-height:44px}
+/* palomita de guardado: receta "success check" */
+.t-success-check{display:inline-block;transform-origin:center;opacity:0;will-change:transform,opacity,filter;width:18px;height:18px;margin-left:8px;vertical-align:-3px}
+.t-success-check svg{display:block;overflow:visible;width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:3;stroke-linecap:round;stroke-linejoin:round}
+.t-success-check svg path{stroke-dasharray:21;stroke-dashoffset:21}
+.t-success-check[data-state="in"]{animation:t-check-fade var(--check-opacity-dur) var(--check-ease-opacity) forwards,t-check-rotate var(--check-rotate-dur) var(--check-ease-rotate) forwards,t-check-blur var(--check-blur-dur) var(--check-ease-out) forwards,t-check-bob var(--check-bob-dur) var(--check-ease-bob) forwards}
+.t-success-check[data-state="in"] svg path{animation:t-check-draw var(--check-path-dur) var(--check-ease-path) var(--check-path-delay,0ms) forwards}
+@keyframes t-check-fade{from{opacity:0}to{opacity:1}}
+@keyframes t-check-rotate{from{transform:rotate(var(--check-rotate-from))}to{transform:rotate(0deg)}}
+@keyframes t-check-blur{from{filter:blur(var(--check-blur-from))}to{filter:blur(0)}}
+@keyframes t-check-bob{from{translate:0 var(--check-y-amount)}to{translate:0 0}}
+@keyframes t-check-draw{to{stroke-dashoffset:0}}
+/* monto que falta: receta "error state shake" (el borde rojo dura hasta que se corrige) */
+.t-input{transition:border-color 150ms ease-out;will-change:transform}
+.t-input.is-error,input[aria-invalid="true"]{border-color:var(--red)!important}
+.t-input.is-shaking{animation:t-input-shake calc(var(--shake-dur-a) * 2 + var(--shake-dur-b) * 2) linear}
+@keyframes t-input-shake{0%{transform:translateX(0);animation-timing-function:var(--shake-ease)}28.57%{transform:translateX(var(--shake-distance));animation-timing-function:var(--shake-ease)}57.14%{transform:translateX(calc(var(--shake-distance) * -1));animation-timing-function:var(--shake-ease)}78.57%{transform:translateX(var(--shake-overshoot));animation-timing-function:var(--shake-ease)}100%{transform:translateX(0)}}
+@media (prefers-reduced-motion:reduce){
+  .t-success-check{animation:none!important;opacity:1}
+  .t-success-check svg path{animation:none!important;stroke-dashoffset:0!important}
+  .t-input{animation:none!important;transform:none!important}
+  .desliza-perilla.suelta,.desliza-relleno.suelta{transition:none}
+}
+
 /* TOAST */
 .toast{position:fixed;bottom:calc(24px + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%) translateY(80px);background:var(--bg3);border:0.5px solid var(--border2);border-radius:20px;padding:10px 20px;font-size:14px;color:var(--text);transition:transform 0.3s ease;white-space:nowrap;z-index:999}
 .toast.show{transform:translateX(-50%) translateY(0)}
@@ -1392,6 +1443,24 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
     <button type="button" class="btn" id="persona-cancelar" style="margin-top:8px" onclick="cerrarModalPersona()">cancelar</button>
   </form>
 </div>
+<!-- desliza para confirmar (2-oct-2026): reemplaza los confirm() de borrar. <dialog> nativo
+     con showModal(): el fondo queda inerte y Escape lo cierra solo a él. Tocar la perilla sin
+     arrastrarla muestra un botón aparte: es la alternativa para teclado, lector de pantalla y
+     quien no puede arrastrar (dos pasos, sin límite de tiempo). -->
+<dialog class="desliza-dlg" id="desliza-dlg" role="alertdialog" aria-labelledby="desliza-tit" aria-describedby="desliza-txt">
+  <div class="desliza-caja">
+    <div class="modal-tit" id="desliza-tit"></div>
+    <div class="desliza-txt" id="desliza-txt"></div>
+    <div class="desliza-riel" id="desliza-riel">
+      <span class="desliza-relleno" id="desliza-relleno"></span>
+      <span class="desliza-etq" id="desliza-etq" aria-hidden="true"></span>
+      <button type="button" class="desliza-perilla" id="desliza-perilla"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
+    </div>
+    <p class="desliza-pista" id="desliza-pista" aria-hidden="true">o toca la bolita para confirmar con un botón</p>
+    <button type="button" class="btn desliza-si" id="desliza-si" hidden></button>
+    <button type="button" class="btn" id="desliza-no" style="margin-top:8px">cancelar</button>
+  </div>
+</dialog>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 <script type="module">
@@ -1489,6 +1558,158 @@ function hoyLocal() {
   // fecha local YYYY-MM-DD (NO usar toISOString: de noche en Mexico da la fecha de manana en UTC)
   const d = new Date();
   return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+}
+// ── DESLIZA PARA CONFIRMAR (2-oct-2026) ─────────────────────────────
+// Reemplaza los confirm() de borrar. Devuelve una promesa: true solo si se deslizó hasta el
+// final o se pulsó "sí, <verbo>". El llamador hace la operación; el componente solo pregunta.
+// Como ya NO bloquea como confirm(), cada llamador vuelve a revisar lo que importa al volver.
+let deslizaActual=null;
+function confirmarDeslizando({titulo, texto='', verbo='eliminar'}) {
+  const $=id=>document.getElementById(id);
+  const dlg=$('desliza-dlg'), riel=$('desliza-riel'), per=$('desliza-perilla'), rel=$('desliza-relleno'),
+        etq=$('desliza-etq'), si=$('desliza-si'), no=$('desliza-no');
+  if(!dlg||typeof dlg.showModal!=='function'){ showToast('actualiza tu navegador para poder eliminar'); return Promise.resolve(false); }
+  if(deslizaActual) deslizaActual.fin(false,true); // una apertura nueva cierra la anterior como "no"
+  return new Promise(resolve=>{
+    const ac=new AbortController();
+    const on=(el,ev,fn)=>el.addEventListener(ev,fn,{signal:ac.signal});
+    const reducido=()=>matchMedia('(prefers-reduced-motion: reduce)').matches;
+    let hecho=false, pid=null, x0=0, dx=0, movido=false, siDesde=0, tPon=0, tAbre=0, tSuelta=0;
+    $('desliza-tit').textContent=titulo||'';
+    $('desliza-txt').textContent=texto||'';
+    etq.textContent='desliza para '+verbo;
+    si.textContent='sí, '+verbo;
+    si.hidden=true; $('desliza-pista').hidden=false;
+    per.classList.remove('arrastrando');
+    per.setAttribute('aria-label','desliza para '+verbo+', o pulsa para mostrar el botón de confirmar');
+    const max=()=>Math.max(1, riel.clientWidth-per.offsetWidth-8);
+    function pon(px, anim) {
+      const a=!!anim&&!reducido();
+      per.classList.toggle('suelta',a); rel.classList.toggle('suelta',a);
+      per.style.transform='translateX('+px+'px)';
+      rel.style.width=(px+per.offsetWidth+8)+'px';
+      etq.style.opacity=String(Math.max(0,1-px/max()*1.6));
+    }
+    // idempotente: la promesa se resuelve una sola vez y ac.abort() quita TODOS los listeners
+    // (también con reemplazo=true, que no cierra el diálogo porque lo reutiliza la confirmación nueva)
+    function fin(v, reemplazo) {
+      if(hecho) return; hecho=true;
+      ac.abort(); clearTimeout(tPon);
+      if(deslizaActual&&deslizaActual.fin===fin) deslizaActual=null;
+      if(!reemplazo&&dlg.open) dlg.close(); // close() regresa el foco a quien lo abrió
+      resolve(v);
+    }
+    deslizaActual={fin};
+    // arrastre: un solo dedo/puntero, botón principal; cualquier cancelación regresa la perilla
+    on(per,'pointerdown',e=>{
+      if(pid!==null||e.button!==0||!e.isPrimary) return;
+      pid=e.pointerId; x0=e.clientX; dx=0; movido=false;
+      try{ per.setPointerCapture(pid); }catch(_){}
+      per.classList.add('arrastrando'); pon(0);
+    });
+    on(per,'pointermove',e=>{
+      if(e.pointerId!==pid) return;
+      dx=Math.max(0,Math.min(max(),e.clientX-x0));
+      if(dx>6) movido=true;
+      pon(dx);
+    });
+    const soltar=(e,cancelado)=>{
+      if(pid===null||e.pointerId!==pid) return;
+      pid=null; per.classList.remove('arrastrando');
+      if(!cancelado){ dx=Math.max(0,Math.min(max(),e.clientX-x0)); }
+      if(!cancelado&&movido&&dx>=max()*0.9){ pon(max()); tPon=setTimeout(()=>fin(true),reducido()?0:120); return; }
+      pon(0,true);
+    };
+    on(per,'pointerup',e=>{ tSuelta=performance.now(); soltar(e,false); });
+    on(per,'pointercancel',e=>soltar(e,true));
+    on(per,'lostpointercapture',e=>soltar(e,true));
+    // clic sin arrastre (dedo, Enter, Espacio o lector de pantalla): aparece el botón de confirmar.
+    // Solo se ignora el clic que llega pegado al final de un arrastre (<300 ms); un Enter
+    // tecleado después de un arrastre a medias sí cuenta.
+    on(per,'click',e=>{
+      const trasArrastre=movido&&performance.now()-tSuelta<300;
+      movido=false;
+      if(trasArrastre){ e.preventDefault(); return; }
+      if(si.hidden){ si.hidden=false; $('desliza-pista').hidden=true; siDesde=performance.now(); si.focus(); }
+    });
+    // tocar las letras del riel hace lo mismo que tocar la bolita
+    on(riel,'click',e=>{ if(per.contains(e.target)||performance.now()-tSuelta<300) return; per.click(); });
+    on(si,'keydown',e=>{ if(e.repeat) e.preventDefault(); }); // Enter sostenido no confirma solo
+    on(no,'keydown',e=>{ if(e.repeat) e.preventDefault(); }); // ni cancela solo
+    on(si,'click',e=>{ if(performance.now()-siDesde<700){ e.preventDefault(); return; } fin(true); });
+    on(no,'click',()=>fin(false));
+    on(dlg,'cancel',e=>{ e.preventDefault(); fin(false); });           // Escape
+    // clic en el fondo; los primeros 400 ms se ignoran: el segundo toque de un doble toque
+    // sobre el botón que abrió el diálogo cae en el fondo y cancelaría sin querer
+    on(dlg,'click',e=>{ if(e.target===dlg&&performance.now()-tAbre>=700) fin(false); });
+    let anchoVentana=window.innerWidth;
+    on(window,'resize',()=>{ if(window.innerWidth===anchoVentana) return; anchoVentana=window.innerWidth; pid=null; per.classList.remove('arrastrando'); pon(0); });
+    on(document,'visibilitychange',()=>{ if(document.hidden){ pid=null; per.classList.remove('arrastrando'); pon(0); } });
+    // si ya hay una confirmación abierta (reemplazo) se reutiliza el diálogo: cerrarlo y reabrirlo
+    // despacharía un 'close' asíncrono que cancelaría la nueva
+    try{ if(!dlg.open) dlg.showModal(); }catch(_){ fin(false); return; }
+    // cierre desde fuera (otro código, el navegador): la promesa se resuelve siempre. 'close' es
+    // asíncrono: uno viejo que llegue con otra confirmación ya abierta (dlg.open) se ignora.
+    on(dlg,'close',()=>{ if(!dlg.open) fin(false); });
+    tAbre=performance.now();
+    pon(0);
+    no.focus();
+  });
+}
+// al volver de confirmar: si el registro ya no existe o cambió lo que se anunció, no se hace nada
+function sigueIgual(antes, ahora, campos) {
+  if(ahora&&campos.every(k=>Object.is(antes[k],ahora[k]))) return true;
+  showToast(ahora?'cambió mientras confirmabas: revísalo otra vez':'ese registro ya no existe');
+  return false;
+}
+// palomita de guardado en el botón (receta "success check"); se quita sola
+function palomita(btnId) {
+  const b=document.getElementById(btnId); if(!b) return;
+  const viejo=b.querySelector('.t-success-check'); if(viejo) viejo.remove();
+  const s=document.createElement('span');
+  s.className='t-success-check'; s.setAttribute('aria-hidden','true'); s.dataset.state='out';
+  s.innerHTML='<svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
+  b.appendChild(s); void s.offsetWidth; s.dataset.state='in';
+  setTimeout(()=>{ if(s.isConnected) s.remove(); },1600);
+}
+// monto que falta o no es válido: borde rojo + sacudida (receta "error state shake").
+// Misma regla que alta*: número finito y mayor a cero (no se cambia qué montos se aceptan)
+function montoValido(id) {
+  const el=document.getElementById(id); if(!el) return true;
+  const v=parseFloat(el.value);
+  if(Number.isFinite(v)&&v>0) return true;
+  el.classList.add('t-input','is-error'); el.setAttribute('aria-invalid','true');
+  el.classList.remove('is-shaking'); void el.offsetWidth; el.classList.add('is-shaking');
+  clearTimeout(el._sacudeT); el._sacudeT=setTimeout(()=>el.classList.remove('is-shaking'),320);
+  el.focus();
+  showToast(String(el.value).trim()===''?'falta el monto: escribe cuánto fue':'ese monto no es válido');
+  return false;
+}
+document.addEventListener('input',e=>{
+  const el=e.target;
+  if(el&&el.classList&&el.classList.contains('is-error')){ el.classList.remove('is-error'); el.removeAttribute('aria-invalid'); }
+});
+// el número grande de Inicio cuenta hasta su valor nuevo. El valor vive aquí, no en el texto:
+// en modo privado el texto es "$ ····". Sin animación la primera vez, con la pestaña oculta,
+// en modo privado o con movimiento reducido; si el destino no cambia, no se reinicia.
+let totalMostrado=null, totalDestino=null, totalAnim=0;
+function pintaTotal(el, v) {
+  if(!el) return;
+  if(totalAnim&&v===totalDestino&&!modoPrivado) return; // ya va en camino a ese mismo número
+  cancelAnimationFrame(totalAnim); totalAnim=0;
+  const de=totalMostrado; totalDestino=v;
+  if(modoPrivado||de===null||!Number.isFinite(de)||!Number.isFinite(v)||Math.abs(v-de)<0.005||document.hidden||matchMedia('(prefers-reduced-motion: reduce)').matches){
+    totalMostrado=v; el.textContent=fmt(v); return;
+  }
+  const t0=performance.now(), D=650;
+  const paso=ahora=>{
+    const k=Math.min(1,(ahora-t0)/D), e=1-Math.pow(1-k,3);
+    totalMostrado=k<1?de+(v-de)*e:v;
+    el.textContent=modoPrivado?fmt(v):fmt(totalMostrado);
+    if(k<1&&!modoPrivado&&!document.hidden) totalAnim=requestAnimationFrame(paso);
+    else { totalAnim=0; totalMostrado=v; el.textContent=fmt(v); }
+  };
+  totalAnim=requestAnimationFrame(paso);
 }
 function showToast(msg) {
   const el = document.getElementById('toast');
@@ -3284,7 +3505,10 @@ window.catAccion = async function(btn) {
       showToast(usados > 0 ? ('esa categoría tiene ' + usados + ' movimientos: júntala con otra') : 'no se pudo comprobar — revisa tu conexión');
       renderCategorias(); return;
     }
-    if (!confirm('Quitar la categoría "' + e.nombre + '"? No tiene movimientos, así que no se pierde nada.')) { catOcupado = false; return; }
+    if (!(await confirmarDeslizando({titulo:'¿Quitar la categoría?', texto:'Quitar la categoría "' + e.nombre + '"? No tiene movimientos, así que no se pierde nada.', verbo:'quitar'}))) { catOcupado = false; return; }
+    // el conteo pudo cambiar mientras confirmabas: se comprueba otra vez
+    try { usados = (await getDocsFromServer(query(collection(db, CAT_COL(tipo)), where('cat','==',e.nombre)))).size; } catch(err) { usados = -1; }
+    if (usados !== 0) { catOcupado = false; showToast(usados > 0 ? 'esa categoría ya tiene movimientos: júntala con otra' : 'no se pudo comprobar — revisa tu conexión'); renderCategorias(); return; }
     const r = await txCatalogo((g,i) => { const arr = tipo==='gasto'?g:i; const k = arr.findIndex(c => c===e.nombre); if (k>=0) arr.splice(k,1); return {gasto:g, ingreso:i}; });
     catOcupado = false;
     if (r && r.error) showToast(r.error); else showToast('categoría quitada');
@@ -3314,7 +3538,8 @@ window.catAccion = async function(btn) {
       : (e.n ? ('Se van a reescribir ' + e.n + ' movimiento' + (e.n===1?'':'s') + ' de "' + A + '" a "' + B + '". Continuar?') : null);
     // un solo aviso: dos confirm() seguidos se leen como que la app no se decide
     const texto = [aviso, pregunta].filter(Boolean).join('\n\n') || null;
-    if (texto && !confirm(texto.endsWith('?') ? texto : (texto + '\n\nContinuar?'))) return;
+    if (texto && !(await confirmarDeslizando({titulo:((a === 'okJuntar' || yaExiste) ? '¿Juntar las categorías?' : '¿Renombrar la categoría?'), texto:texto.endsWith('?') ? texto : (texto + '\n\nContinuar?'), verbo:((a === 'okJuntar' || yaExiste) ? 'juntar' : 'renombrar')}))) return;
+    if (catOcupado) { showToast('espera, hay otra operación de categorías en curso'); return; } // otra empezó mientras confirmabas
     catOcupado = true;
     const btns = document.querySelectorAll('.cat-act'); btns.forEach(x => x.disabled = true);
     showToast('moviendo movimientos...');
@@ -3528,10 +3753,13 @@ document.addEventListener('visibilitychange', () => { if (!document.hidden && da
 window.susYaNo = async function(btn) {
   const s = (state.suscripciones || []).find(x => x.id === btn.dataset.id);
   if (!s || susOcupado) return;
-  if (!confirm('Ya no tienes "' + s.nombre + '"?\n\nDejo de recordártela. Los pagos que ya registraste se quedan en tu historial, y puedes volver a encenderla en movimientos > suscripciones.')) return;
+  const visto = {nombre: s.nombre, monto: s.monto};
+  if (!(await confirmarDeslizando({titulo:'¿Ya no la tienes?', texto:'Ya no tienes "' + s.nombre + '"?\n\nDejo de recordártela. Los pagos que ya registraste se quedan en tu historial, y puedes volver a encenderla en movimientos > suscripciones.', verbo:'pausar'}))) return;
+  if (susOcupado) { showToast('espera, hay otra operación en curso'); return; }
   susOcupado = true;
   const r = await txSuscripciones(items => { const k = items.findIndex(x => x.id === s.id);
-    if (k < 0) return {error: 'esa suscripción ya no existe — recarga'}; items[k] = {...items[k], activa: false}; return {items}; });
+    if (k < 0 || items[k].nombre !== visto.nombre || items[k].monto !== visto.monto) return {error: 'esa suscripción cambió mientras confirmabas: revísala otra vez'};
+    items[k] = {...items[k], activa: false}; return {items}; });
   susOcupado = false;
   if (r && r.error) showToast(r.error); else showToast('"' + s.nombre + '" queda en pausa: ya no te la recuerdo');
   renderAvisosSus();
@@ -3735,9 +3963,13 @@ window.susPausar = async function(btn) {
 };
 window.susQuitar = async function(btn) {
   const s = (state.suscripciones || []).find(x => x.id === btn.dataset.id); if (!s || susOcupado) return;
-  if (!confirm('Quitar "' + s.nombre + '"? Los pagos que ya registraste se quedan en tu historial; solo deja de recordártela.')) return;
+  const visto = {nombre: s.nombre, monto: s.monto};
+  if (!(await confirmarDeslizando({titulo:'¿Quitar la suscripción?', texto:'Quitar "' + s.nombre + '"? Los pagos que ya registraste se quedan en tu historial; solo deja de recordártela.', verbo:'quitar'}))) return;
+  if (susOcupado) { showToast('espera, hay otra operación en curso'); return; }
   susOcupado = true;
-  const r = await txSuscripciones(items => ({items: items.filter(x => x.id !== s.id)}));
+  const r = await txSuscripciones(items => { const k = items.findIndex(x => x.id === s.id);
+    if (k < 0 || items[k].nombre !== visto.nombre || items[k].monto !== visto.monto) return {error: 'esa suscripción cambió mientras confirmabas: revísala otra vez'};
+    return {items: items.filter(x => x.id !== s.id)}; });
   susOcupado = false;
   if (r && r.error) showToast(r.error); else showToast('suscripción quitada');
   renderSuscripciones(); renderAvisosSus();
@@ -4499,7 +4731,7 @@ function render() {
   // inicio, metas, distribucion, el snapshot y el coach usan TU dinero (fisico menos apartado)
   const fondoTot=fondoTotal();
   const total=totalFisico-fondoTot;
-  document.getElementById('total-display').textContent=fmt(total);
+  pintaTotal(document.getElementById('total-display'),total);
   const totLbl=document.getElementById('total-label');
   // si el fondo llego de otro dispositivo antes que los saldos, 'tu dinero' puede salir negativo un instante
   if(totLbl) totLbl.textContent=fondoTot>0?(total<-0.005?'tu dinero (sincronizando el fondo…)':'tu dinero (sin el fondo)'):'activos totales';
@@ -4882,7 +5114,9 @@ window.eliminarTransferencia = async function(id) {
   const CTAS_INTERES=['cajita1','cajita2','revSavings','mifel'];
   const tocaCajitaTr=CTAS_INTERES.includes(t.origen)||CTAS_INTERES.includes(t.destino);
   if(dineroOcupado){showToast('espera, hay otra operación en curso');return;}
-  if(!confirm('¿Deshacer transferencia de '+fmt(t.monto)+' ('+(CUENTAS[t.origen]||t.origen)+' → '+(CUENTAS[t.destino]||t.destino)+')? El dinero regresa a su cuenta original'+(tocaCajitaTr?' (el rendimiento que ese dinero ya generó no se revierte)':'')))return;
+  const visto={monto:t.monto,origen:t.origen,destino:t.destino};
+  if(!(await confirmarDeslizando({titulo:'¿Deshacer la transferencia?', texto:'¿Deshacer transferencia de '+fmt(t.monto)+' ('+(CUENTAS[t.origen]||t.origen)+' → '+(CUENTAS[t.destino]||t.destino)+')? El dinero regresa a su cuenta original'+(tocaCajitaTr?' (el rendimiento que ese dinero ya generó no se revierte)':''), verbo:'deshacer'})))return;
+  if(!sigueIgual(visto,state.transferencias.find(x=>x.id===id),['monto','origen','destino']))return;
   if(dineroOcupado){showToast('espera, hay otra operación en curso');return;} // el confirm bloquea: revalidar al volver
   if(Math.round(getSaldoCuenta(t.destino)*100)<Math.round(t.monto*100)){showToast('no se puede deshacer: ya no hay saldo suficiente en la cuenta destino');return;}
   const m=c2(nFin(t.monto));
@@ -4958,6 +5192,7 @@ async function altaGasto(cat,monto,nota,fuente,btn,fecha,extra) {
   return true;
 }
 window.registrarGasto = async function() {
+  if(!montoValido('gasto-monto')) return;
   const fecha=fechaMovOpcional('gasto-fecha'); if(fecha===null) return;
   const ok=await altaGasto(
     document.getElementById('gasto-cat').value,
@@ -4965,6 +5200,7 @@ window.registrarGasto = async function() {
     document.getElementById('gasto-nota').value.trim(),
     state.fuenteGasto,
     document.getElementById('gasto-btn'),fecha);
+  if(ok) palomita('gasto-btn');
   if(ok){ ['gasto-monto','gasto-nota','gasto-fecha'].forEach(id=>document.getElementById(id).value=''); }
 };
 
@@ -4973,7 +5209,9 @@ window.eliminarGasto = async function(id) {
   const g=state.gastos[idx];
   const sinEfecto=movSinEfecto(g); // capturado por atajo y nunca aplicado: borrar no toca cuentas
   if(dineroOcupado){showToast('espera, hay otra operación en curso');return;}
-  if(!confirm('¿Eliminar gasto de '+fmt(g.monto)+' en '+g.cat+'? '+(sinEfecto?'(no afecta saldos: no estaba aplicado)':'El dinero se devuelve a '+(g.fuente==='tarjeta'||g.fuente==='tarjetaRev'?'la tarjeta':CUENTAS[g.fuente]||g.fuente))))return;
+  const visto={monto:g.monto,fuente:g.fuente,cat:g.cat};
+  if(!(await confirmarDeslizando({titulo:'¿Eliminar el gasto?', texto:(g.nota?'“'+g.nota+'”\n':'')+'¿Eliminar gasto de '+fmt(g.monto)+' en '+g.cat+'? '+(sinEfecto?'(no afecta saldos: no estaba aplicado)':'El dinero se devuelve a '+(g.fuente==='tarjeta'||g.fuente==='tarjetaRev'?'la tarjeta':CUENTAS[g.fuente]||g.fuente)), verbo:'eliminar'})))return;
+  if(!sigueIgual(visto,state.gastos.find(x=>x.id===id),['monto','fuente','cat']))return;
   if(dineroOcupado){showToast('espera, hay otra operación en curso');return;} // el confirm bloquea: revalidar al volver
   const m=c2(nFin(g.monto));
   const ref=doc(db,'gastos',id);
@@ -5109,6 +5347,7 @@ window.cerrarEdicionMov = function(ev) {
 };
 document.addEventListener('keydown', e => {
   if(e.key!=='Escape') return;
+  const dd=document.getElementById('desliza-dlg'); if(dd&&dd.open) return; // la confirmación se cierra sola
   // solo un modal puede estar abierto a la vez: se cierra ESE, no los dos
   if(!document.getElementById('persona-back').classList.contains('hidden')) window.cerrarModalPersona();
   else if(!document.getElementById('edit-mov-back').classList.contains('hidden')) window.cerrarEdicionMov();
@@ -5181,6 +5420,7 @@ async function altaIngreso(cat,monto,nota,destino,btn,fecha) {
   return true;
 }
 window.registrarIngreso = async function() {
+  if(!montoValido('ingreso-monto')) return;
   const fecha=fechaMovOpcional('ingreso-fecha'); if(fecha===null) return;
   const ok=await altaIngreso(
     document.getElementById('ingreso-cat').value,
@@ -5188,6 +5428,7 @@ window.registrarIngreso = async function() {
     document.getElementById('ingreso-nota').value.trim(),
     state.destinoIngreso,
     document.getElementById('ingreso-btn'),fecha);
+  if(ok) palomita('ingreso-btn');
   if(ok){ ['ingreso-monto','ingreso-nota','ingreso-fecha'].forEach(id=>document.getElementById(id).value=''); }
 };
 
@@ -5196,7 +5437,9 @@ window.eliminarIngreso = async function(id) {
   const g=state.ingresos[idx];
   const sinEfecto=movSinEfecto(g);
   if(dineroOcupado){showToast('espera, hay otra operación en curso');return;}
-  if(!confirm('¿Eliminar ingreso de '+fmt(g.monto)+' ('+g.cat+')? '+(sinEfecto?'(no afecta saldos: no estaba aplicado)':'Se resta de '+(CUENTAS[g.destino]||g.destino))))return;
+  const visto={monto:g.monto,destino:g.destino,cat:g.cat};
+  if(!(await confirmarDeslizando({titulo:'¿Eliminar el ingreso?', texto:(g.nota?'“'+g.nota+'”\n':'')+'¿Eliminar ingreso de '+fmt(g.monto)+' ('+g.cat+')? '+(sinEfecto?'(no afecta saldos: no estaba aplicado)':'Se resta de '+(CUENTAS[g.destino]||g.destino)), verbo:'eliminar'})))return;
+  if(!sigueIgual(visto,state.ingresos.find(x=>x.id===id),['monto','destino','cat']))return;
   if(dineroOcupado){showToast('espera, hay otra operación en curso');return;} // el confirm bloquea: revalidar al volver
   const m=c2(nFin(g.monto));
   const ref=doc(db,'ingresos',id);
@@ -5505,7 +5748,9 @@ window.eliminarDeuda = async function(personaKey, movId) {
   if(cuenta!=='externo'&&ef.cuenta>0&&m.monto>getSaldoCuenta(cuenta)+0.01){showToast('no se puede deshacer: saldo insuficiente en '+CUENTAS[cuenta]);return;}
   // si el movimiento toca una cajita/savings, el interes que ese dinero ya genero no se revierte al eliminar
   const tocaCajitaDeuda=cuenta==='cajita1'||cuenta==='cajita2'||cuenta==='revSavings';
-  if(!confirm('¿Eliminar movimiento de '+fmt(m.monto)+' ('+m.subcat+')? Se revierte el saldo de '+p.nombre+(cuenta!=='externo'?' y el dinero en '+CUENTAS[cuenta]:'')+(tocaCajitaDeuda?' (el rendimiento que ese dinero ya generó no se revierte)':'')))return;
+  const visto={monto:m.monto,cuenta:m.cuenta,tipo:m.tipo};
+  if(!(await confirmarDeslizando({titulo:'¿Eliminar el movimiento?', texto:'¿Eliminar movimiento de '+fmt(m.monto)+' ('+m.subcat+')? Se revierte el saldo de '+p.nombre+(cuenta!=='externo'?' y el dinero en '+CUENTAS[cuenta]:'')+(tocaCajitaDeuda?' (el rendimiento que ese dinero ya generó no se revierte)':''), verbo:'eliminar'})))return;
+  if(!sigueIgual(visto,((state.personas[personaKey]||{}).movimientos||[]).find(x=>x.id===movId),['monto','cuenta','tipo']))return;
   if(dineroOcupado){showToast('espera, hay otra operación en curso');return;} // el confirm bloquea: revalidar al volver
   const monto=c2(nFin(m.monto));
   // movDelId: si otro dispositivo ya borro este movimiento, la transaccion aborta en vez
@@ -6538,7 +6783,7 @@ window.subirFoto = function(ev) {
 };
 window.quitarFoto = async function() {
   if(!(state.perfil&&state.perfil.foto)){ showToast('no tienes foto de perfil'); return; }
-  if(!confirm('¿Quitar tu foto de perfil?')) return;
+  if(!(await confirmarDeslizando({titulo:'¿Quitar tu foto de perfil?', verbo:'quitar'}))) return;
   await guardarPerfil({foto:''},'foto eliminada');
 };
 // guarda SOLO los campos indicados (merge): nunca borra los demas del perfil.
@@ -6696,8 +6941,10 @@ window.nuevaMeta = async function() {
 window.eliminarMeta = async function(id) {
   const MT=state.metas||{fecha:META_FECHA_DEF,items:[]};
   const m=(MT.items||[]).find(x=>x.id===id); if(!m) return;
-  if(!confirm('¿Quitar la meta de '+(METAS_CUENTAS[m.cuenta]||m.cuenta)+'? No borra tu dinero, solo deja de seguirla.')) return;
-  await guardarMetas({fecha:MT.fecha,items:(MT.items||[]).filter(x=>x.id!==id)},'meta eliminada');
+  if(!(await confirmarDeslizando({titulo:'¿Quitar la meta?', texto:'¿Quitar la meta de '+(METAS_CUENTAS[m.cuenta]||m.cuenta)+'? No borra tu dinero, solo deja de seguirla.', verbo:'quitar'}))) return;
+  const MT2=state.metas||{fecha:META_FECHA_DEF,items:[]};
+  if(!(MT2.items||[]).some(x=>x.id===id)){ showToast('esa meta ya no existe'); return; }
+  await guardarMetas({fecha:MT2.fecha,items:(MT2.items||[]).filter(x=>x.id!==id)},'meta eliminada');
 };
 window.editarFechaMetas = async function() {
   const MT=state.metas||{fecha:META_FECHA_DEF,items:[]};
@@ -6832,9 +7079,13 @@ window.eliminarApartado = async function(id) {
   if(apartadoOcupado) return;
   const idx=state.apartados.findIndex(x=>x.id===id); if(idx<0) return;
   const a=state.apartados[idx];
-  if(!confirm('¿Eliminar la meta "'+a.nombre+'"? (llevabas '+fmt(a.ahorrado)+' registrados)')) return;
+  const visto={nombre:a.nombre,ahorrado:a.ahorrado};
+  if(!(await confirmarDeslizando({titulo:'¿Eliminar la meta?', texto:'¿Eliminar la meta "'+a.nombre+'"? (llevabas '+fmt(a.ahorrado)+' registrados)', verbo:'eliminar'}))) return;
+  if(apartadoOcupado){ showToast('espera, hay otra operación en curso'); return; }
+  const idx2=state.apartados.findIndex(x=>x.id===id); if(idx2<0){ showToast('esa meta ya no existe'); return; }
+  if(state.apartados[idx2].nombre!==visto.nombre||state.apartados[idx2].ahorrado!==visto.ahorrado){ showToast('esa meta cambió mientras confirmabas: revísala otra vez'); renderApartados(); return; }
   const prev=state.apartados.map(x=>({...x}));
-  state.apartados.splice(idx,1);
+  state.apartados.splice(idx2,1);
   apartadoOcupado=true;
   try{ await saveApartados(); renderApartados(); showToast('meta eliminada'); }
   catch(e){ state.apartados=prev; console.error('eliminarApartado',e); renderApartados(); showToast('ERROR: no se guardó, revisa tu conexión'); }

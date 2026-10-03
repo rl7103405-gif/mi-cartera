@@ -226,7 +226,7 @@ capturado, y "dividendos cobrados" = ingresos con categoria "Dividendos".
   cartera-eli, que si esta al corriente).
 - **Excel de deudas.** Roberto quiere descargar la cuenta con una persona (papa) como Excel bonito,
   con periodo (1 semana / 1 mes / 3 / 6 / 1 año / todo / rango). Ejemplo generado con sus datos:
-  Desktop/CARTERA/manuales/ejemplo-cuenta-papa.xlsx. Falta su OK al formato para construirlo en la
+  Desktop/CARTERA/documentos/casa/ejemplo-cuenta-papa.xlsx. Falta su OK al formato para construirlo en la
   app (ExcelJS desde cdnjs, carga perezosa al pulsar "descargar").
 - **Rendimiento historico: la semilla.** La historia de intereses empieza hoy; lo ganado antes se
   captura una vez en "actualizar saldos > rendimiento historico" (lo que el banco reporta hasta una
@@ -271,3 +271,24 @@ claridad 6.5. Verificado contra el codigo antes de anotarlo:
 - **Resumen:** "🎉 Este mes va excelente" califica como maestra; decir los porcentajes.
 - **Estilo:** "SaaS bonito de 2025" (salvia, tarjetas dentro de tarjetas). Numeros tabulares y una
   sans mas neutra para importes.
+
+## Guía de primer uso para una copia vacía (2-oct-2026, en espera)
+La primera vez que una copia nueva abre vacía: tres pasos para dar de alta las cuentas y cerrar
+con el patrimonio total armado, en vez de pantallas en ceros. **Se queda viva pero no se hace
+hoy:** mientras el alta la haga Roberto con cada cliente, nadie abre una copia vacía solo.
+Retomarla cuando haya registro abierto.
+
+## Lo que dejó la prueba de "desliza para confirmar" (2-oct-2026)
+Salió de `usuario-real` (la mamá de Roberto en iPhone) y de los revisores; no entró al bloque B:
+- **Deshacer después de borrar.** Hoy, ya borrado, solo sale "gasto eliminado" 2.4 s. Un "deshacer"
+  de unos segundos en el aviso evitaría el susto, pero mueve dinero: necesita su propio diseño.
+- **El conteo del número grande casi nadie lo ve.** Se anima cuando cambia el total, y eso suele pasar
+  con Inicio fuera de la pantalla. Decidir si se anima al volver a Inicio o si se deja así.
+- **La demo habla con el Firebase real.** `build_demo_lleno.py` conserva los imports de Firestore:
+  al confirmar un borrado, la demo intenta leer y escribir en `mi-cartera-b43e0` y las reglas lo
+  rechazan. No se escribió nada, pero la demo debe quedar aislada (un Firestore falso en memoria;
+  ya hay uno de prueba en el scratchpad del 2-oct, `pw/fake-firestore.js`).
+- **Textos que la mamá no entendió:** "el rendimiento que ese dinero ya generó no se revierte".
+- **La × de borrar mide 24 px y el lápiz está pegado:** errarle por poco abre "editar".
+- **`mi-cartera-plantilla` sigue con los `confirm()`.** Es la copia rezagada; no entró al parche.
+- **Probar en iPhone real:** arrastre con el dedo, VoiceOver y la PWA instalada.
