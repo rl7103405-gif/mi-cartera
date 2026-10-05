@@ -68,7 +68,8 @@ sin red. Lo que queda, en orden de valor, para cuando la app crezca:
    facturables. Ojo: un `limit()` a secas romperia el Resumen de meses viejos —
    hay que separar "historial visible" (paginado) de "resumen" (consulta por
    rango de fechas del periodo elegido). `stocksOps` puede seguir completa.
-3. **Retirar las siembras historicas** (seedJul26V3, seedJul28, seedJul28b,
+3. ✅ **HECHO el 5-oct-2026** (marcadores confirmados en true en produccion; traian saldos
+   reales en la pagina publica). **Retirar las siembras historicas** (seedJul26V3, seedJul28, seedJul28b,
    seedJul30, seedJul31, seedJul31b, seedAgo04, seedAgo07...). Ya corrieron en
    produccion hace meses y siguen evaluandose en cada arranque: son superficie
    de riesgo y ruido. Antes de borrarlas, confirmar en Firestore que todos los

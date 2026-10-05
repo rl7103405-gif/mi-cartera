@@ -255,9 +255,9 @@ console.log('\n15. Graficas del tablero: nunca NaN, escapan simbolos, respetan p
   chk('paso bonito: 10,000 en 4 -> 5,000', G.pasoBonito(10000, 4) === 5000, String(G.pasoBonito(10000, 4)));
   chk('paso bonito con rango 0 no truena', G.pasoBonito(0, 4) === 1);
   const pos = [
-    {simbolo:'QQQ',  costo:6979.2,  valor:6658.15, gananciaPct:-4.6},
-    {simbolo:'SPCX', costo:1040.81, valor:1217.3,  gananciaPct:17},
-    {simbolo:'MSFT', costo:null,    valor:644.6,   gananciaPct:null},
+    {simbolo:'QQQ',  costo:7000,    valor:6650,    gananciaPct:-5},
+    {simbolo:'SPCX', costo:1000,    valor:1200,    gananciaPct:20},
+    {simbolo:'MSFT', costo:null,    valor:650,     gananciaPct:null},
     {simbolo:'<b>',  costo:10,      valor:12,      gananciaPct:20}];
   const cv = G.svgCostoValor(pos);
   chk('costo vs valor: sin NaN', limpio(cv));

@@ -760,7 +760,7 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
   </summary>
   <div class="acc-body">
   <div class="panel">
-    <div class="field"><label>cajita NU 1 — saldo base (lo que muestra NU hoy)</label><input type="number" id="input-cajita1-base" placeholder="ej. 25072.31" step="0.01" inputmode="decimal"></div>
+    <div class="field"><label>cajita NU 1 — saldo base (lo que muestra NU hoy)</label><input type="number" id="input-cajita1-base" placeholder="ej. 10000" step="0.01" inputmode="decimal"></div>
     <div class="row2" style="gap:8px">
       <div class="field"><label>cajita NU 1 — fecha base (YYYY-MM-DD)</label><input type="text" id="input-cajita1-fecha" placeholder="ej. 2026-07-09"></div>
       <div class="field"><label>cajita NU 1 — tasa anual %</label><input type="number" id="input-cajita1-tasa" placeholder="ej. 13" step="0.01" inputmode="decimal"></div>
@@ -769,11 +769,11 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
       <div class="field"><label>cajita NU 1 — tope de la tasa (0 = sin tope)</label><input type="number" id="input-cajita1-tope" placeholder="ej. 25000" step="0.01" inputmode="decimal"></div>
       <div class="field"><label>cajita NU 1 — tasa % sobre el excedente</label><input type="number" id="input-cajita1-tasa-exc" placeholder="ej. 6.5" step="0.01" inputmode="decimal"></div>
     </div>
-    <div class="field"><label>NU saldo disponible</label><input type="number" id="input-nu-saldo" placeholder="ej. 360.59" step="0.01" inputmode="decimal"></div>
-    <div class="field"><label>efectivo en pesos</label><input type="number" id="input-efectivo" placeholder="ej. 2200" step="1" inputmode="decimal"></div>
-    <div class="field"><label>Revolut MXN (saldo de la cuenta)</label><input type="number" id="input-rev-mxn" placeholder="ej. 9.26" step="0.01" inputmode="decimal"></div>
-    <div class="field"><label>depósito garantía TDC Revolut ($250–$75,000; límite = depósito)</label><input type="number" id="input-rev-tdc-dep" placeholder="ej. 438.67" step="0.01" inputmode="decimal"></div>
-    <div class="field"><label>Revolut Savings — saldo base (lo que muestra Revolut hoy)</label><input type="number" id="input-rev-savings-base" placeholder="ej. 2000.79" step="0.01" inputmode="decimal"></div>
+    <div class="field"><label>NU saldo disponible</label><input type="number" id="input-nu-saldo" placeholder="ej. 1500" step="0.01" inputmode="decimal"></div>
+    <div class="field"><label>efectivo en pesos</label><input type="number" id="input-efectivo" placeholder="ej. 1000" step="1" inputmode="decimal"></div>
+    <div class="field"><label>Revolut MXN (saldo de la cuenta)</label><input type="number" id="input-rev-mxn" placeholder="ej. 1500" step="0.01" inputmode="decimal"></div>
+    <div class="field"><label>depósito garantía TDC Revolut ($250–$75,000; límite = depósito)</label><input type="number" id="input-rev-tdc-dep" placeholder="ej. 3000" step="0.01" inputmode="decimal"></div>
+    <div class="field"><label>Revolut Savings — saldo base (lo que muestra Revolut hoy)</label><input type="number" id="input-rev-savings-base" placeholder="ej. 5000" step="0.01" inputmode="decimal"></div>
     <div class="row2" style="gap:8px">
       <div class="field"><label>Revolut Savings — fecha base (YYYY-MM-DD)</label><input type="text" id="input-rev-savings-fecha" placeholder="vacía = hoy"></div>
       <div class="field"><label>Revolut Savings — tasa anual %</label><input type="number" id="input-rev-savings-tasa" placeholder="ej. 15" step="0.01" inputmode="decimal"></div>
@@ -800,15 +800,15 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
     <div class="section-title mt">rendimiento histórico</div>
     <div class="item-meta" style="line-height:1.5;margin-bottom:8px">lo que tu banco dice que has ganado en total con esa cuenta: cópialo de la app del banco y deja la fecha vacía si la cifra es de hoy. De ahí en adelante la app lo lleva sola, aunque muevas dinero. Cambiarlo corrige, no suma.</div>
     <div class="row2" style="gap:8px">
-      <div class="field"><label>cajita NU 1 — ganado en total (lo que dice tu banco)</label><input type="number" id="input-cajita1-semilla" placeholder="ej. 1250.40" step="0.01" inputmode="decimal"></div>
+      <div class="field"><label>cajita NU 1 — ganado en total (lo que dice tu banco)</label><input type="number" id="input-cajita1-semilla" placeholder="ej. 800" step="0.01" inputmode="decimal"></div>
       <div class="field"><label>cajita NU 1 — ¿de qué día es la cifra? (AAAA-MM-DD, vacía = hoy)</label><input type="text" id="input-cajita1-semilla-fecha" placeholder="hoy"></div>
     </div>
     <div class="row2" style="gap:8px">
-      <div class="field"><label>Rev Savings — ganado en total (lo que dice tu banco)</label><input type="number" id="input-rev-savings-semilla" placeholder="ej. 380.12" step="0.01" inputmode="decimal"></div>
+      <div class="field"><label>Rev Savings — ganado en total (lo que dice tu banco)</label><input type="number" id="input-rev-savings-semilla" placeholder="ej. 300" step="0.01" inputmode="decimal"></div>
       <div class="field"><label>Rev Savings — ¿de qué día es la cifra? (AAAA-MM-DD, vacía = hoy)</label><input type="text" id="input-rev-savings-semilla-fecha" placeholder="hoy"></div>
     </div>
     <div class="row2" style="gap:8px">
-      <div class="field"><label>Mifel — ganado en total (lo que dice tu banco)</label><input type="number" id="input-mifel-semilla" placeholder="ej. 3.05" step="0.01" inputmode="decimal"></div>
+      <div class="field"><label>Mifel — ganado en total (lo que dice tu banco)</label><input type="number" id="input-mifel-semilla" placeholder="ej. 50" step="0.01" inputmode="decimal"></div>
       <div class="field"><label>Mifel — ¿de qué día es la cifra? (AAAA-MM-DD, vacía = hoy)</label><input type="text" id="input-mifel-semilla-fecha" placeholder="hoy"></div>
     </div>
     <button class="btn" id="semilla-btn" onclick="guardarRendimientoHistorico()">guardar rendimiento histórico</button>
@@ -1232,11 +1232,11 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
     </div>
     <div class="row2" style="gap:8px">
       <div class="field"><label>símbolo (formato válido, ej. MSFT)</label><input type="text" id="stock-simbolo" list="stock-symbols" placeholder="ej. MSFT" autocapitalize="characters" autocomplete="off"></div>
-      <div class="field"><label>acciones</label><input type="number" id="stock-acciones" placeholder="ej. 0.066874" step="0.00000001" inputmode="decimal"></div>
+      <div class="field"><label>acciones</label><input type="number" id="stock-acciones" placeholder="ej. 0.5" step="0.00000001" inputmode="decimal"></div>
     </div>
     <div class="row2" style="gap:8px">
-      <div class="field"><label>total en pesos</label><input type="number" id="stock-monto" placeholder="ej. 523.39" step="0.01" inputmode="decimal"></div>
-      <div class="field"><label>total en dólares (opcional)</label><input type="number" id="stock-usd" placeholder="ej. 30.00" step="0.01" inputmode="decimal"></div>
+      <div class="field"><label>total en pesos</label><input type="number" id="stock-monto" placeholder="ej. 500" step="0.01" inputmode="decimal"></div>
+      <div class="field"><label>total en dólares (opcional)</label><input type="number" id="stock-usd" placeholder="ej. 25" step="0.01" inputmode="decimal"></div>
     </div>
     <div class="row2" style="gap:8px">
       <div class="field"><label>cuenta</label>
@@ -1846,7 +1846,7 @@ const PERSONAS_DEFAULT = {};
 
 // ── STATE ─────────────────────────────────────────────────────
 let state = {
-  nuCajita1Base:25000, nuCajita1Fecha:hoyLocal(), nuCajita1Tasa:13,
+  nuCajita1Base:0, nuCajita1Fecha:hoyLocal(), nuCajita1Tasa:13,
   // bandas de saldo: tasa normal hasta el tope, tasaExc sobre el excedente; ret =
   // retencion ISR anual sobre capital (0 = el banco muestra el interes bruto).
   // tope 0 significa "sin tope" (ver modeloComp)
@@ -1856,12 +1856,12 @@ let state = {
   mifelBase:0, mifelFecha:'', mifelTasa:MIFEL_DEF.tasa, mifelTope:MIFEL_DEF.tope, mifelTasaExc:MIFEL_DEF.tasaExc,
   mifelRet:MIFEL_DEF.ret, mifelVigencia:'2026-10-31',
   nuCajita2Base:0, nuCajita2Fecha:'', nuCajita2Tasa:6.5,
-  nuSaldo:523.58, efectivo:2200,
-  reporto:99.74, efectivoGBM:46.16,
+  nuSaldo:0, efectivo:0,
+  reporto:0, efectivoGBM:0,
   revMXN:0, revSavingsBase:0, revSavingsFecha:'', revSavingsTasa:15, revNvdaShares:0,
-  tarjetaDeuda:2001, tarjetaMovimientos:[],
+  tarjetaDeuda:0, tarjetaMovimientos:[],
   // TDC Revolut garantizada: limite de credito = deposito de garantia 1:1 (rango $250-$75,000)
-  revTdcDeuda:0, revTdcDeposito:438.67, revTdcMovs:[],
+  revTdcDeuda:0, revTdcDeposito:0, revTdcMovs:[],
   ivvPrecio:154, ivvVar:null, ivvHistory:[],
   nvdaPrecio:null, nvdaPrev:null, nvdaFecha:'', usdMxn:null, usdMxnPrev:null, usdMxnFecha:'',
   nvdaHistory:[], usdMxnHistory:[],
@@ -2131,76 +2131,9 @@ async function loadFromFirebase() {
       try { if (!desdeCache) await setDoc(doc(db,'cartera','mercado'), {ivvPrecio:state.ivvPrecio, ivvVar:state.ivvVar, ivvHistory:state.ivvHistory}, {merge:true}); }
       catch(e) { console.error('migracion mercado',e); }
     }
-    // REPARACION UNICA jul-2026 (v3): los saldos Revolut quedaron mal por el hueco de
-    // las siembras anteriores — el gasto Premium se registro con la cuenta en 0 y dejo
-    // -86.42, y savings/acciones quedaron en 0 sin persistir. El gasto Premium YA existe
-    // en la coleccion: aqui NO se crea ningun gasto, SOLO se corrigen saldos, en un
-    // batch atomico con su marcador. Guardas por valor: no toca nada ya corregido ni
-    // valores que Roberto cambie a mano; NU y GBM no se tocan (peticion explicita).
-    const seedV3Hecha = mDoc.exists() && mDoc.data().seedJul26V3 === true;
-    // esta siembra escribe con writeBatch, sin releer el marcador dentro de una
-    // transaccion: con datos de cache podria reaplicarse. Se salta si vino de cache.
-    if (!desdeCache && !seedV3Hecha) {
-      const prevSeed={revMXN:state.revMXN,rsb:state.revSavingsBase,rsf:state.revSavingsFecha,
-        rst:state.revSavingsTasa,nvs:state.revNvdaShares};
-      let cambio=false;
-      // SOLO los campos que esta siembra toca: escribir el documento completo pisaria
-      // cualquier saldo cambiado entre la lectura inicial y este commit
-      const sembrado={};
-      if (state.revMXN===0 || Math.abs(state.revMXN-(-86.42))<0.01) { state.revMXN=9.26; sembrado.revMXN=9.26; cambio=true; }
-      if (state.revSavingsBase===0 && !state.revSavingsFecha) {
-        state.revSavingsBase=2000.79; state.revSavingsFecha='2026-07-23'; state.revSavingsTasa=15;
-        sembrado.revSavingsBase=2000.79; sembrado.revSavingsFecha='2026-07-23'; sembrado.revSavingsTasa=15;
-        cambio=true;
-      }
-      if (state.revNvdaShares===0) { state.revNvdaShares=0.19; cambio=true; }
-      try {
-        if (cambio) {
-          const batch=writeBatch(db);
-          if(Object.keys(sembrado).length) batch.set(doc(db,'cartera','saldos'),sembrado,{merge:true});
-          batch.set(doc(db,'cartera','mercado'),{seedJul26V3:true},{merge:true});
-          await batch.commit();
-        } else {
-          await setDoc(doc(db,'cartera','mercado'),{seedJul26V3:true},{merge:true});
-        }
-      } catch(e) {
-        state.revMXN=prevSeed.revMXN; state.revSavingsBase=prevSeed.rsb; state.revSavingsFecha=prevSeed.rsf;
-        state.revSavingsTasa=prevSeed.rst; state.revNvdaShares=prevSeed.nvs;
-        console.error('seed jul26 v3',e); // sin marcador: se reintenta en la proxima carga
-      }
-    }
-    // SIEMBRA 28-jul-2026 (transaccion con update PARCIAL: no pisa nada concurrente):
-    // GBM vendido -> el dinero migro a Revolut. Anclas absolutas del dia (sin guardas por
-    // valor): NU saldo 51.03, Savings 9,007.46 al 28-jul, GBM en 0. Marcador seedJul28.
-    if (!desdeCache && !(mDoc.exists() && mDoc.data().seedJul28 === true)) {
-      try {
-        const aplico = await runTransaction(db, async tx => {
-          const mSnap = await tx.get(doc(db,'cartera','mercado'));
-          if (mSnap.exists() && mSnap.data().seedJul28 === true) return false; // otro dispositivo ya sembro
-          tx.update(doc(db,'cartera','saldos'), {nuSaldo:51.03, revSavingsBase:9007.46, revSavingsFecha:'2026-07-28', efectivoGBM:0, reporto:0});
-          tx.set(doc(db,'cartera','mercado'), {seedJul28:true}, {merge:true});
-          return true;
-        });
-        if (aplico) {
-          state.nuSaldo=51.03; state.revSavingsBase=9007.46; state.revSavingsFecha='2026-07-28';
-          state.efectivoGBM=0; state.reporto=0;
-        }
-      } catch(e) { console.error('seed jul28',e); } // sin marcador: se reintenta en la proxima carga
-    }
-    // SIEMBRA 28-jul-b: acciones NVDA exactas segun el recibo de Revolut de Roberto
-    // (compra 23-jul-2026 9:43am: $40 USD que compraron 0.19306994 acciones)
-    if (!desdeCache && !(mDoc.exists() && mDoc.data().seedJul28b === true)) {
-      try {
-        const aplico = await runTransaction(db, async tx => {
-          const mSnap = await tx.get(doc(db,'cartera','mercado'));
-          if (mSnap.exists() && mSnap.data().seedJul28b === true) return false;
-          tx.update(doc(db,'cartera','saldos'), {revNvdaShares:0.19306994});
-          tx.set(doc(db,'cartera','mercado'), {seedJul28b:true}, {merge:true});
-          return true;
-        });
-        if (aplico) state.revNvdaShares=0.19306994;
-      } catch(e) { console.error('seed jul28b',e); }
-    }
+    // (2-oct-2026) Aqui vivian las siembras unicas de jul-2026 (reparacion v3, 28-jul y
+    // 28-jul-b). Ya corrieron: sus marcadores estan en cartera/mercado. Se quitaron porque
+    // traian saldos reales y esta pagina es publica.
     if (pDoc.exists()) {
       // el campo data debe ser un MAP {clave:persona}. Si quedo como ARRAY (dato viejo
       // de una version previa), Firestore descarta las claves nombradas al guardar y la
@@ -2308,183 +2241,8 @@ async function loadFromFirebase() {
       .map(o=>({...o, montoUsd:(Number.isFinite(o.montoUsd)&&o.montoUsd>0)?o.montoUsd:null}));
     const opsInvalidas = opsCrudas.length - state.stocksOps.length;
     if (opsInvalidas>0) { console.warn('stocksOps invalidas:',opsInvalidas); showToast('aviso: '+opsInvalidas+' operación(es) de bolsa no se pudieron leer'); }
-    // SIEMBRA 30-jul (ledger inicial): las dos compras reales de Roberto segun sus recibos
-    // de Revolut. cuenta 'externo': el efectivo de esas compras YA quedo anclado en las
-    // siembras de saldos anteriores (no se descuenta doble). QQQ: monto MXN pendiente.
-    if (!desdeCache && !(mDoc.exists() && mDoc.data().seedJul28c === true)) {
-      try {
-        const nuevos = await runTransaction(db, async tx => {
-          const mSnap = await tx.get(doc(db,'cartera','mercado'));
-          if (mSnap.exists() && mSnap.data().seedJul28c === true) return null;
-          const op1={tipo:'compra',simbolo:'NVDA',acciones:0.19306994,montoMxn:704.32,cuenta:'externo',fecha:'2026-07-23',nota:'compra inicial ($40 USD)',creado:new Date().toISOString()};
-          const op2={tipo:'compra',simbolo:'QQQ',acciones:0.5865555,montoMxn:0,cuenta:'externo',fecha:'2026-07-28',nota:'compra ($400.01 USD)',creado:new Date().toISOString()};
-          const r1=doc(collection(db,'stocksOps')), r2=doc(collection(db,'stocksOps'));
-          tx.set(r1,op1); tx.set(r2,op2);
-          tx.set(doc(db,'cartera','mercado'), {seedJul28c:true}, {merge:true});
-          return [{id:r1.id,...op1},{id:r2.id,...op2}];
-        });
-        if (nuevos) state.stocksOps.push(...nuevos);
-      } catch(e) { console.error('seed jul28c',e); }
-    }
-    // SIEMBRA 30-jul: monto real en pesos del QQQ (recibo Revolut: M$6,979.20) y ancla
-    // del saldo Revolut MXN en 962.06 (el fondeo de esa compra no paso por la app).
-    // Solo corrige datos: NO genera movimientos. Si la op QQQ aun no existe (p.ej.
-    // seedJul28c fallo en esta carga), NO se marca: se reintenta en la proxima.
-    if (!desdeCache && !(mDoc.exists() && mDoc.data().seedJul30 === true)) {
-      const qqqOp = state.stocksOps.find(o=>o.id&&o.simbolo==='QQQ'&&o.tipo==='compra'&&o.fecha==='2026-07-28'&&!(o.montoMxn>0));
-      if (qqqOp) {
-        try {
-          await runTransaction(db, async tx => {
-            const mSnap = await tx.get(doc(db,'cartera','mercado'));
-            if (mSnap.exists() && mSnap.data().seedJul30 === true) return false;
-            const opSnapTx = await tx.get(doc(db,'stocksOps',qqqOp.id));
-            if (opSnapTx.exists() && !(opSnapTx.data().montoMxn>0)) tx.update(doc(db,'stocksOps',qqqOp.id), {montoMxn:6979.20});
-            tx.update(doc(db,'cartera','saldos'), {revMXN:962.06});
-            tx.set(doc(db,'cartera','mercado'), {seedJul30:true}, {merge:true});
-            return true;
-          });
-          // en memoria SIEMPRE (aunque otro dispositivo haya ganado la carrera: son
-          // las mismas constantes, y asi ningun guardado posterior re-escribe lo viejo)
-          qqqOp.montoMxn=6979.20; state.revMXN=962.06;
-        } catch(e) { console.error('seed jul30',e); }
-      }
-    }
-    // SIEMBRA 31-jul: compra MSFT del 30-jul segun el recibo de Revolut de Roberto
-    // ($30 USD a $448.60 -> 0.06687472 acciones, fee $0). cuenta 'externo': Roberto
-    // ajusta el saldo Revolut MXN a mano; montoMxn pendiente (el recibo esta en USD).
-    // ID determinista: la transaccion relee ese doc y no puede duplicar la op.
-    if (!desdeCache && !(mDoc.exists() && mDoc.data().seedJul31 === true)) {
-      try {
-        const msftRef = doc(db,'stocksOps','seed-msft-2026-07-30');
-        const nueva = await runTransaction(db, async tx => {
-          const mSnap = await tx.get(doc(db,'cartera','mercado'));
-          const opSnapTx = await tx.get(msftRef);
-          // si otro dispositivo ya la creo, se devuelve la existente igual: el getDocs
-          // de esta carga pudo correr antes de esa siembra y no traerla en memoria
-          if (opSnapTx.exists()) {
-            if (!(mSnap.exists() && mSnap.data().seedJul31 === true)) tx.set(doc(db,'cartera','mercado'),{seedJul31:true},{merge:true});
-            return {id:msftRef.id,...opSnapTx.data()};
-          }
-          const op={tipo:'compra',simbolo:'MSFT',acciones:0.06687472,montoMxn:0,cuenta:'externo',fecha:'2026-07-30',nota:'compra ($30 USD @ $448.60 · MXN pendiente)',creado:new Date().toISOString()};
-          tx.set(msftRef,op);
-          tx.set(doc(db,'cartera','mercado'),{seedJul31:true},{merge:true});
-          return {id:msftRef.id,...op};
-        });
-        if (nueva && !state.stocksOps.some(o=>o.id===nueva.id)) {
-          state.stocksOps.push(nueva);
-          state.stocksOps.sort((a,b)=>a.fecha<b.fecha?-1:a.fecha>b.fecha?1:0);
-        }
-      } catch(e) { console.error('seed jul31',e); }
-    }
-    // SIEMBRA 31-jul-b: monto real en pesos del MSFT segun el recibo de Revolut ($523.39).
-    // Solo corrige la op (no toca saldos: Roberto ya ajusto Revolut MXN a mano). La transaccion
-    // devuelve el monto EFECTIVO que quedo en Firestore (el propio si escribio, el existente si
-    // otro dispositivo ya lo puso, o null si el doc no existe); en memoria solo se asigna ese
-    // monto efectivo (nunca el literal), y si el doc no existe no se marca y se reintenta.
-    if (!desdeCache && !(mDoc.exists() && mDoc.data().seedJul31b === true)) {
-      const msftOp = state.stocksOps.find(o=>o.id==='seed-msft-2026-07-30'&&!(o.montoMxn>0));
-      if (msftOp) {
-        try {
-          const resultado = await runTransaction(db, async tx => {
-            const mSnap = await tx.get(doc(db,'cartera','mercado'));
-            if (mSnap.exists() && mSnap.data().seedJul31b === true) return false;
-            const opSnapTx = await tx.get(doc(db,'stocksOps',msftOp.id));
-            if (!opSnapTx.exists()) return null;
-            if (opSnapTx.data().montoMxn>0) {
-              tx.set(doc(db,'cartera','mercado'), {seedJul31b:true}, {merge:true});
-              return opSnapTx.data().montoMxn;
-            }
-            tx.update(doc(db,'stocksOps',msftOp.id), {montoMxn:523.39});
-            tx.set(doc(db,'cartera','mercado'), {seedJul31b:true}, {merge:true});
-            return 523.39;
-          });
-          // en memoria: el monto efectivo que quedo en Firestore (el propio si gano
-          // la transaccion, o el ya existente si otro dispositivo la gano primero)
-          if (Number.isFinite(resultado) && resultado>0) msftOp.montoMxn=resultado;
-        } catch(e) { console.error('seed jul31b',e); }
-      }
-    }
-    // SIEMBRA 4-ago: compra de SPCX (SpaceX via Revolut) segun el recibo: $60 USD que
-    // compraron 0.47468805 acciones; la transferencia real fue de M$1,040.81 desde
-    // Revolut MXN. cuenta 'externo': Roberto ajusta ese saldo a mano (igual que las
-    // siembras anteriores, para no descontar dos veces si ya lo corrigio).
-    if (!desdeCache && !(mDoc.exists() && mDoc.data().seedAgo04 === true)) {
-      try {
-        const spcxRef = doc(db,'stocksOps','seed-spcx-2026-08-04');
-        const nueva = await runTransaction(db, async tx => {
-          const mSnap = await tx.get(doc(db,'cartera','mercado'));
-          const opSnapTx = await tx.get(spcxRef);
-          if (opSnapTx.exists()) {
-            if (!(mSnap.exists() && mSnap.data().seedAgo04 === true)) tx.set(doc(db,'cartera','mercado'),{seedAgo04:true},{merge:true});
-            return {id:spcxRef.id,...opSnapTx.data()};
-          }
-          const op={tipo:'compra',simbolo:'SPCX',acciones:0.47468805,montoMxn:1040.81,cuenta:'externo',fecha:'2026-08-04',nota:'compra ($60 USD @ $126.40 · SpaceX en Revolut)',creado:new Date().toISOString()};
-          tx.set(spcxRef,op);
-          tx.set(doc(db,'cartera','mercado'),{seedAgo04:true},{merge:true});
-          return {id:spcxRef.id,...op};
-        });
-        if (nueva && !state.stocksOps.some(o=>o.id===nueva.id)) {
-          state.stocksOps.push(nueva);
-          state.stocksOps.sort((a,b)=>a.fecha<b.fecha?-1:a.fecha>b.fecha?1:0);
-        }
-      } catch(e) { console.error('seed ago04',e); }
-    }
-    // SIEMBRA 7-ago: dos correcciones sobre las compras ya sembradas.
-    // (a) MSFT: el recibo real de Revolut dice 0.06666666 acciones a $450.00 exactos;
-    //     la siembra de jul-31 quedo en 0.06687472 @ $448.60 (lectura equivocada del recibo).
-    // (b) montoUsd: lo que costo cada compra EN DOLARES. Sin ese dato no se puede separar
-    //     cuanto gano la accion de cuanto movio el tipo de cambio, que es exactamente la
-    //     diferencia entre lo que muestra esta app (pesos reales) y lo que muestra el broker.
-    // Cada op se corrige SOLO si conserva el valor viejo: una edicion manual posterior manda.
-    if (!desdeCache && !(mDoc.exists() && mDoc.data().seedAgo07 === true)) {
-      const CORR=[
-        {sim:'NVDA', fecha:'2026-07-23', usd:40},
-        {sim:'QQQ',  fecha:'2026-07-28', usd:400.01},
-        {sim:'MSFT', fecha:'2026-07-30', usd:30, accDe:0.06687472, accA:0.06666666},
-        {sim:'SPCX', fecha:'2026-08-04', usd:60}
-      ];
-      const objetivo=CORR.map(c=>({c, op:state.stocksOps.find(o=>o.id&&o.tipo==='compra'&&o.simbolo===c.sim&&o.fecha===c.fecha)}))
-        .filter(x=>x.op);
-      // si alguna compra aun no existe en memoria, NO se marca: se reintenta en la proxima carga
-      if (objetivo.length===CORR.length) {
-        try {
-          // la transaccion devuelve SIEMPRE el valor efectivo en Firestore (haya escrito o
-          // no), asi la memoria queda consistente aunque otro dispositivo gane la carrera
-          const efectivo = await runTransaction(db, async tx => {
-            const mSnap = await tx.get(doc(db,'cartera','mercado'));
-            const yaHecho = mSnap.exists() && mSnap.data().seedAgo07 === true;
-            const snaps=[];
-            for (const x of objetivo) snaps.push(await tx.get(doc(db,'stocksOps',x.op.id)));
-            const res=[];
-            objetivo.forEach((x,i)=>{
-              const s=snaps[i]; if(!s.exists()) return;
-              const d=s.data();
-              let mUsd=(Number.isFinite(d.montoUsd)&&d.montoUsd>0)?d.montoUsd:null;
-              let acc=d.acciones;
-              if(!yaHecho){
-                const cambios={};
-                if(mUsd===null){ cambios.montoUsd=x.c.usd; mUsd=x.c.usd; }
-                // bajar las unidades solo si NO hay ventas de ese simbolo: si las hubiera,
-                // la posicion podria quedar negativa y el clamp a cero lo escondería.
-                // (se consulta el ledger en memoria, no la transaccion: basta para una
-                // siembra de un solo uso en una app de un usuario; si este patron se
-                // reutiliza para correcciones recurrentes, leer las ventas con tx.get)
-                if(x.c.accA&&Math.round(acc*1e8)===Math.round(x.c.accDe*1e8)
-                   &&!state.stocksOps.some(o=>o.simbolo===x.c.sim&&o.tipo==='venta')){ cambios.acciones=x.c.accA; acc=x.c.accA; }
-                if(Object.keys(cambios).length) tx.update(doc(db,'stocksOps',x.op.id), cambios);
-              }
-              res.push({id:x.op.id, montoUsd:mUsd, acciones:acc});
-            });
-            if(!yaHecho) tx.set(doc(db,'cartera','mercado'), {seedAgo07:true}, {merge:true});
-            return res;
-          });
-          if (efectivo) efectivo.forEach(r=>{
-            const o=state.stocksOps.find(op=>op.id===r.id);
-            if(o){ o.montoUsd=r.montoUsd; if(Number.isFinite(r.acciones)&&r.acciones>0) o.acciones=r.acciones; }
-          });
-        } catch(e) { console.error('seed ago07',e); }
-      }
-    }
+    // (2-oct-2026) Aqui vivian las siembras de compras reales (jul y ago). Ya corrieron
+    // (marcadores en cartera/mercado) y traian montos reales: se quitaron.
     derivarPosiciones();
     // doc canonico de posiciones: lo valida y actualiza la transaccion de compra/venta
     const posMap={}; Object.entries(state.posiciones).forEach(([k,p])=>{ posMap[k]=p.acciones; });
@@ -5293,7 +5051,7 @@ function renderMovimientos() {
     ...(movFiltro==='todos'?pagosTarjetaHist().filter(m=>enRango(m.it)):[])
   ];
   if(!todos.length){c.innerHTML='<div class="empty-state">sin '+(movFiltro==='todos'?'movimientos':movFiltro)+' en este periodo</div>';return;}
-  todos.sort((a,b)=>(msFechaMov(b.it.fecha)||0)-(msFechaMov(a.it.fecha)||0));
+  todos.sort((a,b)=>((msFechaMov(b.it.fecha)||0)-(msFechaMov(a.it.fecha)||0))||String(b.it.creado||'').localeCompare(String(a.it.creado||'')));
   const recortado=todos.length>200;
   c.innerHTML=(recortado?'<div class="item-meta" style="text-align:center;padding:6px 0">mostrando los 200 más recientes de '+todos.length+'</div>':'')+
   todos.slice(0,200).map(m=>{
@@ -5672,7 +5430,7 @@ window.excelDeuda=async function(key) {
     const ExcelJS=await cargarExcelJS();
     const signo=m=>((DEUDA_TIPOS[m.tipo]||{deuda:-1}).deuda)*nFin(m.monto);
     const movs=(p.movimientos||[]).filter(m=>m&&Number.isFinite(m.monto)&&msFechaMov(m.fecha)!==null)
-      .sort((x,y)=>String(x.fecha||'').localeCompare(String(y.fecha||'')));
+      .sort((x,y)=>(String(x.fecha||'')+'|'+String(x.creado||'')).localeCompare(String(y.fecha||'')+'|'+String(y.creado||'')));
     // un movimiento con fecha corrupta (dato viejo) no se puede ubicar en el tiempo: queda fuera del
     // Excel, pero se AVISA cuantos fueron, en el archivo y en pantalla, en vez de callarlo
     const excluidos=(p.movimientos||[]).length-movs.length;

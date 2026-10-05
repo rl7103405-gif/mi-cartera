@@ -99,13 +99,13 @@ function chk(nombre, cond, detalle = '') {
 const DOCS_OPC = HAY_TDCREV ? ['tarjetaRev'] : [];
 function cacheCompleta() {
   CACHE = {
-    [`${NS}/saldos`]:     { nuCajita1Base:25000, nuSaldo:51.03, efectivo:2200, revMXN:9.26, nuCajita1Fecha:'2026-09-01' },
+    [`${NS}/saldos`]:     { nuCajita1Base:20000, nuSaldo:1500, efectivo:3000, revMXN:400, nuCajita1Fecha:'2026-09-01' },
     [`${NS}/tarjeta`]:    { deuda:1500, movimientos:[{id:'a',monto:100}] },
     [`${NS}/personas`]:   { data:{ Papa:{nombre:'Papa', saldo:40973.31, movimientos:[{monto:1}]} } },
     [`${NS}/categorias`]: { catsGasto:['Comida','Casa'], catsIngreso:['Trabajo'] },
     [`${NS}/historial`]:  { snapshots:[{f:'2026-09-01',total:100,gbm:0}] },
   };
-  if (HAY_TDCREV) CACHE[`${NS}/tarjetaRev`] = { deuda:200, deposito:438.67, movimientos:[] };
+  if (HAY_TDCREV) CACHE[`${NS}/tarjetaRev`] = { deuda:200, deposito:1000, movimientos:[] };
   if (HAY_MERCADO) CACHE[`${NS}/mercado`] = { ivvPrecio:154.2, usdMxn:18.5, accionesMkt:{NVDA:{precio:120}} };
   if (HAY_FONDO) CACHE[`${NS}/fondo`] = { saldosPorCuenta:{revolut:800000, gbm:5}, movs:[{id:'f1',tipo:'entrada',cuenta:'revolut',monto:800000,fecha:'2026-09-28',creado:'2026-09-28T10:00:00Z'}] };
   COLS = {
@@ -126,9 +126,9 @@ console.log('\n1. Con la copia local completa, pinta y NO escribe nada');
 reset(); cacheCompleta();
 let ok = await pintarDesdeCache();
 chk('devuelve true', ok === true);
-chk('aplica los saldos', state.nuCajita1Base === 25000 && state.efectivo === 2200, 'base='+state.nuCajita1Base);
+chk('aplica los saldos', state.nuCajita1Base === 20000 && state.efectivo === 3000, 'base='+state.nuCajita1Base);
 chk('aplica la tarjeta NU', state.tarjetaDeuda === 1500 && state.tarjetaMovimientos.length === 1);
-if (HAY_TDCREV) chk('aplica la TDC Revolut', state.revTdcDeuda === 200 && state.revTdcDeposito === 438.67);
+if (HAY_TDCREV) chk('aplica la TDC Revolut', state.revTdcDeuda === 200 && state.revTdcDeposito === 1000);
 chk('aplica las personas', !!state.personas.Papa && state.personas.Papa.saldo === 40973.31);
 chk('aplica las categorias', state.catsGasto.length === 2 && state.catsGasto[0] === 'Comida');
 chk('aplica el historial', state.snapshots.length === 1);
@@ -190,7 +190,7 @@ console.log('\n5. personas guardado como ARRAY (formato viejo): no se intenta mi
 reset(); cacheCompleta();
 CACHE[`${NS}/personas`] = { data: [{nombre:'Papa', saldo:100, movimientos:[]}] };
 ok = await pintarDesdeCache();
-chk('pinta el resto igual', ok === true && state.efectivo === 2200);
+chk('pinta el resto igual', ok === true && state.efectivo === 3000);
 chk('deja personas vacio en vez de inventar', Object.keys(state.personas).length === 0,
     JSON.stringify(state.personas));
 
