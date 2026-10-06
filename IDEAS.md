@@ -293,3 +293,45 @@ Salió de `usuario-real` (la mamá de Roberto en iPhone) y de los revisores; no 
 - **La × de borrar mide 24 px y el lápiz está pegado:** errarle por poco abre "editar".
 - **`mi-cartera-plantilla` sigue con los `confirm()`.** Es la copia rezagada; no entró al parche.
 - **Probar en iPhone real:** arrastre con el dedo, VoiceOver y la PWA instalada.
+
+## HECHO (6-oct-2026): editar TODO de un movimiento con la plumita, en las cinco carteras
+
+Pedido de Roberto: "con la plumita quiero poder mover fecha, categoría, monto, todo; es muy
+importante". Se codea en OTRA sesión (una feature por sesión). Las cinco carteras.
+
+**Hoy** (`guardarEdicionMov`): solo `cat` y `nota`, solo gastos e ingresos, con un `updateDoc`
+parcial. A propósito no toca monto/cuenta/fecha porque mueven dinero o el mes en que cuenta.
+
+**Dos clases de cambio, dos caminos:**
+1. *Sin dinero* — categoría, nota, **fecha**: `updateDoc` parcial como hoy. La fecha pasa por
+   `fechaMovOpcional` (vacía = no cambiar; no futura) y se conserva `creado`. El saldo NO se
+   mueve (el dinero ya se aplicó el día que se registró, igual que al registrar con fecha pasada).
+2. *Con dinero* — **monto** y **cuenta** (fuente del gasto / destino del ingreso): en UNA
+   transacción de `txDinero`, nueva operación `movEditar`: revertir el efecto viejo en la cuenta
+   vieja, aplicar el nuevo en la cuenta nueva y actualizar el documento con el mismo id. Con
+   `verificarIguales` (monto y cuenta que se mostraron): si otro aparato lo cambió, aborta. Bajo
+   `dineroOcupado`. Nunca borrar + crear (perdería el id, el vínculo con suscripciones y amigos).
+
+**Casos borde que el diseño debe cubrir** (lista para el debate con Codex):
+- Gasto/ingreso del Atajo aún pendiente (`movSinEfecto`): se edita sin mover dinero.
+- Tarjeta como fuente (`tarjetaDelta` / `tdcRevDelta`) y cambio entre tarjeta y cuenta.
+- Cuentas de interés (cajitas, Savings, Mifel): el reanclaje y el tramo de rendimiento los hace
+  `txDinero` como en un alta; no dejar una cuenta bajo lo apartado del fondo.
+- Saldo que quedaría negativo: avisar igual que al registrar.
+- Gasto ligado a una suscripción (`suscripcion`, id fijo por mes): si cambia el mes, avisar o
+  impedir, para no dejar "pagada" una suscripción en el mes equivocado.
+- Casa: `dePapa` se recalcula si cambia la categoría; `editadoPor` (quién editó).
+- Copias: las cuentas salen del catálogo (`SLOTS`/`ctaActiva`), no de listas quemadas.
+
+**Pantalla:** el mismo modal de la plumita agrega monto, fecha (texto AAAA-MM-DD) y cuenta (las
+mismas pastillas del registro). Si cambia monto o cuenta, una línea antes de guardar dice el
+efecto ("regresa $120 a efectivo y saca $150 de NU"); guardar un cambio de dinero pide
+"desliza para confirmar".
+
+**Fuera de este bloque** (después, si Roberto lo pide): editar transferencias, movimientos de
+tarjeta y de deudas.
+
+**Cómo se hace:** debate de diseño con Codex (`movEditar`) → código en mi-cartera → pruebas nuevas
+en `test-dinero.mjs` (cada caso borde, y que editar = borrar + crear en saldos) → port a las
+cuatro copias → cadena completa (Codex, code-reviewer, debugger, qa-tester) → `usuario-real` →
+un commit por repo.

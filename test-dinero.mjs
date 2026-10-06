@@ -27,7 +27,7 @@ function mergeProfundo(viejo, nuevo) {
   }
   return r;
 }
-let intentos = 0, forzarConflicto = 0;
+let intentos = 0, forzarConflicto = 0, rechazaUndefined = false;
 async function runTransaction(db, cb, opts) {
   for (let intento = 0; intento < (opts?.maxAttempts || 5); intento++) {
     intentos++;
@@ -39,7 +39,10 @@ async function runTransaction(db, cb, opts) {
         const d = SERVIDOR[ref.path];
         return { exists: () => d !== undefined, data: () => clon(d) };
       },
-      set: (ref, data, o) => escrituras.push({ t: 'set', ref, data, merge: !!(o && o.merge) }),
+      set: (ref, data, o) => {
+        // Firestore real truena con undefined; solo se exige en las pruebas que lo activan (movimientos sin cuenta)
+        if (rechazaUndefined && JSON.stringify(data, (k, v) => v === undefined ? '__UNDEF__' : v).includes('__UNDEF__')) throw new Error('undefined en set');
+        escrituras.push({ t: 'set', ref, data, merge: !!(o && o.merge) }); },
       update: (ref, data) => escrituras.push({ t: 'update', ref, data }),
       delete: ref => escrituras.push({ t: 'del', ref })
     };
@@ -586,6 +589,194 @@ if (CAMPO_COMP.mifel) {
         r.ok && SERVIDOR[F].saldosPorCuenta.cuentaNueva === 5000 && SERVIDOR[F].saldosPorCuenta.revolut === 1500, JSON.stringify(SERVIDOR[F].saldosPorCuenta));
     chk('y sus movimientos, en su orden', SERVIDOR[F].movs.map(m => m.id).join(',') === 'k2,aj,k1', SERVIDOR[F].movs.map(m => m.id).join(','));
   } finally { Date.now = nowReal; }
+}
+
+// ═══════════════ EDITAR UN MOVIMIENTO (movEditar, 5-oct-2026) ═══════════════
+// Editar = revertir lo viejo y aplicar lo nuevo con el MISMO id, en una sola transaccion.
+// Solo corre si la copia ya trae movEditar.
+if (fuente.includes('movEditar')) {
+  console.log('\nE. Editar monto y cuenta de un gasto/ingreso');
+  const G = R(PFX + 'gastos/e1'), I = R(PFX + 'ingresos/e2'), S = R('cartera/saldos');
+  const tj = () => (SERVIDOR[R('cartera/tarjeta')] || {}).deuda;
+  const gasto = (monto, fuente, extra = {}) => ({ cat: 'Comida', monto, nota: 'x', fuente, fecha: '2026-08-20T00:00:00Z', creado: '2026-08-20T18:00:00Z', ...extra });
+  const editar = (ref, signo, a, d, campos, extra = {}) => txDinero({ permitirNegativo: true, permitirDeudaNegativa: true,
+    movEditar: { ref: { path: ref }, signo, antes: a, despues: d, datos: campos }, ...extra });
+
+  // E1: subir el monto en la misma cuenta = saca solo la diferencia
+  SERVIDOR = { [S]: { efectivo: 1000 }, [G]: gasto(100, 'efectivo') };
+  let r = await editar(G, 1, { slot: 'efectivo', monto: 100 }, { slot: 'efectivo', monto: 150 }, { monto: 150, fuente: 'efectivo' },
+    { verificarIguales: [{ ref: { path: G }, campos: { monto: 100, fuente: 'efectivo' } }] });
+  chk('E1 subir de 100 a 150 saca 50 mas', r.ok && ef() === 950, JSON.stringify(r) + ' ef ' + ef());
+  chk('E1 el gasto queda con el monto nuevo y el mismo id', SERVIDOR[G].monto === 150 && SERVIDOR[G].fuente === 'efectivo');
+  chk('E1 no se pierden campos que no se editaron (nota, creado)', SERVIDOR[G].nota === 'x' && SERVIDOR[G].creado === '2026-08-20T18:00:00Z');
+
+  // E2: cambiar de cuenta = regresa a la vieja y saca de la nueva
+  SERVIDOR = { [S]: { efectivo: 1000, nuSaldo: 500 }, [G]: gasto(100, 'efectivo') };
+  r = await editar(G, 1, { slot: 'efectivo', monto: 100 }, { slot: 'nu', monto: 100 }, { monto: 100, fuente: 'nu' });
+  chk('E2 de efectivo a NU: efectivo +100, NU -100', r.ok && ef() === 1100 && SERVIDOR[S].nuSaldo === 400, JSON.stringify(SERVIDOR[S]));
+
+  // E3: editar = borrar + crear en saldos (misma foto final)
+  SERVIDOR = { [S]: { efectivo: 1000, nuSaldo: 500 }, [G]: gasto(120, 'efectivo') };
+  await editar(G, 1, { slot: 'efectivo', monto: 120 }, { slot: 'nu', monto: 80 }, { monto: 80, fuente: 'nu' });
+  const editado = { ...SERVIDOR[S] };
+  SERVIDOR = { [S]: { efectivo: 1000, nuSaldo: 500 }, [G]: gasto(120, 'efectivo') };
+  await txDinero({ permitirNegativo: true, movBorrar: { ref: { path: G }, slot: 'efectivo', signo: 1, monto: 120 } });
+  await txDinero({ permitirNegativo: true, deltas: { nu: -80 } });
+  chk('E3 editar deja los mismos saldos que borrar y volver a crear', editado.efectivo === SERVIDOR[S].efectivo && editado.nuSaldo === SERVIDOR[S].nuSaldo,
+    JSON.stringify(editado) + ' vs ' + JSON.stringify(SERVIDOR[S]));
+
+  // E4: de efectivo a tarjeta: regresa el efectivo y sube la deuda
+  SERVIDOR = { [S]: { efectivo: 1000 }, [R('cartera/tarjeta')]: { deuda: 300, movimientos: [] }, [G]: gasto(100, 'efectivo') };
+  r = await editar(G, 1, { slot: 'efectivo', monto: 100 }, { slot: null, monto: 100 }, { monto: 100, fuente: 'tarjeta' }, { tarjetaDelta: 100 });
+  chk('E4 de efectivo a tarjeta: efectivo +100, deuda +100', r.ok && ef() === 1100 && tj() === 400, 'ef ' + ef() + ' deuda ' + tj());
+  // y de tarjeta a efectivo
+  SERVIDOR = { [S]: { efectivo: 1000 }, [R('cartera/tarjeta')]: { deuda: 300, movimientos: [] }, [G]: gasto(100, 'tarjeta') };
+  r = await editar(G, 1, { slot: null, monto: 100 }, { slot: 'efectivo', monto: 100 }, { monto: 100, fuente: 'efectivo' }, { tarjetaDelta: -100 });
+  chk('E4b de tarjeta a efectivo: deuda -100, efectivo -100', r.ok && ef() === 900 && tj() === 200, 'ef ' + ef() + ' deuda ' + tj());
+
+  // E5: pendiente del Atajo: cambian los datos, NO los saldos (el Atajo aplicara el monto nuevo)
+  SERVIDOR = { [S]: { efectivo: 1000 }, [R('cartera/tarjeta')]: { deuda: 300, movimientos: [] }, [G]: gasto(100, 'efectivo', { porAtajo: true, pendiente: true }) };
+  r = await editar(G, 1, { slot: 'efectivo', monto: 100 }, { slot: null, monto: 250 }, { monto: 250, fuente: 'tarjeta' }, { tarjetaDelta: 250 });
+  chk('E5 pendiente del Atajo: saldos y deuda intactos', r.ok && ef() === 1000 && tj() === 300, 'ef ' + ef() + ' deuda ' + tj());
+  chk('E5 pero los datos si cambian y las banderas del Atajo se conservan', SERVIDOR[G].monto === 250 && SERVIDOR[G].fuente === 'tarjeta' && SERVIDOR[G].pendiente === true && SERVIDOR[G].porAtajo === true);
+
+  // E6: otro aparato ya lo cambio: verificarIguales aborta sin mover nada
+  SERVIDOR = { [S]: { efectivo: 1000 }, [G]: gasto(130, 'efectivo') };
+  r = await editar(G, 1, { slot: 'efectivo', monto: 100 }, { slot: 'efectivo', monto: 150 }, { monto: 150, fuente: 'efectivo' },
+    { verificarIguales: [{ ref: { path: G }, campos: { monto: 100, fuente: 'efectivo' } }] });
+  chk('E6 si otro aparato lo cambio, aborta sin escribir', !!r.error && ef() === 1000 && SERVIDOR[G].monto === 130, JSON.stringify(r));
+
+  // E7: ya no existe
+  SERVIDOR = { [S]: { efectivo: 1000 } };
+  r = await editar(G, 1, { slot: 'efectivo', monto: 100 }, { slot: 'efectivo', monto: 150 }, { monto: 150, fuente: 'efectivo' });
+  chk('E7 si ya lo borraron, aborta y no lo resucita', !!r.error && ef() === 1000 && SERVIDOR[G] === undefined, JSON.stringify(r));
+
+  // E8: reintentos de la transaccion: no se aplica dos veces
+  SERVIDOR = { [S]: { efectivo: 1000 }, [G]: gasto(100, 'efectivo') };
+  forzarConflicto = 2;
+  r = await editar(G, 1, { slot: 'efectivo', monto: 100 }, { slot: 'efectivo', monto: 300 }, { monto: 300, fuente: 'efectivo' });
+  chk('E8 con dos reintentos solo se saca la diferencia una vez', r.ok && ef() === 800, 'ef ' + ef());
+
+  // E9: ingreso: bajar el monto y cambiar de cuenta (signo -1)
+  SERVIDOR = { [S]: { efectivo: 1000, nuSaldo: 500 }, [I]: { cat: 'Trabajo', monto: 400, destino: 'efectivo', fecha: '2026-08-20T00:00:00Z' } };
+  r = await editar(I, -1, { slot: 'efectivo', monto: 400 }, { slot: 'nu', monto: 350 }, { monto: 350, destino: 'nu' });
+  chk('E9 ingreso de 400 en efectivo a 350 en NU: efectivo -400, NU +350', r.ok && ef() === 600 && SERVIDOR[S].nuSaldo === 850, JSON.stringify(SERVIDOR[S]));
+
+  // E10: dejar una cuenta en rojo se permite (se avisa en pantalla)
+  SERVIDOR = { [S]: { efectivo: 50 }, [G]: gasto(10, 'efectivo') };
+  r = await editar(G, 1, { slot: 'efectivo', monto: 10 }, { slot: 'efectivo', monto: 100 }, { monto: 100, fuente: 'efectivo' });
+  chk('E10 subir un gasto que deja la cuenta en rojo se registra (permitirNegativo)', r.ok && ef() === -40 && r.saldos.efectivo === -40, JSON.stringify(r));
+
+  // E11: cuenta de interes: se reancla y se cierra el tramo, como en un alta
+  if (CAMPO_COMP.cajita1) {
+    SERVIDOR = { [S]: { efectivo: 0, nuCajita1Base: 10000, nuCajita1Fecha: '2026-08-01', nuCajita1Tasa: 13, nuCajita1Tope: 0 },
+                 [I]: { cat: 'Trabajo', monto: 1000, destino: 'efectivo', fecha: '2026-08-20T00:00:00Z' } };
+    r = await editar(I, -1, { slot: 'efectivo', monto: 1000 }, { slot: 'cajita1', monto: 1000 }, { monto: 1000, destino: 'cajita1' });
+    const tramos = Object.keys(SERVIDOR).filter(k => k.includes('rendimientos'));
+    chk('E11 mover un ingreso a la cajita reancla su base y cierra un tramo', r.ok && SERVIDOR[S].nuCajita1Fecha === '2026-08-27' && SERVIDOR[S].nuCajita1Base > 11000 && tramos.length === 1,
+      JSON.stringify(SERVIDOR[S]) + ' tramos ' + tramos.length);
+  }
+
+  // E12: Atajo RECHAZADO en el servidor: nunca fue dinero, editar monto/cuenta aborta sin escribir
+  // (sin verificarIguales: asi se prueba la rama del propio txDinero, no la comparacion de banderas)
+  SERVIDOR = { [S]: { efectivo: 1000, nuSaldo: 500 }, [G]: gasto(100, 'efectivo', { porAtajo: true, pendiente: false, aplicadoSaldo: false }) };
+  const antes12 = JSON.stringify(SERVIDOR);
+  r = await editar(G, 1, { slot: 'efectivo', monto: 100 }, { slot: 'nu', monto: 150 }, { monto: 150, fuente: 'nu' });
+  chk('E12 rechazado en el servidor: aborta con mensaje y no escribe nada', !!r.error && /rechazado/.test(r.error) && JSON.stringify(SERVIDOR) === antes12, JSON.stringify(r));
+
+  // E13: el resultado trae el documento fusionado con las banderas del SERVIDOR
+  SERVIDOR = { [S]: { efectivo: 1000 }, [G]: gasto(100, 'efectivo', { porAtajo: true, pendiente: false, aplicadoSaldo: true }) };
+  r = await editar(G, 1, { slot: 'efectivo', monto: 100 }, { slot: 'efectivo', monto: 160 }, { monto: 160, fuente: 'efectivo' });
+  chk('E13 movEditado trae banderas del servidor + lo escrito', r.ok && r.movEditado && r.movEditado.aplicadoSaldo === true && r.movEditado.porAtajo === true
+      && r.movEditado.pendiente === false && r.movEditado.monto === 160 && r.movEditado.nota === 'x' && r.movEditado.cat === 'Comida', JSON.stringify(r.movEditado));
+
+  // E14: datos sin cat/nota/fecha NO tocan esos campos (otro aparato pudo haberlos corregido)
+  SERVIDOR = { [S]: { efectivo: 1000 }, [G]: gasto(100, 'efectivo', { cat: 'Casa', nota: 'corregida en otro aparato', fecha: '2026-08-11T00:00:00Z' }) };
+  r = await editar(G, 1, { slot: 'efectivo', monto: 100 }, { slot: 'efectivo', monto: 120 }, { monto: 120, fuente: 'efectivo' });
+  chk('E14 cat, nota y fecha del servidor quedan intactas', r.ok && SERVIDOR[G].cat === 'Casa' && SERVIDOR[G].nota === 'corregida en otro aparato'
+      && SERVIDOR[G].fecha === '2026-08-11T00:00:00Z' && SERVIDOR[G].monto === 120, JSON.stringify(SERVIDOR[G]));
+  // un movimiento legado SIN fecha: no se le inventa una (y nunca viaja undefined)
+  SERVIDOR = { [S]: { efectivo: 1000 }, [G]: { cat: 'Comida', monto: 100, fuente: 'efectivo' } };
+  r = await editar(G, 1, { slot: 'efectivo', monto: 100 }, { slot: 'efectivo', monto: 120 }, { monto: 120, fuente: 'efectivo' });
+  chk('E14b legado sin fecha: se edita el monto y no aparece fecha', r.ok && !('fecha' in SERVIDOR[G]) && SERVIDOR[G].monto === 120, JSON.stringify(SERVIDOR[G]));
+
+  // E15: verificarIguales con banderas del Atajo distintas a las que vio la pantalla: aborta
+  SERVIDOR = { [S]: { efectivo: 1000 }, [G]: gasto(100, 'efectivo', { porAtajo: true, pendiente: false, aplicadoSaldo: true }) };
+  r = await editar(G, 1, { slot: 'efectivo', monto: 100 }, { slot: 'efectivo', monto: 150 }, { monto: 150, fuente: 'efectivo' },
+    { verificarIguales: [{ ref: { path: G }, campos: { monto: 100, fuente: 'efectivo', pendiente: true, aplicadoSaldo: undefined } }] });
+  chk('E15 banderas distintas a las vistas: aborta sin escribir', !!r.error && /cambió en otro aparato/.test(r.error) && ef() === 1000 && SERVIDOR[G].monto === 100, JSON.stringify(r));
+  // y las MISMAS banderas (incluso ausentes, undefined===undefined) pasan
+  SERVIDOR = { [S]: { efectivo: 1000 }, [G]: gasto(100, 'efectivo') };
+  r = await editar(G, 1, { slot: 'efectivo', monto: 100 }, { slot: 'efectivo', monto: 150 }, { monto: 150, fuente: 'efectivo' },
+    { verificarIguales: [{ ref: { path: G }, campos: { monto: 100, fuente: 'efectivo', pendiente: undefined, aplicadoSaldo: undefined } }] });
+  chk('E15b banderas ausentes iguales a las vistas: pasa', r.ok && ef() === 950, JSON.stringify(r));
+  // un campo de metadatos cambiado en otro aparato tambien aborta
+  SERVIDOR = { [S]: { efectivo: 1000 }, [G]: gasto(100, 'efectivo', { nota: 'otra' }) };
+  r = await editar(G, 1, { slot: 'efectivo', monto: 100 }, { slot: 'efectivo', monto: 150 }, { monto: 150, fuente: 'efectivo', nota: 'mia' },
+    { verificarIguales: [{ ref: { path: G }, campos: { monto: 100, fuente: 'efectivo', nota: 'x' } }] });
+  chk('E15c nota cambiada en otro aparato y editada aqui: aborta', !!r.error && SERVIDOR[G].nota === 'otra' && ef() === 1000, JSON.stringify(r));
+
+  // E16: fondo de la universidad: subir un gasto en una cuenta con apartado debe bloquear
+  if (fuente.includes("'fondo'")) {
+    const F = R('cartera/fondo');
+    SERVIDOR = { [S]: { revMXN: 1000 }, [F]: { saldosPorCuenta: { revolut: 900 }, movs: [] }, [G]: gasto(50, 'revolut') };
+    r = await editar(G, 1, { slot: 'revolut', monto: 50 }, { slot: 'revolut', monto: 200 }, { monto: 200, fuente: 'revolut' });
+    chk('E16 subir un gasto que tomaria el dinero del fondo se rechaza y no escribe', !!r.error && /fondo/.test(r.error) && SERVIDOR[S].revMXN === 1000 && SERVIDOR[G].monto === 50, JSON.stringify(r));
+    r = await editar(G, 1, { slot: 'revolut', monto: 50 }, { slot: 'revolut', monto: 140 }, { monto: 140, fuente: 'revolut' });
+    chk('E16b subirlo hasta lo libre (cabe) si pasa', r.ok && SERVIDOR[S].revMXN === 910 && SERVIDOR[G].monto === 140, JSON.stringify(r));
+  }
+
+  // E17: TDC Revolut: un cargo editado que excede el deposito (limite) se rechaza
+  SERVIDOR = { [S]: { efectivo: 1000 }, [R('cartera/tarjetaRev')]: { deuda: 900, deposito: 1000, movimientos: [] }, [G]: gasto(100, 'tarjetaRev') };
+  r = await editar(G, 1, { slot: null, monto: 100 }, { slot: null, monto: 300 }, { monto: 300, fuente: 'tarjetaRev' }, { tdcRevDelta: 200 });
+  chk('E17 editar un cargo de TDC Revolut por encima del deposito: error y no escribe', !!r.error && /límite/.test(r.error)
+      && SERVIDOR[G].monto === 100 && SERVIDOR[R('cartera/tarjetaRev')].deuda === 900, JSON.stringify(r));
+
+  // E18: movimiento SIN cuenta (legado o del Atajo, sin fuente/destino). Nunca afecto ninguna cuenta:
+  // antes.slot = null (no se revierte nada), y NUNCA viaja undefined a tx.set ni en datos.
+  rechazaUndefined = true;
+  try {
+    const sinCta = (monto, extra = {}) => ({ cat: 'Comida', monto, nota: 'x', fecha: '2026-08-20T00:00:00Z', ...extra });
+    const igualesSin = { monto: 100, fuente: undefined, pendiente: undefined, aplicadoSaldo: undefined };
+    // control: el simulador SI detecta un undefined en datos (si no, las pruebas de abajo no probarian nada)
+    SERVIDOR = { [S]: { efectivo: 1000 }, [G]: sinCta(100) };
+    let truena = false;
+    try { await editar(G, 1, { slot: null, monto: 100 }, { slot: 'efectivo', monto: 150 }, { monto: 150, fuente: undefined }); } catch (e) { truena = /undefined/.test(e.message); }
+    chk('E18 control: el simulador rechaza un undefined en datos', truena);
+    // el usuario elige cuenta: no se revierte nada (nunca afecto), solo se saca lo nuevo
+    SERVIDOR = { [S]: { efectivo: 1000 }, [G]: sinCta(100) };
+    r = await editar(G, 1, { slot: null, monto: 100 }, { slot: 'efectivo', monto: 150 }, { monto: 150, fuente: 'efectivo' },
+      { verificarIguales: [{ ref: { path: G }, campos: igualesSin }] });
+    chk('E18 gasto sin fuente + eligen efectivo: saca 150 y no devuelve nada', r.ok && ef() === 850 && SERVIDOR[G].fuente === 'efectivo' && SERVIDOR[G].monto === 150, JSON.stringify(r) + ' ef ' + ef());
+    // ingreso sin destino + eligen NU
+    SERVIDOR = { [S]: { efectivo: 1000, nuSaldo: 500 }, [I]: { cat: 'Trabajo', monto: 400, fecha: '2026-08-20T00:00:00Z' } };
+    r = await editar(I, -1, { slot: null, monto: 400 }, { slot: 'nu', monto: 300 }, { monto: 300, destino: 'nu' },
+      { verificarIguales: [{ ref: { path: I }, campos: { monto: 400, destino: undefined, pendiente: undefined, aplicadoSaldo: undefined } }] });
+    chk('E18 ingreso sin destino + eligen NU: suma 300 solo ahi, efectivo intacto', r.ok && SERVIDOR[S].nuSaldo === 800 && ef() === 1000 && SERVIDOR[I].destino === 'nu', JSON.stringify(SERVIDOR[S]));
+    // pendiente del Atajo sin cuenta: solo cambia el monto; datos sin campo de cuenta, nada se escribe con undefined
+    SERVIDOR = { [S]: { efectivo: 1000 }, [G]: sinCta(100, { porAtajo: true, pendiente: true }) };
+    r = await editar(G, 1, { slot: null, monto: 100 }, { slot: null, monto: 200 }, { monto: 200 },
+      { verificarIguales: [{ ref: { path: G }, campos: { monto: 100, fuente: undefined, pendiente: true, aplicadoSaldo: undefined } }] });
+    chk('E18 pendiente del Atajo sin cuenta: cambia el monto, saldos intactos, sin campo fuente', r.ok && ef() === 1000 && SERVIDOR[G].monto === 200 && !('fuente' in SERVIDOR[G]), JSON.stringify(SERVIDOR[G]));
+    // si otro aparato le puso cuenta mientras tanto, verificarIguales (undefined !== 'nu') aborta
+    SERVIDOR = { [S]: { efectivo: 1000, nuSaldo: 500 }, [G]: sinCta(100, { fuente: 'nu' }) };
+    r = await editar(G, 1, { slot: null, monto: 100 }, { slot: 'efectivo', monto: 150 }, { monto: 150, fuente: 'efectivo' },
+      { verificarIguales: [{ ref: { path: G }, campos: igualesSin }] });
+    chk('E18 otro aparato ya le asigno cuenta: aborta sin mover saldos', !!r.error && ef() === 1000 && SERVIDOR[G].fuente === 'nu', JSON.stringify(r));
+    // el codigo REAL de la pantalla: datos solo lleva el campo de cuenta si hay cuenta
+    const iG = HTML.indexOf('window.guardarEdicionMov = async function'), cuerpoG = HTML.slice(iG, HTML.indexOf('\n};', iG));
+    chk('E18 guardarEdicionMov arma datos sin undefined (campo de cuenta condicionado)', /if\(cuenta\) datos\[campo\]=cuenta/.test(cuerpoG) && !/const datos=\{[^}]*\[campo\]:cuenta/.test(cuerpoG));
+    chk('E18 guardarEdicionMov exige cuenta si el movimiento tiene efecto', /if\(!cuenta && !movSinEfecto\(it\)\)\{ showToast\(/.test(cuerpoG));
+    // el texto del efecto no dice "undefined" cuando no hay cuenta original
+    const iT = HTML.indexOf('function textoEfectoEdit('); let dd = 0, jj = HTML.indexOf('{', iT);
+    for (; jj < HTML.length; jj++) { if (HTML[jj] === '{') dd++; else if (HTML[jj] === '}') { dd--; if (!dd) break; } }
+    const textoEfecto = new Function('CUENTAS', 'fmt', 'c2', HTML.slice(iT, jj + 1) + '\nreturn textoEfectoEdit;')(CUENTAS, n => '$' + n, n => Math.round(n * 100) / 100);
+    const t1 = textoEfecto('gasto', undefined, 100, 'efectivo', 150), t2 = textoEfecto('ingreso', undefined, 100, 'nu', 150), t3 = textoEfecto('gasto', undefined, 100, 'tarjeta', 150);
+    chk('E18 el texto del efecto sin cuenta original no dice undefined', !/undefined|null/.test(t1 + t2 + t3) && /saca \$150/.test(t1) && /suma \$150/.test(t2) && /sube \$150/.test(t3), [t1, t2, t3].join(' | '));
+    // el modal no pinta pastilla para una cuenta ausente
+    const iE = HTML.indexOf('window.editarMovimiento = function'), cuerpoE = HTML.slice(iE, HTML.indexOf('\n};', iE));
+    chk('E18 editarMovimiento no agrega pastilla para una cuenta ausente', /if \(it\[campo\] && !opciones\.includes\(it\[campo\]\)\) opciones\.unshift/.test(cuerpoE) && /sin cuenta registrada/.test(cuerpoE));
+  } finally { rechazaUndefined = false; }
 }
 
 console.log('\n' + '='.repeat(58));

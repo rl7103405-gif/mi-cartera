@@ -213,7 +213,7 @@ html[data-tema='grafito'] .tabs{--sombra-scroll:rgba(255,255,255,.16)}
 .ch-grid{stroke:var(--border2);opacity:0.5}.ch-lbl{fill:var(--muted)}.ch-dot{stroke:var(--bg2s)}
 .tip-line{stroke:var(--border2)}.tip-dot{stroke:var(--bg2s)}
 .field{margin-bottom:10px}
-.field label{font-size:12px;color:var(--muted);display:block;margin-bottom:4px}
+.field label,.field .lbl-cuenta{font-size:12px;color:var(--muted);display:block;margin-bottom:4px}
 .field input,.field select{width:100%;background:var(--bg3);border:0.5px solid var(--border2);border-radius:var(--rs);padding:11px 14px;color:var(--text);font-size:15px;outline:none;-webkit-appearance:none;appearance:none}
 .field input:focus{border-color:var(--purple)}
 .field select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23777' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;padding-right:32px}
@@ -226,6 +226,7 @@ html[data-tema='grafito'] .tabs{--sombra-scroll:rgba(255,255,255,.16)}
 .type-toggle{display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap}
 .type-opt{flex:1;min-width:calc(33% - 4px);min-height:44px;padding:8px 4px;background:var(--bg3);border:0.5px solid var(--border);border-radius:var(--rs);color:var(--muted);font-size:12px;cursor:pointer;text-align:center;font-family:inherit}
 .type-opt.active{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600;box-shadow:var(--sombra-acc-s)}
+.type-opt:disabled,.type-opt[aria-disabled="true"]{opacity:.45;cursor:not-allowed}
 
 /* ITEMS */
 .item-row{display:flex;justify-content:space-between;align-items:center;padding:11px 0;border-bottom:0.5px solid var(--border)}
@@ -321,6 +322,12 @@ html[data-tema='grafito'] .tabs{--sombra-scroll:rgba(255,255,255,.16)}
 .field input.is-error:focus,.field input.is-error:focus-visible{outline-color:var(--red);border-color:var(--red)}
 /* grafito: blanco sobre --red (#e2705f) da 3.13:1; con el rojo de los temas claros da 4.90:1 */
 html[data-tema='grafito'] .desliza-si,html[data-tema='grafito'] .desliza-perilla{background:#c04a3a}
+/* tono 'ok' (guardar cambios): verde de la app en vez de rojo. En los temas claros --accent-dark da >=4.5:1
+   con texto blanco; en grafito --accent-dark es claro, asi que se fija un verde oscuro (#2f6f4f, 6:1) */
+.desliza-dlg.tono-ok{--ok:var(--accent-dark)}
+html[data-tema='grafito'] .desliza-dlg.tono-ok{--ok:#2f6f4f}
+.desliza-dlg.tono-ok .desliza-perilla,.desliza-dlg.tono-ok .desliza-si{background:var(--ok)}
+.desliza-dlg.tono-ok .desliza-relleno{background:rgba(47,111,79,0.16);background:color-mix(in srgb,var(--ok) 16%,transparent)}
 .desliza-dlg .btn{min-height:44px}
 /* palomita de guardado: receta "success check" */
 .t-success-check{display:inline-block;transform-origin:center;opacity:0;will-change:transform,opacity,filter;width:18px;height:18px;margin-left:8px;vertical-align:-3px}
@@ -336,12 +343,12 @@ html[data-tema='grafito'] .desliza-si,html[data-tema='grafito'] .desliza-perilla
 /* monto que falta: receta "error state shake" (el borde rojo dura hasta que se corrige) */
 .t-input{transition:border-color 150ms ease-out;will-change:transform}
 .t-input.is-error,input[aria-invalid="true"]{border-color:var(--red)!important}
-.t-input.is-shaking{animation:t-input-shake calc(var(--shake-dur-a) * 2 + var(--shake-dur-b) * 2) linear}
+.t-input.is-shaking,.modal-card.is-shaking{animation:t-input-shake calc(var(--shake-dur-a) * 2 + var(--shake-dur-b) * 2) linear}
 @keyframes t-input-shake{0%{transform:translateX(0);animation-timing-function:var(--shake-ease)}28.57%{transform:translateX(var(--shake-distance));animation-timing-function:var(--shake-ease)}57.14%{transform:translateX(calc(var(--shake-distance) * -1));animation-timing-function:var(--shake-ease)}78.57%{transform:translateX(var(--shake-overshoot));animation-timing-function:var(--shake-ease)}100%{transform:translateX(0)}}
 @media (prefers-reduced-motion:reduce){
   .t-success-check{animation:none!important;opacity:1}
   .t-success-check svg path{animation:none!important;stroke-dashoffset:0!important}
-  .t-input{animation:none!important;transform:none!important}
+  .t-input,.modal-card.is-shaking{animation:none!important;transform:none!important}
   .desliza-perilla.suelta,.desliza-relleno.suelta{transition:none}
 }
 
@@ -1413,13 +1420,19 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
   </div>
 </div>
 
-<!-- editar movimiento: solo categoria y nota (nunca monto/cuenta/fecha, para no mover dinero ni cambiarlo de mes) -->
+<!-- editar movimiento (5-oct-2026): TODO se edita. Categoria, nota y fecha no mueven dinero;
+     monto y cuenta si, y van en UNA transaccion (txDinero movEditar) que revierte lo viejo y
+     aplica lo nuevo, con su linea de efecto y "desliza para confirmar" -->
 <div class="modal-back hidden" id="edit-mov-back" onclick="cerrarEdicionMov(event)">
-  <div class="modal-card" onclick="event.stopPropagation()">
+  <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="edit-mov-tit" onclick="event.stopPropagation()" style="max-height:calc(100dvh - 40px);overflow:auto">
     <div class="modal-tit" id="edit-mov-tit">editar movimiento</div>
     <div class="modal-sub" id="edit-mov-sub"></div>
-    <div class="field"><label>categoría</label><select id="edit-mov-cat"></select></div>
-    <div class="field"><label>nota</label><input type="text" id="edit-mov-nota" placeholder="opcional"></div>
+    <div class="field"><label for="edit-mov-monto">monto</label><input type="number" id="edit-mov-monto" step="0.01" min="0" inputmode="decimal" style="font-size:16px" oninput="pintarEfectoEdit()"></div>
+    <div class="field"><span class="lbl-cuenta" id="edit-mov-cuenta-lbl">cuenta</span><div class="type-toggle" id="edit-mov-cuenta" role="group" aria-labelledby="edit-mov-cuenta-lbl"></div></div>
+    <div class="item-meta" id="edit-mov-efecto" aria-live="polite" hidden style="margin:-4px 0 10px"></div>
+    <div class="field"><label for="edit-mov-fecha">fecha (YYYY-MM-DD)</label><input type="text" id="edit-mov-fecha" maxlength="10" style="font-size:16px" placeholder="AAAA-MM-DD" oninput="pintarEfectoEdit()"></div>
+    <div class="field"><label for="edit-mov-cat">categoría</label><select id="edit-mov-cat" onchange="pintarEfectoEdit()"></select></div>
+    <div class="field"><label for="edit-mov-nota">nota</label><input type="text" id="edit-mov-nota" placeholder="opcional" oninput="pintarEfectoEdit()"></div>
     <button type="button" class="btn btn-purple" id="edit-mov-btn" onclick="guardarEdicionMov()">guardar cambios</button>
     <button type="button" class="btn" style="margin-top:8px" onclick="cerrarEdicionMov()">cancelar</button>
   </div>
@@ -1564,7 +1577,7 @@ function hoyLocal() {
 // final o se pulsó "sí, <verbo>". El llamador hace la operación; el componente solo pregunta.
 // Como ya NO bloquea como confirm(), cada llamador vuelve a revisar lo que importa al volver.
 let deslizaActual=null;
-function confirmarDeslizando({titulo, texto='', verbo='eliminar'}) {
+function confirmarDeslizando({titulo, texto='', verbo='eliminar', tono=''}) {
   const $=id=>document.getElementById(id);
   const dlg=$('desliza-dlg'), riel=$('desliza-riel'), per=$('desliza-perilla'), rel=$('desliza-relleno'),
         etq=$('desliza-etq'), si=$('desliza-si'), no=$('desliza-no');
@@ -1578,6 +1591,7 @@ function confirmarDeslizando({titulo, texto='', verbo='eliminar'}) {
     $('desliza-tit').textContent=titulo||'';
     $('desliza-txt').textContent=texto||'';
     etq.textContent='desliza para '+verbo;
+    dlg.classList.toggle('tono-ok', tono==='ok'); // verde solo para guardar; fin() lo quita
     si.textContent='sí, '+verbo;
     si.hidden=true; $('desliza-pista').hidden=false;
     per.classList.remove('arrastrando');
@@ -1596,6 +1610,7 @@ function confirmarDeslizando({titulo, texto='', verbo='eliminar'}) {
       if(hecho) return; hecho=true;
       ac.abort(); clearTimeout(tPon);
       if(deslizaActual&&deslizaActual.fin===fin) deslizaActual=null;
+      dlg.classList.remove('tono-ok');
       if(!reemplazo&&dlg.open) dlg.close(); // close() regresa el foco a quien lo abrió
       resolve(v);
     }
@@ -1722,7 +1737,8 @@ function showToast(msg) {
 // Solo actúa si el foco está EN el control: un Espacio dentro de un campo nunca se intercepta.
 (function teclado(){
   const NATIVO='button,a,input,select,textarea,summary';
-  const ENTER_BTN={'gasto-monto':'gasto-btn','gasto-nota':'gasto-btn','ingreso-monto':'ingreso-btn','ingreso-nota':'ingreso-btn'};
+  const ENTER_BTN={'gasto-monto':'gasto-btn','gasto-nota':'gasto-btn','ingreso-monto':'ingreso-btn','ingreso-nota':'ingreso-btn',
+    'edit-mov-monto':'edit-mov-btn','edit-mov-fecha':'edit-mov-btn','edit-mov-nota':'edit-mov-btn'};
   document.addEventListener('keydown',e=>{
     if(e.defaultPrevented||e.isComposing||e.keyCode===229||e.repeat||e.altKey||e.ctrlKey||e.metaKey) return;
     const t=e.target; if(!t||!t.matches) return;
@@ -2581,6 +2597,14 @@ const CAMPO_COMP={
 //                                banderas pendiente/aplicadoSaldo del propio documento
 //                                (la copia en memoria puede estar vieja: las colecciones
 //                                no estan suscritas a onSnapshot)
+//   movEditar:{ref,signo,antes:{slot,monto},despues:{slot,monto},datos}
+//                                (5-oct-2026) edita un gasto/ingreso con el MISMO id: dentro
+//                                de la transaccion revierte lo viejo (signo*antes) y aplica lo
+//                                nuevo (-signo*despues) sobre los saldos, y escribe `datos`
+//                                con merge. signo 1 = gasto, -1 = ingreso. Si el documento esta
+//                                pendiente del Atajo (movSinEfecto) solo se escriben los datos:
+//                                el Atajo aplicara el monto nuevo. Las tarjetas van por
+//                                tarjetaDelta/tdcRevDelta del plan, anulados si no aplica.
 // }
 async function txDinero(plan) {
   if (!datosCargados) throw new Error('datos no cargados');
@@ -2594,6 +2618,8 @@ async function txDinero(plan) {
   const usaTdcRev  = plan.tdcRevDelta !== undefined || !!plan.tdcRevMovAdd || !!plan.tdcRevMovDelId || usaDep;
   const usaPersona = !!plan.persona;
   const mb = plan.movBorrar || null;
+  const me = plan.movEditar || null;
+  if (me && (!me.ref || !me.datos || !(me.signo === 1 || me.signo === -1) || !me.antes || !me.despues)) throw new Error('movEditar mal armado');
   // instante FIJO: los reintentos de la transaccion deben calcular el mismo interes
   const ahora = Date.now(), hoy = hoyLocal();
   // referencias FIJAS para los tramos de rendimiento: se crean fuera de la transaccion para
@@ -2608,12 +2634,12 @@ async function txDinero(plan) {
       // bug que este refactor vino a matar, reencarnado. No mutar NADA de fuera aqui.
       const deltas = {...deltasPlan};
       // ── FASE 1: TODAS las lecturas (Firestore exige leer antes de escribir) ──
-      const sSnap  = usaSaldos || usaDep || mb ? await tx.get(doc(db,'cartera','saldos')) : null;
+      const sSnap  = usaSaldos || usaDep || mb || me ? await tx.get(doc(db,'cartera','saldos')) : null;
       const tSnap  = usaTarjeta          ? await tx.get(doc(db,'cartera','tarjeta'))  : null;
       const rSnap  = usaTdcRev           ? await tx.get(doc(db,'cartera','tarjetaRev')): null;
       const pSnap  = usaPersona          ? await tx.get(doc(db,'cartera','personas')) : null;
       // el fondo se lee en TODA operacion que toque saldos: es lo que protege el dinero apartado
-      const fSnap  = (usaSaldos || usaDep || mb) ? await tx.get(doc(db,'cartera','fondo')) : null;
+      const fSnap  = (usaSaldos || usaDep || mb || me) ? await tx.get(doc(db,'cartera','fondo')) : null;
       const req = [];
       for (const r of (plan.requerirDocs||[])) req.push(await tx.get(r));
       // requerirAusentes: aborta si alguno YA existe. Es lo que impide registrar dos veces
@@ -2627,6 +2653,7 @@ async function txDinero(plan) {
       const ver = [];
       for (const v of (plan.verificarIguales||[])) ver.push({v, snap: await tx.get(v.ref)});
       const mbSnap = mb ? await tx.get(mb.ref) : null;
+      const meSnap = me ? await tx.get(me.ref) : null;
       // ── FASE 2: validar contra lo LEIDO. Cualquier return aborta sin escribir nada ──
       for (const s of req) if (!s.exists()) return {error:'ese movimiento ya lo eliminó alguien más — recarga la app'};
       for (const s of aus) if (s.exists()) return {error:'ese pago ya lo registró alguien más este mes — recarga la app'};
@@ -2649,9 +2676,24 @@ async function txDinero(plan) {
         aplicaMov = !movSinEfecto(mbSnap.data());
         if (aplicaMov && mb.slot) deltas[mb.slot] = c2(nFin(deltas[mb.slot]) + mb.signo * mb.monto);
       }
-      const tjDelta = (mb && !aplicaMov) ? 0 : nFin(plan.tarjetaDelta);
-      const trDelta = (mb && !aplicaMov) ? 0 : nFin(plan.tdcRevDelta);
-      const slotsAplicar = (mb && !aplicaMov) ? [] :
+      // el movimiento a EDITAR: mismo criterio. Se revierte lo que el documento del servidor
+      // dice que aplico y se aplica lo nuevo; si esta pendiente del Atajo, solo cambian los datos
+      if (me) {
+        if (!meSnap.exists()) return {error:'ese movimiento ya lo eliminó alguien más — recarga la app'};
+        // un movimiento del Atajo RECHAZADO nunca fue dinero y nadie lo vuelve a procesar: editarle
+        // monto o cuenta lo dejaria sin efecto para siempre. movEditar solo se usa para cambios de dinero.
+        if (meSnap.data().porAtajo === true && meSnap.data().aplicadoSaldo === false)
+          return {error:'fue rechazado por el Atajo: bórralo y regístralo de nuevo'};
+        aplicaMov = !movSinEfecto(meSnap.data());
+        if (aplicaMov) {
+          if (me.antes.slot)  deltas[me.antes.slot]   = c2(nFin(deltas[me.antes.slot])   + me.signo * nFin(me.antes.monto));
+          if (me.despues.slot) deltas[me.despues.slot] = c2(nFin(deltas[me.despues.slot]) - me.signo * nFin(me.despues.monto));
+        }
+      }
+      const sinEfecto = (mb || me) && !aplicaMov;
+      const tjDelta = sinEfecto ? 0 : nFin(plan.tarjetaDelta);
+      const trDelta = sinEfecto ? 0 : nFin(plan.tdcRevDelta);
+      const slotsAplicar = sinEfecto ? [] :
         Object.keys(deltas).filter(k => (CAMPO_SIMPLE[k] || CAMPO_COMP[k]) && cent(deltas[k]) !== 0);
       const sal = (sSnap && sSnap.exists()) ? sSnap.data() : {};
       // ── TRAMOS DE RENDIMIENTO: toda cuenta de interes que esta operacion reancla (por un
@@ -2661,7 +2703,9 @@ async function txDinero(plan) {
       // fecha (lo posterior lo cubre la nueva ancla): ningun dia se cuenta dos veces. Un segundo
       // movimiento el mismo dia no genera tramo (cero dias completos = cero interes).
       const tramos = [];
-      if (usaSaldos) {
+      // (5-oct-2026) movEditar entra aqui aunque el plan no traiga deltas: si mueve una cuenta
+      // de interes, su tramo se cierra igual que en un alta
+      if (usaSaldos || (me && slotsAplicar.length)) {
         const cierra = new Set([...cristal, ...slotsAplicar.filter(k => CAMPO_COMP[k])]);
         for (const k of Object.keys(CAMPO_COMP)) {
           const cfg = CAMPO_COMP[k];
@@ -2862,6 +2906,7 @@ async function txDinero(plan) {
       // ── FASE 3: escrituras, SOLO los campos afectados ──
       if (Object.keys(campos).length) tx.set(doc(db,'cartera','saldos'), campos, {merge:true});
       if (mb) tx.delete(mb.ref);
+      if (me) tx.set(me.ref, me.datos, {merge:true});
       if (usaTarjeta) tx.set(doc(db,'cartera','tarjeta'), tarjeta, {merge:true});
       if (usaTdcRev)  tx.set(doc(db,'cartera','tarjetaRev'), tdcRev, {merge:true});
       // merge profundo de mapas: toca UNICAMENTE a esa persona, las otras quedan intactas
@@ -2873,7 +2918,9 @@ async function txDinero(plan) {
       for (const t of tramos) tx.set(t.ref, t.data);
       return {ok:true, saldos:saldosFinales, campos, tarjeta, tdcRev, persona, fondo,
               tramos: tramos.map(t => ({id:t.ref.id || null, ...t.data})),
-              movAplicaba: mb ? !movSinEfecto(mbSnap.data()) : undefined};
+              movAplicaba: mb ? !movSinEfecto(mbSnap.data()) : me ? !movSinEfecto(meSnap.data()) : undefined,
+              // el documento tal como QUEDO (lo del servidor + lo escrito): la pantalla se actualiza con esto
+              movEditado: me ? {...meSnap.data(), ...me.datos} : undefined};
     }, {maxAttempts:8});
     setSyncDot('ok'); // la transaccion llego al servidor (aunque haya devuelto {error})
     return res;
@@ -5063,7 +5110,7 @@ function renderMovimientos() {
     const cuenta=CUENTAS[esGasto?it.fuente:it.destino]||'(cuenta desconocida)';
     const del=it.id?`<button class="del-btn" onclick="${esGasto?'eliminarGasto':'eliminarIngreso'}('${it.id}')">&times;</button>`:'';
     // editar corrige la captura SIN mover dinero ni fecha: por eso no hace falta borrar y volver a registrar
-    const edit=it.id?`<button class="edit-btn" title="editar categoría o nota" aria-label="editar categoría o nota" onclick="editarMovimiento('${esGasto?'gasto':'ingreso'}','${it.id}')">&#9998;</button>`:'';
+    const edit=it.id?`<button class="edit-btn" title="editar movimiento" aria-label="editar movimiento" onclick="editarMovimiento('${esGasto?'gasto':'ingreso'}','${it.id}')">&#9998;</button>`:'';
     const marca=it.pendiente===true?' · atajo: pendiente de aplicar':(it.porAtajo===true&&it.aplicadoSaldo===false?' · atajo: rechazado (no afectó saldos)':'');
     return`<div class="item-row"><div><div class="item-cat">${escapeHtml(it.cat)}</div><div class="item-meta">${escapeHtml(it.nota||'')} · ${fecha} · ${cuenta}${marca}</div></div><div style="display:flex;align-items:center"><div class="${esGasto?'item-amt-neg':'item-amt-pos'}">${esGasto?'-':'+'}${fmt(it.monto)}</div>${edit}${del}</div></div>`;
   }).join('');
@@ -5074,34 +5121,157 @@ function renderMovimientos() {
 // ACTUAL (la fecha se regeneraba), ensuciando los totales. Editar en su lugar conserva
 // fecha, monto y cuenta intactos: por eso esta edicion NUNCA toca saldos.
 let editMov=null, editandoMov=false;
+// (5-oct-2026) Roberto: "con la plumita quiero poder mover fecha, categoria, monto, todo".
+// Categoria, nota y fecha NO mueven dinero (el dinero ya se aplico el dia que se registro,
+// igual que al registrar con fecha pasada). Monto y cuenta SI: van en UNA transaccion
+// (txDinero movEditar) que revierte lo viejo y aplica lo nuevo con el MISMO id.
+const EDIT_CUENTAS = { gasto: FUENTES_GASTO, ingreso: DESTINOS_INGRESO };
+const campoCuentaDe = tipo => tipo==='gasto' ? 'fuente' : 'destino';
+// dia LOCAL 'YYYY-MM-DD' de la fecha de un movimiento (las legadas a medianoche UTC son dia local)
+function diaLocalMov(f) {
+  const ms = msFechaMov(f); if (ms === null || !Number.isFinite(ms)) return '';
+  const d = new Date(ms);
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
+// un movimiento del Atajo que fue RECHAZADO nunca fue dinero y no se vuelve a procesar:
+// cambiarle monto o cuenta no lo arreglaria. Se borra y se registra de nuevo.
+const movRechazado = it => it.porAtajo===true && it.aplicadoSaldo===false;
+const slotDinero = c => (CAMPO_SIMPLE[c]||CAMPO_COMP[c]) ? c : null;
 window.editarMovimiento = function(tipo, id) {
   const arr = tipo==='gasto'?state.gastos:state.ingresos;
   const it = arr.find(x=>x.id===id);
   if(!it){ showToast('ese movimiento ya no existe — recarga la app'); return; }
-  editMov={tipo,id};
+  const campo = campoCuentaDe(tipo);
+  // visto = lo que ESTA pantalla leyo al abrir (valores crudos, sin normalizar): al guardar solo se
+  // mandan los campos que el usuario cambio respecto a esto, y el servidor verifica que no cambiaron
+  editMov={tipo,id,cuenta:it[campo],opener:document.activeElement,visto:{monto:it.monto,[campo]:it[campo],cat:it.cat,nota:it.nota,fecha:it.fecha}};
   const cats = (tipo==='gasto'?state.catsGasto:state.catsIngreso)||[];
   // si su categoria ya no esta en la lista (renombrada o borrada) se antepone, para
   // no perderla en silencio al abrir el select
   const historica = !cats.includes(it.cat);
   const sel=document.getElementById('edit-mov-cat');
-  // la historica se marca como tal para que quede claro por que aparece una categoria
-  // que ya no esta en el catalogo (y para no cambiarla sin querer al guardar solo la nota)
   sel.innerHTML=(historica?`<option value="${escapeHtml(it.cat)}">${escapeHtml(it.cat)} (categoría anterior)</option>`:'')
     +cats.map(c=>`<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join('');
   sel.value=it.cat;
   document.getElementById('edit-mov-nota').value=it.nota||'';
+  document.getElementById('edit-mov-monto').value=String(c2(nFin(it.monto)));
+  document.getElementById('edit-mov-fecha').value=diaLocalMov(it.fecha);
   document.getElementById('edit-mov-tit').textContent='editar '+tipo;
-  // el subtitulo recuerda lo que NO se puede cambiar aqui
-  const cuenta=CUENTAS[tipo==='gasto'?it.fuente:it.destino]||'(cuenta desconocida)';
-  document.getElementById('edit-mov-sub').textContent=
-    (tipo==='gasto'?'-':'+')+fmt(it.monto)+' · '+fmtFechaMov(it.fecha,{day:'numeric',month:'short',year:'numeric'})+' · '+cuenta;
+  document.getElementById('edit-mov-cuenta-lbl').textContent = tipo==='gasto' ? 'pagado con' : 'entra a'; // igual que en registrar
+  // cuentas: las de registrar; una cuenta legada (p. ej. gbm retirado) se muestra pero no se elige
+  const opciones = [...EDIT_CUENTAS[tipo]];
+  // un documento legado o del Atajo puede venir SIN cuenta: no se pinta pastilla para "undefined"
+  if (it[campo] && !opciones.includes(it[campo])) opciones.unshift(it[campo]);
+  const bloqueadas = movRechazado(it);
+  document.getElementById('edit-mov-cuenta').innerHTML = opciones.map(c=>{
+    const legada = !EDIT_CUENTAS[tipo].includes(c);
+    return `<button type="button" class="type-opt${c===it[campo]?' active':''}" data-cta="${escapeHtml(String(c))}"`
+      +` aria-pressed="${c===it[campo]}"${(legada&&c!==it[campo])||bloqueadas?' disabled':''} onclick="elegirCuentaEdit(this)">`
+      +escapeHtml(CUENTAS[c]||String(c||'(sin cuenta)'))+(legada?' (anterior)':'')+'</button>';
+  }).join('') + (it[campo] ? '' : '<div class="item-meta" style="flex:1 0 100%">sin cuenta registrada'+(bloqueadas?'':': elige una')+'</div>');
+  const inpMonto = document.getElementById('edit-mov-monto');
+  inpMonto.disabled = bloqueadas;
+  inpMonto.classList.remove('is-error','is-shaking'); inpMonto.removeAttribute('aria-invalid'); // restos de un intento anterior
+  document.getElementById('edit-mov-sub').textContent = bloqueadas
+    ? 'este movimiento del Atajo fue rechazado: puedes cambiar categoría, nota y fecha; para corregir el monto o la cuenta, bórralo y regístralo de nuevo'
+    : (it.suscripcion ? 'pago de una suscripción: no se puede cambiar de mes' : (movSinEfecto(it) ? 'pendiente del Atajo: aún no mueve tus saldos' : ''));
+  pintarEfectoEdit();
   document.getElementById('edit-mov-back').classList.remove('hidden');
+  // foco al primer campo util (con el monto deshabilitado, la categoria)
+  try{ (bloqueadas?sel:inpMonto).focus(); }catch(e){}
 };
+window.elegirCuentaEdit = function(btn) {
+  if(!editMov||btn.disabled) return;
+  editMov.cuenta = btn.dataset.cta;
+  document.querySelectorAll('#edit-mov-cuenta .type-opt').forEach(b=>{ const on=b===btn; b.classList.toggle('active',on); b.setAttribute('aria-pressed',String(on)); });
+  pintarEfectoEdit();
+};
+// la linea que dice que le va a pasar a tus saldos si guardas
+function textoEfectoEdit(tipo, ctaVieja, m1, ctaNueva, m2) {
+  const nom = c => c==='tarjeta'||c==='tarjetaRev' ? (CUENTAS[c]||'la tarjeta') : (CUENTAS[c]||c);
+  if (!ctaVieja) { // sin cuenta original: nunca afecto ninguna, no hay nada que devolver
+    if (tipo==='gasto') return 'no devuelve nada (sin cuenta registrada) y '+((ctaNueva==='tarjeta'||ctaNueva==='tarjetaRev') ? 'sube '+fmt(m2)+' la deuda de '+nom(ctaNueva) : 'saca '+fmt(m2)+' de '+nom(ctaNueva));
+    return 'no resta nada (sin cuenta registrada) y suma '+fmt(m2)+' a '+nom(ctaNueva);
+  }
+  if (tipo==='gasto') {
+    const devolver = (ctaVieja==='tarjeta'||ctaVieja==='tarjetaRev') ? 'baja '+fmt(m1)+' la deuda de '+nom(ctaVieja) : 'regresa '+fmt(m1)+' a '+nom(ctaVieja);
+    const cobrar   = (ctaNueva==='tarjeta'||ctaNueva==='tarjetaRev') ? 'sube '+fmt(m2)+' la deuda de '+nom(ctaNueva) : 'saca '+fmt(m2)+' de '+nom(ctaNueva);
+    if (ctaVieja===ctaNueva) {
+      const d = c2(m2-m1);
+      if (ctaNueva==='tarjeta'||ctaNueva==='tarjetaRev') return (d>0?'sube ':'baja ')+fmt(Math.abs(d))+' la deuda de '+nom(ctaNueva);
+      return (d>0?'saca ':'regresa ')+fmt(Math.abs(d))+(d>0?' más de ':' a ')+nom(ctaNueva);
+    }
+    return devolver+' y '+cobrar;
+  }
+  if (ctaVieja===ctaNueva) { const d=c2(m2-m1); return (d>0?'suma ':'resta ')+fmt(Math.abs(d))+(d>0?' a ':' de ')+nom(ctaNueva); }
+  return 'resta '+fmt(m1)+' de '+nom(ctaVieja)+' y suma '+fmt(m2)+' a '+nom(ctaNueva);
+}
+// '20261003' (teclado numerico del iPhone, sin guion) -> '2026-10-03'; todo lo demas pasa igual
+// y lo valida fechaCalendarioValida como siempre
+function diaEditNorm(s) {
+  s=String(s||'').trim();
+  return /^\d{8}$/.test(s) ? s.slice(0,4)+'-'+s.slice(4,6)+'-'+s.slice(6) : s;
+}
+// que cambio el usuario en el modal respecto a lo que vio al abrir (sin validar nada):
+// dinero = monto o cuenta; meta = categoria, nota o fecha
+function cambiosEdit() {
+  if(!editMov) return {dinero:false,meta:false};
+  const {tipo,visto}=editMov, campo=campoCuentaDe(tipo);
+  const val=id=>{ const e=document.getElementById(id); return e?e.value:''; };
+  return {
+    dinero: val('edit-mov-monto')!==String(c2(nFin(visto.monto))) || editMov.cuenta!==visto[campo],
+    meta: val('edit-mov-cat')!==String(visto.cat||'') || val('edit-mov-nota').trim()!==String(visto.nota||'').trim()
+      || diaEditNorm(val('edit-mov-fecha'))!==diaLocalMov(visto.fecha)
+  };
+}
+window.pintarEfectoEdit = function() {
+  const el=document.getElementById('edit-mov-efecto'); if(!el||!editMov) return;
+  const it=(editMov.tipo==='gasto'?state.gastos:state.ingresos).find(x=>x.id===editMov.id);
+  const m2=parseFloat(document.getElementById('edit-mov-monto').value);
+  const campo=campoCuentaDe(editMov.tipo);
+  if(!it||!Number.isFinite(m2)||m2<=0){ el.hidden=true; return; }
+  const m1=c2(nFin(it.monto));
+  if(cent(m2)===cent(m1) && editMov.cuenta===it[campo]){
+    // solo categoria/nota/fecha: se dice que los saldos no se mueven; sin cambios, nada
+    if(cambiosEdit().meta){ el.textContent='al guardar: tus saldos no cambian'; el.hidden=false; } else el.hidden=true;
+    return;
+  }
+  if(!editMov.cuenta && !movSinEfecto(it)){ el.hidden=true; return; } // aun sin cuenta elegida: no hay efecto que describir
+  const cuentaCambia=editMov.cuenta!==it[campo], montoCambia=cent(m2)!==cent(m1);
+  el.textContent = movSinEfecto(it)
+    ? 'todavía no mueve tus saldos: el Atajo lo aplicará con '+(cuentaCambia&&montoCambia?'el monto y la cuenta nuevos':cuentaCambia?'la cuenta nueva':'el monto nuevo')
+    : 'al guardar: '+textoEfectoEdit(editMov.tipo, it[campo], m1, editMov.cuenta, c2(m2));
+  el.hidden=false;
+};
+// si la fecha nueva deja al movimiento fuera del periodo que muestra el historial, se avisa a donde se fue
+function textoMovido(fecha) {
+  try{
+    const t=msFechaMov(fecha); if(t===null) return '';
+    const {start,end}=rangoPeriodo(movPeriodo,movOffset);
+    if(t>=start.getTime()&&t<end.getTime()) return '';
+    const dia=movPeriodo==='dia'||movPeriodo==='semana';
+    const d=fmtFechaMov(fecha, dia?{day:'numeric',month:'long',year:'numeric'}:{month:'long',year:'numeric'});
+    return ': lo moviste a '+(dia?d:d.replace(' de ',' '));
+  }catch(e){ return ''; }
+}
 window.cerrarEdicionMov = function(ev) {
   if(ev && ev.target && ev.target.id!=='edit-mov-back') return; // clic dentro de la tarjeta: no cierra
   if(editandoMov) return;
+  // tocar el fondo NO descarta cambios sin guardar (Escape y "cancelar" llegan sin ev y cierran siempre)
+  if(ev && editMov){
+    const c=cambiosEdit();
+    if(c.dinero||c.meta){
+      const card=document.querySelector('#edit-mov-back .modal-card');
+      if(card){ card.classList.remove('is-shaking'); void card.offsetWidth; card.classList.add('is-shaking'); clearTimeout(card._sacudeT); card._sacudeT=setTimeout(()=>card.classList.remove('is-shaking'),320); }
+      showToast('tienes cambios sin guardar: guarda o cancela');
+      return;
+    }
+  }
   document.getElementById('edit-mov-back').classList.add('hidden');
+  // el foco vuelve al boton que abrio el modal (si la lista se repinto y ya no esta, no pasa nada)
+  const op=editMov&&editMov.opener;
   editMov=null;
+  try{ if(op&&op.isConnected&&typeof op.focus==='function') op.focus(); }catch(e){}
 };
 document.addEventListener('keydown', e => {
   if(e.key!=='Escape') return;
@@ -5115,42 +5285,157 @@ window.guardarEdicionMov = async function() {
   // mientras no haya confirmacion del servidor no se toca nada: la carga que viene
   // en camino reemplaza el estado entero y se comeria la edicion sin avisar
   if(!datosCargados){ showToast(msgFalloDinero()); return; }
-  const {tipo,id}=editMov;
-  const arr = tipo==='gasto'?state.gastos:state.ingresos;
-  const it = arr.find(x=>x.id===id);
+  const {tipo,id,visto}=editMov;
+  const campo=campoCuentaDe(tipo);
+  // la lista se RELEE despues de cada await (la memoria puede haberse reemplazado mientras tanto)
+  const lista = () => tipo==='gasto'?state.gastos:state.ingresos;
+  const it = lista().find(x=>x.id===id);
   if(!it){ showToast('ese movimiento ya no existe — recarga la app'); window.cerrarEdicionMov(); return; }
   const cat=document.getElementById('edit-mov-cat').value;
   const nota=document.getElementById('edit-mov-nota').value.trim();
+  const montoTxt=document.getElementById('edit-mov-monto').value;
+  const diaTxt=diaEditNorm(document.getElementById('edit-mov-fecha').value);
+  // un movimiento rechazado por el Atajo tiene monto y cuenta deshabilitados: se conservan los
+  // originales y NO se valida el monto (si venia invalido, justo por eso fue rechazado), para
+  // que si se puedan corregir categoria, nota y fecha
+  const rechazado=movRechazado(it);
+  const cuenta=rechazado?visto[campo]:editMov.cuenta;
   if(!cat){ showToast('elige una categoría'); return; }
-  if(cat===it.cat && nota===(it.nota||'')){ window.cerrarEdicionMov(); return; } // sin cambios
+  const m1=c2(nFin(visto.monto));
+  const m2=rechazado?m1:c2(parseFloat(montoTxt));
+  if(!rechazado && (!Number.isFinite(m2)||m2<=0)){
+    const el=document.getElementById('edit-mov-monto');
+    el.classList.add('t-input','is-error'); el.setAttribute('aria-invalid','true'); el.focus();
+    showToast('ese monto no es válido'); return;
+  }
+  if(cuenta!==visto[campo] && !EDIT_CUENTAS[tipo].includes(cuenta)){ showToast('cuenta no válida'); return; }
+  // fecha: el mismo dia que ya tenia = no se toca; otra = se valida como al registrar
+  const diaOrig=diaLocalMov(visto.fecha);
+  let fecha=visto.fecha;
+  if(diaTxt && diaTxt!==diaOrig){
+    if(!fechaCalendarioValida(diaTxt)){ showToast('fecha no válida, usa el formato 2026-08-15'); return; }
+    if(diaTxt>hoyLocal()){ showToast('la fecha no puede ser futura'); return; }
+    fecha = diaTxt===hoyLocal() ? new Date().toISOString() : diaTxt+'T00:00:00Z';
+    // un pago de suscripcion lleva el mes en su id: cambiarlo de mes dejaria "pagada" la equivocada
+    if(it.suscripcion && mesLocalDe(fecha)!==mesLocalDe(visto.fecha)){ showToast('es el pago de una suscripción: no se puede cambiar de mes'); return; }
+  }
+  // QUE cambio el usuario respecto a lo que vio al abrir. Solo esos campos viajan al servidor:
+  // si otro aparato corrigio la nota y aqui no se toco, no se le pisa
+  const cambiaDinero = !rechazado && (cent(m2)!==cent(m1) || cuenta!==visto[campo]);
+  const cambiaCat = cat!==visto.cat;
+  const cambiaNota = nota!==(visto.nota||'');
+  const cambiaFecha = fecha!==visto.fecha;
+  if(!cambiaDinero && !cambiaFecha && !cambiaCat && !cambiaNota){ window.cerrarEdicionMov(); return; } // sin cambios
   const btn=document.getElementById('edit-mov-btn');
-  editandoMov=true; btn.disabled=true;
-  try{
-    // se escribe PRIMERO y solo despues se toca la memoria: si falla, el estado local
-    // nunca queda mintiendo. update PARCIAL de dos campos: nunca monto/fuente/destino/
-    // fecha, asi que tampoco se pisan las banderas del atajo (pendiente/aplicadoSaldo).
-    // updateDoc ademas FALLA si el doc ya no existe, en vez de resucitarlo.
-    await updateDoc(doc(db, tipo==='gasto'?'gastos':'ingresos', id), {cat, nota});
-    it.cat=cat; it.nota=nota;
+  if(!cambiaDinero){
+    // sin dinero: transaccion LIGERA (leer, comparar lo que el usuario vio, escribir solo lo cambiado).
+    // Si otro aparato cambio ESE campo o borro el documento, aborta sin escribir ni resucitarlo.
+    const campos={}, previos={};
+    if(cambiaCat){ campos.cat=cat; previos.cat=visto.cat; }
+    if(cambiaNota){ campos.nota=nota; previos.nota=visto.nota; }
+    if(cambiaFecha){ campos.fecha=fecha; previos.fecha=visto.fecha; }
+    const refL=doc(db, tipo==='gasto'?'gastos':'ingresos', id);
+    let r=null, errL=null;
+    editandoMov=true; btn.disabled=true;
+    try{
+      r=await runTransaction(db, async tx=>{
+        const s=await tx.get(refL);
+        if(!s.exists()) return {noExiste:true};
+        const d=s.data()||{};
+        for(const k in previos) if(d[k]!==previos[k]) return {cambio:true};
+        tx.update(refL, campos);
+        return {ok:true};
+      });
+    }catch(e){ errL=e; }
+    finally{ editandoMov=false; btn.disabled=false; }
+    if(errL){
+      console.error('guardarEdicionMov',errL);
+      setSyncDot('err');
+      // el modal se queda abierto CON lo escrito, para reintentar sin recapturar
+      showToast('no se pudo guardar — revisa tu conexión y reintenta');
+      return;
+    }
     setSyncDot('ok');
-    rerenderTodo(); // la categoria alimenta resumen, pastel, coach y el aviso de Premium
-    showToast('movimiento actualizado');
-    editandoMov=false; btn.disabled=false;
-    window.cerrarEdicionMov();
-  }catch(e){
-    console.error('guardarEdicionMov',e);
-    editandoMov=false; btn.disabled=false;
-    if(e && e.code==='not-found'){
-      // otro dispositivo ya lo elimino: se quita el fantasma de la lista y se cierra
-      const i=arr.findIndex(x=>x.id===id); if(i>=0) arr.splice(i,1);
-      window.cerrarEdicionMov(); rerenderTodo();
+    const arrL=lista();
+    if(r.noExiste){
+      const i=arrL.findIndex(x=>x.id===id); if(i>=0) arrL.splice(i,1);
+      window.cerrarEdicionMov(); refrescar(rerenderTodo);
       showToast('ese movimiento ya lo eliminaron en otro dispositivo');
       return;
     }
-    setSyncDot('err');
-    // el modal se queda abierto CON lo escrito, para reintentar sin recapturar
-    showToast('no se pudo guardar — revisa tu conexión y reintenta');
+    if(r.cambio){ showToast('ese movimiento cambió en otro aparato — recarga la app'); return; }
+    const itL=arrL.find(x=>x.id===id);
+    if(itL){
+      Object.assign(itL, campos);
+      if(cambiaFecha){ const i=arrL.indexOf(itL); if(i>=0) arrL.splice(i,1); insertarPorFecha(arrL,itL); }
+    }
+    window.cerrarEdicionMov();
+    refrescar(rerenderTodo); // la categoria y la fecha alimentan resumen, pastel, coach y el aviso de Premium
+    showToast('movimiento actualizado'+(cambiaFecha?textoMovido(fecha):''));
+    return;
   }
+  // ── con dinero: confirmar con el efecto, revalidar y una sola transaccion ──
+  if(dineroOcupado){ showToast('espera, hay otra operación en curso'); return; }
+  const ctaVieja=visto[campo];
+  // sin cuenta (original ni elegida) un movimiento CON efecto no sabe de donde sacar/donde meter el dinero
+  if(!cuenta && !movSinEfecto(it)){ showToast('este movimiento no tiene cuenta registrada: elige una cuenta para guardar el cambio'); return; }
+  const antesConfirmar={monto:it.monto,[campo]:ctaVieja,cat:it.cat,nota:it.nota,fecha:it.fecha,pendiente:it.pendiente,aplicadoSaldo:it.aplicadoSaldo};
+  const texto = movSinEfecto(it)
+    ? 'Todavía no mueve tus saldos: el Atajo lo aplicará con '+fmt(m2)+(cuenta!==ctaVieja?' y la cuenta nueva ('+(CUENTAS[cuenta]||cuenta)+')':'')+'.'
+    : 'Al guardar, '+textoEfectoEdit(tipo, ctaVieja, m1, cuenta, m2)+'.';
+  if(!(await confirmarDeslizando({titulo:'¿Guardar los cambios?', texto, verbo:'guardar', tono:'ok'}))) return;
+  if(!sigueIgual(antesConfirmar, lista().find(x=>x.id===id), ['monto',campo,'cat','nota','fecha','pendiente','aplicadoSaldo'])) return;
+  if(dineroOcupado){ showToast('espera, hay otra operación en curso'); return; }
+  const ref=doc(db, tipo==='gasto'?'gastos':'ingresos', id);
+  // SOLO lo que el usuario cambio (nunca undefined: tx.set truena con valores undefined)
+  const datos={monto:m2, editado:new Date().toISOString()};
+  if(cuenta) datos[campo]=cuenta; // pendiente del Atajo sin cuenta: solo monto (nunca undefined)
+  // lo que el servidor debe seguir teniendo igual a lo que esta pantalla vio: monto, cuenta, las
+  // banderas del Atajo (undefined===undefined pasa) y cada campo de metadatos que se va a cambiar
+  const iguales={monto:m1, [campo]:ctaVieja, pendiente:antesConfirmar.pendiente, aplicadoSaldo:antesConfirmar.aplicadoSaldo};
+  if(cambiaCat){ datos.cat=cat; iguales.cat=visto.cat; }
+  if(cambiaNota){ datos.nota=nota; iguales.nota=visto.nota; }
+  if(cambiaFecha){ datos.fecha=fecha; iguales.fecha=visto.fecha; }
+  const plan={permitirNegativo:true, permitirDeudaNegativa:true,
+    movEditar:{ref, signo: tipo==='gasto'?1:-1, antes:{slot:slotDinero(ctaVieja), monto:m1}, despues:{slot:slotDinero(cuenta), monto:m2}, datos},
+    verificarIguales:[{ref, campos:iguales}]};
+  // las tarjetas no son cuentas de saldos: un gasto con tarjeta mueve la DEUDA
+  if(tipo==='gasto'){
+    const dTj = (cuenta==='tarjeta'?m2:0) - (ctaVieja==='tarjeta'?m1:0);
+    const dRv = (cuenta==='tarjetaRev'?m2:0) - (ctaVieja==='tarjetaRev'?m1:0);
+    if(cent(dTj)!==0) plan.tarjetaDelta=c2(dTj);
+    if(cent(dRv)!==0) plan.tdcRevDelta=c2(dRv);
+  }
+  let res=null,err=null;
+  editandoMov=true; btn.disabled=true; dineroOcupado=true;
+  // ORDEN: aplicarRes ANTES de liberarDinero. liberarDinero() drena los snapshots que llegaron mientras
+  // la operacion estaba en curso; si se liberara primero, aplicarRes pisaria con el resultado de esta
+  // transaccion un snapshot MAS NUEVO. (Los demas llamadores liberan primero: no se tocan aqui.)
+  // Los candados se liberan SIEMPRE, aunque aplicarRes lance.
+  try{
+    try{ res=await txDinero(plan); }
+    catch(e){ err=e; }
+    if(!err && res && !res.error){
+      try{ aplicarRes(res); }catch(e){ console.error('aplicarRes',e); }
+    }
+  }finally{ editandoMov=false; btn.disabled=false; liberarDinero(); }
+  if(err){ console.error('guardarEdicionMov dinero',err); showToast(msgFalloDinero()); return; }
+  if(res.error){ showToast(res.error); return; }
+  // -- post-commit: se refleja lo que quedo en el SERVIDOR (documento fusionado: trae las
+  // banderas pendiente/aplicadoSaldo tal como las dejo el servidor). Se relee la lista: la
+  // memoria pudo cambiar durante los await --
+  const arr2=lista();
+  const it2=arr2.find(x=>x.id===id);
+  if(it2){
+    Object.assign(it2, res.movEditado||datos);
+    const i=arr2.indexOf(it2); if(i>=0) arr2.splice(i,1); insertarPorFecha(arr2,it2);
+  }
+  window.cerrarEdicionMov();
+  refrescar(rerenderTodo); // un fallo pintando nunca debe reportarse como "no se guardo"
+  const enRojo = Object.values(res.saldos||{}).some(v=>cent(v)<0);
+  const aFavor=(res.tarjeta&&res.tarjeta.deuda<0)||(res.tdcRev&&res.tdcRev.deuda<0);
+  const movido=cambiaFecha?textoMovido(fecha):'';
+  showToast(enRojo?'movimiento actualizado'+movido+' · ojo: una cuenta quedó negativa':aFavor?'movimiento actualizado'+movido+' · ojo: la tarjeta quedó con saldo a favor':'movimiento actualizado'+movido);
 };
 
 // ── INGRESOS ──────────────────────────────────────────────────
@@ -5205,8 +5490,11 @@ window.eliminarIngreso = async function(id) {
   // avisa, no se bloquea. movBorrar aborta si otro dispositivo ya lo borro (no se resta
   // dos veces) y decide si revertir releyendo las banderas del propio documento: la copia
   // en memoria puede decir "pendiente" cuando el Atajo ya lo aplico desde otro telefono.
+  // verificarIguales (5-oct-2026, Codex): ahora que un ingreso se puede editar, otro aparato
+  // podria haberle cambiado monto o cuenta; sin esto se restaria el monto VIEJO de la cuenta vieja
   const plan={permitirNegativo:true,
-    movBorrar:{ref, slot:(CAMPO_SIMPLE[g.destino]||CAMPO_COMP[g.destino])?g.destino:null, signo:-1, monto:m}};
+    movBorrar:{ref, slot:(CAMPO_SIMPLE[g.destino]||CAMPO_COMP[g.destino])?g.destino:null, signo:-1, monto:m},
+    verificarIguales:[{ref, campos:{monto:m, destino:g.destino}}]};
   let res=null,err=null;
   dineroOcupado=true;
   try{ res=await txDinero(plan); }
@@ -8057,7 +8345,7 @@ function desgloseCatHTML(items, cls, abierto) {
   const filas=ord.map(m=>`<div class="cat-mov"><span class="cat-mov-f">${escapeHtml(fmtFechaMov(m.fecha,{day:'numeric',month:'short'}))}</span>`+
     `<span class="cat-mov-n">${escapeHtml(m.nota||'sin nota')}<span class="cat-mov-c">${escapeHtml(CUENTAS[tipo==='gasto'?m.fuente:m.destino]||'—')}</span></span>`+
     `<span class="cat-mov-m ${cls}">${fmt(m.monto)}</span>`+
-    (m.id?`<button type="button" class="edit-btn cat-mov-e" title="cambiar de categoría o nota" aria-label="cambiar de categoría o nota" onclick="editarMovimiento('${tipo}','${escapeHtml(m.id)}')">&#9998;</button>`:'')+
+    (m.id?`<button type="button" class="edit-btn cat-mov-e" title="editar movimiento" aria-label="editar movimiento" onclick="editarMovimiento('${tipo}','${escapeHtml(m.id)}')">&#9998;</button>`:'')+
     `</div>`).join('');
   return `<div class="cat-desglose"${abierto?'':' style="display:none"'}>${filas||'<div class="item-meta">sin movimientos</div>'}</div>`;
 }
