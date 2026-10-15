@@ -1801,6 +1801,15 @@ window.reintentarLogin = async function() {
 // Enter key on login
 document.getElementById('login-pass').addEventListener('keydown', e => { if (e.key === 'Enter') window.doLogin(); });
 
+// Lo que dice #status-inicio al abrir: la verdad sobre los precios guardados (15-oct-2026)
+function textoEstadoPrecios() {
+  const syms = Object.keys(state.posiciones || {}).filter(k => state.posiciones[k].acciones > 0);
+  if (!syms.length) return 'pulsa actualizar para traer precios';
+  const fechas = syms.map(s => ((state.accionesMkt || {})[s] || {}).fecha).filter(f => /^\d{4}-\d{2}-\d{2}$/.test(f || '')).sort();
+  if (!fechas.length) return 'sin precios todavía · pulsa actualizar';
+  if (fechas.length < syms.length) return 'faltan precios de algunas acciones · pulsa actualizar';
+  return 'precios del ' + cierreDash(fechas[0]).txt + ' · pulsa actualizar';
+}
 onAuthStateChanged(auth, async user => {
   if (user && user.email === ALLOWED_EMAIL) {
     document.getElementById('login-screen').classList.add('hidden');
@@ -1825,6 +1834,7 @@ onAuthStateChanged(auth, async user => {
         // ya hay algo util en pantalla: no se bloquea la app, pero se deja MUY claro
         // que esos numeros no estan confirmados y que no se puede registrar nada
         marcarCopiaLocal(true, true);
+        document.getElementById('status-inicio').textContent=textoEstadoPrecios();
         showToast('sin conexión: ves tu copia local y no puedes registrar movimientos');
         return;
       }
@@ -1845,7 +1855,9 @@ onAuthStateChanged(auth, async user => {
     renderTransferencias();
     aplicarVisibilidadDashboard();
     if (dashboardEncendido()) refrescar(renderDashboard);
-    fetchAll();
+    // 15-oct-2026, Roberto: los precios de bolsa se piden SOLO cuando el usuario pulsa
+    // "actualizar", no cada vez que abre la app. Al abrir se ven los ultimos guardados.
+    document.getElementById('status-inicio').textContent=textoEstadoPrecios();
   } else {
     document.getElementById('login-screen').classList.remove('hidden');
     document.getElementById('loading-overlay').classList.add('hidden');
@@ -8527,7 +8539,7 @@ async function fetchYahooSeries(symbol, rango) {
   // pasada larga, por eso la corta conserva el div12m que ya se tenia.
   const largo = rango !== '5d';
   const url=`https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?interval=1d&range=${largo?'1y':'5d'}${largo?'&events=div':''}`;
-  const serie = await carreraProxies(url, raw => {
+  const validar = raw => {
     let d; try{ d=JSON.parse(raw); }catch(e){ return null; }
     if(!d.chart||d.chart.error||!Array.isArray(d.chart.result)||!d.chart.result[0]) return null;
     const res=d.chart.result[0];
@@ -8546,9 +8558,43 @@ async function fetchYahooSeries(symbol, rango) {
       hist.div12m=+ev.filter(x=>x&&Number.isFinite(x.amount)&&x.amount>0&&Number.isFinite(x.date)&&x.date>=desde).reduce((t,x)=>t+x.amount,0).toFixed(4);
     }
     return hist;
-  });
+  };
+  // primero el intermediario propio (funcion de Firebase); los publicos solo si ese falla
+  let serie = await pedirPrecioPropio(symbol, largo, validar);
+  if(serie===SIN_SIMBOLO){ console.error('fetchYahooSeries '+symbol+': simbolo inexistente'); return null; }
+  if(!serie) serie = await carreraProxies(url, validar);
   if(!serie) console.error('fetchYahooSeries '+symbol+': ningun proxy contesto');
   return serie;
+}
+// Intermediario propio (15-oct-2026): los proxies publicos se caen y Yahoo no deja pedirle
+// directo desde el navegador. La funcion 'precios' del mismo proyecto de Firebase le pide a
+// Yahoo por nosotros, solo con sesion iniciada. El ID token viaja SOLO a esta URL fija, nunca a
+// los publicos. La espera es de 15 s porque la funcion puede tardar en despertar.
+const URL_PRECIOS = 'https://us-central1-mi-cartera-b43e0.cloudfunctions.net/precios';
+const SIN_SIMBOLO = {sinSimbolo: true};   // la funcion dijo 404 "sin precio": no probar los publicos
+async function pedirPrecioPropio(symbol, largo, validar) {
+  const u = auth.currentUser;
+  if (!u) return null;
+  const url = URL_PRECIOS + '?s=' + encodeURIComponent(symbol) + '&r=' + (largo ? '1y' : '5d') + (largo ? '&div=1' : '');
+  // UN solo plazo de 15 s para todo: token, renovacion, fetch y lectura del cuerpo
+  const ctl = new AbortController();
+  const plazo = setTimeout(() => ctl.abort(), 15000);
+  const agotado = new Promise((_, no) => ctl.signal.addEventListener('abort', () => no(new Error('plazo agotado'))));
+  agotado.catch(() => {});
+  try {
+    for (let intento = 0; intento < 2; intento++) {
+      const token = await Promise.race([u.getIdToken(intento > 0), agotado]);   // al segundo intento, token nuevo
+      const r = await fetch(url, {headers: {Authorization: 'Bearer ' + token}, signal: ctl.signal});
+      if (r.status === 401 && intento === 0) continue;  // token vencido: se renueva una vez
+      // 404 con el texto de la funcion = simbolo inexistente (un 404 de Google por funcion no desplegada no lo trae)
+      if (r.status === 404 && (await r.text()) === 'sin precio') return SIN_SIMBOLO;
+      if (!r.ok) return null;
+      const v = validar(await r.text());
+      return (v === null || v === undefined || v === false) ? null : v;
+    }
+    return null;
+  } catch (e) { console.warn('precios propio ' + symbol, e && e.message); return null; }
+  finally { clearTimeout(plazo); }
 }
 // pega los dias nuevos sobre la historia guardada, sin duplicar fechas ni perder lo viejo
 function fundirHist(viejo, nuevo, dec) {
