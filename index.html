@@ -248,6 +248,19 @@ html[data-tema='grafito'] .tabs{--sombra-scroll:rgba(255,255,255,.16)}
 .month-nav{background:none;border:0.5px solid var(--border2);border-radius:8px;color:var(--muted);font-size:18px;padding:4px 12px;cursor:pointer}
 .month-label{font-size:15px;font-weight:500}
 .row2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+/* actualizar saldos (15-oct-2026): cuentas arriba, cajitas aparte con la tasa escondida */
+.saldos-form .section-title{margin-top:18px}
+.saldos-form .section-title:first-of-type{margin-top:4px}
+.saldos-ayuda{font-size:12px;color:var(--muted);line-height:1.5;margin:0 0 10px}
+.cajita-bloque{border:1px solid var(--border2);border-radius:var(--rs);padding:12px 12px 0;margin-bottom:10px}
+.mas-tasa{margin:0}
+.mas-tasa>summary{cursor:pointer;font-size:12px;color:var(--accent-dark);min-height:44px;display:flex;align-items:center;list-style:none}
+.mas-tasa>summary::-webkit-details-marker{display:none}
+.mas-tasa>summary::before{content:"›"/"";display:inline-block;margin-right:6px;transition:transform .15s}
+.mas-tasa[open]>summary::before{transform:rotate(90deg)}
+.hist-bloque{margin-top:14px;border-top:1px solid var(--border2);padding-top:4px}
+.hist-bloque>summary{font-size:11px;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted)}
+@media (prefers-reduced-motion:reduce){.mas-tasa>summary::before{transition:none}}
 .summary-box{background:var(--bg2);border:0.5px solid var(--border);border-radius:var(--rs);padding:12px;text-align:center;box-shadow:var(--sombra)}
 .summary-box .s-label{font-size:11px;color:var(--muted);margin-bottom:4px}
 .summary-box .s-amt{font-size:18px;font-weight:700}
@@ -774,59 +787,79 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
     <div><div class="acc-tit">actualizar saldos</div><div class="acc-sub">captura lo que muestran tus apps hoy</div></div>
   </summary>
   <div class="acc-body">
-  <div class="panel">
-    <div class="field"><label>cajita NU 1 — saldo base (lo que muestra NU hoy)</label><input type="number" id="input-cajita1-base" placeholder="ej. 10000" step="0.01" inputmode="decimal"></div>
-    <div class="row2" style="gap:8px">
-      <div class="field"><label>cajita NU 1 — fecha base (YYYY-MM-DD)</label><input type="text" id="input-cajita1-fecha" placeholder="ej. 2026-07-09"></div>
-      <div class="field"><label>cajita NU 1 — tasa anual %</label><input type="number" id="input-cajita1-tasa" placeholder="ej. 13" step="0.01" inputmode="decimal"></div>
+  <div class="panel saldos-form">
+    <p class="saldos-ayuda">Escribe solo lo que cambió; lo que dejes vacío se queda igual.</p>
+    <div class="section-title">tus cuentas</div>
+    <div class="row2">
+      <div class="field"><label>efectivo</label><input type="number" id="input-efectivo" placeholder="ej. 1000" step="1" inputmode="decimal"></div>
+      <div class="field"><label>NU saldo disponible</label><input type="number" id="input-nu-saldo" placeholder="ej. 1500" step="0.01" inputmode="decimal"></div>
     </div>
-    <div class="row2" style="gap:8px">
-      <div class="field"><label>cajita NU 1 — tope de la tasa (0 = sin tope)</label><input type="number" id="input-cajita1-tope" placeholder="ej. 25000" step="0.01" inputmode="decimal"></div>
-      <div class="field"><label>cajita NU 1 — tasa % sobre el excedente</label><input type="number" id="input-cajita1-tasa-exc" placeholder="ej. 6.5" step="0.01" inputmode="decimal"></div>
+    <div class="row2">
+      <div class="field"><label>Revolut MXN</label><input type="number" id="input-rev-mxn" placeholder="ej. 1500" step="0.01" inputmode="decimal"></div>
+      <div class="field"><label>depósito de la TDC Revolut</label><input type="number" id="input-rev-tdc-dep" placeholder="ej. 3000" step="0.01" inputmode="decimal"></div>
     </div>
-    <div class="field"><label>NU saldo disponible</label><input type="number" id="input-nu-saldo" placeholder="ej. 1500" step="0.01" inputmode="decimal"></div>
-    <div class="field"><label>efectivo en pesos</label><input type="number" id="input-efectivo" placeholder="ej. 1000" step="1" inputmode="decimal"></div>
-    <div class="field"><label>Revolut MXN (saldo de la cuenta)</label><input type="number" id="input-rev-mxn" placeholder="ej. 1500" step="0.01" inputmode="decimal"></div>
-    <div class="field"><label>depósito garantía TDC Revolut ($250–$75,000; límite = depósito)</label><input type="number" id="input-rev-tdc-dep" placeholder="ej. 3000" step="0.01" inputmode="decimal"></div>
-    <div class="field"><label>Revolut Savings — saldo base (lo que muestra Revolut hoy)</label><input type="number" id="input-rev-savings-base" placeholder="ej. 5000" step="0.01" inputmode="decimal"></div>
-    <div class="row2" style="gap:8px">
-      <div class="field"><label>Revolut Savings — fecha base (YYYY-MM-DD)</label><input type="text" id="input-rev-savings-fecha" placeholder="vacía = hoy"></div>
-      <div class="field"><label>Revolut Savings — tasa anual %</label><input type="number" id="input-rev-savings-tasa" placeholder="ej. 15" step="0.01" inputmode="decimal"></div>
+    <div class="section-title">tus cajitas</div>
+    <div class="cajita-bloque">
+      <div class="field"><label>cajita NU 1 · lo que muestra NU hoy</label><input type="number" id="input-cajita1-base" placeholder="ej. 10000" step="0.01" inputmode="decimal"></div>
+      <details class="mas-tasa"><summary>cambiar tasa o fecha</summary>
+        <div class="row2">
+          <div class="field"><label>¿de qué día es ese saldo? (vacía = hoy)</label><input type="text" id="input-cajita1-fecha" placeholder="AAAA-MM-DD · vacía = hoy"></div>
+          <div class="field"><label>tasa anual %</label><input type="number" id="input-cajita1-tasa" placeholder="ej. 13" step="0.01" inputmode="decimal"></div>
+        </div>
+        <div class="row2">
+          <div class="field"><label>tope de la tasa (0 = sin tope)</label><input type="number" id="input-cajita1-tope" placeholder="ej. 25000" step="0.01" inputmode="decimal"></div>
+          <div class="field"><label>tasa % arriba del tope</label><input type="number" id="input-cajita1-tasa-exc" placeholder="ej. 6.5" step="0.01" inputmode="decimal"></div>
+        </div>
+      </details>
     </div>
-    <div class="row2" style="gap:8px">
-      <div class="field"><label>Rev Savings — tope de la tasa (0 = sin tope)</label><input type="number" id="input-rev-savings-tope" placeholder="ej. 25000" step="0.01" inputmode="decimal"></div>
-      <div class="field"><label>Rev Savings — tasa % sobre el excedente</label><input type="number" id="input-rev-savings-tasa-exc" placeholder="ej. 7.3" step="0.01" inputmode="decimal"></div>
+    <div class="cajita-bloque">
+      <div class="field"><label>Revolut Savings · lo que muestra Revolut hoy</label><input type="number" id="input-rev-savings-base" placeholder="ej. 5000" step="0.01" inputmode="decimal"></div>
+      <details class="mas-tasa"><summary>cambiar tasa o fecha</summary>
+        <div class="row2">
+          <div class="field"><label>¿de qué día es ese saldo? (vacía = hoy)</label><input type="text" id="input-rev-savings-fecha" placeholder="AAAA-MM-DD · vacía = hoy"></div>
+          <div class="field"><label>tasa anual %</label><input type="number" id="input-rev-savings-tasa" placeholder="ej. 15" step="0.01" inputmode="decimal"></div>
+        </div>
+        <div class="row2">
+          <div class="field"><label>tope de la tasa (0 = sin tope)</label><input type="number" id="input-rev-savings-tope" placeholder="ej. 25000" step="0.01" inputmode="decimal"></div>
+          <div class="field"><label>tasa % arriba del tope</label><input type="number" id="input-rev-savings-tasa-exc" placeholder="ej. 7.3" step="0.01" inputmode="decimal"></div>
+        </div>
+        <div class="field"><label>retención de ISR anual % (2026: 0.90)</label><input type="number" id="input-rev-savings-ret" placeholder="ej. 0.90" step="0.01" inputmode="decimal"></div>
+      </details>
     </div>
-    <div class="field"><label>Rev Savings — retención ISR anual % (2026: 0.90, se resta del interés)</label><input type="number" id="input-rev-savings-ret" placeholder="ej. 0.90" step="0.01" inputmode="decimal"></div>
-    <div class="field"><label>Mifel — saldo base (lo que muestra Mifel hoy)</label><input type="number" id="input-mifel-base" placeholder="ej. 500000" step="0.01" inputmode="decimal"></div>
-    <div class="row2" style="gap:8px">
-      <div class="field"><label>Mifel — fecha base (YYYY-MM-DD)</label><input type="text" id="input-mifel-fecha" placeholder="vacía = hoy"></div>
-      <div class="field"><label>Mifel — tasa anual %</label><input type="number" id="input-mifel-tasa" placeholder="ej. 10" step="0.01" inputmode="decimal"></div>
-    </div>
-    <div class="row2" style="gap:8px">
-      <div class="field"><label>Mifel — tope de la tasa (0 = sin tope)</label><input type="number" id="input-mifel-tope" placeholder="ej. 500000" step="0.01" inputmode="decimal"></div>
-      <div class="field"><label>Mifel — tasa % sobre el excedente</label><input type="number" id="input-mifel-tasa-exc" placeholder="ej. 0" step="0.01" inputmode="decimal"></div>
-    </div>
-    <div class="row2" style="gap:8px">
-      <div class="field"><label>Mifel — retención ISR anual % (2026: 0.90)</label><input type="number" id="input-mifel-ret" placeholder="ej. 0.90" step="0.01" inputmode="decimal"></div>
-      <div class="field"><label>Mifel — tasa confirmada hasta (YYYY-MM-DD · 0 = sin fecha)</label><input type="text" id="input-mifel-vigencia" placeholder="ej. 2026-10-31"></div>
+    <div class="cajita-bloque">
+      <div class="field"><label>Mifel · lo que muestra Mifel hoy</label><input type="number" id="input-mifel-base" placeholder="ej. 500000" step="0.01" inputmode="decimal"></div>
+      <details class="mas-tasa"><summary>cambiar tasa o fecha</summary>
+        <div class="row2">
+          <div class="field"><label>¿de qué día es ese saldo? (vacía = hoy)</label><input type="text" id="input-mifel-fecha" placeholder="AAAA-MM-DD · vacía = hoy"></div>
+          <div class="field"><label>tasa anual %</label><input type="number" id="input-mifel-tasa" placeholder="ej. 10" step="0.01" inputmode="decimal"></div>
+        </div>
+        <div class="row2">
+          <div class="field"><label>tope de la tasa (0 = sin tope)</label><input type="number" id="input-mifel-tope" placeholder="ej. 500000" step="0.01" inputmode="decimal"></div>
+          <div class="field"><label>tasa % arriba del tope</label><input type="number" id="input-mifel-tasa-exc" placeholder="ej. 0" step="0.01" inputmode="decimal"></div>
+        </div>
+        <div class="row2">
+          <div class="field"><label>retención de ISR anual % (2026: 0.90)</label><input type="number" id="input-mifel-ret" placeholder="ej. 0.90" step="0.01" inputmode="decimal"></div>
+          <div class="field"><label>tasa confirmada hasta (0 = sin fecha)</label><input type="text" id="input-mifel-vigencia" placeholder="ej. 2026-10-31"></div>
+        </div>
+      </details>
     </div>
     <button class="btn btn-purple" id="manuales-btn" onclick="guardarManuales()">guardar</button>
-    <div class="section-title mt">rendimiento histórico</div>
-    <div class="item-meta" style="line-height:1.5;margin-bottom:8px">lo que tu banco dice que has ganado en total con esa cuenta: cópialo de la app del banco y deja la fecha vacía si la cifra es de hoy. De ahí en adelante la app lo lleva sola, aunque muevas dinero. Cambiarlo corrige, no suma.</div>
-    <div class="row2" style="gap:8px">
-      <div class="field"><label>cajita NU 1 — ganado en total (lo que dice tu banco)</label><input type="number" id="input-cajita1-semilla" placeholder="ej. 800" step="0.01" inputmode="decimal"></div>
-      <div class="field"><label>cajita NU 1 — ¿de qué día es la cifra? (AAAA-MM-DD, vacía = hoy)</label><input type="text" id="input-cajita1-semilla-fecha" placeholder="hoy"></div>
-    </div>
-    <div class="row2" style="gap:8px">
-      <div class="field"><label>Rev Savings — ganado en total (lo que dice tu banco)</label><input type="number" id="input-rev-savings-semilla" placeholder="ej. 300" step="0.01" inputmode="decimal"></div>
-      <div class="field"><label>Rev Savings — ¿de qué día es la cifra? (AAAA-MM-DD, vacía = hoy)</label><input type="text" id="input-rev-savings-semilla-fecha" placeholder="hoy"></div>
-    </div>
-    <div class="row2" style="gap:8px">
-      <div class="field"><label>Mifel — ganado en total (lo que dice tu banco)</label><input type="number" id="input-mifel-semilla" placeholder="ej. 50" step="0.01" inputmode="decimal"></div>
-      <div class="field"><label>Mifel — ¿de qué día es la cifra? (AAAA-MM-DD, vacía = hoy)</label><input type="text" id="input-mifel-semilla-fecha" placeholder="hoy"></div>
-    </div>
-    <button class="btn" id="semilla-btn" onclick="guardarRendimientoHistorico()">guardar rendimiento histórico</button>
+    <details class="mas-tasa hist-bloque"><summary>rendimiento histórico</summary>
+      <p class="saldos-ayuda">Lo que tu banco dice que has ganado en total con cada cuenta. Cópialo de la app del banco; desde ahí la app lo lleva sola, aunque muevas dinero. Cambiarlo corrige, no suma.</p>
+      <div class="row2">
+        <div class="field"><label>cajita NU 1 · ganado en total</label><input type="number" id="input-cajita1-semilla" placeholder="ej. 800" step="0.01" inputmode="decimal"></div>
+        <div class="field"><label>¿de qué día? (vacía = hoy)</label><input type="text" id="input-cajita1-semilla-fecha" placeholder="AAAA-MM-DD · vacía = hoy"></div>
+      </div>
+      <div class="row2">
+        <div class="field"><label>Revolut Savings · ganado en total</label><input type="number" id="input-rev-savings-semilla" placeholder="ej. 300" step="0.01" inputmode="decimal"></div>
+        <div class="field"><label>¿de qué día? (vacía = hoy)</label><input type="text" id="input-rev-savings-semilla-fecha" placeholder="AAAA-MM-DD · vacía = hoy"></div>
+      </div>
+      <div class="row2">
+        <div class="field"><label>Mifel · ganado en total</label><input type="number" id="input-mifel-semilla" placeholder="ej. 50" step="0.01" inputmode="decimal"></div>
+        <div class="field"><label>¿de qué día? (vacía = hoy)</label><input type="text" id="input-mifel-semilla-fecha" placeholder="AAAA-MM-DD · vacía = hoy"></div>
+      </div>
+      <button class="btn" id="semilla-btn" onclick="guardarRendimientoHistorico()">guardar rendimiento histórico</button>
+    </details>
   </div>
   </div>
   </details>
