@@ -346,3 +346,21 @@ un commit por repo.
   como `{...d.data(), id:d.id}`. Es un cambio en todas las listas: va en su propia sesión.
 - **Menor:** la píldora de Inicio dice "estimado" solo cuando vence la tasa de Mifel; el Resumen marca Mifel como
   estimado siempre. Decidir si la píldora también.
+
+## "Actualizar saldos" está revuelto (opinión de Zoe, 15-oct-2026) — siguiente sesión
+
+Zoe: *"hay como mucho texto y muchos números, se ve un poco desordenado; yo pondría en una parte lo de efectivo,
+BBVA, Nu, y en una parte separada las cajitas"*. Tiene razón: en la cartera de Roberto son **29 campos en una sola
+lista**, con las cajitas metidas entre las cuentas (cajita Nu, luego Nu saldo y efectivo, luego Revolut Savings y
+Mifel) y cada cajita con 5 a 7 campos (base, fecha, tasa, tope, excedente, ISR, vigencia).
+
+Propuesta (Claude, para discutir):
+1. **"Tus cuentas"** arriba: solo los saldos que cambian seguido (efectivo, Nu, Revolut/BBVA, depósito de la TDC),
+   un renglón cada uno.
+2. **"Tus cajitas"** aparte: cada una en su tarjeta con un solo campo visible, "lo que dice tu banco hoy". La tasa,
+   el tope, el excedente, el ISR y la vigencia van dentro de "cambiar la tasa", cerrado, porque casi nunca se tocan.
+3. **"Rendimiento histórico"** como tercera sección, cerrada, con su explicación corta.
+4. Textos sin la fecha entre paréntesis en cada etiqueta: la fecha base se pone sola en hoy y se edita solo en
+   "cambiar la tasa".
+Toca `guardarManuales` (escribe saldos y tramos): es flujo de dinero, va con la cadena completa y en las cuatro
+copias, y en Zoe con sus cuentas (Nu, BBVA, cajita Nu, BBVA ahorro).
