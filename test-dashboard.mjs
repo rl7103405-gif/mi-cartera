@@ -398,6 +398,70 @@ console.log('\n18. Sector conocido y dividendo real de Yahoo cuando no se captur
       c.pos[0].divAnual === 0 && c.faltaDiv === false && c.pos[0].sector === 'Industrial');
 }
 
+console.log('\n19. utilidadPeriodo: la cifra del mes (Inicio) y la utilidad del Resumen');
+{
+  // se extrae la funcion REAL; sus dependencias pesadas (tramos de interes, historial de precios, fondo)
+  // son stubs para probar solo la COMPOSICION: util = intereses + plusvalia (o 0 si es null) + dividendos.
+  // parseFechaLocal, msFechaMov y movValido si son las reales del HTML
+  const srcUP = extrae('function utilidadPeriodo(', '// Inicio: lo que gano tu dinero en el mes en curso');
+  const srcFechas = extrae('function parseFechaLocal(', '\n') + '\n'
+    + extrae('function msFechaMov(', 'function diaLocalDe(')
+    + extrae('function movValido(', '\n') + '\n';
+  const mk = (st, ov = {}) => new Function('state', 'ov', 'const CTAS_AHORRO=ov.CTAS||[];'
+    + 'const interesEnRango=ov.interesEnRango||(()=>0), rendFondoEnRango=ov.rendFondoEnRango||(()=>0),'
+    + 'inicioHistoria=ov.inicioHistoria||(()=>null), saldoCuentaEn=ov.saldoCuentaEn||(()=>null),'
+    + 'valorBolsaEn=ov.valorBolsaEn||(()=>null);\n' + srcFechas + srcUP + '\nreturn utilidadPeriodo;')(st, ov);
+  const start = new Date(2026, 9, 1), end = new Date(2026, 10, 1);   // octubre local
+  const ahora = Date.now;
+  Date.now = () => new Date(2026, 9, 20).getTime();                   // "hoy" = 20 oct, dentro del periodo
+  try {
+    // (a) estado vacio: nada lanza, util 0, plus null (sin historial de precios)
+    let r;
+    try { r = mk({ stocksOps: [], ingresos: [] })(start, end); } catch (e) { r = null; console.log('  lanzo: ' + e.message); }
+    chk('(a) estado vacio no lanza', r !== null);
+    chk('(a) util = 0', r && r.util === 0, 'util=' + (r && r.util));
+    chk('(a) plusvalia null (no se inventa), no 0', r && r.plus === null);
+    chk('(a) sin dividendos ni intereses', r && r.divs === 0 && r.intereses === 0);
+    let r0;
+    try { r0 = mk({})(start, end); } catch (e) { r0 = null; }
+    chk('(a) sin stocksOps ni ingresos definidos tampoco lanza', r0 && r0.util === 0);
+
+    // (b) dividendos dentro y fuera del periodo: solo cuentan los de dentro
+    const ing = [
+      { monto: 100, cat: 'Dividendos', fecha: '2026-10-05' },        // dentro
+      { monto: 50,  cat: 'dividendos AVGO', fecha: '2026-10-19' },   // dentro
+      { monto: 400, cat: 'Dividendos', fecha: '2026-09-30' },        // antes
+      { monto: 800, cat: 'Dividendos', fecha: '2026-11-01' },        // despues (limite abierto)
+      { monto: 999, cat: 'Sueldo', fecha: '2026-10-10' },            // no es dividendo
+      { monto: 70,  cat: 'Dividendos', fecha: '2026-10-12', porAtajo: true, aplicadoSaldo: false }  // rechazado
+    ];
+    r = mk({ stocksOps: [], ingresos: ing })(start, end);
+    chk('(b) solo suman los dividendos de dentro del periodo (150)', cerca(r.divs, 150), 'divs=' + r.divs);
+    chk('(b) util = dividendos cuando no hay mas', cerca(r.util, 150), 'util=' + r.util);
+
+    // (c) plusvalia null por falta de historial: util = intereses + dividendos
+    r = mk({ stocksOps: [], ingresos: ing },
+           { CTAS: ['cajita1'], interesEnRango: () => 30, rendFondoEnRango: () => 5 })(start, end);
+    chk('(c) intereses = bruto - lo conciliado al fondo (25)', cerca(r.intereses, 25), 'int=' + r.intereses);
+    chk('(c) plusvalia null por falta de historial', r.plus === null && /historial/.test(r.motivo));
+    chk('(c) util = intereses + dividendos (175)', cerca(r.util, 175), 'util=' + r.util);
+
+    // extra: con historial de precios la plusvalia = valorFin - valorIni - aportes
+    const vb = ms => ms < start.getTime() ? { valor: 1000, fecha: '2026-09-30' } : { valor: 1500, fecha: '2026-10-19' };
+    r = mk({ stocksOps: [{ tipo: 'compra', fecha: '2026-10-10', montoMxn: 200 }], ingresos: [] }, { valorBolsaEn: vb })(start, end);
+    chk('(extra) plusvalia = 1500 - 1000 - 200 aportados (300)', cerca(r.plus, 300) && cerca(r.util, 300), 'plus=' + r.plus);
+    r = mk({ stocksOps: [{ tipo: 'compra', fecha: '2026-10-10', montoMxn: 0 }], ingresos: [] }, { valorBolsaEn: vb })(start, end);
+    chk('(extra) operacion sin monto: plusvalia null, no cero', r.plus === null && /sin monto/.test(r.motivo));
+
+    // (d) la nota de la pildora de Inicio sale del motivo REAL: precios vs operacion sin monto
+    const nota = new Function(extrae('function notaBolsaPendiente(', '// envoltorio con su try/catch') + '\nreturn notaBolsaPendiente;')();
+    const rPrecios = mk({ stocksOps: [], ingresos: [] })(start, end);
+    chk('(d) sin historial de precios -> "sin bolsa: precio pendiente"', nota(rPrecios.motivo) === 'sin bolsa: precio pendiente', nota(rPrecios.motivo));
+    chk('(d) operacion sin monto -> "sin bolsa: falta el monto de una operación"', nota(r.motivo) === 'sin bolsa: falta el monto de una operación', nota(r.motivo));
+    chk('(d) los dos motivos son distintos y sin motivo cae a precio pendiente', rPrecios.motivo !== r.motivo && nota('') === 'sin bolsa: precio pendiente');
+  } finally { Date.now = ahora; }
+}
+
 console.log('\n' + '='.repeat(58));
 console.log(fallos === 0 ? `TODO PASA — ${pruebas}/${pruebas}` : `${fallos} FALLAS de ${pruebas}`);
 process.exit(fallos === 0 ? 0 : 1);

@@ -173,7 +173,8 @@ html[data-tema='grafito'] .tabs{--sombra-scroll:rgba(255,255,255,.16)}
 .dist-right{text-align:right}
 .dist-amt{font-size:13px;font-weight:600}
 .dist-pct{display:inline-block;font-size:10.5px;font-weight:700;padding:1px 7px;border-radius:9px;margin-top:2px}
-@media(max-width:359px){.dist-wrap{flex-direction:column}.dist-legend{width:100%}}
+/* en el telefono la dona va arriba y la lista abajo: lado a lado, los montos de seis cifras se enciman con el nombre */
+@media(max-width:430px){.dist-wrap{flex-direction:column}.dist-legend{width:100%}}
 .card-name{font-size:15px;font-weight:500}
 .card-sub{font-size:12px;color:var(--muted);margin-top:1px}
 .card-right{text-align:right}
@@ -403,6 +404,28 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
 .pie-amt{font-weight:600}
 #res-periodo-toggle .type-opt,#mov-periodo-toggle .type-opt{min-width:calc(25% - 5px)}
 .del-btn{background:none;border:none;color:var(--muted);font-size:17px;padding:4px 0 4px 12px;cursor:pointer;line-height:1;flex-shrink:0}
+/* la x de borrar: area tactil de 44 px y separada del lapiz (antes ~24 px y pegada: errarle abria editar).
+   Clase aparte porque .del-btn tambien se usa en links de texto ("actualizar", "ver detalle") */
+.del-btn.del-x{min-width:44px;min-height:44px;display:inline-flex;align-items:center;justify-content:center;padding:0;margin-left:6px}
+/* Inicio: lo que gano tu dinero este mes, bajo la cifra grande (lleva al detalle del Resumen) */
+.ganancia-mes{display:inline-flex;flex-wrap:wrap;align-items:baseline;gap:4px 6px;margin-top:12px;padding:10px 14px;border-radius:999px;background:var(--bg3);border:0;font:inherit;font-size:14px;color:var(--text);cursor:pointer;min-height:44px;text-align:left;font-variant-numeric:tabular-nums}
+.ganancia-mes[hidden]{display:none}
+.ganancia-mes b{color:var(--accent-dark);font-weight:700}
+.ganancia-mes.neg b{color:var(--red)}
+.ganancia-mes .gm-nota{color:var(--muted);font-size:12px}
+.desglose-btn{display:block;background:none;border:0;font:inherit;font-size:12px;color:var(--muted);text-decoration:underline;text-underline-offset:3px;padding:8px 0 0;min-height:44px;cursor:pointer}
+.desglose{margin-top:2px;font-size:13px;max-width:360px}
+.desglose .dg-fila{display:flex;justify-content:space-between;gap:12px;padding:3px 0;color:var(--muted);font-variant-numeric:tabular-nums}
+.desglose .dg-total{color:var(--text);font-weight:650;border-top:1px solid var(--border2);margin-top:4px;padding-top:6px}
+/* paginas que ya no tienen pestaña propia (deudas, noticias): enlace de regreso y de entrada */
+.volver-btn{background:none;border:0;font:inherit;font-size:14px;font-weight:600;color:var(--accent-dark);min-height:44px;padding:0;cursor:pointer}
+.link-chico{display:flex;justify-content:flex-end;margin:-6px 0 6px}
+.link-chico .volver-btn{font-size:13px}
+/* movimientos con cuatro subpestañas: en el telefono la fila se desliza en vez de apretarse */
+#mov-subtabs{overflow-x:auto;scrollbar-width:none;gap:16px}#mov-subtabs::-webkit-scrollbar{display:none}
+#mov-subtabs .stab{flex:0 0 auto;white-space:nowrap}
+/* leyenda de las donas: en pantalla angosta el nombre de la categoria baja de renglon en vez de cortarse ("Comi...") */
+@media(max-width:480px){.pie-cat{white-space:normal;overflow:visible;text-overflow:clip;overflow-wrap:anywhere}}
 /* desglose por categoria en el resumen: la barra se toca y despliega sus movimientos */
 .resumen-bar{cursor:pointer;border-radius:8px;padding:2px 4px;margin:0 -4px}
 .resumen-bar.abierta,.resumen-bar:hover{background:var(--bg2s)}
@@ -588,10 +611,10 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
   <button type="button" class="tab" data-page="dashboard" id="tab-dashboard" hidden onclick="showPage('dashboard')">inversiones</button>
   <button type="button" class="tab" data-page="fondo" id="tab-fondo" hidden onclick="showPage('fondo')">fondo</button>
   <button type="button" class="tab" data-page="metas" onclick="showPage('metas')">metas</button>
-  <button type="button" class="tab" data-page="perfil" onclick="showPage('perfil')">perfil</button>
-  <button type="button" class="tab" data-page="noticias" onclick="showPage('noticias')">noticias</button>
-  <button type="button" class="tab" data-page="deudas" onclick="showPage('deudas')">deudas</button>
   <button type="button" class="tab" data-page="resumen" onclick="showPage('resumen')">resumen</button>
+  <!-- perfil siempre al final, a la derecha. Deudas y noticias ya no son pestañas: se abren desde
+       movimientos y desde resumen (ver PADRE_PAGINA en showPage) -->
+  <button type="button" class="tab" data-page="perfil" onclick="showPage('perfil')">perfil</button>
 </div>
 
 <!-- INICIO -->
@@ -600,7 +623,10 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
   <div class="total-section">
     <div class="total-label" id="total-label">activos totales</div>
     <div class="total-amount" id="total-display">$—</div>
-    <div class="total-sub" id="neto-display">—</div>
+    <!-- lo que gano tu dinero este mes: la misma cuenta que 'cuanto gano tu dinero' del Resumen -->
+    <button type="button" class="ganancia-mes" id="ganancia-mes" hidden onclick="verGananciaMes()"></button>
+    <button type="button" class="desglose-btn" id="desglose-btn" aria-expanded="false" aria-controls="neto-display" onclick="toggleDesglose()">ver desglose</button>
+    <div class="desglose" id="neto-display" hidden></div>
     <div class="total-sub" id="last-update">—</div>
   </div>
 
@@ -619,24 +645,6 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
   <div class="section-title">cómo vas este mes</div>
   <div class="panel" id="inicio-coach" style="margin-bottom:20px"><div class="item-meta">calculando...</div></div>
 
-  <details class="acc" style="margin-bottom:20px">
-    <summary>
-      <div class="acc-icon chip-verde"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 0 1 0 18c-2 0-1-2-1-3s-1-2-2-2-3 1-3-1a9 9 0 0 1 6-12Z"/></svg></div>
-      <div><div class="acc-tit">color de la app</div><div class="acc-sub">elige el tema que más te lata</div></div>
-    </summary>
-    <div class="acc-body">
-      <div class="temas-row" id="temas-row">
-        <button type="button" class="tema-chip" data-tema="" aria-label="verde salvia" title="verde salvia" style="background:linear-gradient(135deg,#2f6f4f,#e7efe4)" onclick="setTema('')"></button>
-        <button type="button" class="tema-chip" data-tema="azul" aria-label="azul" title="azul" style="background:linear-gradient(135deg,#2f5f9f,#e4ecf6)" onclick="setTema('azul')"></button>
-        <button type="button" class="tema-chip" data-tema="morado" aria-label="morado" title="morado" style="background:linear-gradient(135deg,#6b3fa0,#ece4f6)" onclick="setTema('morado')"></button>
-        <button type="button" class="tema-chip" data-tema="arena" aria-label="arena" title="arena" style="background:linear-gradient(135deg,#a97c2f,#f2ebdd)" onclick="setTema('arena')"></button>
-        <button type="button" class="tema-chip" data-tema="grafito" aria-label="grafito oscuro" title="grafito oscuro" style="background:linear-gradient(135deg,#4fa882,#14171a)" onclick="setTema('grafito')"></button>
-        <button type="button" class="tema-chip" data-tema="rosa" aria-label="rosa" title="rosa" style="background:linear-gradient(135deg,#bf5388,#f5e2ea)" onclick="setTema('rosa')"></button>
-        <button type="button" class="tema-chip" data-tema="fucsia" aria-label="fucsia" title="fucsia" style="background:linear-gradient(135deg,#d42d80,#fbe0ec)" onclick="setTema('fucsia')"></button>
-      </div>
-      <div class="item-meta" style="margin-top:10px">se guarda en este dispositivo</div>
-    </div>
-  </details>
 
   <div class="cards">
     <div class="card" onclick="toggleCuenta('cajita1','nu1-detail')">
@@ -892,6 +900,7 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
     <button type="button" class="stab active" id="mtab-registrar" onclick="movSub('registrar')" aria-current="page">registrar</button>
     <button type="button" class="stab" id="mtab-cats" onclick="movSub('cats')">categorías</button>
     <button type="button" class="stab" id="mtab-sus" onclick="movSub('sus')">suscripciones</button>
+    <button type="button" class="stab" id="mtab-deudas" onclick="showPage('deudas',true)">deudas</button>
   </div>
   <div id="mov-sub-registrar">
   <div class="inicio-grid">
@@ -1111,6 +1120,25 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
     </div>
   </div>
   </div>
+  <!-- 'color de la app' vivia en Inicio; es ajuste, no dato del dia: va en perfil -->
+  <details class="acc" style="margin-bottom:20px">
+    <summary>
+      <div class="acc-icon chip-verde"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 0 1 0 18c-2 0-1-2-1-3s-1-2-2-2-3 1-3-1a9 9 0 0 1 6-12Z"/></svg></div>
+      <div><div class="acc-tit">color de la app</div><div class="acc-sub">elige el tema que más te lata</div></div>
+    </summary>
+    <div class="acc-body">
+      <div class="temas-row" id="temas-row">
+        <button type="button" class="tema-chip" data-tema="" aria-label="verde salvia" title="verde salvia" style="background:linear-gradient(135deg,#2f6f4f,#e7efe4)" onclick="setTema('')"></button>
+        <button type="button" class="tema-chip" data-tema="azul" aria-label="azul" title="azul" style="background:linear-gradient(135deg,#2f5f9f,#e4ecf6)" onclick="setTema('azul')"></button>
+        <button type="button" class="tema-chip" data-tema="morado" aria-label="morado" title="morado" style="background:linear-gradient(135deg,#6b3fa0,#ece4f6)" onclick="setTema('morado')"></button>
+        <button type="button" class="tema-chip" data-tema="arena" aria-label="arena" title="arena" style="background:linear-gradient(135deg,#a97c2f,#f2ebdd)" onclick="setTema('arena')"></button>
+        <button type="button" class="tema-chip" data-tema="grafito" aria-label="grafito oscuro" title="grafito oscuro" style="background:linear-gradient(135deg,#4fa882,#14171a)" onclick="setTema('grafito')"></button>
+        <button type="button" class="tema-chip" data-tema="rosa" aria-label="rosa" title="rosa" style="background:linear-gradient(135deg,#bf5388,#f5e2ea)" onclick="setTema('rosa')"></button>
+        <button type="button" class="tema-chip" data-tema="fucsia" aria-label="fucsia" title="fucsia" style="background:linear-gradient(135deg,#d42d80,#fbe0ec)" onclick="setTema('fucsia')"></button>
+      </div>
+      <div class="item-meta" style="margin-top:10px">se guarda en este dispositivo</div>
+    </div>
+  </details>
   </div>
   <div id="perfil-sub-amigos" style="display:none">
     <div class="section-title" id="amigos-titulo">amigos</div>
@@ -1153,6 +1181,7 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
 <!-- NOTICIAS -->
 <div class="page" id="page-noticias">
   <div class="mt">
+  <button type="button" class="volver-btn" onclick="showPage('resumen')">‹ resumen</button>
   <div class="section-title">cómo vas este mes</div>
   <div class="panel" id="noticias-coach"><div class="item-meta">calculando...</div></div>
   <div class="bar-header mt" style="align-items:center">
@@ -1171,8 +1200,9 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
 <!-- DEUDAS -->
 <div class="page" id="page-deudas">
   <div class="mt">
+    <button type="button" class="volver-btn" onclick="showPage('movimientos')">‹ movimientos</button>
     <div class="grand-total-deuda">
-      <div class="label">balance total deudas</div>
+      <div class="label">balance neto de deudas</div>
       <div class="amount" id="deuda-grand-total">$—</div>
       <div style="font-size:12px;color:var(--muted);margin-top:4px" id="deuda-grand-sub">—</div>
     </div>
@@ -1194,10 +1224,10 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
       </div>
       <div class="field"><label>tipo</label>
         <div class="type-toggle">
-          <div class="type-opt active" id="tipo-cargo" onclick="setTipoDeuda('cargo')">me deben (+)</div>
-          <div class="type-opt" id="tipo-pago" onclick="setTipoDeuda('pago')">me pagaron (-)</div>
-          <div class="type-opt" id="tipo-debo" onclick="setTipoDeuda('debo')">yo debo (-)</div>
-          <div class="type-opt" id="tipo-pague" onclick="setTipoDeuda('pague')">pagué deuda (+)</div>
+          <div class="type-opt active" id="tipo-cargo" onclick="setTipoDeuda('cargo')">me deben</div>
+          <div class="type-opt" id="tipo-pago" onclick="setTipoDeuda('pago')">me pagaron</div>
+          <div class="type-opt" id="tipo-debo" onclick="setTipoDeuda('debo')">yo debo</div>
+          <div class="type-opt" id="tipo-pague" onclick="setTipoDeuda('pague')">le pagué</div>
         </div>
       </div>
       <div class="field"><label>cuenta (de donde sale / a donde entra el dinero)</label>
@@ -1342,6 +1372,7 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
 
 <div class="page" id="page-resumen">
   <div class="mt">
+    <div class="link-chico"><button type="button" class="volver-btn" onclick="showPage('noticias',true)">noticias de tus bancos y acciones ›</button></div>
     <div class="type-toggle" id="res-periodo-toggle">
       <div class="type-opt" onclick="setResPeriodo('dia')">día</div>
       <div class="type-opt" onclick="setResPeriodo('semana')">semana</div>
@@ -3564,7 +3595,7 @@ window.susRegistrar = async function(btn) {
   finally { susRegistrando = false; renderAvisosSus(); if (typeof movSubActual !== 'undefined' && movSubActual === 'sus') renderSuscripciones(); }
 };
 // no hay reloj que repinte a medianoche: basta con repintar cuando la pestaña vuelve a verse
-document.addEventListener('visibilitychange', () => { if (!document.hidden && datosCargados) renderAvisosSus(); });
+document.addEventListener('visibilitychange', () => { if (!document.hidden && datosCargados) { renderAvisosSus(); refrescarGananciaMes(); } });
 // "ya no la tengo": deja de recordarla sin tocar los pagos ya registrados. Se PAUSA en vez
 // de borrarla, para poder volver a encenderla si resulta que solo fue un mes
 window.susYaNo = async function(btn) {
@@ -3728,7 +3759,7 @@ function renderSuscripciones() {
     + '</div>'
     + (sug ? '<div class="section-title mt">parecen suscripciones</div><div class="panel">'
          + '<div class="item-meta" style="padding-bottom:6px">gastos que se repiten una vez al mes, por un monto parecido y cerca del mismo día</div>' + sug + '</div>' : '')
-    + '<div class="item-meta" style="margin-top:10px;line-height:1.5">El día que toca, desde la madrugada, en inicio te aparece para registrarla con un tap. <b>Nada se registra solo</b>: si ese mes no la pagaste, no la registras.</div>';
+    + '<div class="item-meta" style="margin-top:10px;line-height:1.5">El día que toca, desde la madrugada, en inicio te aparece para registrarla con un tap. <b>Tú confirmas cada cargo</b>: si ese mes no la pagaste, no la registras.</div>';
 }
 window.susNueva = function() { susEditando = {id: null, pre: {cat: 'Suscripciones', fuente: susFuentes()[0] || ''}}; renderSuscripciones(); const e = document.getElementById('sus-f-nombre'); if (e) e.focus(); };
 window.susCancelar = function() { susEditando = null; renderSuscripciones(); };
@@ -3794,17 +3825,21 @@ window.susQuitar = async function(btn) {
 // ── NAVIGATION ────────────────────────────────────────────────
 // cada pestaña recuerda hasta dónde bajaste (solo en esta sesión); `arriba` la abre desde el principio
 const scrollPorPagina = {};
+// paginas sin pestaña propia: se marca la pestaña desde donde se abren
+const PADRE_PAGINA = {deudas:'movimientos', noticias:'resumen'};
 window.showPage = function(p, arriba) {
   const antes = document.querySelector('.page.active');
   if (antes) scrollPorPagina[antes.id.replace('page-','')] = window.scrollY;
   document.querySelectorAll('.page').forEach(el => el.classList.remove('active'));
-  document.querySelectorAll('.tab').forEach(el => { const es=el.dataset.page===p; el.classList.toggle('active', es); if(es) el.setAttribute('aria-current','page'); else el.removeAttribute('aria-current'); });
+  const pTab = PADRE_PAGINA[p] || p;
+  document.querySelectorAll('.tab').forEach(el => { const es=el.dataset.page===pTab; el.classList.toggle('active', es); if(es) el.setAttribute('aria-current','page'); else el.removeAttribute('aria-current'); });
   // la pestaña elegida a la vista, moviendo SOLO la barra (scrollIntoView movería también la página)
   { const act=document.querySelector('.tab.active'), bar=act&&act.parentElement;
     if(bar&&bar.scrollWidth>bar.clientWidth){ const l=act.offsetLeft, d=l+act.offsetWidth;
       if(l<bar.scrollLeft) bar.scrollLeft=Math.max(0,l-24); else if(d>bar.scrollLeft+bar.clientWidth) bar.scrollLeft=d-bar.clientWidth+24; } }
   document.getElementById('page-'+p).classList.add('active');
   if(p==='dashboard') renderDashboard();
+  if(p==='inicio') refrescarGananciaMes();
   if(p==='fondo') renderFondo();
   if(p==='resumen') renderResumen();
   if(p==='movimientos'){ renderMovimientos(); if(movSubActual==='cats') renderCategorias(); if(movSubActual==='sus') renderSuscripciones(); }
@@ -3812,6 +3847,18 @@ window.showPage = function(p, arriba) {
   if(p==='noticias') abrirNoticias(); // carga perezosa: cache primero, refresco si esta viejo
   if(p==='perfil'){ renderPerfil(); renderScore(); renderDecisiones(); if(perfilSubActual==='amigos') perfilSub('amigos'); }
   window.scrollTo(0, arriba ? 0 : (scrollPorPagina[p] || 0));
+};
+// el desglose de 'tu dinero' al patrimonio neto: cerrado por defecto, un toque lo abre
+window.toggleDesglose = function() {
+  const d=document.getElementById('neto-display'), b=document.getElementById('desglose-btn'); if(!d||!b) return;
+  d.hidden=!d.hidden; d.classList.toggle('open',!d.hidden); /* el listener global de aria-expanded lee .open */ b.setAttribute('aria-expanded', d.hidden?'false':'true'); b.textContent=d.hidden?'ver desglose':'ocultar desglose';
+};
+// de la cifra del mes de Inicio al detalle: Resumen en el mes en curso, con 'cuanto gano tu dinero' abierto
+window.verGananciaMes = function() {
+  setResPeriodo('mes');
+  showPage('resumen', true);
+  const acc=document.getElementById('res-utilidades'), det=acc&&acc.closest('details');
+  if(det){ det.open=true; det.scrollIntoView({block:'start'}); }
 };
 window.togglePrivado = function() {
   modoPrivado=!modoPrivado;
@@ -4555,7 +4602,16 @@ function render() {
   // neto = activos + lo que me deben (o menos lo que debo) - deudas de tarjetas
   const saldoDeudas=Object.values(state.personas||{}).reduce((s,p)=>s+(p.saldo||0),0);
   const neto=total+saldoDeudas-(state.tarjetaDeuda||0)-(state.revTdcDeuda||0);
-  document.getElementById('neto-display').textContent='patrimonio neto (con deudas y tarjetas): '+fmt(neto)+(fondoTot>0?' · fondo aparte: '+fmt(fondoTot):'');
+  // desglose en un toque, de 'tu dinero' al neto renglon por renglon (antes era una sola linea que
+  // no se podia cuadrar a simple vista). Solo cifras de fmt y textos fijos: nada del usuario
+  { const ps=Object.values(state.personas||{}), teDeben=ps.reduce((a,p)=>a+Math.max(0,p.saldo||0),0), debes=ps.reduce((a,p)=>a+Math.max(0,-(p.saldo||0)),0);
+    const tdc=(state.tarjetaDeuda||0)+(state.revTdcDeuda||0);
+    const f=(t,v,cls)=>'<div class="dg-fila'+(cls?' '+cls:'')+'"><span>'+t+'</span><span>'+v+'</span></div>';
+    document.getElementById('neto-display').innerHTML=f(fondoTot>0?'tu dinero (sin el fondo)':'tus cuentas',fmt(total))
+      +(teDeben>0.005?f('te deben','+'+fmt(teDeben)):'')+(debes>0.005?f('tú debes','−'+fmt(debes)):'')
+      +(Math.abs(tdc)>0.005?f(tdc>0?'tarjetas de crédito':'saldo a favor en tarjetas',(tdc>0?'−':'+')+fmt(Math.abs(tdc))):'')+f('patrimonio neto',fmt(neto),'dg-total')
+      +(fondoTot>0?f('fondo de la universidad, aparte',fmt(fondoTot)):''); }
+  refrescarGananciaMes();
   totalesInicio={fisico:totalFisico, tuyo:total, neto, listo:true};
   refrescar(aplicarVisibilidadFondo);
   // lo apartado se resta POR CUENTA: en Savings reduce 'ahorro', en MXN reduce 'disponible'
@@ -4959,7 +5015,7 @@ function renderTransferencias() {
   if(!state.transferencias.length){c.innerHTML='<div class="empty-state">sin transferencias</div>';return;}
   c.innerHTML=state.transferencias.slice(0,20).map(t=>{
     const fecha=fmtFechaMov(t.fecha,{day:'numeric',month:'short'});
-    const del=(t.id&&t.destino!=='tarjeta'&&t.destino!=='tarjetaRev'&&t.origen!=='stocks'&&t.destino!=='stocks'&&!t.opId)?`<button class="del-btn" onclick="eliminarTransferencia('${t.id}')">&times;</button>`:'';
+    const del=(t.id&&t.destino!=='tarjeta'&&t.destino!=='tarjetaRev'&&t.origen!=='stocks'&&t.destino!=='stocks'&&!t.opId)?`<button type="button" class="del-btn del-x" aria-label="borrar" onclick="eliminarTransferencia('${t.id}')">&times;</button>`:'';
     return`<div class="item-row"><div><div class="item-cat">${escapeHtml(CUENTAS[t.origen]||t.origen)} → ${escapeHtml(CUENTAS[t.destino]||t.destino)}</div><div class="item-meta">${escapeHtml(t.nota||'')} · ${fecha}</div></div><div style="display:flex;align-items:center"><div style="font-size:14px;font-weight:600;color:var(--purple)">${fmt(t.monto)}</div>${del}</div></div>`;
   }).join('');
 }
@@ -5120,7 +5176,7 @@ function renderMovimientos() {
     const esGasto=m.tipo==='gasto';
     // catalogo CUENTAS (nunca el valor crudo): el Atajo escribe por REST y el campo podria traer cualquier cosa
     const cuenta=CUENTAS[esGasto?it.fuente:it.destino]||'(cuenta desconocida)';
-    const del=it.id?`<button class="del-btn" onclick="${esGasto?'eliminarGasto':'eliminarIngreso'}('${it.id}')">&times;</button>`:'';
+    const del=it.id?`<button type="button" class="del-btn del-x" aria-label="borrar" onclick="${esGasto?'eliminarGasto':'eliminarIngreso'}('${it.id}')">&times;</button>`:'';
     // editar corrige la captura SIN mover dinero ni fecha: por eso no hace falta borrar y volver a registrar
     const edit=it.id?`<button class="edit-btn" title="editar movimiento" aria-label="editar movimiento" onclick="editarMovimiento('${esGasto?'gasto':'ingreso'}','${it.id}')">&#9998;</button>`:'';
     const marca=it.pendiente===true?' · atajo: pendiente de aplicar':(it.porAtajo===true&&it.aplicadoSaldo===false?' · atajo: rechazado (no afectó saldos)':'');
@@ -5657,7 +5713,9 @@ function renderDeudas() {
   let gt=0; Object.values(personas).forEach(p=>gt+=p.saldo);
   const gtEl=document.getElementById('deuda-grand-total');
   gtEl.textContent=fmt(Math.abs(gt)); gtEl.className='amount '+(gt>=0?'pos':'neg');
-  document.getElementById('deuda-grand-sub').textContent=gt>=0?'te deben en total':'debes en total';
+  // el grande es el NETO; abajo, las dos partes que lo forman (antes 'te deben en total' mostraba el neto)
+  const teDeben=Object.values(personas).reduce((a,p)=>a+Math.max(0,p.saldo||0),0), debes=Object.values(personas).reduce((a,p)=>a+Math.max(0,-(p.saldo||0)),0);
+  document.getElementById('deuda-grand-sub').textContent=(gt>=0?'a tu favor':'en tu contra')+' · te deben '+fmt(teDeben)+' · tú debes '+fmt(debes);
   document.getElementById('personas-container').innerHTML=Object.entries(personas).map(([key,p])=>{
     const isPos=p.saldo>=0;
     const movs=p.movimientos.slice().sort((a,b)=>(String(b.fecha||'')+'|'+String(b.creado||'')).localeCompare(String(a.fecha||'')+'|'+String(a.creado||''))).map(m=>{
@@ -5669,7 +5727,7 @@ function renderDeudas() {
       else if(m.cuenta) cuentaTxt=((DEUDA_TIPOS[m.tipo]||{}).cuenta<0?'salió de ':'entró a ')+escapeHtml(CUENTAS[m.cuenta]||m.cuenta);
       const meta=[escapeHtml(m.nota||''),fecha,cuentaTxt].filter(Boolean).join(' · ');
       // solo los movimientos nuevos (v:2 con id y cuenta registrada) se pueden eliminar con reversion completa
-      const del=(m.id&&m.v===2)?`<button class="del-btn" onclick="eliminarDeuda('${key}','${m.id}')">&times;</button>`:'';
+      const del=(m.id&&m.v===2)?`<button type="button" class="del-btn del-x" aria-label="borrar" onclick="eliminarDeuda('${key}','${m.id}')">&times;</button>`:'';
       return`<div class="item-row"><div><div class="item-cat">${escapeHtml(m.subcat)}</div><div class="item-meta">${meta}</div></div><div style="display:flex;align-items:center"><div class="${isNeg?'item-amt-neg':'item-amt-pos'}">${isNeg?'-':'+'}${fmt(m.monto)}</div>${del}</div></div>`;
     }).join('');
     return`<div class="deuda-person"><div class="deuda-header" role="button" tabindex="0" onclick="toggleDeuda('d-${key}')"><div><div class="deuda-name">${escapeHtml(p.nombre)}</div><div class="deuda-sub">${isPos?'te debe':'le debes'}</div></div><div class="deuda-total ${isPos?'pos':'neg'}">${fmt(Math.abs(p.saldo))}</div></div><div class="deuda-detail" id="d-${key}">${excelPanelHTML(key)}${movs||'<div class="empty-state" style="padding:12px 0">sin movimientos</div>'}</div></div>`;
@@ -6739,7 +6797,7 @@ function renderFondo() {
   const kpi = (l, n, sub, hero) => '<div class="dkpi' + (hero ? ' hero' : '') + '"><div class="l">' + escapeHtml(l) + '</div>' +
     '<div class="n">' + escapeHtml(n) + '</div>' + (sub ? '<div class="s">' + escapeHtml(sub) + '</div>' : '') + '</div>';
   k.innerHTML =
-    kpi('fondo apartado', fmt(F), F > 0 ? 'dentro de tus cuentas, protegido' : 'todavía no hay dinero apartado', true) +
+    kpi('fondo apartado', fmt(F), F > 0 ? 'dentro de tus cuentas, separado de tu dinero disponible' : 'todavía no hay dinero apartado', true) +
     kpi('tu dinero', T.listo ? fmt(T.tuyo) : '—', 'lo tuyo, sin el fondo') +
     kpi('patrimonio completo', T.listo ? fmt(T.fisico) : '—', 'tu dinero + el fondo') +
     kpi('neto completo', T.listo ? fmt(T.neto + F) : '—', 'suma lo que te deben y resta tus tarjetas') +
@@ -6940,7 +6998,7 @@ function renderMetas(ctx) {
     const txt=faltan>0
       ?`te faltan ${fmt(faltan)} · llevas ${pct.toFixed(1)}% de la meta`
       :`meta superada por ${fmt(-faltan)} · ${pct.toFixed(1)}%`;
-    return `<div class="resumen-bar"><div class="bar-header"><span class="bar-label">${escapeHtml(nombre)}</span><span><span class="bar-amt" style="color:var(--accent-dark)">${fmt(actual)} / ${fmt(meta)}</span>${id?`<button class="del-btn" onclick="eliminarMeta('${id}')">&times;</button>`:''}</span></div>`+
+    return `<div class="resumen-bar"><div class="bar-header"><span class="bar-label">${escapeHtml(nombre)}</span><span><span class="bar-amt" style="color:var(--accent-dark)">${fmt(actual)} / ${fmt(meta)}</span>${id?`<button type="button" class="del-btn del-x" aria-label="borrar" onclick="eliminarMeta('${id}')">&times;</button>`:''}</span></div>`+
       `<div class="bar-track" style="height:6px"><div class="bar-fill" style="width:${Math.max(0,Math.min(100,pct)).toFixed(1)}%"></div></div>`+
       `<div class="item-meta" style="margin-top:4px">${txt}${sub?' · '+sub:''}</div></div>`;
   };
@@ -7044,8 +7102,8 @@ function renderCamino(ctx) {
     const proy=actual+prom*mesesFut, nece=falta/mesesFut, ok=proy>=meta-0.005;
     const promTxt=(prom<0?'−':'')+fmt(Math.abs(prom)); // signo manual: fmt pone el $ antes del -
     return `<div class="item-row"><div><div class="item-cat">${ok?'✅':'🎯'} ${escapeHtml(nombre)}</div><div class="item-meta">${
-      ok?('a tu ritmo (~'+promTxt+'/mes) llegas a diciembre con '+fmt(proy))
-        :('a tu ritmo (~'+promTxt+'/mes) llegarías a '+fmt(Math.max(0,proy))+' — sube tu aporte a '+fmt(nece)+'/mes')
+      ok?('a tu ritmo (unos '+promTxt+'/mes) llegas a diciembre con '+fmt(proy))
+        :('a tu ritmo (unos '+promTxt+'/mes) llegarías a '+fmt(Math.max(0,proy))+' — sube tu aporte a '+fmt(nece)+'/mes')
     }</div></div></div>`;
   };
   el.innerHTML=(MT.items||[]).map(m=>{
@@ -7080,11 +7138,11 @@ function renderApartados() {
         const meses=mesesHasta(a.fechaLimite);
         if(meses>0){
           const fa=+a.fechaLimite.slice(0,4), fm=+a.fechaLimite.slice(5,7);
-          sub+=' · guarda ~'+fmt(faltan/meses)+'/mes para llegar en '+MESES[fm-1]+(fa!==anoActual?' '+fa:'');
+          sub+=' · guarda unos '+fmt(faltan/meses)+'/mes para llegar en '+MESES[fm-1]+(fa!==anoActual?' '+fa:'');
         } else sub+=' · la fecha límite ya pasó';
       }
     }
-    return `<div class="resumen-bar"><div class="bar-header"><span class="bar-label">${escapeHtml(a.nombre)}</span><span style="display:flex;align-items:center"><span class="bar-amt" style="color:var(--accent-dark)">${fmt(a.ahorrado)} / ${fmt(a.meta)}</span><button type="button" class="del-btn" onclick="eliminarApartado('${a.id}')">&times;</button></span></div>`+
+    return `<div class="resumen-bar"><div class="bar-header"><span class="bar-label">${escapeHtml(a.nombre)}</span><span style="display:flex;align-items:center"><span class="bar-amt" style="color:var(--accent-dark)">${fmt(a.ahorrado)} / ${fmt(a.meta)}</span><button type="button" class="del-btn del-x" aria-label="borrar" onclick="eliminarApartado('${a.id}')">&times;</button></span></div>`+
       `<div class="bar-track" style="height:6px"><div class="bar-fill" style="width:${Math.max(0,Math.min(100,pct)).toFixed(1)}%"></div></div>`+
       `<div class="bar-header" style="margin-top:4px"><span class="item-meta">${sub}</span><button type="button" class="del-btn" style="font-size:12px;color:var(--accent);padding:2px 0 2px 10px" onclick="abonarApartado('${a.id}')">+ abonar / corregir</button></div></div>`;
   }).join('');
@@ -8401,12 +8459,11 @@ function valorBolsaEn(ms) {
   }
   return {valor:total,fecha:dia};
 }
-function renderUtilidades(start,end) {
-  const el=document.getElementById('res-utilidades'); if(!el) return;
+// el CALCULO de 'cuanto gano tu dinero', sin tocar el DOM. Lo usan el Resumen (renderUtilidades) y la
+// cifra del mes de Inicio (pintarGananciaMes): una sola formula, si se cambia se cambia aqui
+function utilidadPeriodo(start,end) {
   const endC=new Date(Math.min(Date.now(),end.getTime()));
   const dias=Math.max(0,(endC-start)/86400000);
-  const filas=[];
-  const fila=(ico,tit,meta,val)=>filas.push(`<div class="item-row"><div><div class="item-cat">${ico} ${escapeHtml(tit)}</div><div class="item-meta">${escapeHtml(meta)}</div></div><div style="font-size:14px;font-weight:600">${escapeHtml(val)}</div></div>`);
   // 1) intereses: se recalculan exactos sobre los TRAMOS guardados (cerrados + el abierto), asi
   // que mover dinero ya no borra la historia. Solo es parcial si la historia de una cuenta
   // empieza dentro del periodo (antes de eso no hay tramos ni semilla)
@@ -8419,8 +8476,6 @@ function renderUtilidades(start,end) {
   const cubre=k=>!inicioHistoria(k)||saldoCuentaEn(k,start.getTime())!==null;
   const hueco=CTAS_AHORRO.some(k=>!cubre(k));
   const parcialInt=!!hDentro||hueco;
-  fila('🏦','intereses de tus cuentas',
-    'cajita NU, Revolut Savings y Mifel (estimado) · descontando lo conciliado al fondo'+(avisoTasaMifel()?' · tasa de Mifel por confirmar':'')+(parcialInt?' · parcial: '+(hueco?'hay días sin historia en este periodo':'sin historia antes del '+hDentro):''),(intereses>=0?'+':'−')+fmt(Math.abs(intereses)));
   // 2) plusvalia de bolsa = valorFin - valorIni - aportes netos del periodo (compras-ventas)
   const vIni=valorBolsaEn(start.getTime()-1), vFin=valorBolsaEn(endC.getTime());
   let plus=null, motivo='';
@@ -8433,14 +8488,53 @@ function renderUtilidades(start,end) {
     const aportes=opsRango.reduce((s,o)=>s+(o.tipo==='venta'?-1:1)*o.montoMxn,0);
     plus=vFin.valor-vIni.valor-aportes;
   }
-  if(plus===null) fila('📈','plusvalía de tus acciones',motivo,'—');
-  else fila('📈','plusvalía de tus acciones','cambio de valor sin contar lo que aportaste'+(vFin.fecha?(' · al cierre del '+vFin.fecha):''),(plus>=0?'+':'−')+fmt(Math.abs(plus)));
   // 3) dividendos que YA te pagaron en el periodo: se registran como ingreso "Dividendos"
   const divs=(state.ingresos||[]).filter(i=>i&&movValido(i)&&/dividend/i.test(String(i.cat||'')))
     .reduce((t,i)=>{ const ms=msFechaMov(i.fecha); return (ms!==null&&ms>=start.getTime()&&ms<endC.getTime())?t+i.monto:t; },0);
-  fila('💵','dividendos cobrados',divs>0.005?'lo que te pagaron tus acciones, registrado como ingreso':'registra lo que te paguen como ingreso "Dividendos"','+'+fmt(divs));
   // 4) utilidad total del periodo
   const util=intereses+(plus||0)+divs;
+  return {endC,dias,intereses,hDentro,hueco,parcialInt,vIni,vFin,plus,motivo,opsRango,divs,util};
+}
+// Inicio: lo que gano tu dinero en el mes en curso, bajo la cifra grande. Sin cuentas con interes,
+// ni bolsa ni dividendos no se muestra; si la bolsa no se puede valuar se dice, nunca se pone 0
+function pintarGananciaMes() {
+  const el=document.getElementById('ganancia-mes'); if(!el) return;
+  const {start,end}=rangoPeriodo('mes',0);
+  const u=utilidadPeriodo(start,end);
+  const hayBolsa=Object.keys(state.posiciones||{}).some(sy=>accionesEnFecha(sy,Date.now())>0)||u.opsRango.length>0;
+  const hayInteres=CTAS_AHORRO.some(k=>!!inicioHistoria(k));
+  if(!hayInteres&&!hayBolsa&&!(u.divs>0.005)){ el.hidden=true; return; }
+  const util=hayBolsa?u.util:u.intereses+u.divs, neg=util<-0.005;
+  // bolsa sin valuar y sin ningun interes ni dividendo conocido: la ganancia es desconocida, no "+$0.00"
+  const pendiente=hayBolsa&&u.plus===null&&!hayInteres&&!(u.divs>0.005);
+  const notas=[];
+  if(hayBolsa&&u.plus===null) notas.push(notaBolsaPendiente(u.motivo));
+  if(u.parcialInt) notas.push('parcial');
+  if(avisoTasaMifel()) notas.push('estimado');
+  el.classList.toggle('neg',!pendiente&&neg);
+  el.innerHTML=(pendiente?'<span>este mes: ganancia pendiente</span>'
+      :'<span>este mes tu dinero '+(neg?'perdió':'ganó')+'</span> <b>'+(neg?'':'+')+fmt(Math.abs(util))+'</b>')
+    +(notas.length?'<span class="gm-nota">· '+notas.join(' · ')+'</span>':'');
+  el.hidden=false;
+}
+// la nota segun la causa que reporta utilidadPeriodo (motivo): sin precios vs operacion sin monto
+function notaBolsaPendiente(motivo) {
+  return /sin monto/.test(String(motivo||''))?'sin bolsa: falta el monto de una operación':'sin bolsa: precio pendiente';
+}
+// envoltorio con su try/catch: render, showPage('inicio') y volver a la app lo usan para que la cifra no quede del mes anterior
+function refrescarGananciaMes() {
+  try{ pintarGananciaMes(); }catch(e){ console.error('ganancia del mes', e); const g=document.getElementById('ganancia-mes'); if(g) g.hidden=true; }
+}
+function renderUtilidades(start,end) {
+  const el=document.getElementById('res-utilidades'); if(!el) return;
+  const {endC,dias,intereses,hDentro,hueco,parcialInt,vIni,vFin,plus,motivo,opsRango,divs,util}=utilidadPeriodo(start,end);
+  const filas=[];
+  const fila=(ico,tit,meta,val)=>filas.push(`<div class="item-row"><div><div class="item-cat">${ico} ${escapeHtml(tit)}</div><div class="item-meta">${escapeHtml(meta)}</div></div><div style="font-size:14px;font-weight:600">${escapeHtml(val)}</div></div>`);
+  fila('🏦','intereses de tus cuentas',
+    'cajita NU, Revolut Savings y Mifel (estimado) · descontando lo conciliado al fondo'+(avisoTasaMifel()?' · tasa de Mifel por confirmar':'')+(parcialInt?' · parcial: '+(hueco?'hay días sin historia en este periodo':'sin historia antes del '+hDentro):''),(intereses>=0?'+':'−')+fmt(Math.abs(intereses)));
+  if(plus===null) fila('📈','plusvalía de tus acciones',motivo,'—');
+  else fila('📈','plusvalía de tus acciones','cambio de valor sin contar lo que aportaste'+(vFin.fecha?(' · al cierre del '+vFin.fecha):''),(plus>=0?'+':'−')+fmt(Math.abs(plus)));
+  fila('💵','dividendos cobrados',divs>0.005?'lo que te pagaron tus acciones, registrado como ingreso':'registra lo que te paguen como ingreso "Dividendos"','+'+fmt(divs));
   fila(util>=0?'💰':'⚠️','utilidad total',plus===null?'intereses + dividendos (la plusvalía no se pudo calcular)':'intereses + plusvalía + dividendos',(util>=0?'+':'−')+fmt(Math.abs(util)));
   // 4) rendimiento sobre el capital, ponderando los flujos por el tiempo que estuvieron
   // dentro del periodo (Modified Dietz): un deposito de ayer no infla el porcentaje

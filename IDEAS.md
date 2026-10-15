@@ -335,3 +335,14 @@ tarjeta y de deudas.
 en `test-dinero.mjs` (cada caso borde, y que editar = borrar + crear en saldos) → port a las
 cuatro copias → cadena completa (Codex, code-reviewer, debugger, qa-tester) → `usuario-real` →
 un commit por repo.
+
+## Pendientes que dejó la revisión de Codex del 14-oct-2026 (vienen de antes, no de la rama)
+- **Modo privado sin conexión:** `togglePrivado()` solo repinta si `datosCargados`. Si la app arrancó de la copia local
+  y no hay red, el ojo cambia pero los montos siguen visibles. Arreglo propuesto: repintar en privado cuando ya se
+  pintó la copia local, sin destrabar las escrituras. Toca el orden de arranque: hacerlo con su propia revisión.
+- **Ids dentro de `onclick`:** los botones de borrar arman JavaScript con el id del documento (`eliminarGasto('${id}')`)
+  y la carga hace `{id:d.id, ...d.data()}`, así que un campo `id` dentro del documento pisaría el id real. Hoy los
+  ids son automáticos de Firestore y solo el dueño escribe, pero lo sano es delegar eventos con `data-*` y cargar
+  como `{...d.data(), id:d.id}`. Es un cambio en todas las listas: va en su propia sesión.
+- **Menor:** la píldora de Inicio dice "estimado" solo cuando vence la tasa de Mifel; el Resumen marca Mifel como
+  estimado siempre. Decidir si la píldora también.
