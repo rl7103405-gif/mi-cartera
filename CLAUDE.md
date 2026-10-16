@@ -117,7 +117,7 @@ Tema por defecto **claro, verde salvia** (tokens en `:root`: `--bg`, `--text`, `
 - **Regla que no se rompe:** `altaGasto`/`altaIngreso` llevan `requerirAusentes:[ref]` desde el PRIMER intento. Sin eso, si el commit llega y se pierde la respuesta, el SDK reintenta y cobra dos veces (reproducido el 15-oct interceptando `:commit`).
 - **Orden en pantalla:** soltar el candado (`liberarDinero` drena snapshots) y DESPUÉS `aplicarRes`. Al revés, un snapshot viejo pisa el saldo confirmado.
 - **Pruebas de punta a punta** con emuladores (nunca producción): `Desktop\CARTERA\pruebas-sin-senal\` (fuera del repo).
-- **Pendiente:** las copias de Eli, Toño y Zoe todavía no lo tienen.
+- **Copias (16-oct):** llevado a Eli, Toño y Zoe en ramas `sin-senal-2026-10-16`. Al trasladar un parche a las copias: `patch --fuzz=0` (con fuzz alto los pedazos caían en otra función), comparar las líneas +/- contra la referencia, y ajustar a mano la lista de `desdeCache` y los nombres de colección (`C_GASTOS`/`C_INGRESOS`).
 
 ## Planes futuros (mencionados por Roberto, NO implementar sin que lo pida explícitamente)
 

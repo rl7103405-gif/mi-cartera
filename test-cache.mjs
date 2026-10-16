@@ -71,6 +71,8 @@ const HAY_STOCKS = fuente.includes('C_OPS') || fuente.includes("'stocksOps'");
 const HAY_MERCADO = fuente.includes("'mercado'");
 // el fondo de la universidad (solo la app de Roberto): sin el cacheado, inicio pintaria lo apartado como tuyo
 const HAY_FONDO = fuente.includes("'fondo'");
+// Eli y Toño (16-oct): la configuracion de cuentas entra al todo o nada (sin ella se capturaria con las de fabrica)
+const HAY_CUENTAS = fuente.includes("'cuentas'");
 const fondoSrc = HAY_FONDO ? extrae('// ── fondo: saneo', '// ── fin saneo fondo') : '';
 // la casa (30-sep): la carga normaliza las categorías de ingreso con conCatPapa ("Mes papá" primero)
 const papaSrc = HTML.includes('const conCatPapa')
@@ -107,6 +109,7 @@ function cacheCompleta() {
   };
   if (HAY_TDCREV) CACHE[`${NS}/tarjetaRev`] = { deuda:200, deposito:1000, movimientos:[] };
   if (HAY_MERCADO) CACHE[`${NS}/mercado`] = { ivvPrecio:154.2, usdMxn:18.5, accionesMkt:{NVDA:{precio:120}} };
+  if (HAY_CUENTAS) CACHE[`${NS}/cuentas`] = { slots:{ tarjeta:{on:false} } };
   if (HAY_FONDO) CACHE[`${NS}/fondo`] = { saldosPorCuenta:{revolut:800000, gbm:5}, movs:[{id:'f1',tipo:'entrada',cuenta:'revolut',monto:800000,fecha:'2026-09-28',creado:'2026-09-28T10:00:00Z'}] };
   COLS = {
     [PFX+'gastos']:         [{id:'g1',monto:150,cat:'Comida',fecha:'2026-09-02T00:00:00Z'},
@@ -147,7 +150,7 @@ chk('NO escribio NADA en Firestore', ESCRITURAS === 0, 'escrituras=' + ESCRITURA
 // ═══ 2. TODO O NADA ═══
 console.log('\n2. Si falta CUALQUIER pieza, no pinta nada (todo o nada)');
 for (const falta of ['saldos','tarjeta','personas','categorias','historial',...DOCS_OPC,
-                     ...(HAY_MERCADO?['mercado']:[]), ...(HAY_FONDO?['fondo']:[])]) {
+                     ...(HAY_MERCADO?['mercado']:[]), ...(HAY_FONDO?['fondo']:[]), ...(HAY_CUENTAS?['cuentas']:[])]) {
   reset(); cacheCompleta(); delete CACHE[`${NS}/${falta}`];
   ok = await pintarDesdeCache();
   chk('sin ' + falta + ' -> false y estado intacto', ok === false && state.efectivo === 0,
