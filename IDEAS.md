@@ -364,3 +364,27 @@ Propuesta (Claude, para discutir):
    "cambiar la tasa".
 Toca `guardarManuales` (escribe saldos y tramos): es flujo de dinero, va con la cadena completa y en las cuatro
 copias, y en Zoe con sus cuentas (Nu, BBVA, cajita Nu, BBVA ahorro).
+
+## Lo que salió del 15-oct-2026 (sin señal + estrategia), en orden propuesto
+
+El plan completo, con competencia y reels, está fuera del repo (es público):
+`Desktop\CARTERA\documentos\estrategia-2026-10-15\plan-mi-cartera.md`.
+
+- **"Tu suscripción" en perfil** (siguiente, si alguien paga el domingo): plan, pagado hasta, datos de
+  transferencia con referencia por persona y botón de copiar; documento `suscripcion` que Roberto marca a mano;
+  aviso 7 días antes. Los datos de pago NO van en la landing pública. Prepara la etapa de liga de pago y la de
+  cobro de Apple (RevenueCat): solo cambia de dónde sale "pagado hasta".
+- **Borrar mi cuenta + aviso de privacidad + términos** (lo pide Apple, 5.1.1(v)).
+- **Primer uso guiado hasta el número en cinco minutos** (ya estaba en espera desde el 2-oct).
+- **Avisos al teléfono (web push)**, pidiendo permiso después del primer resultado.
+- **Casa (hasta 5 con inicio propio)**: solo si alguno de los diez lo pide. Sí hay competencia (FinanzApp
+  Familiar, CoperachApp, Manebo); el hueco es la profundidad (cuentas mexicanas, rendimiento, aportaciones).
+  Choca con el cifrado en el teléfono: necesita su propio debate de diseño.
+- **Sin señal, pendientes conscientes de la v1:** transferencias, tarjeta, deudas, saldos y bolsa siguen pidiendo
+  señal; el saldo se mueve el día que sube (un gasto de cajita capturado el martes y subido el viernes cierra su
+  tramo el viernes, diferencia de centavos); si un movimiento "dudoso" sí llegó y otro aparato lo borra antes de que
+  este lo confirme, el reintento lo vuelve a crear (raro: pérdida de respuesta + borrado en esa ventana).
+- **Snapshot viejo drenado al soltar el candado (Codex, 15-oct, fuera de esta rama):** en TODA la app, si un
+  snapshot de antes del commit queda encolado, `liberarDinero` lo aplica; los flujos normales luego llaman
+  `aplicarRes` y lo corrigen, pero el orden depende de cada flujo. Revisar que todos sigan "soltar, y después
+  aplicarRes", o pasar a reconciliar por versión del documento.

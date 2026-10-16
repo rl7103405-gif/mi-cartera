@@ -110,6 +110,15 @@ Tema por defecto **claro, verde salvia** (tokens en `:root`: `--bg`, `--text`, `
 6. **Interés compuesto de cajitas:** `calcCompoundAt(base, fechaStr, tasaPct, ms)` es la función central — cualquier cajita nueva o cambio de tasa debe pasar por ahí, nunca hardcodear un monto fijo por día otra vez.
 7. **`parseFechaLocal()`** existe específicamente para evitar el bug de timezone (parsear `YYYY-MM-DD` como local en vez de UTC). Úsalo siempre que se lea una fecha en ese formato desde el estado.
 
+## Sin señal (15/10/2026, copiado del rancho; consenso con Codex en 3 rondas)
+
+- **Ver:** si `loadFromFirebase` sale de la caché (cualquiera de sus 17 lecturas con `metadata.fromCache`), `cargaDesdeCache=true`: banda "copia local SIN confirmar", punto rojo, y `armarReintentoSenal` recarga sola con espera creciente. Nunca se marca sincronizado ni verde con datos de caché. Las bandas viven en `.bandas-conexion`, debajo de las pestañas.
+- **Capturar:** solo **gasto e ingreso** van a la bandeja (IndexedDB propia `cartera-bandeja-<carpeta>`; las carteras comparten dominio). Comando inmutable con el id de Firestore fijado al capturar y el uid de quien capturó. Sube en serie por la MISMA `txDinero` con `requerirAusentes:[ref]`; `ya-existe` = confirmado. No toca saldos hasta subir. Todo lo demás (transferencias, tarjeta, deudas, saldos, bolsa, suscripciones) pide señal: `txDinero` falla al instante sin red.
+- **Regla que no se rompe:** `altaGasto`/`altaIngreso` llevan `requerirAusentes:[ref]` desde el PRIMER intento. Sin eso, si el commit llega y se pierde la respuesta, el SDK reintenta y cobra dos veces (reproducido el 15-oct interceptando `:commit`).
+- **Orden en pantalla:** soltar el candado (`liberarDinero` drena snapshots) y DESPUÉS `aplicarRes`. Al revés, un snapshot viejo pisa el saldo confirmado.
+- **Pruebas de punta a punta** con emuladores (nunca producción): `Desktop\CARTERA\pruebas-sin-senal\` (fuera del repo).
+- **Pendiente:** las copias de Eli, Toño y Zoe todavía no lo tienen.
+
 ## Planes futuros (mencionados por Roberto, NO implementar sin que lo pida explícitamente)
 
 1. **Apps individuales para su familia** (papá, mamá, hermanas, novia) — cada quien con su propia copia independiente del código y su propio proyecto de Firebase (no multiusuario dentro de esta misma app). Es básicamente clonar el repo y cambiar el `firebaseConfig` + `ALLOWED_EMAIL`.

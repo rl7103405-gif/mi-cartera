@@ -143,6 +143,7 @@ html[data-tema='grafito'] .tabs{--sombra-scroll:rgba(255,255,255,.16)}
 .tarjeta-card [role="button"]:focus-visible{outline:2px solid #fff;outline-offset:2px;box-shadow:0 0 0 4px rgba(0,0,0,.55)}
 .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
 .page{display:none;padding:20px;max-width:430px;margin:0 auto}.page.active{display:block}
+.bandas-conexion{max-width:430px;margin:0 auto;padding:0 20px}
 
 /* TOTAL */
 .total-section{margin-bottom:24px;padding-top:10px}
@@ -460,6 +461,7 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
 @media(min-width:900px){
   .page{max-width:560px}
   #page-inicio{max-width:1060px}
+  .bandas-conexion{max-width:1060px}
   #page-movimientos{max-width:1060px}
   #page-metas{max-width:1060px}
   #page-perfil{max-width:1060px}
@@ -628,6 +630,16 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
   <!-- perfil siempre al final, a la derecha. Deudas y noticias ya no son pestañas: se abren desde
        movimientos y desde resumen (ver PADRE_PAGINA en showPage) -->
   <button type="button" class="tab" data-page="perfil" onclick="showPage('perfil')">perfil</button>
+</div>
+
+<!-- (15-oct-2026) las bandas de conexion van arriba y se ven en TODAS las pantallas: antes vivian
+     al fondo de Inicio y en el telefono nadie las veia -->
+<div class="bandas-conexion">
+  <!-- avisa, con todas sus letras, que lo que se ve es la copia guardada en el aparato
+       y todavia no esta confirmada con el servidor -->
+  <div id="banda-cache" hidden style="margin:10px 0 0;padding:9px 14px;border-radius:var(--rs);background:var(--bg3);border:0.5px solid var(--border2);font-size:12px;color:var(--muted);text-align:center"></div>
+  <!-- gastos e ingresos capturados sin senal que viven en el telefono hasta que suban (15-oct-2026) -->
+  <div id="banda-bandeja" role="status" hidden style="margin:10px 0 0;padding:9px 14px;border-radius:var(--rs);background:var(--bg3);border:0.5px solid var(--border2);font-size:12px;color:var(--muted);text-align:center"></div>
 </div>
 
 <!-- INICIO -->
@@ -913,9 +925,6 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
 
 
   </div>
-  <!-- avisa, con todas sus letras, que lo que se ve es la copia guardada en el aparato
-       y todavia no esta confirmada con el servidor -->
-  <div id="banda-cache" hidden style="margin:12px 0 0;padding:9px 14px;border-radius:var(--rs);background:var(--bg3);border:0.5px solid var(--border2);font-size:12px;color:var(--muted);text-align:center"></div>
   <!-- solo aparece si el service worker bajo una version distinta a la que se esta viendo -->
   <div id="aviso-version" hidden style="margin:12px 0 0;padding:10px 14px;border-radius:var(--rs);background:var(--bg3);border:0.5px solid var(--border2);font-size:13px;text-align:center">
     hay una versión nueva de la app
@@ -950,7 +959,7 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
         <select id="gasto-cat" onchange="handleCatChange('gasto',this)"></select>
       </div>
       <div class="field"><label>monto</label><input type="number" id="gasto-monto" placeholder="ej. 150" step="1" inputmode="decimal"></div>
-      <div class="field"><label>nota (opcional)</label><input type="text" id="gasto-nota" placeholder="ej. taquería"></div>
+      <div class="field"><label>nota (opcional)</label><input type="text" id="gasto-nota" maxlength="200" placeholder="ej. taquería"></div>
       <div class="field"><label>fecha (YYYY-MM-DD, vacía = hoy)</label><input type="text" id="gasto-fecha" placeholder="hoy"></div>
       <div class="field"><label>pagado con</label>
         <div class="type-toggle" id="gasto-fuente-toggle">
@@ -970,7 +979,7 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
         <select id="ingreso-cat" onchange="handleCatChange('ingreso',this)"></select>
       </div>
       <div class="field"><label>monto</label><input type="number" id="ingreso-monto" placeholder="ej. 5000" step="1" inputmode="decimal"></div>
-      <div class="field"><label>nota (opcional)</label><input type="text" id="ingreso-nota" placeholder="ej. pago proyecto"></div>
+      <div class="field"><label>nota (opcional)</label><input type="text" id="ingreso-nota" maxlength="200" placeholder="ej. pago proyecto"></div>
       <div class="field"><label>fecha (YYYY-MM-DD, vacía = hoy)</label><input type="text" id="ingreso-fecha" placeholder="hoy"></div>
       <div class="field"><label>entra a</label>
         <div class="type-toggle" id="ingreso-destino-toggle">
@@ -1055,6 +1064,7 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
       <div class="month-label" id="mov-periodo-label">—</div>
       <button class="month-nav" onclick="cambiarPeriodoMov(1)">&#8250;</button>
     </div>
+    <div class="panel" id="bandeja-panel" hidden></div>
     <div class="panel" id="movimientos-historial"><div class="empty-state">sin movimientos registrados</div></div>
   </div>
   </div>
@@ -1848,6 +1858,20 @@ window.doLogin = async function() {
 };
 
 window.doLogout = async function() {
+  // (15-oct-2026) con movimientos en la bandeja del telefono se avisa: NO se borran, se quedan
+  // en este aparato y suben cuando esta misma cuenta vuelva a entrar con senal
+  try {
+    const uid = uidActual();
+    // tope de 3 s: si IndexedDB se cuelga (iOS), cae al catch y la sesion se cierra igual
+    const todos = await Promise.race([listarComandos(),
+      new Promise((_, no) => setTimeout(() => no(new Error('la bandeja no contestó en 3 s')), 3000))]);
+    const n = todos.filter(c => c.uid === uid && c.estado !== B_EST.CONFIRMADO).length;
+    if (n && !(await confirmarDeslizando({titulo:'¿Salir con movimientos sin subir?',
+        texto:'Tienes ' + n + ' movimiento(s) guardados en este teléfono que todavía no llegan a tu cuenta. Se quedan aquí y suben cuando vuelvas a entrar con señal.',
+        verbo:'salir'}))) return;
+  } catch(e) { console.error('logout: revisar bandeja', e); }
+  clearTimeout(bandejaTimer); bandejaTimer = null;
+  clearTimeout(senalTimer); senalTimer = null;
   desuscribir(); // cortar los listeners ANTES de perder el token, si no tiran permission-denied
   datosCargados = false;
   await signOut(auth);
@@ -1899,7 +1923,8 @@ onAuthStateChanged(auth, async user => {
         // que esos numeros no estan confirmados y que no se puede registrar nada
         marcarCopiaLocal(true, true);
         document.getElementById('status-inicio').textContent=textoEstadoPrecios();
-        showToast('sin conexión: ves tu copia local y no puedes registrar movimientos');
+        showToast('sin conexión: ves tu copia local · un gasto o ingreso se guarda en tu teléfono');
+        refrescarBandeja();
         return;
       }
       // sin copia local no hay nada que enseñar: NO seguir con datos DEFAULT en memoria
@@ -1909,7 +1934,13 @@ onAuthStateChanged(auth, async user => {
       showToast('ERROR al cargar datos de Firebase');
       return;
     }
-    marcarSincronizado();
+    // (15-oct-2026) sin red, getDoc contesta desde la cache del aparato y la carga "sale bien":
+    // eso NO es estar al dia. Se deja la banda de copia local y no se toca la hora de la ultima sync.
+    if (cargaDesdeCache) {
+      marcarCopiaLocal(true, true);
+      showToast('sin conexión: ves tu copia local · un gasto o ingreso se guarda en tu teléfono');
+    } else marcarSincronizado();
+    refrescarBandeja();
     document.getElementById('loading-overlay').classList.add('hidden');
     renderCatSelect('gasto-cat', state.catsGasto);
     renderCatSelect('ingreso-cat', state.catsIngreso);
@@ -1979,6 +2010,9 @@ let state = {
 
 // ── FIREBASE ──────────────────────────────────────────────────
 let datosCargados = false; // true solo cuando loadFromFirebase termina con exito (evita sobreescribir datos reales con defaults)
+// (15-oct-2026) true si la ULTIMA carga salio de la cache del aparato (sin red): la pantalla
+// funciona, pero nada esta confirmado con el servidor y el dinero no se mueve desde aqui
+let cargaDesdeCache = false;
 // ── ARRANQUE INSTANTANEO: pintar con la copia local ───────────────────────────
 // Tras el login, esperar al servidor es justo lo que se siente lento en el telefono.
 // Estas lecturas van SOLO a la copia guardada en el aparato (IndexedDB): contestan en
@@ -2079,8 +2113,14 @@ async function pintarDesdeCache() {
 // la banda avisa, con todas sus letras, que lo que se ve es la copia guardada y todavia
 // no esta confirmada con el servidor. Sin esto Roberto podria ver un saldo viejo y creer
 // que perdio dinero.
+// reintento automatico de la sincronizacion (ver armarReintentoSenal, mas abajo). Se declaran
+// aqui, antes de su primer uso posible, para no caer en la zona muerta de `let`
+let reintentandoSync = false, senalTimer = null, senalIntentos = 0;
 function marcarCopiaLocal(activo, falloSync) {
   mostrandoCopiaLocal = !!activo;
+  // la carga que fallo (o la cache sin red) deja armado el reintento solo; al confirmar se cancela.
+  // Durante alVolverSenal lo arma/cancela esa funcion al terminar (evita doble conteo del backoff).
+  if (!reintentandoSync && (!activo || falloSync) && typeof window.armarReintentoSenal === 'function') window.armarReintentoSenal();
   const el = document.getElementById('banda-cache');
   if (!el) return;
   el.hidden = !activo;
@@ -2103,21 +2143,29 @@ function marcarCopiaLocal(activo, falloSync) {
 window.reintentarSync = async function() {
   const b = document.getElementById('banda-cache-btn');
   if (b) { b.disabled = true; b.textContent = 'reintentando…'; }
-  let ok = false;
-  try { ok = await loadFromFirebase(); } catch(e) { console.error('reintentarSync', e); }
+  let ok = false, estable = false;
+  // (15-oct-2026) si una operacion de dinero termino MIENTRAS se leia, lo leido pudo quedar
+  // anterior a ella y pisaria gastos/ingresos/saldos recien confirmados: se vuelve a leer (max 3).
+  // Solo una lectura ESTABLE (sin escrituras de por medio) se da por confirmada (Codex, ronda 3)
+  try { for (let i = 0; i < 3; i++) { const g = genDinero; ok = await loadFromFirebase(); if (!ok) break; if (genDinero === g) { estable = true; break; } } }
+  catch(e) { console.error('reintentarSync', e); }
   if (b) { b.disabled = false; b.textContent = 'reintentar'; }
   if (!ok) { showToast('sigue sin conexión'); return; }
-  marcarSincronizado();
   renderCatSelect('gasto-cat', state.catsGasto);
   renderCatSelect('ingreso-cat', state.catsIngreso);
   refrescar(renderPersonaSelect, render, renderMovimientos, renderTransferencias);
+  // otra vez desde la cache: sigue sin red aunque la carga "saliera bien"
+  if (cargaDesdeCache) { marcarCopiaLocal(true, true); showToast('sigue sin conexión'); return; }
+  // tres lecturas invalidadas seguidas: no se anuncia nada confirmado; banda y reintento siguen
+  if (!estable) { setSyncDot('err'); marcarCopiaLocal(true, true); return; }
+  marcarSincronizado();
   showToast('datos actualizados');
 };
-// y si el telefono recupera la senal, se reintenta solo
-window.addEventListener('online', () => { if (mostrandoCopiaLocal && !datosCargados) window.reintentarSync(); });
 function marcarSincronizado() {
   try { localStorage.setItem('ultimaSync', new Date().toLocaleString('es-MX',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})); } catch(e) {}
   marcarCopiaLocal(false);
+  // ya hay servidor: se sube lo que se capturo sin senal (no se espera, corre en segundo plano)
+  if (typeof window.sincronizarBandeja === 'function') window.sincronizarBandeja();
 }
 
 async function loadFromFirebase() {
@@ -2153,7 +2201,11 @@ async function loadFromFirebase() {
     // si los datos vinieron de la cache local (red caida o lentisima) NO se corren
     // las siembras/migraciones: decidirian sobre un estado viejo y podrian reaplicar
     // correcciones ya hechas. Se saltan y se reintentan en la proxima apertura con red.
-    const desdeCache = !!(sDoc && sDoc.metadata && sDoc.metadata.fromCache);
+    // (15-oct-2026) "vino del servidor" se certifica con TODAS las lecturas, no solo con saldos:
+    // cualquiera que salga de la cache (gastos, ingresos, personas...) deja el estado sin confirmar
+    const desdeCache = [sDoc, mDoc, pDoc, perDoc, tDoc, trvDoc, hDoc, aDoc, mtDoc, cDoc, tkDoc, fDoc,
+      gSnap, iSnap, trSnap, opSnap, rendSnap].some(s => !!(s && s.metadata && s.metadata.fromCache));
+    cargaDesdeCache = desdeCache;
     // el fondo se carga SIEMPRE, exista o no: sin el, inicio pintaria el dinero apartado como tuyo
     state.fondo = saneaFondo(fDoc.exists() ? fDoc.data() : null);
     if (sDoc.exists()) {
@@ -2341,7 +2393,8 @@ async function loadFromFirebase() {
     setDoc(doc(db,'cartera','posiciones'), posMap).catch(()=>{});
     // movimientos capturados por el Atajo de iOS (pendiente:true): se aplican a saldos aqui
     const resAtajo = await procesarPendientesAtajo();
-    setSyncDot('ok');
+    // (15-oct-2026) desde la cache NO es estar al dia: el punto se queda rojo hasta que hable el servidor
+    setSyncDot(desdeCache ? 'err' : 'ok');
     datosCargados = true;
     suscribirEnVivo(); // desde aqui la pantalla ya no se queda con saldos viejos
     if (resAtajo) {
@@ -2529,7 +2582,7 @@ function suscribirEnVivo() {
       // recupere y la pantalla quedaria vieja hasta recargar. Se encola y se drena al
       // soltar el candado; solo se guarda el ULTIMO por documento, que es el vigente.
       if(dineroOcupado){ snapsPendientes.set(ref.path,{datos,aplica,pinta}); return; }
-      try { aplica(datos); pinta(); setSyncDot('ok'); }
+      try { aplica(datos); pinta(); if(!snap.metadata.fromCache) setSyncDot('ok'); }
       catch(e) { console.error('snapshot',e); }
     }, err=>{ console.error('onSnapshot',err); setSyncDot('err'); });
     unsubs.push(u);
@@ -2541,7 +2594,7 @@ function suscribirEnVivo() {
     const docs=snap.docs.map(d=>({id:d.id, ...d.data()}));
     const aplica=d=>{ state.rendimientos=d; }, pinta=()=>refrescar(render,renderResumen);
     if(dineroOcupado){ snapsPendientes.set('__rendimientos',{datos:docs,aplica,pinta}); return; }
-    try { aplica(docs); pinta(); setSyncDot('ok'); } catch(e) { console.error('snapshot rendimientos',e); }
+    try { aplica(docs); pinta(); if(!snap.metadata.fromCache) setSyncDot('ok'); } catch(e) { console.error('snapshot rendimientos',e); }
   }, err=>{ console.error('onSnapshot rendimientos',err); setSyncDot('err'); });
   unsubs.push(uR);
 }
@@ -2575,9 +2628,10 @@ const esFechaReal = f => { if (typeof f !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.t
   const [y, m, d] = f.split('-').map(Number); const t = parseFechaLocal(f);
   return !isNaN(t.getTime()) && t.getFullYear() === y && t.getMonth() + 1 === m && t.getDate() === d; };
 let dineroOcupado=false; // guard de doble toque: UNA sola operacion de dinero a la vez
+let genDinero = 0;       // cuenta las operaciones de dinero terminadas: reintentarSync la compara para no pisarlas
 // soltar el candado SIEMPRE por aqui: al liberar hay que aplicar los cambios remotos
 // que llegaron durante la operacion y se dejaron en espera
-function liberarDinero() { dineroOcupado=false; drenarSnapshots(); }
+function liberarDinero() { dineroOcupado=false; genDinero++; drenarSnapshots(); }
 
 // cuentas de saldo simple: slot -> campo en cartera/saldos
 const CAMPO_SIMPLE={efectivo:'efectivo', nu:'nuSaldo', revolut:'revMXN', gbm:'efectivoGBM'};
@@ -2684,6 +2738,12 @@ const CAMPO_COMP={
 // }
 async function txDinero(plan) {
   if (!datosCargados) throw new Error('datos no cargados');
+  // (15-oct-2026) sin senal (o con lo cargado saliendo de la cache) la transaccion tardaba ~24 s en
+  // fallar y el candado seguia puesto: se avisa de inmediato. typeof porque test-dinero.mjs extrae
+  // este tramo sin cargaDesdeCache. La bandeja solo sube con senal y datos del servidor.
+  if (navigator.onLine === false || (typeof cargaDesdeCache !== 'undefined' && cargaDesdeCache)) {
+    const e = new Error('offline: sin conexión'); e.code = 'unavailable'; throw e;
+  }
   const deltasPlan = plan.deltas || {};   // SOLO para decidir que documentos leer
   const slotsSal = Object.keys(deltasPlan).filter(s => CAMPO_SIMPLE[s] || CAMPO_COMP[s]);
   const absolutos  = plan.absolutos || {};
@@ -2732,7 +2792,9 @@ async function txDinero(plan) {
       const meSnap = me ? await tx.get(me.ref) : null;
       // ── FASE 2: validar contra lo LEIDO. Cualquier return aborta sin escribir nada ──
       for (const s of req) if (!s.exists()) return {error:'ese movimiento ya lo eliminó alguien más — recarga la app'};
-      for (const s of aus) if (s.exists()) return {error:'ese pago ya lo registró alguien más este mes — recarga la app'};
+      // codigo: la bandeja del telefono reusa requerirAusentes con el id fijado al capturar; si ya
+      // existe es que ESE movimiento ya subio (se perdio la respuesta) y se da por confirmado
+      for (const s of aus) if (s.exists()) return {error:'ese pago ya lo registró alguien más este mes — recarga la app', codigo:'ya-existe'};
       for (const {v, snap} of ver) {
         if (!snap.exists()) return {error:'ese movimiento ya lo eliminó alguien más — recarga la app'};
         const d = snap.data() || {};
@@ -3007,10 +3069,14 @@ async function txDinero(plan) {
 // servidor la causa REAL es que se esta sincronizando, no un error raro: decirle
 // "recarga la app" ahi solo confunde y no arregla nada.
 function msgFalloDinero() {
+  // (15-oct-2026) sin red no es un error raro: solo gasto e ingreso se guardan en el telefono
+  if (navigator.onLine === false || cargaDesdeCache)
+    return 'sin conexión: esto necesita señal (solo un gasto o un ingreso se guardan en tu teléfono)';
   return datosCargados
     ? 'no se pudo confirmar — recarga la app antes de reintentar'
     : 'espera: todavía estoy sincronizando tus datos';
 }
+
 // aplica a memoria el resultado CANONICO que devolvio la transaccion (post-commit).
 // Se usa lo que quedo en el servidor, NO lo que esta pantalla creia tener.
 function aplicarRes(res) {
@@ -5053,6 +5119,434 @@ function renderTransferencias() {
   }).join('');
 }
 
+// ── SIN SEÑAL: LA BANDEJA DEL TELÉFONO (15-oct-2026) ─────────────────────────────
+// Copia del modelo de la app del rancho (prodeco/app-rancho, diseno-captura-sin-senal.md,
+// consensuado con Codex el 8-oct). Un GASTO o un INGRESO capturado sin senal se guarda como
+// comando INMUTABLE en una IndexedDB propia (aparte de la cache de Firestore, que no es una
+// cola confiable) y se sube despues, en serie y en el orden en que se capturo, por la MISMA
+// txDinero de siempre. El id del documento se fija al capturar y el reintento lleva
+// requerirAusentes: si la respuesta se perdio y el movimiento SI llego, el reintento cae en
+// 'ya-existe' y se da por confirmado. Nunca se registra dos veces.
+// Lo que esta en la bandeja NO toca saldos ni totales hasta que el servidor lo confirma: se ve
+// aparte, en gris, como "en tu telefono, por subir". Transferencias, tarjeta, deudas, saldos,
+// bolsa y suscripciones siguen pidiendo senal.
+// El nombre lleva la carpeta del sitio: las carteras de la familia viven en el MISMO dominio
+// (rl7103405-gif.github.io) y comparten IndexedDB; asi no se mezclan en un mismo telefono.
+const BANDEJA_NS = 'cartera-bandeja-' + ((location.pathname.split('/').filter(Boolean)[0] || 'raiz').replace(/[^\w-]/g, ''));
+const B_ALMACEN = 'comandos', B_META = 'meta', B_VERSION = 1;
+const B_EST = {PENDIENTE:'pendiente', ENVIANDO:'enviando', REVISAR:'revisar', CONFIRMADO:'confirmado'};
+const B_RECLAMO_MS = 2 * 60 * 1000;            // un 'enviando' mas viejo que esto: su pestaña murio
+const B_GUARDAR_CONF_MS = 3 * 24 * 3600 * 1000; // los confirmados se purgan a los 3 dias
+// topes del comando: se aplican AL CAPTURAR (guardarEnTelefono) y al subir (subirComando). Si solo
+// se pusieran al subir, una nota larga se aceptaba sin señal y luego se rechazaba para siempre
+const B_TOPE_CAT = 60, B_TOPE_NOTA = 200;
+let bandejaLista = [];       // ultima lectura de la bandeja (para pintar sin esperar a IndexedDB)
+let bandejaBase = null;
+function abrirBandeja() {
+  if (bandejaBase) return bandejaBase;
+  bandejaBase = new Promise((ok, mal) => {
+    if (typeof indexedDB === 'undefined') { mal(new Error('este navegador no deja guardar en el teléfono')); return; }
+    const pet = indexedDB.open(BANDEJA_NS, 1);
+    pet.onupgradeneeded = () => {
+      const b = pet.result;
+      if (!b.objectStoreNames.contains(B_ALMACEN)) b.createObjectStore(B_ALMACEN, {keyPath:'id'});
+      if (!b.objectStoreNames.contains(B_META)) b.createObjectStore(B_META, {keyPath:'id'});
+    };
+    pet.onsuccess = () => {
+      const b = pet.result, yo = bandejaBase;
+      // iOS puede cerrar la conexion por su cuenta (o una pestaña nueva pedir otra version): se
+      // olvida la conexion muerta para que la siguiente operacion abra una nueva, sin recargar
+      b.onclose = b.onversionchange = () => { if (bandejaBase === yo) bandejaBase = null; try { b.close(); } catch(_) {} };
+      ok(b);
+    };
+    pet.onerror = () => mal(pet.error || new Error('no se pudo abrir el almacén del teléfono'));
+    pet.onblocked = () => mal(new Error('otra pestaña vieja de la app tiene ocupado el almacén: ciérrala'));
+  });
+  bandejaBase.catch(() => { bandejaBase = null; });
+  return bandejaBase;
+}
+// se resuelve SOLO cuando IndexedDB confirma (oncomplete): "guardado en tu telefono" no miente
+async function bandejaTx(almacenes, modo, trabajo) {
+  const b = await abrirBandeja();
+  return new Promise((ok, mal) => {
+    const tx = b.transaction(almacenes, modo);
+    let resultado;
+    try { trabajo(tx, r => { resultado = r; }); } catch(e) { try { tx.abort(); } catch(_) {} mal(e); return; }
+    tx.oncomplete = () => ok(resultado);
+    // e.target.error conserva el NOMBRE (ConstraintError = ese id ya estaba guardado)
+    tx.onerror = e => mal((e && e.target && e.target.error) || tx.error || new Error('no se pudo guardar en el teléfono'));
+    tx.onabort = () => mal(tx.error || new Error('se canceló el guardado en el teléfono (¿memoria llena?)'));
+  });
+}
+function avisarCambioBandeja() {
+  try { const c = new BroadcastChannel(BANDEJA_NS); c.postMessage(Date.now()); c.close(); } catch(e) {}
+  refrescarBandeja();
+}
+// las otras pestañas de la misma cartera se enteran y repintan su lista
+try { new BroadcastChannel(BANDEJA_NS).onmessage = () => refrescarBandeja(); } catch(e) {}
+// `add` (nunca `put`): un comando con ese id no se sobrescribe. El ORDEN lo da un contador
+// propio guardado en la misma transaccion, no el reloj (que puede ir para atras)
+async function guardarComando(c) {
+  await bandejaTx([B_ALMACEN, B_META], 'readwrite', tx => {
+    const meta = tx.objectStore(B_META);
+    const pet = meta.get('secuencia');
+    pet.onsuccess = () => {
+      const sig = ((pet.result && pet.result.valor) || 0) + 1;
+      meta.put({id:'secuencia', valor:sig});
+      tx.objectStore(B_ALMACEN).add({...c, secuencia:sig});
+    };
+  });
+  // que el navegador no la borre si le falta memoria (iOS lo hace con lo "no persistente")
+  try { Promise.resolve(navigator.storage && navigator.storage.persist && navigator.storage.persist()).catch(() => {}); } catch(e) {}
+  avisarCambioBandeja();
+}
+async function listarComandos() {
+  return bandejaTx([B_ALMACEN], 'readonly', (tx, listo) => {
+    const pet = tx.objectStore(B_ALMACEN).getAll();
+    pet.onsuccess = () => listo(pet.result || []);
+  });
+}
+// solo cambia el ESTADO; lo capturado (monto, cuenta, fecha, id) es inmutable
+async function actualizarComando(id, cambios) {
+  const permitidos = ['estado','intentos','ultimoError','reclamadoEn','confirmadoEn','yaEstaba','dudoso'];
+  await bandejaTx([B_ALMACEN], 'readwrite', tx => {
+    const st = tx.objectStore(B_ALMACEN), pet = st.get(id);
+    pet.onsuccess = () => {
+      if (!pet.result) return;
+      const n = {...pet.result};
+      for (const k of permitidos) if (k in cambios) n[k] = cambios[k];
+      st.put(n);
+    };
+  });
+  avisarCambioBandeja();
+}
+const bSubible = (c, ahora) => c.estado === B_EST.PENDIENTE ||
+  (c.estado === B_EST.ENVIANDO && (!c.reclamadoEn || ahora - c.reclamadoEn > B_RECLAMO_MS));
+// reclama un comando para subirlo, atomico dentro de IndexedDB: dos pestañas no lo toman a la vez
+async function reclamarComando(id, uid) {
+  const ahora = Date.now();
+  const r = await bandejaTx([B_ALMACEN], 'readwrite', (tx, listo) => {
+    const st = tx.objectStore(B_ALMACEN), pet = st.get(id);
+    pet.onsuccess = () => {
+      const c = pet.result;
+      if (!c || c.uid !== uid || c.version !== B_VERSION || !bSubible(c, ahora)) { listo(null); return; }
+      const n = {...c, estado:B_EST.ENVIANDO, reclamadoEn:ahora, intentos:(c.intentos || 0) + 1};
+      st.put(n); listo(n);
+    };
+  });
+  if (r) avisarCambioBandeja();
+  return r;
+}
+// se puede descartar lo que seguro NO se mando (pendiente sin duda) o lo que el servidor
+// rechazo (revisar). Un 'dudoso' (fallo la red A MEDIA transaccion) pudo haber llegado:
+// borrarlo del telefono no lo borraria del servidor, asi que espera a que suba y se aclare.
+const bDescartable = c => !!c && (c.estado === B_EST.REVISAR || (c.estado === B_EST.PENDIENTE && !c.dudoso));
+async function borrarComandos(ids, uid) {
+  if (!ids || !ids.length) return 0;
+  const n = await bandejaTx([B_ALMACEN], 'readwrite', (tx, listo) => {
+    const st = tx.objectStore(B_ALMACEN); let borrados = 0;
+    for (const id of ids) {
+      const pet = st.get(id);
+      // se vuelve a comprobar el estado DENTRO de la transaccion: otra pestaña pudo reclamarlo
+      pet.onsuccess = () => { const c = pet.result; if (c && c.uid === uid && bDescartable(c)) { st.delete(id); borrados++; listo(borrados); } };
+    }
+    listo(0);
+  });
+  avisarCambioBandeja();
+  return n || 0;
+}
+async function purgarConfirmadosViejos() {
+  const ahora = Date.now();
+  const viejos = (await listarComandos()).filter(c => c.estado === B_EST.CONFIRMADO && typeof c.confirmadoEn === 'number' && ahora - c.confirmadoEn > B_GUARDAR_CONF_MS);
+  if (!viejos.length) return;
+  await bandejaTx([B_ALMACEN], 'readwrite', tx => { const st = tx.objectStore(B_ALMACEN); viejos.forEach(c => st.delete(c.id)); });
+}
+const uidActual = () => (auth && auth.currentUser && auth.currentUser.uid) || null;
+// ¿se guarda en el telefono en vez de intentar la transaccion? Sin red, sin datos del servidor
+// todavia, o con lo cargado saliendo de la cache del aparato
+const hayQueGuardarEnTelefono = () => navigator.onLine === false || !datosCargados || cargaDesdeCache;
+// un error de RED (o de no estar listos): lo que se intento no se pudo confirmar, pero el dato
+// esta bien. Lo demas (permisos, un bug) no se esconde en la bandeja.
+function esErrorDeRed(e) {
+  if (navigator.onLine === false) return true;
+  const code = e && e.code, msg = String((e && e.message) || '');
+  return ['unavailable','deadline-exceeded','resource-exhausted','aborted','cancelled'].includes(code) ||
+    /offline|network|failed to fetch|datos no cargados/i.test(msg);
+}
+// guarda un gasto o ingreso ya armado (con su id fijo) en la bandeja. dudoso = se intento la
+// transaccion y la red se cayo: pudo haber llegado
+// uidCaptura = quien inicio la captura: el comando es SUYO aunque la sesion cambie antes de que
+// falle la red; solo esa cuenta lo sube (correrBandeja filtra por uid)
+async function guardarEnTelefono(tipo, id, mov, dudoso, uidCaptura) {
+  const uid = uidCaptura || uidActual();
+  if (!uid) { showToast('sin sesión: no se guardó'); return false; }
+  if (typeof mov.cat === 'string' && mov.cat.length > B_TOPE_CAT) { showToast('la categoría es muy larga para guardarse sin señal: máximo ' + B_TOPE_CAT + ' letras'); return false; }
+  if (typeof mov.nota === 'string' && mov.nota.length > B_TOPE_NOTA) { showToast('la nota es muy larga para guardarse sin señal: máximo ' + B_TOPE_NOTA + ' letras'); return false; }
+  const c = {id, uid, tipo, cat:mov.cat, monto:mov.monto, nota:mov.nota || '',
+             cuenta: tipo === 'gasto' ? mov.fuente : mov.destino, fecha:mov.fecha, creado:mov.creado,
+             version:B_VERSION, estado:B_EST.PENDIENTE, intentos:0, ultimoError:null, reclamadoEn:null,
+             dudoso:!!dudoso, secuencia:null};
+  try { await guardarComando(c); }
+  catch(e) {
+    if (e && e.name === 'ConstraintError') { showToast('ese movimiento ya estaba guardado en tu teléfono'); return true; }
+    console.error('bandeja guardar', e);
+    showToast('NO se guardó: ' + ((e && e.message) || 'el teléfono no dejó guardarlo'));
+    return false;
+  }
+  showToast((tipo === 'gasto' ? '-' : '+') + fmt(mov.monto) + ' guardado en tu teléfono · se sube cuando haya señal');
+  return true;
+}
+// (15-oct-2026) el guardado en el telefono toma el MISMO candado que el camino en linea: sin el,
+// dos toques seguidos crean dos ids distintos = dos gastos. La subida se dispara DESPUES de
+// soltarlo (correrBandeja se corta si dineroOcupado), y tambien cuando la carga sigue en curso.
+async function guardarEnTelefonoConCandado(tipo, id, mov, dudoso, btn, uidCaptura) {
+  if (btn) btn.disabled = true; dineroOcupado = true;
+  let ok = false;
+  try { ok = await guardarEnTelefono(tipo, id, mov, dudoso, uidCaptura); }
+  finally { if (btn) btn.disabled = false; liberarDinero(); }
+  if (ok) window.sincronizarBandeja();
+  return ok;
+}
+// el plan de cada alta, compartido por el formulario y por la bandeja: un solo lugar
+function planAltaGasto(ref, gasto) {
+  const plan = {crear:[{ref, data:gasto}], permitirNegativo:true};
+  const m = gasto.monto, fuente = gasto.fuente;
+  if (fuente === 'tarjeta') plan.tarjetaDelta = m;
+  else if (fuente === 'tarjetaRev') plan.tdcRevDelta = m;
+  else plan.deltas = {[fuente]:-m};
+  return plan;
+}
+const planAltaIngreso = (ref, ingreso) => ({deltas:{[ingreso.destino]:ingreso.monto}, crear:[{ref, data:ingreso}]});
+// un movimiento cuyo id YA existe en el servidor (nuestro commit llego y se perdio la respuesta): se
+// trae tal cual quedo y se mete al historial si falta. Sin aplicarRes: no hay res.campos y los
+// snapshots en vivo traen el saldo. Lo usan la bandeja y el camino en linea de altaGasto/altaIngreso.
+async function traerYaEstaba(ref, lista) {
+  try {
+    const snap = await getDoc(ref);
+    if (snap.exists() && !lista.some(x => x.id === ref.id)) { insertarPorFecha(lista, {id:ref.id, ...snap.data()}); refrescar(render, renderMovimientos); }
+  } catch(e) { console.error('traer el que ya estaba', e); }
+}
+// sube UN comando por txDinero. Devuelve {ok, yaEstaba} | {negocio:msg} | {err}
+async function subirComando(c) {
+  const esGasto = c.tipo === 'gasto';
+  if (c.tipo !== 'gasto' && c.tipo !== 'ingreso') return {negocio:'tipo de movimiento desconocido'};
+  if (!/^[A-Za-z0-9]{20}$/.test(String(c.id))) return {negocio:'el movimiento guardado está dañado'};
+  if (!(Number.isFinite(c.monto) && c.monto > 0)) return {negocio:'monto no válido'};
+  if (!(esGasto ? FUENTES_GASTO : DESTINOS_INGRESO).includes(c.cuenta)) return {negocio:'esa cuenta ya no existe en la app'};
+  if (typeof c.cat !== 'string' || !c.cat.trim()) return {negocio:'falta la categoría'};
+  // el formulario no pone tope a la nota ni a la categoria (las categorias propias llegan a 40);
+  // aqui se acota a 200 y 60 para que un comando danado o inflado no suba tal cual al servidor
+  if (c.cat.length > B_TOPE_CAT) return {negocio:'la categoría es demasiado larga'};
+  if (c.nota != null && (typeof c.nota !== 'string' || c.nota.length > B_TOPE_NOTA)) return {negocio:'la nota es demasiado larga'};
+  if (typeof c.fecha !== 'string' || !Number.isFinite(Date.parse(c.fecha))) return {negocio:'fecha no válida'};
+  const ref = doc(db, esGasto ? 'gastos' : 'ingresos', c.id);
+  const mov = esGasto ? {cat:c.cat, monto:c2(c.monto), nota:c.nota || '', fuente:c.cuenta, fecha:c.fecha, creado:c.creado}
+                      : {cat:c.cat, monto:c2(c.monto), nota:c.nota || '', destino:c.cuenta, fecha:c.fecha, creado:c.creado};
+  const plan = esGasto ? planAltaGasto(ref, mov) : planAltaIngreso(ref, mov);
+  plan.requerirAusentes = [ref];
+  let res;
+  // el candado dineroOcupado NO se toma aqui: lo pone correrBandeja antes de reclamar y lo suelta
+  // en cuanto termina la transaccion; la pantalla se actualiza despues (ver correrBandeja)
+  try { res = await txDinero(plan); }
+  catch(e) { return {err:e}; }
+  const lista = esGasto ? state.gastos : state.ingresos;
+  if (res.error) {
+    if (res.codigo !== 'ya-existe') return {negocio:res.error};
+    // ya estaba: subio en un intento anterior. Se trae tal cual quedo en el servidor
+    await traerYaEstaba(ref, lista);
+    return {ok:true, yaEstaba:true};
+  }
+  // lo que va a pantalla se entrega para aplicarlo DESPUES de soltar el candado (ver correrBandeja)
+  return {ok:true, aplicar:() => {
+    aplicarRes(res);
+    if (!lista.some(x => x.id === ref.id)) insertarPorFecha(lista, {...mov, id:ref.id});
+    refrescar(render, renderMovimientos);
+  }};
+}
+// que hacer con el resultado de un intento (mismo criterio que el rancho)
+function clasificarSubida(r, sesionPerdida) {
+  if (r.ok) return {estado:B_EST.CONFIRMADO, ultimoError:null, detener:false};
+  if (r.negocio) return {estado:B_EST.REVISAR, ultimoError:r.negocio, detener:false};
+  const e = r.err || {}, code = e.code;
+  // si se cerro la sesion (o entro otra cuenta) a media subida, un permission-denied no dice
+  // nada del dato: la peticion salio sin permisos. Se queda pendiente.
+  if ((code === 'permission-denied' || code === 'unauthenticated') && sesionPerdida) return {estado:B_EST.PENDIENTE, ultimoError:null, detener:true};
+  if (code === 'permission-denied') return {estado:B_EST.REVISAR, ultimoError:'el servidor no lo aceptó (sin permiso, o la app está vieja: ciérrala y ábrela)', detener:false};
+  if (esErrorDeRed(e)) return {estado:B_EST.PENDIENTE, ultimoError:null, detener:true};
+  return {estado:B_EST.REVISAR, ultimoError:'no se pudo subir (' + (code || e.message || 'error') + ')', detener:false};
+}
+const puedeSubirBandeja = () => datosCargados && !cargaDesdeCache && navigator.onLine !== false && !!uidActual();
+async function correrBandeja() {
+  const uid = uidActual(); if (!uid) return 0;
+  try { await purgarConfirmadosViejos(); } catch(e) {}
+  const ahora = Date.now();
+  // la cola es TODO lo no terminado, en orden de captura. 'revisar' es terminal hasta que el usuario
+  // actue y no bloquea. Un 'enviando' con reclamo vigente (otra pestaña lo esta subiendo) SI corta
+  // la vuelta: saltarlo subiria los posteriores antes que el y rompe el orden.
+  const cola = (await listarComandos())
+    .filter(c => c.uid === uid && c.version === B_VERSION && c.estado !== B_EST.CONFIRMADO && c.estado !== B_EST.REVISAR)
+    .sort((a, b) => (a.secuencia || 0) - (b.secuencia || 0));
+  let subidos = 0, rechazados = 0;
+  for (const cand of cola) {
+    if (!bSubible(cand, ahora)) break;
+    // un respiro entre comandos: deja pasar un toque del usuario (registrar algo) en vez de
+    // tenerlo en "espera, hay otra operacion" hasta que se vacie toda la cola
+    await new Promise(r => setTimeout(r, 0));
+    // antes de CADA uno: si se fue la senal, cambio la sesion o el usuario esta moviendo dinero
+    // en pantalla, se corta la vuelta y se retoma en la siguiente
+    if (!puedeSubirBandeja() || uidActual() !== uid || dineroOcupado) break;
+    // el candado se toma en la MISMA tajada sincrona que la comprobacion de arriba: si se tomara
+    // despues del await del reclamo, el usuario podia iniciar una operacion en ese hueco y el
+    // finally de aqui se la soltaba a medias. Como se toma antes de cualquier await, altaGasto y
+    // demas ven 'ocupado' y esperan; se suelta al terminar ESTE comando (despues de aplicarRes).
+    dineroOcupado = true;
+    let c = null, r = null;
+    try {
+      c = await reclamarComando(cand.id, uid);
+      if (c) r = await subirComando(c);
+    } finally { liberarDinero(); }
+    if (!c) break; // otra pestaña lo tomo (o ya cambio): mismo criterio, no se salta para no romper el orden
+    // (Codex, 15-oct) el resultado va a pantalla DESPUES de soltar el candado, como en altaGasto:
+    // liberarDinero drena primero los snapshots encolados (pueden ser de ANTES del commit) y luego
+    // aplicarRes pone el saldo canonico. Al reves, un snapshot viejo pisaba el saldo ya confirmado
+    if (r.aplicar) r.aplicar();
+    const k = clasificarSubida(r, uidActual() !== uid);
+    await actualizarComando(c.id, {estado:k.estado, ultimoError:k.ultimoError, reclamadoEn:null,
+      ...(k.estado === B_EST.CONFIRMADO ? {confirmadoEn:Date.now(), yaEstaba:!!r.yaEstaba, dudoso:false} : {}),
+      // ya se intento con el servidor y no se sabe si llego: deja de ser descartable
+      ...(k.estado === B_EST.PENDIENTE && r.err ? {dudoso:true} : {})});
+    if (k.estado === B_EST.CONFIRMADO) subidos++;
+    if (k.estado === B_EST.REVISAR) rechazados++;
+    if (k.detener) break;
+  }
+  if (subidos || rechazados)
+    showToast((subidos ? subidos + ' movimiento(s) de tu teléfono ya subieron' : '') +
+              (subidos && rechazados ? ' · ' : '') + (rechazados ? rechazados + ' necesitan revisión (en movimientos)' : ''));
+  return subidos;
+}
+let bandejaCorriendo = null, bandejaTimer = null;
+window.sincronizarBandeja = function() {
+  if (!puedeSubirBandeja()) { refrescarBandeja(); return Promise.resolve(0); }
+  if (bandejaCorriendo) return bandejaCorriendo;
+  // un solo corredor por navegador cuando hay Web Locks; sin ellos tambien es seguro (el id
+  // fijo + requerirAusentes impiden el doble registro), solo hay mas intentos repetidos
+  const p = (navigator.locks && navigator.locks.request)
+    ? navigator.locks.request(BANDEJA_NS + '-subir', {ifAvailable:true}, l => l ? correrBandeja() : 0)
+    : correrBandeja();
+  bandejaCorriendo = Promise.resolve(p).catch(e => { console.error('bandeja', e); return 0; })
+    .finally(() => { bandejaCorriendo = null; programarBandeja(); });
+  return bandejaCorriendo;
+};
+// mientras haya algo por subir, se reintenta cada minuto (con la app abierta: no hay envio en
+// segundo plano y la pantalla lo dice)
+function programarBandeja() {
+  refrescarBandeja().then(() => {
+    const uid = uidActual();
+    const hay = bandejaLista.some(c => c.uid === uid && (c.estado === B_EST.PENDIENTE || c.estado === B_EST.ENVIANDO));
+    clearTimeout(bandejaTimer); bandejaTimer = null;
+    if (hay) bandejaTimer = setTimeout(() => window.sincronizarBandeja(), 60000);
+  });
+}
+let bandejaIlegible = false; // la ultima lectura de IndexedDB fallo: la banda lo dice
+async function refrescarBandeja() {
+  // si falla NO se vacia la lista anterior: esconder los pendientes sin avisar es peor que mostrar viejos
+  try { bandejaLista = await listarComandos(); bandejaIlegible = false; }
+  catch(e) { console.error('bandeja leer', e); bandejaIlegible = true; }
+  renderBandeja();
+}
+// en la pantalla: la banda (cuantos faltan) y la lista en movimientos, aparte del historial.
+// Un comando cuyo id YA esta en el historial (subio y la confirmacion no se anoto) no se repite.
+function renderBandeja() {
+  const uid = uidActual();
+  const enHistorial = new Set([...state.gastos, ...state.ingresos].map(x => x.id));
+  // el id se pega dentro de onclick="f('...')": escapeHtml no basta (el navegador decodifica &#39;
+  // antes de ejecutar), asi que solo se pintan ids con la forma de un id de Firestore
+  const mios = bandejaLista.filter(c => c.uid === uid && c.estado !== B_EST.CONFIRMADO && !enHistorial.has(c.id) && /^[A-Za-z0-9]{20}$/.test(String(c.id)))
+    .sort((a, b) => (b.secuencia || 0) - (a.secuencia || 0));
+  const ajenos = bandejaLista.filter(c => c.uid !== uid && c.estado !== B_EST.CONFIRMADO).length;
+  const porRevisar = mios.filter(c => c.estado === B_EST.REVISAR).length;
+  const banda = document.getElementById('banda-bandeja');
+  if (banda) {
+    const partes = [];
+    if (mios.length) partes.push(mios.length + (mios.length === 1 ? ' movimiento en tu teléfono, por subir' : ' movimientos en tu teléfono, por subir') +
+      (porRevisar ? ' · ' + porRevisar + ' para revisar' : '') + ' · no cuentan en tus saldos hasta que suban');
+    if (ajenos) partes.push('hay ' + ajenos + ' de otra cuenta en este teléfono');
+    if (bandejaIlegible) partes.push('no pude leer lo guardado en el teléfono: cierra y abre la app');
+    banda.hidden = !partes.length;
+    banda.textContent = partes.join(' · ');
+  }
+  const panel = document.getElementById('bandeja-panel');
+  if (!panel) return;
+  panel.hidden = !mios.length;
+  if (!mios.length) { panel.innerHTML = ''; return; }
+  panel.innerHTML = '<div class="item-meta" style="padding:4px 0 8px">en tu teléfono · se suben cuando abras la app con señal</div>' +
+    mios.map(c => {
+      const esGasto = c.tipo === 'gasto';
+      const estado = c.estado === B_EST.REVISAR ? 'no subió: ' + (c.ultimoError || 'revisar')
+                   : c.estado === B_EST.ENVIANDO ? 'subiendo…' : 'por subir';
+      const meta = [c.nota || '', fmtFechaMov(c.fecha, {day:'numeric', month:'short'}), CUENTAS[c.cuenta] || '(cuenta desconocida)', estado]
+        .filter(Boolean).map(escapeHtml).join(' · ');
+      const reint = c.estado === B_EST.REVISAR ? `<button type="button" class="btn" style="margin-left:8px;padding:6px 10px;font-size:12px" onclick="reintentarBandeja('${escapeHtml(c.id)}')">reintentar</button>` : '';
+      const del = bDescartable(c) ? `<button type="button" class="del-btn del-x" aria-label="descartar" onclick="descartarBandeja('${escapeHtml(c.id)}')">&times;</button>` : '';
+      return `<div class="item-row"><div><div class="item-cat">${escapeHtml(c.cat)}</div><div class="item-meta">${meta}</div></div><div style="display:flex;align-items:center"><div class="item-amt-pago">${esGasto ? '-' : '+'}${fmt(c.monto)}</div>${reint}${del}</div></div>`;
+    }).join('');
+}
+window.reintentarBandeja = async function(id) {
+  const uid = uidActual();
+  const c = bandejaLista.find(x => x.id === id);
+  if (!uid || !c || c.uid !== uid || c.estado !== B_EST.REVISAR) return;
+  await actualizarComando(id, {estado:B_EST.PENDIENTE, ultimoError:null});
+  if (!puedeSubirBandeja()) { showToast('se sube cuando haya señal'); return; }
+  window.sincronizarBandeja();
+};
+window.descartarBandeja = async function(id) {
+  const uid = uidActual();
+  const c = bandejaLista.find(x => x.id === id);
+  if (!uid || !c || c.uid !== uid || !bDescartable(c)) return;
+  if (!(await confirmarDeslizando({titulo:'¿Descartar este movimiento?',
+      texto:(c.tipo === 'gasto' ? 'Gasto' : 'Ingreso') + ' de ' + fmt(c.monto) + ' en ' + c.cat + ', guardado en tu teléfono. Nunca subió: si lo descartas, desaparece.',
+      verbo:'descartar'}))) return;
+  // borrarComandos revisa otra vez el estado dentro de la transaccion (otra pestaña pudo tomarlo)
+  const n = await borrarComandos([id], uidActual());
+  showToast(n ? 'descartado' : 'no se descartó: ya se estaba subiendo');
+};
+// y si el telefono recupera la senal, se reintenta solo. (15-oct-2026) Tambien cuando lo que
+// se cargo vino de la cache: datosCargados es true pero no hay nada confirmado con el servidor.
+// Si ya estaba al dia, solo se sube lo que haya en la bandeja del telefono.
+async function alVolverSenal() {
+  if (reintentandoSync) return;
+  // la banda puesta (por arrancar sin red o porque la senal se fue con la app abierta) = hay que
+  // confirmar todo con el servidor; si no, solo falta subir la bandeja
+  if (mostrandoCopiaLocal) {
+    reintentandoSync = true;
+    try { await window.reintentarSync(); } finally { reintentandoSync = false; }
+    armarReintentoSenal();
+  } else { senalIntentos = 0; window.sincronizarBandeja(); }
+}
+// justo al volver la red, Firestore tarda unos segundos en reconectarse y la recarga puede
+// salir OTRA VEZ de la cache. Se reintenta solo, cada vez mas espaciado, mientras haya red.
+// (15-oct-2026) Tambien se arma desde marcarCopiaLocal(true,true): si la app arranca o pierde la
+// senal sin evento 'online' ni visibilitychange, nada mas lo haria. Un solo temporizador a la vez
+// (si ya hay uno armado no se duplica ni se acelera) y se cancela cuando deja de aplicar.
+function armarReintentoSenal() {
+  if (!(mostrandoCopiaLocal && navigator.onLine !== false && auth.currentUser)) {
+    clearTimeout(senalTimer); senalTimer = null; senalIntentos = 0; return;
+  }
+  if (senalTimer) return;
+  senalIntentos++;
+  senalTimer = setTimeout(() => { senalTimer = null; alVolverSenal(); }, Math.min(60000, 4000 * 2 ** (senalIntentos - 1)));
+}
+window.armarReintentoSenal = armarReintentoSenal; // marcarCopiaLocal (mas arriba) la llama por aqui
+window.addEventListener('online', alVolverSenal);
+// se fue la senal con la app abierta: el punto se pone rojo y la banda lo dice (lo que se ve es lo
+// ultimo que llego; un gasto o ingreso se guarda en el telefono)
+window.addEventListener('offline', () => { if (auth.currentUser) { setSyncDot('err'); marcarCopiaLocal(true, true); } });
+// en iPhone la app instalada se congela en segundo plano y puede no enterarse del 'online':
+// al volver a la pantalla se revisa igual
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible' && navigator.onLine !== false && auth.currentUser) alVolverSenal();
+});
+
 // ── GASTOS ────────────────────────────────────────────────────
 // nucleo compartido: lo usan el formulario normal y el registro rapido del movil.
 // Valida, muta, guarda con batch atomico y revierte si falla. Cada formulario
@@ -5062,6 +5556,7 @@ async function altaGasto(cat,monto,nota,fuente,btn,fecha,extra) {
   if(!FUENTES_GASTO.includes(fuente)){showToast('fuente no válida');return false;}
   if(dineroOcupado){showToast('espera, hay otra operación en curso');return false;}
   const m=c2(monto);
+  const uidCaptura=uidActual(); // la captura es de quien la inicio, aunque la sesion cambie antes de que falle la red
   // un pago de suscripcion lleva id FIJO por mes (ver requerirAusentes en txDinero): asi
   // dos registros del mismo aviso no pueden ser dos gastos
   const idFijo=(extra&&typeof extra.idFijo==='string'&&/^sus_[a-z0-9]{6,24}_\d{4}-\d{2}$/.test(extra.idFijo))?extra.idFijo:null;
@@ -5073,20 +5568,33 @@ async function altaGasto(cat,monto,nota,fuente,btn,fecha,extra) {
   // vinculo con la suscripcion que lo origino: asi 'ya se pago este mes' no se adivina.
   // Solo se acepta ESE campo: 'extra' nunca puede pisar monto, cuenta ni categoria.
   if(extra&&typeof extra.suscripcion==='string') gasto.suscripcion=extra.suscripcion.slice(0,24);
+  // (15-oct-2026) sin senal se guarda en el telefono con su id ya fijado y sube despues. Los
+  // pagos de suscripcion NO: su id fijo por mes depende de lo que diga el servidor ese dia.
+  const aTelefono=!idFijo&&!gasto.suscripcion;
+  if(aTelefono&&hayQueGuardarEnTelefono()) return guardarEnTelefonoConCandado('gasto',ref.id,gasto,false,btn,uidCaptura);
   // el gasto YA OCURRIO en la vida real: si el saldo registrado no alcanza se avisa,
   // pero no se bloquea — perder el registro es peor que quedar en rojo. El limite de
   // la TDC Revolut SI es bloqueante y lo valida txDinero contra el deposito canonico.
-  const plan={crear:[{ref,data:gasto}], permitirNegativo:true};
-  if(idFijo) plan.requerirAusentes=[ref];
-  if(fuente==='tarjeta') plan.tarjetaDelta=m;
-  else if(fuente==='tarjetaRev') plan.tdcRevDelta=m;
-  else plan.deltas={[fuente]:-m};
+  const plan=planAltaGasto(ref,gasto);
+  // SIEMPRE requerirAusentes (15-oct-2026): si el commit llega y se pierde la respuesta, el SDK reintenta
+  // la funcion de la transaccion; sin esto releia el saldo ya debitado y lo debitaba OTRA VEZ.
+  plan.requerirAusentes=[ref];
   let res=null,err=null;
   if(btn) btn.disabled=true; dineroOcupado=true;
   try{ res=await txDinero(plan); }
   catch(e){ err=e; }
   finally{ if(btn) btn.disabled=false; liberarDinero(); }
+  // se cayo la red A MEDIA transaccion: a la bandeja con el MISMO id (pudo haber llegado;
+  // si llego, al subir cae en 'ya-existe' y se confirma sin duplicar)
+  if(err&&aTelefono&&esErrorDeRed(err)){ console.error('altaGasto, a la bandeja',err); return guardarEnTelefonoConCandado('gasto',ref.id,gasto,true,btn,uidCaptura); }
   if(err){ console.error('altaGasto',err); showToast(msgFalloDinero()); return false; }
+  // 'ya-existe' con id NUEVO (sin idFijo) solo puede ser NUESTRO commit: el SDK reintento tras perder
+  // la respuesta. Es exito; los snapshots en vivo traen el saldo, aqui solo falta el historial.
+  if(res.error&&res.codigo==='ya-existe'&&!idFijo){
+    gasto.id=ref.id; await traerYaEstaba(ref,state.gastos);
+    if(!state.gastos.some(x=>x.id===ref.id)){ insertarPorFecha(state.gastos,gasto); refrescar(render,renderMovimientos); } // getDoc fallo: se sabe que llego
+    showToast('-'+fmt(m)+' registrado'); return true;
+  }
   if(res.error){ showToast(res.error); return false; }
   // -- post-commit: se refleja lo que quedo en el SERVIDOR, no lo que creia la pantalla --
   aplicarRes(res);
@@ -5549,12 +6057,23 @@ async function altaIngreso(cat,monto,nota,destino,btn,fecha) {
   const ref=doc(collection(db,'ingresos'));
   const creado=new Date().toISOString();
   const ingreso={cat,monto:m,nota,destino,fecha:fecha||creado,creado};
+  const uidCaptura=uidActual(); // ver altaGasto
+  // (15-oct-2026) sin senal, a la bandeja del telefono (ver altaGasto)
+  if(hayQueGuardarEnTelefono()) return guardarEnTelefonoConCandado('ingreso',ref.id,ingreso,false,btn,uidCaptura);
   let res=null,err=null;
+  // requerirAusentes siempre: evita el doble abono si el SDK reintenta tras perderse la respuesta (ver altaGasto)
+  const plan=planAltaIngreso(ref,ingreso); plan.requerirAusentes=[ref];
   if(btn) btn.disabled=true; dineroOcupado=true;
-  try{ res=await txDinero({deltas:{[destino]:m}, crear:[{ref,data:ingreso}]}); }
+  try{ res=await txDinero(plan); }
   catch(e){ err=e; }
   finally{ if(btn) btn.disabled=false; liberarDinero(); }
+  if(err&&esErrorDeRed(err)){ console.error('altaIngreso, a la bandeja',err); return guardarEnTelefonoConCandado('ingreso',ref.id,ingreso,true,btn,uidCaptura); }
   if(err){ console.error('altaIngreso',err); showToast(msgFalloDinero()); return false; }
+  if(res.error&&res.codigo==='ya-existe'){ // nuestro commit ya llego (ver altaGasto)
+    ingreso.id=ref.id; await traerYaEstaba(ref,state.ingresos);
+    if(!state.ingresos.some(x=>x.id===ref.id)){ insertarPorFecha(state.ingresos,ingreso); refrescar(render,renderMovimientos); }
+    showToast('+'+fmt(m)+' ingresado'); return true;
+  }
   if(res.error){ showToast(res.error); return false; }
   // -- post-commit --
   aplicarRes(res);
