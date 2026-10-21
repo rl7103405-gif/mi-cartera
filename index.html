@@ -4597,24 +4597,27 @@ function cicloTdcRev() {
 
 // ── RENDER ────────────────────────────────────────────────────
 function render() {
+  // (21-oct-2026, Roberto) las tarjetas de inicio muestran solo lo TUYO: el fondo se ve en su pestaña
+  const tuyo=(c,s)=>apartadoDe(c)>0?Math.max(0,s-apartadoDe(c)):s;
+  const sinFondo=c=>apartadoDe(c)>0?' · sin el fondo':'';
   const nu1=calcNu1();
-  document.getElementById('nu-cajita1-display').textContent=fmt(nu1.saldo);
-  document.getElementById('nu1-sub').textContent=descModelo('cajita1')+(apartadoDe('cajita1')>0?' · incluye '+fmt(apartadoDe('cajita1'))+' del fondo · libres '+fmt(Math.max(0,disponibleCuenta('cajita1'))):'');
+  document.getElementById('nu-cajita1-display').textContent=fmt(tuyo('cajita1',nu1.saldo));
+  document.getElementById('nu1-sub').textContent=descModelo('cajita1')+sinFondo('cajita1');
   const ac1=rendAcumulado('cajita1');
   document.getElementById('nu1-rend').textContent=ac1>0.005?'+'+fmt(ac1):fmt(0);
   document.getElementById('nu1-acum-val').textContent='+'+fmt(Math.max(0,ac1));
   document.getElementById('nu1-base-val').textContent=fmt(state.nuCajita1Base);
   document.getElementById('nu1-rend-val').textContent='+'+fmt(nu1.rend);
-  document.getElementById('nu-saldo-display').textContent=fmt(state.nuSaldo);
-  document.getElementById('cash-display').textContent=fmt(state.efectivo);
+  document.getElementById('nu-saldo-display').textContent=fmt(tuyo('nu',state.nuSaldo));
+  document.getElementById('cash-display').textContent=fmt(tuyo('efectivo',state.efectivo));
 
   // Revolut
-  document.getElementById('rev-mxn-display').textContent=fmt(state.revMXN);
-  const subFondo=(id,base,c)=>{ const el=document.getElementById(id); if(el) el.textContent=base+(apartadoDe(c)>0?' · incluye '+fmt(apartadoDe(c))+' del fondo · libres '+fmt(Math.max(0,disponibleCuenta(c))):''); };
+  document.getElementById('rev-mxn-display').textContent=fmt(tuyo('revolut',state.revMXN));
+  const subFondo=(id,base,c)=>{ const el=document.getElementById(id); if(el) el.textContent=base+sinFondo(c); };
   subFondo('nu-saldo-sub','disponible','nu'); subFondo('cash-sub','pesos en mano','efectivo'); subFondo('rev-mxn-sub','cuenta personal','revolut');
   const rs=calcRevSavings();
-  document.getElementById('rev-savings-display').textContent=fmt(rs.saldo);
-  document.getElementById('rev-savings-sub').textContent=descModelo('revSavings')+(apartadoDe('revSavings')>0?' · incluye '+fmt(apartadoDe('revSavings'))+' del fondo · libres '+fmt(Math.max(0,disponibleCuenta('revSavings'))):'');
+  document.getElementById('rev-savings-display').textContent=fmt(tuyo('revSavings',rs.saldo));
+  document.getElementById('rev-savings-sub').textContent=descModelo('revSavings')+sinFondo('revSavings');
   const acRS=rendAcumulado('revSavings');
   document.getElementById('rev-savings-rend').textContent=acRS>0.005?'+'+fmt(acRS):fmt(0);
   document.getElementById('rev-savings-acum-val').textContent='+'+fmt(Math.max(0,acRS));
@@ -4622,8 +4625,8 @@ function render() {
   document.getElementById('rev-savings-rend-val').textContent='+'+fmt(rs.rend);
   // Mifel (sin ocultar negativos: un ajuste de conciliacion puede dejar el acumulado abajo de cero)
   const mf=calcMifel(), sgnF=v=>(v<-0.005?'−':'+')+fmt(Math.abs(v));
-  document.getElementById('mifel-display').textContent=fmt(mf.saldo);
-  document.getElementById('mifel-sub').textContent=descModelo('mifel')+' · estimado'+(apartadoDe('mifel')>0?' · incluye '+fmt(apartadoDe('mifel'))+' del fondo · libres '+fmt(Math.max(0,disponibleCuenta('mifel'))):'');
+  document.getElementById('mifel-display').textContent=fmt(tuyo('mifel',mf.saldo));
+  document.getElementById('mifel-sub').textContent=descModelo('mifel')+' · estimado'+sinFondo('mifel');
   const acMF=rendAcumulado('mifel'), mifelRendEl=document.getElementById('mifel-rend');
   mifelRendEl.textContent=sgnF(acMF);
   mifelRendEl.className='card-change '+(acMF<-0.005?'neg':'pos');
@@ -7491,15 +7494,16 @@ function renderFondo() {
     kpi('se ha usado', fmt(suma(['salida', 'liberar'])), 'pagos y lo liberado a tu dinero');
   const cu = document.getElementById('fondo-cuentas');
   if (cu) {
+    // (21-oct-2026, Roberto) una tarjetita por cuenta: lo del fondo, lo que hay en el banco y lo tuyo
     const filas = CTAS_FONDO.filter(c => apartadoDe(c) > 0).map(c => {
       const saldo = getSaldoCuenta(c), falta = apartadoDe(c) - saldo;
-      return '<div class="item-row"><div><div class="item-cat">' + escapeHtml(CUENTAS[c] || c) + '</div>' +
-        '<div class="item-meta"' + (falta > 0.005 ? ' style="color:var(--red)"' : '') + '>' +
-        (falta > 0.005 ? 'ojo: en la cuenta hay ' + fmt(saldo) + ', menos que lo apartado'
-                       : 'en la cuenta hay ' + fmt(saldo) + ' · libres para ti ' + fmt(Math.max(0, saldo - apartadoDe(c))) + (CAMPO_COMP[c] ? '' : ' · esta cuenta no genera interés')) +
-        '</div></div><span style="font-weight:600">' + fmt(apartadoDe(c)) + '</span></div>';
+      return '<div class="dkpi"><div class="l">' + escapeHtml(CUENTAS[c] || c) + '</div>' +
+        '<div class="n">' + fmt(apartadoDe(c)) + '</div><div class="s"' + (falta > 0.005 ? ' style="color:var(--red)"' : '') + '>' +
+        (falta > 0.005 ? 'ojo: en el banco hay ' + fmt(saldo) + ', menos que lo apartado'
+                       : 'del fondo · en el banco hay ' + fmt(saldo) + ' · tuyo ' + fmt(Math.max(0, saldo - apartadoDe(c))) + (CAMPO_COMP[c] ? '' : ' · esta cuenta no genera interés')) +
+        '</div></div>';
     }).join('');
-    cu.innerHTML = (filas || '<div class="empty-state">sin dinero apartado todavía</div>') +
+    cu.innerHTML = (filas ? '<div class="dkpis">' + filas + '</div>' : '<div class="empty-state">sin dinero apartado todavía</div>') +
       '<div class="item-meta" style="margin-top:8px;line-height:1.5">El interés que el banco le paga al fondo <b>no se aparta solo</b>: ' +
       'cuando veas el abono en tu banco, regístralo como "el banco abonó rendimiento del fondo". Mientras no lo registres, ese interés cuenta como tuyo.' +
       (estMes > 0.005 ? ' Estimado: ≈' + fmt(estMes) + ' al mes, contando que tu dinero ocupa primero la banda de mayor tasa.' : '') + '</div>';
