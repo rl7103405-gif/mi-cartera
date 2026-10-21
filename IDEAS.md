@@ -388,3 +388,42 @@ El plan completo, con competencia y reels, está fuera del repo (es público):
   snapshot de antes del commit queda encolado, `liberarDinero` lo aplica; los flujos normales luego llaman
   `aplicarRes` y lo corrigen, pero el orden depende de cada flujo. Revisar que todos sigan "soltar, y después
   aplicarRes", o pasar a reconciliar por versión del documento.
+
+## Cuánto puedes gastar al mes, por porcentajes de tu ingreso (idea de Roberto, audio del 19-oct-2026)
+
+**Lo que pidió:** "una función que te mida cuánto puedes estar gastando al mes dependiendo de tu ingreso mensual".
+Vio videos con la regla de repartir el ingreso por porcentajes: multiplicas tu ingreso por .33 y eso es para tus
+gastos principales, por .25 para tus salidas, etcétera, "para tener un orden". El audio se corta ahí: **[POR
+CONFIRMAR] el reparto completo** (qué otras cubetas y con qué porcentaje). Es parecido a la regla 50/30/20
+(necesidades / gustos / ahorro), que puede servir de plantilla por defecto. No implementar hasta que Roberto le dé
+una sesión; va a TODAS las carteras (Eli, Toño, Zoe; la casa solo si aplica).
+
+**Lo que ya existe y sirve de base:**
+- El perfil ya guarda `ingresoBase`, vivienda (familia / renta / propia) y dependientes.
+- Los gastos ya traen categoría, y `promedioGastoMensual()` ya calcula el promedio de los últimos 3 meses completos.
+- La calificación mensual ya mide "control de gasto" contra una referencia del perfil; el reparto podría alimentarla.
+- El resumen ya avisa cuando una categoría va arriba de su promedio.
+
+**Propuesta de diseño (para discutir, no decidida):**
+1. Cubetas configurables con su porcentaje (ej. gastos principales, salidas, ahorro, ...), que sumen 100%.
+2. Cada categoría de gasto se asigna a una cubeta (comida y casa → principales; salidas y entretenimiento → salidas).
+3. En Inicio o Resumen: "este mes llevas $X de $Y en salidas", con barra por cubeta y aviso al pasarse.
+4. Base del cálculo: el ingreso del perfil o el ingreso real del mes; si el ingreso es variable, decidir cuál usar.
+5. Que la vivienda y los dependientes del perfil sugieran el reparto inicial (quien paga renta necesita más en
+   principales).
+
+**Preguntas para cuando se haga:** ¿porcentajes fijos de una regla conocida o los pone cada quien? ¿el ahorro cuenta
+como cubeta (y entonces una transferencia a una cajita "gasta" de ella)? ¿los pagos de tarjeta cuentan o solo los
+gastos? Transcripción: `OneDrive\Videos-para-Claude\transcripciones\2026-10-19_beto_idea-mi-cartera.txt`.
+
+**Investigación (19-oct-2026), detalle y fuentes en `Desktop\CARTERA\documentos\limites-de-gasto\investigacion-2026-10-19.md`:**
+la app ya tiene el límite escondido en `ESTANDARES` (gasto máximo 70/80/75% según vivienda) pero nunca lo muestra.
+Diseño recomendado: una cifra en Inicio "te quedan $X esta semana" (ingreso − fijos − ahorro apartado, por semana),
+que se arme sola con el perfil o el promedio, que se vea justo después de cada gasto, que la tarjeta cuente el día
+del cargo, y que al pasarte ofrezca opciones sin regañar. Topes por categoría solo en 2-3 opcionales. Un experimento
+con 9,035 personas (Irrational Labs) mostró que un presupuesto que no se ve al gastar no baja el gasto.
+
+**Plan de código (19-oct-2026):** `Desktop\CARTERA\documentos\plan-de-codeo\plan-limites-y-mas-2026-10-19.md`.
+Ocho sesiones en orden: límite semanal, al pasarte + resumen del lunes, pagos (tarjeta y fijos), exportar todo a
+Excel, captura rápida, gastos hormiga; después notificaciones e importar estados de cuenta. Regla fija de Roberto: la
+app NUNCA bloquea un gasto.

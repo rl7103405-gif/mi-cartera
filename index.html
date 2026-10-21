@@ -2809,6 +2809,12 @@ async function txDinero(plan) {
           (plan.tdcRevMovAdd && traeId(rSnap, plan.tdcRevMovAdd.id)) ||
           (plan.persona && plan.persona.movAdd && traeId(pSnap, plan.persona.movAdd.id, plan.persona.key)))
         return {error:'ese movimiento ya estaba registrado', codigo:'ya-existe'};
+      // (21-oct-2026) lo mismo para el fondo: un traspaso repetido movia el saldo y lo apartado otra vez
+      if (plan.fondo && plan.fondo.mov && plan.fondo.mov.id && fSnap && fSnap.exists()) {
+        const fm = (fSnap.data() || {}).movs;
+        if (Array.isArray(fm) && fm.some(x => x && x.id === plan.fondo.mov.id))
+          return {error:'ese movimiento ya estaba registrado', codigo:'ya-existe'};
+      }
       for (const s of req) if (!s.exists()) return {error:'ese movimiento ya lo eliminó alguien más — recarga la app'};
       // codigo: la bandeja del telefono reusa requerirAusentes con el id fijado al capturar; si ya
       // existe es que ESE movimiento ya subio (se perdio la respuesta) y se da por confirmado
@@ -5075,14 +5081,36 @@ window.registrarTransferencia = async function() {
   if(origen===destino){showToast('elige cuentas distintas');return;}
   // avisos tempranos con el estado en pantalla; txDinero revalida TODO contra la nube.
   // El retirable del deposito (piso $250 y deuda usada) solo se puede calcular aqui.
-  // lo apartado del fondo no se puede mover con una transferencia normal
-  const saldoOrigen=origen==='revTdcDep'?getSaldoCuenta(origen):disponibleCuenta(origen);
-  if(Math.round(monto*100)>Math.round(saldoOrigen*100)){showToast(origen==='revTdcDep'?'solo puedes retirar '+fmt(saldoOrigen)+' del depósito (piso $250 y deuda usada quedan bloqueados)':'saldo insuficiente en '+CUENTAS[origen]);return;}
+  // (21-oct-2026) si el monto rebasa lo libre, es dinero del fondo: entre dos cuentas del fondo la
+  // transferencia se vuelve un traspaso del fondo (lo apartado viaja con el dinero). A una tarjeta o al
+  // deposito de la TDC nunca: eso seria gastar el fondo (se registra como salida en la pestaña fondo)
+  let deFondo=false;
+  if(origen==='revTdcDep'){
+    const ret=getSaldoCuenta(origen);
+    if(cent(monto)>cent(ret)){showToast('solo puedes retirar '+fmt(ret)+' del depósito (piso $250 y deuda usada quedan bloqueados)');return;}
+  } else {
+    const cl=clasificarTransferencia(origen,destino,monto,getSaldoCuenta(origen),apartadoDe(origen));
+    if(cl.error){showToast(cl.error);return;}
+    deFondo=cl.tipo==='fondo';
+  }
   if(destino==='tarjeta'&&monto>state.tarjetaDeuda+0.01){showToast('el pago excede la deuda de la tarjeta');return;}
   if(destino==='tarjetaRev'&&monto>state.revTdcDeuda+0.01){showToast('el pago excede la deuda de la TDC Revolut');return;}
   if(destino==='revTdcDep'&&Math.round(((state.revTdcDeposito||0)+monto)*100)>7500000){showToast('el depósito no puede exceder $75,000');return;}
   if(dineroOcupado){showToast('espera, hay otra operación en curso');return;}
   const fechaTr=fechaMovOpcional('transfer-fecha'); if(fechaTr===null) return;
+  if(deFondo){
+    // mover dinero del fondo no es una transferencia comun: se confirma, y como no bloquea, se revalida
+    const libreF=Math.max(0,getSaldoCuenta(origen)-apartadoDe(origen));
+    let textoF='Mueve '+fmt(monto)+' APARTADOS del fondo de '+CUENTAS[origen]+' a '+CUENTAS[destino]+'. Siguen siendo del fondo, y tus '+fmt(libreF)+' libres se quedan en '+CUENTAS[origen]+'.';
+    // Roberto tiene la Cuenta Digital Evoluciona (21-oct-2026): depositos hasta $500,000 al mes (TyC de Mifel)
+    if(destino==='mifel'&&cent(getSaldoCuenta('mifel')+monto)>cent(500000)) textoF+='\n\nOjo: Mifel solo paga interés hasta $500,000, y tu Cuenta Evoluciona acepta hasta $500,000 de depósitos al mes.';
+    if(!(await confirmarDeslizando({titulo:'¿Mover dinero del fondo?',texto:textoF,verbo:'mover'}))) return;
+    if(dineroOcupado){showToast('espera, hay otra operación en curso');return;}
+    const cl2=clasificarTransferencia(origen,destino,monto,getSaldoCuenta(origen),apartadoDe(origen));
+    if(cl2.error){showToast(cl2.error);return;}
+    if(cl2.tipo!=='fondo'){showToast('los saldos cambiaron mientras confirmabas: revisa y vuelve a intentar');return;}
+    return transferirDelFondo(btn,origen,destino,c2(monto),nota,fechaTr);
+  }
   const m=c2(monto), ahora=new Date().toISOString();
   const tr={origen,destino,monto:m,nota,fecha:fechaTr,creado:ahora};
   const ref=doc(collection(db,'transferencias'));
@@ -5116,6 +5144,36 @@ window.registrarTransferencia = async function() {
   refrescar(render,renderTransferencias,renderMovimientos);
   showToast(fmt(m)+' · '+CUENTAS[origen]+' → '+CUENTAS[destino]);
 };
+// (21-oct-2026) decide que es una transferencia entre cuentas de efectivo/ahorro (no revTdcDep, que
+// calcula su retirable aparte): normal, traspaso del fondo, o error. Pura: todo entra por parametro
+function clasificarTransferencia(origen, destino, monto, saldo, ap) {
+  if (cent(monto) <= cent(saldo) - cent(ap)) return {tipo:'normal'};
+  if (cent(monto) > cent(saldo)) return {error:'saldo insuficiente en ' + CUENTAS[origen]};
+  if (cent(saldo) < cent(ap)) return {error:'en ' + CUENTAS[origen] + ' el saldo (' + fmt(saldo) + ') es menor que lo apartado del fondo (' + fmt(ap) + '): actualiza el saldo antes de moverlo'};
+  const libre = Math.max(0, saldo - ap);
+  if (!CTAS_FONDO.includes(destino)) return {error:'de ' + CUENTAS[origen] + ' solo tienes libres ' + fmt(libre) + ': lo demás es del fondo de la universidad y no puede ir a ' + CUENTAS[destino]};
+  if (cent(monto) > cent(ap)) return {error:'en una sola transferencia puedes mover hasta ' + fmt(ap) + ' del fondo o ' + fmt(libre) + ' tuyos: hazlo en dos'};
+  return {tipo:'fondo'};
+}
+// (21-oct-2026) la transferencia de dinero apartado es un traspaso del fondo: queda en fondo → movimientos,
+// no en transferencias (no se borra con la ×; se deshace con el traspaso contrario)
+// el traspaso NO entra a aportaciones (aportacionesEnRango) a proposito: el dinero del fondo no es ahorro propio
+async function transferirDelFondo(btn, cuenta, destino, m, nota, fecha) {
+  const mov = {id: nuevoId(), tipo: 'traspaso', cuenta, destino, monto: m, nota: nota.slice(0, 120), fecha, creado: new Date().toISOString()};
+  const plan = {deltas: {[cuenta]: -m, [destino]: m}, fondo: {mov, delta: {[cuenta]: -m, [destino]: m}}};
+  let res = null, err = null;
+  btn.disabled = true; dineroOcupado = true;
+  try { res = await txDinero(plan); } catch (e) { err = e; }
+  finally { btn.disabled = false; liberarDinero(); }
+  if (err) { console.error('transferirDelFondo', err); showToast(msgFalloDinero()); return; }
+  const limpiar = () => ['transfer-monto', 'transfer-nota', 'transfer-fecha'].forEach(id => document.getElementById(id).value = '');
+  if (res.error && res.codigo === 'ya-existe') { limpiar(); yaAplicado(); return; }
+  if (res.error) { showToast(res.error); return; }
+  aplicarRes(res);
+  limpiar();
+  refrescar(render, renderTransferencias, renderMovimientos, renderFondo);
+  showToast(fmt(m) + ' del fondo · ' + CUENTAS[cuenta] + ' → ' + CUENTAS[destino] + ' (sigue apartado; no sale en últimas transferencias, míralo en la pestaña fondo)');
+}
 window.eliminarTransferencia = async function(id) {
   const idx=state.transferencias.findIndex(t=>t.id===id); if(idx<0)return;
   const t=state.transferencias[idx];
@@ -7491,6 +7549,7 @@ window.registrarFondo = async function() {
   try { res = await txDinero(plan); } catch (e) { err = e; }
   finally { if (btn) btn.disabled = false; liberarDinero(); }
   if (err) { console.error('registrarFondo', err); showToast(msgFalloDinero()); return; }
+  if (res.error && res.codigo === 'ya-existe') { ['fondo-monto', 'fondo-nota', 'fondo-fecha'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; }); yaAplicado(); return; }
   if (res.error) { showToast(res.error); return; }
   aplicarRes(res);
   ['fondo-monto', 'fondo-nota', 'fondo-fecha'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });

@@ -462,6 +462,41 @@ if (fuente.includes("'fondo'")) {
   SERVIDOR = { [S]: { efectivo:10 } };
   r = await txDinero({ deltas:{efectivo:-5} });
   chk('sin doc de fondo nada cambia', r.ok && SERVIDOR[S].efectivo === 5);
+  // (21-oct-2026) el caso real: llega el fondo a Revolut MXN y se reparte a Savings y Mifel desde "transferir"
+  SERVIDOR = { [S]: { revMXN:869366.05 + 1200 }, [F]: { saldosPorCuenta:{revolut:869366.05}, movs:[] } };
+  r = await txDinero({ deltas:{revolut:-869366.05, revSavings:869366.05} });
+  chk('la transferencia normal del fondo sigue rechazada en el servidor', !!r.error && SERVIDOR[S].revMXN === 870566.05, JSON.stringify(r));
+  const planTr = { deltas:{revolut:-869366.05, revSavings:869366.05}, fondo:{ delta:{revolut:-869366.05, revSavings:869366.05}, mov:{id:'g1',tipo:'traspaso',cuenta:'revolut',destino:'revSavings',monto:869366.05} } };
+  r = await txDinero(planTr);
+  chk('traspaso grande a Savings: saldo y apartado viajan juntos y lo libre se queda',
+      r.ok && SERVIDOR[S].revMXN === 1200 && SERVIDOR[S].revSavingsBase === 869366.05 &&
+      SERVIDOR[F].saldosPorCuenta.revSavings === 869366.05 && SERVIDOR[F].saldosPorCuenta.revolut === undefined, JSON.stringify([SERVIDOR[S], SERVIDOR[F].saldosPorCuenta]));
+  r = await txDinero(planTr);
+  chk('el mismo traspaso repetido (respuesta perdida) es ya-existe y no mueve nada',
+      r.codigo === 'ya-existe' && SERVIDOR[S].revSavingsBase === 869366.05 && SERVIDOR[F].movs.length === 1, JSON.stringify(r));
+  r = await txDinero({ deltas:{revSavings:-400000, mifel:400000}, fondo:{ delta:{revSavings:-400000, mifel:400000}, mov:{id:'g2',tipo:'traspaso',cuenta:'revSavings',destino:'mifel',monto:400000} } });
+  chk('de Savings a Mifel tambien viaja el apartado',
+      r.ok && SERVIDOR[F].saldosPorCuenta.mifel === 400000 && SERVIDOR[F].saldosPorCuenta.revSavings === 469366.05, JSON.stringify(SERVIDOR[F].saldosPorCuenta));
+  // clasificarTransferencia: la decision pura (normal / fondo / error) que usa "transferir"
+  const clasif = new Function('cent', 'CUENTAS', 'CTAS_FONDO', 'fmt',
+    extraeFuncion('clasificarTransferencia') + '\nreturn clasificarTransferencia;')(
+    n => Math.round(n * 100), { ...CUENTAS, mifel: 'Mifel', tarjeta: 'tarjeta NU', revTdcDep: 'deposito TDC Revolut' }, ['revolut', 'revSavings', 'nu', 'efectivo', 'cajita1', 'mifel'], n => '$' + n);
+  let c = clasif('revolut', 'revSavings', 1200, 870566.05, 869366.05);
+  chk('clasif: monto dentro de lo libre es normal', c.tipo === 'normal', JSON.stringify(c));
+  c = clasif('revolut', 'revSavings', 1200.01, 870566.05, 869366.05);
+  chk('clasif: un centavo mas que lo libre ya es traspaso del fondo', c.tipo === 'fondo', JSON.stringify(c));
+  c = clasif('revolut', 'revSavings', 900000, 870566.05, 869366.05);
+  chk('clasif: monto mayor al saldo es saldo insuficiente', /saldo insuficiente en Revolut MXN/.test(c.error || ''), JSON.stringify(c));
+  c = clasif('revolut', 'revSavings', 50, 100, 500);
+  chk('clasif: saldo menor que lo apartado pide actualizar el saldo', /menor que lo apartado.*actualiza el saldo/.test(c.error || ''), JSON.stringify(c));
+  c = clasif('revolut', 'tarjeta', 1300, 870566.05, 869366.05);
+  chk('clasif: a una tarjeta nunca se mueve el fondo', /libres .*no puede ir a tarjeta NU/.test(c.error || ''), JSON.stringify(c));
+  c = clasif('revolut', 'revTdcDep', 1300, 870566.05, 869366.05);
+  chk('clasif: al deposito de la TDC tampoco', /no puede ir a deposito TDC Revolut/.test(c.error || ''), JSON.stringify(c));
+  c = clasif('revolut', 'revSavings', 700, 1000, 400);
+  chk('clasif: mezcla (mas que lo apartado y que lo libre) pide hacerlo en dos', /hazlo en dos/.test(c.error || ''), JSON.stringify(c));
+  c = clasif('revSavings', 'mifel', 400000, 869366.05, 869366.05);
+  chk('clasif: de Savings a Mifel es fondo', c.tipo === 'fondo', JSON.stringify(c));
 }
 
 // ═══════════════ 16. TRAMOS DE RENDIMIENTO ═══════════════
