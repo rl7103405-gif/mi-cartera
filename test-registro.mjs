@@ -170,6 +170,37 @@ console.log('\nGrupos: las cuentas que antes se sumaban a mano en inicio, el coa
   chk('sumaGrupo = las formulas de antes (2,000 casos, < 1e-6)', peor < 1e-6, 'peor diferencia ' + peor);
 }
 
+// ── paso 5 (27-oct-2026): selects y botones de cuentas salen del registro ──
+// ESPERADO: value|texto de cada opcion tal como estaba escrita en el HTML antes del registro (commit b4a0786)
+console.log('\nSelects y botones de cuentas: iguales al HTML de antes (valor, texto, orden y marca de tarjeta)');
+{
+  const ESPERADO = {"transfer-origen":["efectivo|efectivo","nu|NU saldo","cajita1|NU cajita 1","revolut|Revolut MXN","revSavings|Revolut Savings","mifel|Mifel","revTdcDep|depósito TDC Revolut (solo retirable)"],"transfer-destino":["nu|NU saldo","efectivo|efectivo","cajita1|NU cajita 1","revolut|Revolut MXN","revSavings|Revolut Savings","mifel|Mifel","tarjeta|tarjeta NU (pago)","tarjetaRev|TDC Revolut (pago)","revTdcDep|depósito TDC Revolut (sube tu límite)"],"tarjeta-pago-fuente":["nu|NU saldo","efectivo|efectivo","cajita1|NU cajita 1","revolut|Revolut MXN","revSavings|Revolut Savings","externo|otro (no descontar de mis cuentas)"],"tarjeta-rev-pago-fuente":["revolut|Revolut MXN","efectivo|efectivo","nu|NU saldo","externo|otro (no descontar de mis cuentas)"],"deuda-cuenta":["externo|externo · no toca mis cuentas","efectivo|efectivo","nu|NU saldo","cajita1|NU cajita 1","revolut|Revolut MXN","revSavings|Revolut Savings","mifel|Mifel","tarjeta|tarjeta NU (crédito)|soloSale","tarjetaRev|TDC Revolut (crédito)|soloSale"],"stock-cuenta":["revolut|Revolut MXN","efectivo|efectivo","nu|NU saldo","externo|externo · no toca mis cuentas"],"gasto-fuente-toggle":["efectivo|efectivo","nu|NU saldo","tarjeta|tarjeta NU","revolut|Revolut","tarjetaRev|TDC Revolut"],"ingreso-destino-toggle":["efectivo|efectivo","nu|NU saldo","revolut|Revolut"]};
+  const cajas = {};
+  const elem = () => { const e = { hijos: [], dataset: {}, className: '', value: '', _t: '',
+    appendChild(h) { this.hijos.push(h); return h; }, addEventListener() {} };
+    Object.defineProperty(e, 'textContent', { get() { return this._t; }, set(v) { this._t = v; if (v === '') this.hijos = []; } });
+    return e; };
+  const document = { getElementById: id => (cajas[id] = cajas[id] || elem()), createElement: () => elem() };
+  const pinta = new Function('document', 'window', registro + '\n' +
+    ['FUENTES_GASTO', 'DESTINOS_INGRESO', 'CTA_EXTERNO'].map(decl).join('\n') + '\n' +
+    fnDe('pintarListasCuentas') + '\nreturn pintarListasCuentas;')(document, {});
+  pinta();
+  for (const id of Object.keys(ESPERADO)) {
+    const sale = (cajas[id] ? cajas[id].hijos : []).map(o => (o.value || o.dataset.cuenta) + '|' + o.textContent + (o.dataset.soloSale ? '|soloSale' : ''));
+    chk(id, JSON.stringify(sale) === JSON.stringify(ESPERADO[id]), 'sale ' + JSON.stringify(sale));
+  }
+  const g = cajas['gasto-fuente-toggle'].hijos;
+  // el boton activo al abrir es el primero; state arranca con fuenteGasto/destinoIngreso = 'efectivo'.
+  // Si el orden cambia, la pantalla marcaria una cuenta y se guardaria otra
+  const ini = (HTML.match(/fuenteGasto:'(\w+)'/) || [])[1], iniI = (HTML.match(/destinoIngreso:'(\w+)'/) || [])[1];
+  chk('el primer boton de gasto e ingreso es la cuenta por defecto del estado',
+    g[0].dataset.cuenta === ini && cajas['ingreso-destino-toggle'].hijos[0].dataset.cuenta === iniI, ini + ' / ' + iniI);
+  chk('solo el primer boton de gasto empieza activo', g.map(b => / active/.test(b.className)).join() === [true, false, false, false, false].join());
+  chk('los botones ya no dependen de la posicion (setFuente usa data-cuenta)', !/\]\[i\]===f/.test(HTML.match(/window\.setFuente = .*$/m)[0]));
+  chk('las validaciones de pago de tarjeta usan la misma lista que su select',
+    HTML.includes("[...ctasEn('pagoTj'),'externo']") && HTML.includes("[...ctasEn('pagoTjRev'),'externo']"));
+}
+
 console.log('\n==========================================================');
 console.log(fallos === 0 ? `TODO PASA — ${pruebas}/${pruebas}` : `${fallos} FALLAS de ${pruebas}`);
 process.exit(fallos ? 1 : 0);

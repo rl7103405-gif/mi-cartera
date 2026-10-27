@@ -887,28 +887,10 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
   <div class="panel">
     <div class="row2" style="gap:8px">
       <div class="field"><label>desde</label>
-        <select id="transfer-origen">
-          <option value="efectivo">efectivo</option>
-          <option value="nu">NU saldo</option>
-          <option value="cajita1">NU cajita 1</option>
-          <option value="revolut">Revolut MXN</option>
-          <option value="revSavings">Revolut Savings</option>
-          <option value="mifel">Mifel</option>
-          <option value="revTdcDep">depósito TDC Revolut (solo retirable)</option>
-        </select>
+        <select id="transfer-origen"></select>
       </div>
       <div class="field"><label>hacia</label>
-        <select id="transfer-destino">
-          <option value="nu">NU saldo</option>
-          <option value="efectivo">efectivo</option>
-          <option value="cajita1">NU cajita 1</option>
-          <option value="revolut">Revolut MXN</option>
-          <option value="revSavings">Revolut Savings</option>
-          <option value="mifel">Mifel</option>
-          <option value="tarjeta">tarjeta NU (pago)</option>
-          <option value="tarjetaRev">TDC Revolut (pago)</option>
-          <option value="revTdcDep">depósito TDC Revolut (sube tu límite)</option>
-        </select>
+        <select id="transfer-destino"></select>
       </div>
     </div>
     <div class="field"><label>monto</label><input type="number" id="transfer-monto" placeholder="ej. 4000" step="0.01" inputmode="decimal"></div>
@@ -962,13 +944,7 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
       <div class="field"><label>nota (opcional)</label><input type="text" id="gasto-nota" maxlength="200" placeholder="ej. taquería"></div>
       <div class="field"><label>fecha (YYYY-MM-DD, vacía = hoy)</label><input type="text" id="gasto-fecha" placeholder="hoy"></div>
       <div class="field"><label>pagado con</label>
-        <div class="type-toggle" id="gasto-fuente-toggle">
-          <div class="type-opt active" onclick="setFuente('efectivo')">efectivo</div>
-          <div class="type-opt" onclick="setFuente('nu')">NU saldo</div>
-          <div class="type-opt" onclick="setFuente('tarjeta')">tarjeta NU</div>
-          <div class="type-opt" onclick="setFuente('revolut')">Revolut</div>
-          <div class="type-opt" onclick="setFuente('tarjetaRev')">TDC Revolut</div>
-        </div>
+        <div class="type-toggle" id="gasto-fuente-toggle"><!-- botones: pintarListasCuentas() --></div>
       </div>
       <button class="btn btn-purple" id="gasto-btn" onclick="registrarGasto()">registrar gasto</button>
     </div>
@@ -982,11 +958,7 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
       <div class="field"><label>nota (opcional)</label><input type="text" id="ingreso-nota" maxlength="200" placeholder="ej. pago proyecto"></div>
       <div class="field"><label>fecha (YYYY-MM-DD, vacía = hoy)</label><input type="text" id="ingreso-fecha" placeholder="hoy"></div>
       <div class="field"><label>entra a</label>
-        <div class="type-toggle" id="ingreso-destino-toggle">
-          <div class="type-opt active" onclick="setDestinoIngreso('efectivo')">efectivo</div>
-          <div class="type-opt" onclick="setDestinoIngreso('nu')">NU saldo</div>
-          <div class="type-opt" onclick="setDestinoIngreso('revolut')">Revolut</div>
-        </div>
+        <div class="type-toggle" id="ingreso-destino-toggle"><!-- botones: pintarListasCuentas() --></div>
       </div>
       <button class="btn btn-green" id="ingreso-btn" onclick="registrarIngreso()">registrar ingreso</button>
     </div>
@@ -1003,14 +975,7 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
     <div class="field"><label>nota</label><input type="text" id="tarjeta-cargo-nota" placeholder="ej. spotify, gasolina..."></div>
     <div class="field"><label>fecha (YYYY-MM-DD, vacía = hoy)</label><input type="text" id="tarjeta-fecha" placeholder="hoy"></div>
     <div class="field"><label>si pagas, el dinero sale de</label>
-      <select id="tarjeta-pago-fuente">
-        <option value="nu">NU saldo</option>
-        <option value="efectivo">efectivo</option>
-        <option value="cajita1">NU cajita 1</option>
-        <option value="revolut">Revolut MXN</option>
-        <option value="revSavings">Revolut Savings</option>
-        <option value="externo">otro (no descontar de mis cuentas)</option>
-      </select>
+      <select id="tarjeta-pago-fuente"></select>
     </div>
     <div class="row2" style="gap:8px">
       <button class="btn btn-red" id="tarjeta-cargo-btn" onclick="registrarTarjeta('cargo')" style="margin-top:0">+ cargo</button>
@@ -1030,12 +995,7 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
     <div class="field"><label>nota</label><input type="text" id="tarjeta-rev-nota" placeholder="ej. uber, súper..."></div>
     <div class="field"><label>fecha (YYYY-MM-DD, vacía = hoy)</label><input type="text" id="tarjeta-rev-fecha" placeholder="hoy"></div>
     <div class="field"><label>si pagas, el dinero sale de</label>
-      <select id="tarjeta-rev-pago-fuente">
-        <option value="revolut">Revolut MXN</option>
-        <option value="efectivo">efectivo</option>
-        <option value="nu">NU saldo</option>
-        <option value="externo">otro (no descontar de mis cuentas)</option>
-      </select>
+      <select id="tarjeta-rev-pago-fuente"></select>
     </div>
     <div class="row2" style="gap:8px">
       <button class="btn btn-red" id="tarjeta-rev-cargo-btn" onclick="registrarTarjetaRev('cargo')" style="margin-top:0">+ cargo</button>
@@ -1274,18 +1234,7 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
         </div>
       </div>
       <div class="field"><label>cuenta (de donde sale / a donde entra el dinero)</label>
-        <select id="deuda-cuenta">
-          <option value="externo">externo · no toca mis cuentas</option>
-          <option value="efectivo">efectivo</option>
-          <option value="nu">NU saldo</option>
-          <option value="cajita1">NU cajita 1</option>
-          <option value="revolut">Revolut MXN</option>
-          <option value="revSavings">Revolut Savings</option>
-          <option value="mifel">Mifel</option>
-          <!-- (16-oct-2026) tarjetas: solo para dinero que SALE (me deben / le pagué); setTipoDeuda las apaga en los otros -->
-          <option value="tarjeta" data-solo-sale="1">tarjeta NU (crédito)</option>
-          <option value="tarjetaRev" data-solo-sale="1">TDC Revolut (crédito)</option>
-        </select>
+        <select id="deuda-cuenta"></select>
       </div>
       <div class="field"><label>monto</label><input type="number" id="deuda-monto" placeholder="ej. 500" step="0.01" inputmode="decimal"></div>
       <div class="field"><label>nota (opcional)</label><input type="text" id="deuda-nota" placeholder="ej. licencia, medicina..."></div>
@@ -1324,12 +1273,7 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
     </div>
     <div class="row2" style="gap:8px">
       <div class="field"><label>cuenta</label>
-        <select id="stock-cuenta">
-          <option value="revolut">Revolut MXN</option>
-          <option value="efectivo">efectivo</option>
-          <option value="nu">NU saldo</option>
-          <option value="externo">externo · no toca mis cuentas</option>
-        </select>
+        <select id="stock-cuenta"></select>
       </div>
       <div class="field"><label>fecha (YYYY-MM-DD, vacía = hoy)</label><input type="text" id="stock-fecha" placeholder="hoy"></div>
     </div>
@@ -1606,14 +1550,17 @@ const META_SAVINGS_DEF = 25000, META_STOCKS_DEF = 12000, META_FECHA_DEF = '2026-
 const MIFEL_DEF={dias:360,tasa:10,tope:500000,tasaExc:0,ret:0.9,retCap:true};
 const REG_CUENTAS=[
   {id:'efectivo',   nombre:'efectivo',             simple:'efectivo',  grupo:'disponible',
-   en:{simple:1, gasto:1, ingreso:1, stock:1, fondo:4, detalle:1, transfer:1, deudaAlta:1, deuda:1}},
+   en:{simple:1, gasto:1, ingreso:1, stock:1, fondo:4, detalle:1, transfer:1, deudaAlta:1, deuda:1,
+       destino:2, pagoTj:2, pagoTjRev:2, stockSel:2}},
   {id:'nu',         nombre:'NU saldo',             simple:'nuSaldo',   grupo:'disponible',
-   en:{simple:2, gasto:2, ingreso:2, stock:2, fondo:3, detalle:2, transfer:2, deudaAlta:2, deuda:2}},
+   en:{simple:2, gasto:2, ingreso:2, stock:2, fondo:3, detalle:2, transfer:2, deudaAlta:2, deuda:2,
+       destino:1, pagoTj:1, pagoTjRev:3, stockSel:3}},
   {id:'cajita1',    nombre:'NU cajita 1',          grupo:'ahorro',
    comp:{base:'nuCajita1Base', fecha:'nuCajita1Fecha', tasa:'nuCajita1Tasa',
          tope:'nuCajita1Tope', tasaExc:'nuCajita1TasaExc', ret:'nuCajita1Ret',
          def:{dias:360,tasa:13,tope:25000,tasaExc:6.5,ret:0}},
-   en:{comp:1, ahorro:1, proyectable:1, interes:1, fondo:5, detalle:5, transfer:3, deudaAlta:3, deuda:3}},
+   en:{comp:1, ahorro:1, proyectable:1, interes:1, fondo:5, detalle:5, transfer:3, deudaAlta:3, deuda:3,
+       destino:3, pagoTj:3}},
   // legada: sin alta ni tarjeta; no tiene campos propios de banda, usa sus defaults fijos
   {id:'cajita2',    nombre:'NU cajita 2',          legada:true,
    comp:{base:'nuCajita2Base', fecha:'nuCajita2Fecha', tasa:'nuCajita2Tasa',
@@ -1623,24 +1570,31 @@ const REG_CUENTAS=[
   {id:'gbm',        nombre:'GBM efectivo',         simple:'efectivoGBM', legada:true,
    en:{simple:4, deuda:5}},
   {id:'revolut',    nombre:'Revolut MXN',          simple:'revMXN',    grupo:'disponible',
-   en:{simple:3, gasto:4, ingreso:3, stock:3, fondo:1, detalle:3, transfer:4, deudaAlta:4, deuda:6}},
+   etq:{boton:'Revolut'},
+   en:{simple:3, gasto:4, ingreso:3, stock:3, fondo:1, detalle:3, transfer:4, deudaAlta:4, deuda:6,
+       destino:4, pagoTj:4, pagoTjRev:1, stockSel:1}},
   {id:'revSavings', nombre:'Revolut Savings',      grupo:'ahorro',
    comp:{base:'revSavingsBase',fecha:'revSavingsFecha',tasa:'revSavingsTasa',
          tope:'revSavingsTope',tasaExc:'revSavingsTasaExc',ret:'revSavingsRet',
          def:{dias:360,tasa:15,tope:25000,tasaExc:7.3,ret:0.9}},
-   en:{comp:3, ahorro:2, proyectable:2, interes:3, fondo:2, detalle:4, transfer:5, deudaAlta:5, deuda:7}},
+   en:{comp:3, ahorro:2, proyectable:2, interes:3, fondo:2, detalle:4, transfer:5, deudaAlta:5, deuda:7,
+       destino:5, pagoTj:5}},
   {id:'mifel',      nombre:'Mifel',                grupo:'ahorro',
    comp:{base:'mifelBase', fecha:'mifelFecha', tasa:'mifelTasa',
          tope:'mifelTope', tasaExc:'mifelTasaExc', ret:'mifelRet',
          def:MIFEL_DEF},
    textos:['mifelVigencia'],
-   en:{comp:4, ahorro:3, proyectable:3, interes:4, fondo:6, detalle:6, transfer:6, deudaAlta:6, deuda:8}},
+   en:{comp:4, ahorro:3, proyectable:3, interes:4, fondo:6, detalle:6, transfer:6, deudaAlta:6, deuda:8,
+       destino:6}},
   {id:'tarjeta',    nombre:'tarjeta NU',           tarjeta:true,
-   en:{gasto:3, deudaAlta:7, deuda:9, tarjetaDeuda:1}},
+   etq:{destino:'tarjeta NU (pago)', deuda:'tarjeta NU (crédito)'},
+   en:{gasto:3, deudaAlta:7, deuda:9, tarjetaDeuda:1, destino:7}},
   {id:'tarjetaRev', nombre:'TDC Revolut',          tarjeta:true,
-   en:{gasto:5, deudaAlta:8, deuda:10, tarjetaDeuda:2}},
+   etq:{destino:'TDC Revolut (pago)', deuda:'TDC Revolut (crédito)'},
+   en:{gasto:5, deudaAlta:8, deuda:10, tarjetaDeuda:2, destino:8}},
   {id:'revTdcDep',  nombre:'deposito TDC Revolut',
-   en:{transfer:7}},
+   etq:{transfer:'depósito TDC Revolut (solo retirable)', destino:'depósito TDC Revolut (sube tu límite)'},
+   en:{transfer:7, destino:9}},
   {id:'stocks',     nombre:'Stocks (bolsa)',
    en:{proyectable:4}}
 ];
@@ -1691,6 +1645,38 @@ const CUENTAS = Object.fromEntries(REG_CUENTAS.map(c=>[c.id,c.nombre]));
 const CTAS_STOCK_OP=[...ctasEn('stock'),'externo']; // cuentas desde las que se puede comprar/vender bolsa ('externo' no toca saldos)
 const FUENTES_GASTO=ctasEn('gasto');
 const DESTINOS_INGRESO=ctasEn('ingreso'); // gbm retirado (los ingresos legados con gbm solo se muestran/deshacen)
+// (27-oct-2026) selects y botones de cuentas: salen del registro, en el orden de cada lista. etq cambia el
+// nombre en un lugar concreto ("(pago)" en transferir, "(crédito)" en deudas, "Revolut" en los botones).
+// 'externo' no es una cuenta: cada select lo pone donde va con su propio texto
+const CTA_EXTERNO={pago:'otro (no descontar de mis cuentas)', otro:'externo · no toca mis cuentas'};
+function pintarListasCuentas() {
+  const reg=id=>REG_CUENTAS.find(c=>c.id===id);
+  const etq=(id,donde)=>{ const c=reg(id); return (c.etq&&c.etq[donde])||c.nombre; };
+  const select=(selId,ids,donde,ext)=>{
+    const sel=document.getElementById(selId); if(!sel) return;
+    sel.textContent='';
+    const opc=(v,t)=>{ const o=document.createElement('option'); o.value=v; o.textContent=t; sel.appendChild(o); return o; };
+    if(ext&&ext.antes) opc('externo',ext.antes);
+    ids.forEach(id=>{ const o=opc(id,etq(id,donde)); if(donde==='deuda'&&reg(id).tarjeta) o.dataset.soloSale='1'; });
+    if(ext&&ext.despues) opc('externo',ext.despues);
+  };
+  select('transfer-origen', ctasEn('transfer'), 'transfer');
+  select('transfer-destino', ctasEn('destino'), 'destino');
+  select('tarjeta-pago-fuente', ctasEn('pagoTj'), 'pago', {despues:CTA_EXTERNO.pago});
+  select('tarjeta-rev-pago-fuente', ctasEn('pagoTjRev'), 'pago', {despues:CTA_EXTERNO.pago});
+  select('deuda-cuenta', ctasEn('deudaAlta'), 'deuda', {antes:CTA_EXTERNO.otro});
+  select('stock-cuenta', ctasEn('stockSel'), 'stock', {despues:CTA_EXTERNO.otro});
+  // botones de gasto e ingreso: cada uno lleva su cuenta en data-cuenta (ya no dependen de la posicion)
+  const botones=(contId,ids,fn)=>{
+    const cont=document.getElementById(contId); if(!cont) return;
+    cont.textContent='';
+    ids.forEach((id,i)=>{ const b=document.createElement('div'); b.className='type-opt'+(i===0?' active':'');
+      b.dataset.cuenta=id; b.textContent=etq(id,'boton'); b.addEventListener('click',()=>window[fn](id)); cont.appendChild(b); });
+  };
+  botones('gasto-fuente-toggle', FUENTES_GASTO, 'setFuente');
+  botones('ingreso-destino-toggle', DESTINOS_INGRESO, 'setDestinoIngreso');
+}
+pintarListasCuentas();
 const CATS_GASTO_DEFAULT = ['Comida','Transporte','Salidas','Zoe','Ropa','Salud','Suscripciones','Educacion','Casa','Entretenimiento','Viajes','Regalos','Otros'];
 const CATS_INGRESO_DEFAULT = ['Trabajo','Quini','Maicitos','Brownies','Regalos','Deudas cobradas','Inversiones','Otros'];
 const MESES = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
@@ -4267,8 +4253,8 @@ window.setMovTipo = t => {
   // el historial se filtra al tipo elegido (pedido de Roberto); 'todos' queda manual
   window.setMovFiltro(t==='gasto'?'gastos':'ingresos');
 };
-window.setFuente = f => { state.fuenteGasto=f; document.querySelectorAll('#gasto-fuente-toggle .type-opt').forEach((el,i)=>el.classList.toggle('active',['efectivo','nu','tarjeta','revolut','tarjetaRev'][i]===f)); };
-window.setDestinoIngreso = f => { state.destinoIngreso=f; document.querySelectorAll('#ingreso-destino-toggle .type-opt').forEach((el,i)=>el.classList.toggle('active',['efectivo','nu','revolut'][i]===f)); };
+window.setFuente = f => { state.fuenteGasto=f; document.querySelectorAll('#gasto-fuente-toggle .type-opt').forEach(el=>el.classList.toggle('active',el.dataset.cuenta===f)); };
+window.setDestinoIngreso = f => { state.destinoIngreso=f; document.querySelectorAll('#ingreso-destino-toggle .type-opt').forEach(el=>el.classList.toggle('active',el.dataset.cuenta===f)); };
 window.setTipoDeuda = t => { state.tipoDeuda=t; ['cargo','pago','debo','pague'].forEach(id=>document.getElementById('tipo-'+id).classList.toggle('active',id===t)); ajustarCuentasDeuda(); };
 // (16-oct-2026) una tarjeta de credito solo sirve cuando el dinero SALE (le presto, le pago): en
 // "me pagaron" / "yo debo" el dinero entra y una tarjeta no recibe dinero. Se apagan esas opciones
@@ -4932,7 +4918,7 @@ window.registrarTarjeta = async function(tipo) {
   let fuente=null;
   if(tipo==='pago') {
     fuente=document.getElementById('tarjeta-pago-fuente').value;
-    if(!['efectivo','nu','cajita1','revolut','revSavings','externo'].includes(fuente)){showToast('cuenta no válida');return;}
+    if(![...ctasEn('pagoTj'),'externo'].includes(fuente)){showToast('cuenta no válida');return;}
     // el monto contra la deuda y contra el saldo lo revalida txDinero con los valores
     // de la nube; esto es solo un aviso temprano para no mandar una transaccion inutil
     if(monto>state.tarjetaDeuda+0.01){showToast('el pago excede la deuda de la tarjeta');return;}
@@ -4986,7 +4972,7 @@ window.registrarTarjetaRev = async function(tipo) {
     }
   } else {
     fuente=document.getElementById('tarjeta-rev-pago-fuente').value;
-    if(!['revolut','efectivo','nu','externo'].includes(fuente)){showToast('cuenta no válida');return;}
+    if(![...ctasEn('pagoTjRev'),'externo'].includes(fuente)){showToast('cuenta no válida');return;}
     if(monto>state.revTdcDeuda+0.01){showToast('el pago excede la deuda de la TDC Revolut');return;}
     if(fuente!=='externo'&&monto>disponibleCuenta(fuente)+0.01){showToast('saldo insuficiente en '+CUENTAS[fuente]);return;}
   }
