@@ -107,7 +107,11 @@ const { calcCompoundAt, modeloComp } = new Function('parseFechaLocal',
 // MIFEL_DEF vive arriba del estado (lo usan los defaults); CAMPO_COMP lo referencia. Solo existe en
 // la app de Roberto: en las copias el match queda vacio y no cambia nada
 const mifelDef = (HTML.match(/const MIFEL_DEF=\{[^}]*\};/) || [''])[0];
-const fuente = mifelDef + '\n' + extrae('const nFin = (v,d=0)', '// aplica a memoria el resultado CANONICO');
+// (27-oct-2026) el registro de cuentas (MIFEL_DEF incluido) vive arriba del estado: CAMPO_SIMPLE,
+// CAMPO_COMP y CTAS_FONDO salen de el. Las copias no lo tienen y siguen con sus literales
+const regIni = HTML.indexOf('// ── REGISTRO DE CUENTAS'), regFin = HTML.indexOf('// ── fin registro de cuentas');
+const registro = regIni >= 0 && regFin > regIni ? HTML.slice(regIni, regFin) : mifelDef;
+const fuente = registro + '\n' + extrae('const nFin = (v,d=0)', '// aplica a memoria el resultado CANONICO');
 const { txDinero, CAMPO_COMP } = new Function('db','datosCargados','doc','collection','runTransaction','setSyncDot',
   'hoyLocal','calcCompoundAt','modeloComp','clampCero','CUENTAS','state','movSinEfecto','NS','C_GASTOS','C_INGRESOS','C_TRANSF','C_OPS','tdcGarantizada','parseFechaLocal','PFX',
   fuente + '\nreturn { txDinero, CAMPO_COMP };')(db, datosCargados, doc, collection, runTransaction, setSyncDot,

@@ -73,7 +73,9 @@ const HAY_MERCADO = fuente.includes("'mercado'");
 const HAY_FONDO = fuente.includes("'fondo'");
 // Eli y Toño (16-oct): la configuracion de cuentas entra al todo o nada (sin ella se capturaria con las de fabrica)
 const HAY_CUENTAS = fuente.includes("'cuentas'");
-const fondoSrc = HAY_FONDO ? extrae('// ── fondo: saneo', '// ── fin saneo fondo') : '';
+// (27-oct-2026) CTAS_FONDO sale del registro de cuentas: se carga antes que el saneo del fondo
+const registroSrc = HTML.includes('// ── REGISTRO DE CUENTAS') ? extrae('// ── REGISTRO DE CUENTAS', '// ── fin registro de cuentas') : '';
+const fondoSrc = HAY_FONDO ? registroSrc + extrae('// ── fondo: saneo', '// ── fin saneo fondo') : '';
 // la casa (30-sep): la carga normaliza las categorías de ingreso con conCatPapa ("Mes papá" primero)
 const papaSrc = HTML.includes('const conCatPapa')
   ? HTML.slice(HTML.indexOf('const CAT_PAPA ='), HTML.indexOf('\n', HTML.indexOf('const conCatPapa'))+1) : '';

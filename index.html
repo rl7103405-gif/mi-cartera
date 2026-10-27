@@ -1593,6 +1593,68 @@ const TITULOS = 45;
 // desde la pestana metas (state.metas / editarMetas). Estos son solo los valores con
 // los que arranca la primera vez.
 const META_SAVINGS_DEF = 25000, META_STOCKS_DEF = 12000, META_FECHA_DEF = '2026-12-31', PREMIUM_MONTO = 145;
+// ── REGISTRO DE CUENTAS ──
+// (27-oct-2026) UNA entrada por cuenta: de aqui salen CUENTAS, CAMPO_SIMPLE, CAMPO_COMP y todas
+// las listas de "en que participa" (gasto, ingreso, fondo, transferencias, deudas...). En `en`, el
+// numero es la POSICION de la cuenta en esa lista (cada lista tiene su orden en pantalla); sin el
+// nombre de la lista, la cuenta no participa. Las claves (id, campos) son contrato con los datos
+// guardados y con el Atajo de iOS: no se renombran. Legadas (cajita2, gbm): solo para mostrar y
+// deshacer movimientos viejos. Las pruebas extraen este bloque por sus marcadores.
+// Mifel (25-sep-2026): Cuenta Digital con promocion de 10% BRUTO de $100 a $500,000 y 0% arriba,
+// abono diario en dias habiles, vigente al 31-oct-2026 (terminos publicados de Mifel). retCap: la
+// retencion de ISR no rebasa el interes de la banda (una banda al 0% no resta); solo esta cuenta la usa.
+const MIFEL_DEF={dias:360,tasa:10,tope:500000,tasaExc:0,ret:0.9,retCap:true};
+const REG_CUENTAS=[
+  {id:'efectivo',   nombre:'efectivo',             simple:'efectivo',  grupo:'disponible',
+   en:{simple:1, gasto:1, ingreso:1, stock:1, fondo:4, detalle:1, transfer:1, deudaAlta:1, deuda:1}},
+  {id:'nu',         nombre:'NU saldo',             simple:'nuSaldo',   grupo:'disponible',
+   en:{simple:2, gasto:2, ingreso:2, stock:2, fondo:3, detalle:2, transfer:2, deudaAlta:2, deuda:2}},
+  {id:'cajita1',    nombre:'NU cajita 1',          grupo:'ahorro',
+   comp:{base:'nuCajita1Base', fecha:'nuCajita1Fecha', tasa:'nuCajita1Tasa',
+         tope:'nuCajita1Tope', tasaExc:'nuCajita1TasaExc', ret:'nuCajita1Ret',
+         def:{dias:360,tasa:13,tope:25000,tasaExc:6.5,ret:0}},
+   en:{comp:1, ahorro:1, proyectable:1, interes:1, fondo:5, detalle:5, transfer:3, deudaAlta:3, deuda:3}},
+  // legada: sin alta ni tarjeta; no tiene campos propios de banda, usa sus defaults fijos
+  {id:'cajita2',    nombre:'NU cajita 2',          legada:true,
+   comp:{base:'nuCajita2Base', fecha:'nuCajita2Fecha', tasa:'nuCajita2Tasa',
+         def:{dias:360,tasa:6.5,tope:null,tasaExc:0,ret:0}},
+   en:{comp:2, interes:2, deuda:4}},
+  // legada: GBM retirado; los movimientos viejos con gbm solo se muestran/deshacen
+  {id:'gbm',        nombre:'GBM efectivo',         simple:'efectivoGBM', legada:true,
+   en:{simple:4, deuda:5}},
+  {id:'revolut',    nombre:'Revolut MXN',          simple:'revMXN',    grupo:'disponible',
+   en:{simple:3, gasto:4, ingreso:3, stock:3, fondo:1, detalle:3, transfer:4, deudaAlta:4, deuda:6}},
+  {id:'revSavings', nombre:'Revolut Savings',      grupo:'ahorro',
+   comp:{base:'revSavingsBase',fecha:'revSavingsFecha',tasa:'revSavingsTasa',
+         tope:'revSavingsTope',tasaExc:'revSavingsTasaExc',ret:'revSavingsRet',
+         def:{dias:360,tasa:15,tope:25000,tasaExc:7.3,ret:0.9}},
+   en:{comp:3, ahorro:2, proyectable:2, interes:3, fondo:2, detalle:4, transfer:5, deudaAlta:5, deuda:7}},
+  {id:'mifel',      nombre:'Mifel',                grupo:'ahorro',
+   comp:{base:'mifelBase', fecha:'mifelFecha', tasa:'mifelTasa',
+         tope:'mifelTope', tasaExc:'mifelTasaExc', ret:'mifelRet',
+         def:MIFEL_DEF},
+   textos:['mifelVigencia'],
+   en:{comp:4, ahorro:3, proyectable:3, interes:4, fondo:6, detalle:6, transfer:6, deudaAlta:6, deuda:8}},
+  {id:'tarjeta',    nombre:'tarjeta NU',           tarjeta:true,
+   en:{gasto:3, deudaAlta:7, deuda:9, tarjetaDeuda:1}},
+  {id:'tarjetaRev', nombre:'TDC Revolut',          tarjeta:true,
+   en:{gasto:5, deudaAlta:8, deuda:10, tarjetaDeuda:2}},
+  {id:'revTdcDep',  nombre:'deposito TDC Revolut',
+   en:{transfer:7}},
+  {id:'stocks',     nombre:'Stocks (bolsa)',
+   en:{proyectable:4}}
+];
+// ids de las cuentas que participan en una lista, en su orden de pantalla
+const ctasEn=lista=>REG_CUENTAS.filter(c=>c.en[lista]).sort((a,b)=>a.en[lista]-b.en[lista]).map(c=>c.id);
+// campos de cartera/saldos de cada cuenta: numeros (saldo simple; base, tasa y bandas) y textos
+// (fechas base y la vigencia de Mifel). 'reporto' es legado de GBM: no es una cuenta, pero vive ahi
+const CAMPOS_SALDO_NUM=[...REG_CUENTAS.flatMap(c=>c.simple?[c.simple]
+  :c.comp?['base','tasa','tope','tasaExc','ret'].map(k=>c.comp[k]).filter(Boolean):[]),'reporto'];
+const CAMPOS_SALDO_TXT=REG_CUENTAS.flatMap(c=>[...(c.comp?[c.comp.fecha]:[]),...(c.textos||[])]);
+// grupo: 'disponible' (dinero del dia a dia) o 'ahorro' (cuentas con interes). Las dos suman al
+// patrimonio; la bolsa y el deposito de la TDC se suman aparte (no son saldos de cuenta)
+const ctasGrupo=g=>REG_CUENTAS.filter(c=>c.grupo===g).map(c=>c.id);
+// ── fin registro de cuentas ──
 // Cuentas que una meta puede seguir. La meta se mide SOLA contra el saldo real de esa
 // cuenta; por eso el catalogo es cerrado (una meta a una cuenta que no existe no se
 // podria medir). 'patrimonio' es el total de todo.
@@ -1600,9 +1662,9 @@ const METAS_CUENTAS={revSavings:'Revolut Savings', mifel:'Mifel', stocks:'invert
   nu:'NU saldo', cajita1:'NU cajita 1', revolut:'Revolut MXN', patrimonio:'patrimonio total'};
 // de esas, las unicas cuyas APORTACIONES sabemos medir (aportacionesEnRango): solo estas
 // se pueden proyectar en "el camino"; el resto se muestra sin proyeccion
-const METAS_PROYECTABLES=['cajita1','revSavings','mifel','stocks'];
+const METAS_PROYECTABLES=ctasEn('proyectable');
 // cuentas de ahorro con interes que son TUYAS: aportaciones, intereses del resumen y 'cuanto gana tu dinero'
-const CTAS_AHORRO=['cajita1','revSavings','mifel'];
+const CTAS_AHORRO=ctasEn('ahorro');
 const apTotal=ap=>Object.values(ap).reduce((s,v)=>s+v,0);   // aportacion neta de todas las cuentas de ahorro + bolsa
 const apHay=ap=>Object.values(ap).some(v=>v!==0);
 // ── ESTANDAR PERSONAL ─────────────────────────────────────────
@@ -1625,14 +1687,10 @@ function estandarDe(p) {
     :((p&&(p.vivienda==='renta'||p.vivienda==='propia'))?ESTANDARES.renta:ESTANDARES.generico);
   return {...base,ver:ESTANDAR_VER};
 }
-const CUENTAS = {efectivo:'efectivo', nu:'NU saldo', cajita1:'NU cajita 1', cajita2:'NU cajita 2', gbm:'GBM efectivo', revolut:'Revolut MXN', revSavings:'Revolut Savings', mifel:'Mifel', tarjeta:'tarjeta NU', tarjetaRev:'TDC Revolut', revTdcDep:'deposito TDC Revolut', stocks:'Stocks (bolsa)'};
-// Mifel (25-sep-2026): Cuenta Digital con promocion de 10% BRUTO de $100 a $500,000 y 0% arriba,
-// abono diario en dias habiles, vigente al 31-oct-2026 (terminos publicados de Mifel). retCap: la
-// retencion de ISR no rebasa el interes de la banda (una banda al 0% no resta); solo esta cuenta la usa.
-const MIFEL_DEF={dias:360,tasa:10,tope:500000,tasaExc:0,ret:0.9,retCap:true};
-const CTAS_STOCK_OP=['efectivo','nu','revolut','externo']; // cuentas desde las que se puede comprar/vender bolsa ('externo' no toca saldos)
-const FUENTES_GASTO=['efectivo','nu','tarjeta','revolut','tarjetaRev'];
-const DESTINOS_INGRESO=['efectivo','nu','revolut']; // gbm retirado (los ingresos legados con gbm solo se muestran/deshacen)
+const CUENTAS = Object.fromEntries(REG_CUENTAS.map(c=>[c.id,c.nombre]));
+const CTAS_STOCK_OP=[...ctasEn('stock'),'externo']; // cuentas desde las que se puede comprar/vender bolsa ('externo' no toca saldos)
+const FUENTES_GASTO=ctasEn('gasto');
+const DESTINOS_INGRESO=ctasEn('ingreso'); // gbm retirado (los ingresos legados con gbm solo se muestran/deshacen)
 const CATS_GASTO_DEFAULT = ['Comida','Transporte','Salidas','Zoe','Ropa','Salud','Suscripciones','Educacion','Casa','Entretenimiento','Viajes','Regalos','Otros'];
 const CATS_INGRESO_DEFAULT = ['Trabajo','Quini','Maicitos','Brownies','Regalos','Deudas cobradas','Inversiones','Otros'];
 const MESES = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
@@ -2526,26 +2584,9 @@ const snapsPendientes=new Map(); // ruta -> ultimo snapshot llegado durante una 
 function aplicarSaldosRemotos(d) {
   if(!d) return;
   const num=(k,cur)=>Number.isFinite(d[k])?d[k]:cur;
-  state.nuCajita1Base=num('nuCajita1Base',state.nuCajita1Base);
-  state.nuCajita1Tasa=num('nuCajita1Tasa',state.nuCajita1Tasa);
-  if(typeof d.nuCajita1Fecha==='string') state.nuCajita1Fecha=d.nuCajita1Fecha;
-  state.nuCajita2Base=num('nuCajita2Base',state.nuCajita2Base);
-  state.nuCajita2Tasa=num('nuCajita2Tasa',state.nuCajita2Tasa);
-  if(typeof d.nuCajita2Fecha==='string') state.nuCajita2Fecha=d.nuCajita2Fecha;
-  state.revSavingsBase=num('revSavingsBase',state.revSavingsBase);
-  state.revSavingsTasa=num('revSavingsTasa',state.revSavingsTasa);
-  if(typeof d.revSavingsFecha==='string') state.revSavingsFecha=d.revSavingsFecha;
-  state.mifelBase=num('mifelBase',state.mifelBase);
-  state.mifelTasa=num('mifelTasa',state.mifelTasa);
-  if(typeof d.mifelFecha==='string') state.mifelFecha=d.mifelFecha;
-  if(typeof d.mifelVigencia==='string') state.mifelVigencia=d.mifelVigencia;
-  ['nuCajita1Tope','nuCajita1TasaExc','nuCajita1Ret','revSavingsTope','revSavingsTasaExc','revSavingsRet','mifelTope','mifelTasaExc','mifelRet']
-    .forEach(k=>{ state[k]=num(k,state[k]); });
-  state.nuSaldo=num('nuSaldo',state.nuSaldo);
-  state.efectivo=num('efectivo',state.efectivo);
-  state.reporto=num('reporto',state.reporto);
-  state.efectivoGBM=num('efectivoGBM',state.efectivoGBM);
-  state.revMXN=num('revMXN',state.revMXN);
+  // (27-oct-2026) los campos salen del registro de cuentas: un numero corrupto conserva el valor actual
+  CAMPOS_SALDO_NUM.forEach(k=>{ state[k]=num(k,state[k]); });
+  CAMPOS_SALDO_TXT.forEach(k=>{ if(typeof d[k]==='string') state[k]=d[k]; });
 }
 function aplicarTarjetaRemota(d) {
   if(!d) return;
@@ -2638,7 +2679,7 @@ let genDinero = 0;       // cuenta las operaciones de dinero terminadas: reinten
 function liberarDinero() { dineroOcupado=false; genDinero++; drenarSnapshots(); }
 
 // cuentas de saldo simple: slot -> campo en cartera/saldos
-const CAMPO_SIMPLE={efectivo:'efectivo', nu:'nuSaldo', revolut:'revMXN', gbm:'efectivoGBM'};
+const CAMPO_SIMPLE=Object.fromEntries(ctasEn('simple').map(id=>[id,REG_CUENTAS.find(c=>c.id===id).simple]));
 // ── fondo: saneo ──
 // FONDO DE LA UNIVERSIDAD (14-sep-2026). Roberto recibe ~MXN 813,600 (estimado) de un seguro
 // educativo y los guarda MEZCLADOS en sus cuentas (casi todo en Revolut). No son dinero para
@@ -2646,7 +2687,7 @@ const CAMPO_SIMPLE={efectivo:'efectivo', nu:'nuSaldo', revolut:'revMXN', gbm:'ef
 // lo apartado, y ninguna operacion normal puede dejar una cuenta bajo lo apartado. El interes
 // NO se aparta solo (txDinero reinicia base/fecha y no hay historia para atribuirlo): se
 // muestra una estimacion y Roberto concilia lo que el banco abono (tipo 'rendimiento').
-const CTAS_FONDO = ['revolut', 'revSavings', 'nu', 'efectivo', 'cajita1', 'mifel'];
+const CTAS_FONDO = ctasEn('fondo');
 const TIPOS_FONDO = ['entrada', 'salida', 'traspaso', 'apartar', 'rendimiento', 'liberar'];
 function saneaFondo(d) {
   const out = {saldosPorCuenta:{}, movs:[]};
@@ -2698,20 +2739,8 @@ function saldoFinalSlot(slot, sal, campos, ahora) {
 // def: convencion del producto cuando el doc no trae el campo. dias=360 (regulacion
 // mexicana), tope/tasaExc = banda de saldo, ret = retencion ISR anual sobre capital
 // (Revolut abona neto; Nu muestra bruto). Cajita 2 no tiene campos propios de banda:
-// usa sus defaults fijos.
-const CAMPO_COMP={
-  cajita1:   {base:'nuCajita1Base', fecha:'nuCajita1Fecha', tasa:'nuCajita1Tasa',
-              tope:'nuCajita1Tope', tasaExc:'nuCajita1TasaExc', ret:'nuCajita1Ret',
-              def:{dias:360,tasa:13,tope:25000,tasaExc:6.5,ret:0}},
-  cajita2:   {base:'nuCajita2Base', fecha:'nuCajita2Fecha', tasa:'nuCajita2Tasa',
-              def:{dias:360,tasa:6.5,tope:null,tasaExc:0,ret:0}},
-  revSavings:{base:'revSavingsBase',fecha:'revSavingsFecha',tasa:'revSavingsTasa',
-              tope:'revSavingsTope',tasaExc:'revSavingsTasaExc',ret:'revSavingsRet',
-              def:{dias:360,tasa:15,tope:25000,tasaExc:7.3,ret:0.9}},
-  mifel:     {base:'mifelBase', fecha:'mifelFecha', tasa:'mifelTasa',
-              tope:'mifelTope', tasaExc:'mifelTasaExc', ret:'mifelRet',
-              def:MIFEL_DEF}
-};
+// usa sus defaults fijos. Los modelos de cada cuenta viven en REG_CUENTAS (campo comp).
+const CAMPO_COMP=Object.fromEntries(ctasEn('comp').map(id=>[id,REG_CUENTAS.find(c=>c.id===id).comp]));
 
 // plan: {
 //   deltas:{slot:monto,...}      slots de CAMPO_SIMPLE/CAMPO_COMP y 'revTdcDep'
@@ -3106,25 +3135,14 @@ function msgFalloDinero() {
 function aplicarRes(res) {
   if (res.campos) {
     const cp = res.campos;
-    if (cp.efectivo   !== undefined) state.efectivo    = cp.efectivo;
-    if (cp.nuSaldo    !== undefined) state.nuSaldo     = cp.nuSaldo;
-    if (cp.revMXN     !== undefined) state.revMXN      = cp.revMXN;
-    if (cp.efectivoGBM!== undefined) state.efectivoGBM = cp.efectivoGBM;
-    if (cp.nuCajita1Base !== undefined) { state.nuCajita1Base = cp.nuCajita1Base; state.nuCajita1Fecha = cp.nuCajita1Fecha; }
-    if (cp.nuCajita2Base !== undefined) { state.nuCajita2Base = cp.nuCajita2Base; state.nuCajita2Fecha = cp.nuCajita2Fecha; }
-    if (cp.revSavingsBase!== undefined) { state.revSavingsBase= cp.revSavingsBase;state.revSavingsFecha= cp.revSavingsFecha; }
-    if (cp.mifelBase     !== undefined) { state.mifelBase     = cp.mifelBase;     state.mifelFecha     = cp.mifelFecha; }
-    // las TASAS tambien: al cambiarlas en "actualizar saldos" se escriben en Firestore, y
-    // sin esto calcNu1()/calcRevSavings() pintarian el saldo con la tasa VIEJA hasta que
-    // llegara el snapshot (que puede tardar con mala senal o la pestana en segundo plano)
-    if (cp.nuCajita1Tasa  !== undefined) state.nuCajita1Tasa  = cp.nuCajita1Tasa;
-    if (cp.nuCajita2Tasa  !== undefined) state.nuCajita2Tasa  = cp.nuCajita2Tasa;
-    if (cp.revSavingsTasa !== undefined) state.revSavingsTasa = cp.revSavingsTasa;
-    if (cp.mifelTasa      !== undefined) state.mifelTasa      = cp.mifelTasa;
-    if (cp.mifelVigencia  !== undefined) state.mifelVigencia  = cp.mifelVigencia;
-    ['nuCajita1Tope','nuCajita1TasaExc','nuCajita1Ret','revSavingsTope','revSavingsTasaExc','revSavingsRet','mifelTope','mifelTasaExc','mifelRet']
-      .forEach(k=>{ if (cp[k] !== undefined) state[k]=cp[k]; });
-    if (cp.reporto        !== undefined) state.reporto        = cp.reporto;
+    // base y fecha van juntas: txDinero siempre escribe las dos al reanclar una cuenta compuesta
+    REG_CUENTAS.forEach(c => { if (c.comp && cp[c.comp.base] !== undefined) {
+      state[c.comp.base] = cp[c.comp.base]; state[c.comp.fecha] = cp[c.comp.fecha]; } });
+    // lo demas (saldos simples, TASAS, bandas, vigencia, reporto). Las tasas tambien: al cambiarlas en
+    // "actualizar saldos" se escriben en Firestore, y sin esto calcNu1()/calcRevSavings() pintarian el
+    // saldo con la tasa VIEJA hasta que llegara el snapshot (que puede tardar con mala senal)
+    const baseFecha = new Set(REG_CUENTAS.flatMap(c => c.comp ? [c.comp.base, c.comp.fecha] : []));
+    [...CAMPOS_SALDO_NUM, ...CAMPOS_SALDO_TXT].forEach(k => { if (!baseFecha.has(k) && cp[k] !== undefined) state[k] = cp[k]; });
   }
   if (res.tarjeta) { state.tarjetaDeuda = res.tarjeta.deuda; state.tarjetaMovimientos = res.tarjeta.movimientos; }
   if (res.fondo)   state.fondo = saneaFondo(res.fondo);
@@ -3139,18 +3157,7 @@ const nuevoId = () => (crypto.randomUUID?crypto.randomUUID():String(Date.now())+
 // hayan guardado el Atajo u otro dispositivo. Para escribir saldos se usa txDinero().
 function saldosPayload() {
   // OJO: las cotizaciones (ivv*, nvda*, usdMxn*) NO van aqui: viven en cartera/mercado
-  return {
-    nuCajita1Base:state.nuCajita1Base, nuCajita1Fecha:state.nuCajita1Fecha, nuCajita1Tasa:state.nuCajita1Tasa,
-    nuCajita2Base:state.nuCajita2Base, nuCajita2Fecha:state.nuCajita2Fecha, nuCajita2Tasa:state.nuCajita2Tasa,
-    nuSaldo:state.nuSaldo, efectivo:state.efectivo,
-    reporto:state.reporto, efectivoGBM:state.efectivoGBM,
-    revMXN:state.revMXN, revSavingsBase:state.revSavingsBase, revSavingsFecha:state.revSavingsFecha,
-    revSavingsTasa:state.revSavingsTasa,
-    nuCajita1Tope:state.nuCajita1Tope, nuCajita1TasaExc:state.nuCajita1TasaExc, nuCajita1Ret:state.nuCajita1Ret,
-    revSavingsTope:state.revSavingsTope, revSavingsTasaExc:state.revSavingsTasaExc, revSavingsRet:state.revSavingsRet,
-    mifelBase:state.mifelBase, mifelFecha:state.mifelFecha, mifelTasa:state.mifelTasa, mifelTope:state.mifelTope,
-    mifelTasaExc:state.mifelTasaExc, mifelRet:state.mifelRet, mifelVigencia:state.mifelVigencia
-  };
+  return Object.fromEntries([...CAMPOS_SALDO_NUM, ...CAMPOS_SALDO_TXT].map(k => [k, state[k]]));
 }
 // saveSaldos() se elimino el 27-ago-2026: era el ultimo setDoc COMPLETO del documento
 // de saldos. Para fijar un saldo a mano se usa txDinero({absolutos:{...}}), que escribe
@@ -4216,7 +4223,7 @@ function rerenderTodo() {
 }
 // detalle por cuenta: al tocar una tarjeta de inicio se listan sus movimientos del ultimo
 // mes (gastos, ingresos y transferencias; excluye pendientes/rechazados del atajo)
-const CUENTAS_DETALLE=['efectivo','nu','revolut','revSavings','cajita1','mifel'];
+const CUENTAS_DETALLE=ctasEn('detalle');
 window.toggleCuenta = function(key, detailId) {
   if(!CUENTAS_DETALLE.includes(key)) return;
   const cont=document.getElementById('movs-'+key);
@@ -4726,7 +4733,7 @@ function render() {
 
   // GBM retirado (vendido jul-2026, el dinero migro a Revolut): fuera del total.
   // El deposito de la TDC Revolut SI es activo (dinero propio, aunque congelado)
-  const totalFisico=nu1.saldo+state.nuSaldo+state.efectivo+state.revMXN+rs.saldo+mf.saldo+nvdaVal+tdcDep;
+  const totalFisico=sumaGrupo('ahorro')+sumaGrupo('disponible')+nvdaVal+tdcDep;
   // el fondo de la universidad vive DENTRO de estas cuentas pero no es dinero para el dia a dia:
   // inicio, metas, distribucion, el snapshot y el coach usan TU dinero (fisico menos apartado)
   const fondoTot=fondoTotal();
@@ -4751,8 +4758,7 @@ function render() {
   totalesInicio={fisico:totalFisico, tuyo:total, neto, listo:true};
   refrescar(aplicarVisibilidadFondo);
   // lo apartado se resta POR CUENTA: en Savings reduce 'ahorro', en MXN reduce 'disponible'
-  renderDistribucion(nu1.saldo+rs.saldo+mf.saldo-apartadoDe('cajita1')-apartadoDe('revSavings')-apartadoDe('mifel'), nvdaVal,
-    state.efectivo+state.nuSaldo+state.revMXN-apartadoDe('efectivo')-apartadoDe('nu')-apartadoDe('revolut'), tdcDep, posAbiertas.length>0&&!stocksCompleto);
+  renderDistribucion(sumaGrupo('ahorro',true), nvdaVal, sumaGrupo('disponible',true), tdcDep, posAbiertas.length>0&&!stocksCompleto);
   renderMetas({stocks:nvdaVal, stocksPendiente:posAbiertas.length>0&&!stocksCompleto, patrimonio:total});
   renderApartados();
   renderStockDatalist();
@@ -5058,6 +5064,9 @@ function fondoAl(ms) {
 }
 // lo que SI se puede usar de una cuenta: su saldo menos lo apartado del fondo
 function disponibleCuenta(c) { return getSaldoCuenta(c) - apartadoDe(c); }
+// (27-oct-2026) saldo de las cuentas de un grupo del registro; sinFondo: resta lo apartado de cada una.
+// Es la UNICA suma de cuentas: inicio, distribucion y el coach la comparten
+function sumaGrupo(g, sinFondo) { return ctasGrupo(g).reduce((s, c) => s + getSaldoCuenta(c) - (sinFondo ? apartadoDe(c) : 0), 0); }
 // totales que calcula render(): la pestaña del fondo los reusa en vez de repetir la formula
 let totalesInicio = {fisico:0, tuyo:0, neto:0, listo:false};
 // lo que se concilio al fondo como rendimiento en un periodo: no es rendimiento TUYO
@@ -5079,7 +5088,7 @@ window.registrarTransferencia = async function() {
   const monto=Math.round(parseFloat(document.getElementById('transfer-monto').value)*100)/100;
   const nota=document.getElementById('transfer-nota').value.trim();
   if(!Number.isFinite(monto)||monto<=0){showToast('ingresa un monto válido');return;}
-  const CTAS_TRANSFER=['efectivo','nu','cajita1','revolut','revSavings','mifel','revTdcDep'];
+  const CTAS_TRANSFER=ctasEn('transfer');
   if(!CTAS_TRANSFER.includes(origen)||!(CTAS_TRANSFER.includes(destino)||destino==='tarjeta'||destino==='tarjetaRev')){showToast('cuenta no válida');return;}
   if(origen===destino){showToast('elige cuentas distintas');return;}
   // avisos tempranos con el estado en pantalla; txDinero revalida TODO contra la nube.
@@ -5184,7 +5193,7 @@ window.eliminarTransferencia = async function(id) {
   if(t.origen==='gbm'||t.destino==='gbm'){showToast('las transferencias del GBM retirado ya no se pueden deshacer');return;}
   if(t.origen==='stocks'||t.destino==='stocks'||t.opId){showToast('las operaciones de bolsa no se deshacen: registra la operación inversa');return;}
   // si la transferencia toca una cajita/savings, el interes que ese dinero ya genero no se revierte al deshacer
-  const CTAS_INTERES=['cajita1','cajita2','revSavings','mifel'];
+  const CTAS_INTERES=ctasEn('interes');
   const tocaCajitaTr=CTAS_INTERES.includes(t.origen)||CTAS_INTERES.includes(t.destino);
   if(dineroOcupado){showToast('espera, hay otra operación en curso');return;}
   const visto={monto:t.monto,origen:t.origen,destino:t.destino};
@@ -6335,9 +6344,9 @@ const DEUDA_TIPOS={cargo:{deuda:1,cuenta:-1},pago:{deuda:-1,cuenta:1},debo:{deud
 // (16-oct-2026, Roberto: "que pueda escoger que pagué con mi tarjeta de crédito o con todas mis
 // formas de pago") entran Mifel y las dos tarjetas. Una tarjeta solo con dinero que SALE: sube su
 // deuda en vez de restar de una cuenta (ver DEUDA_TARJETAS en registrarDeuda/eliminarDeuda)
-const DEUDA_CUENTAS_ALTA=['externo','efectivo','nu','cajita1','revolut','revSavings','mifel','tarjeta','tarjetaRev'];
-const DEUDA_CUENTAS=['externo','efectivo','nu','cajita1','cajita2','gbm','revolut','revSavings','mifel','tarjeta','tarjetaRev'];
-const DEUDA_TARJETAS=['tarjeta','tarjetaRev'];
+const DEUDA_CUENTAS_ALTA=['externo',...ctasEn('deudaAlta')];
+const DEUDA_CUENTAS=['externo',...ctasEn('deuda')];
+const DEUDA_TARJETAS=ctasEn('tarjetaDeuda');
 window.registrarDeuda = async function() {
   const btn=document.getElementById('deuda-btn');
   const persona=document.getElementById('deuda-persona').value;
@@ -8756,7 +8765,7 @@ function calcularCierre(start,end,modo) {
     posA.forEach(([k,p])=>{ const mk=state.accionesMkt[k]; if(mk&&Number.isFinite(mk.precio)&&stCompleto) stVal+=p.acciones*mk.precio*state.usdMxn; else stCompleto=false; });
     // patrimonio con la MISMA formula del total de inicio ('total' no existe en este
     // scope: referirlo aqui tronaba calcularCierre y dejaba el coach en "calculando...")
-    const patTot=calcNu1().saldo+state.nuSaldo+state.efectivo+state.revMXN+calcRevSavings().saldo+calcMifel().saldo+stVal+(Number.isFinite(state.revTdcDeposito)?state.revTdcDeposito:0)-fondoTotal();
+    const patTot=sumaGrupo('ahorro')+sumaGrupo('disponible')+stVal+(Number.isFinite(state.revTdcDeposito)?state.revTdcDeposito:0)-fondoTotal();
     const ctxM={stocks:stVal, stocksPendiente:posA.length>0&&!stCompleto, patrimonio:patTot};
     // una entrada por meta: el coach las recorre en vez de hablar de dos cuentas fijas
     const lista=(MT.items||[]).map(m=>({
@@ -8821,7 +8830,7 @@ function calcScore(m) {
   // deposito congelado de la TDC, sin lo que te deben) contra el objetivo del estandar
   const gastoRef=promedioGastoMensual();
   if(gastoRef>0){
-    const liquido=['efectivo','nu','revolut','cajita1','revSavings','mifel'].reduce((s,c)=>s+Math.max(0,disponibleCuenta(c)),0);
+    const liquido=[...ctasGrupo('disponible'),...ctasGrupo('ahorro')].reduce((s,c)=>s+Math.max(0,disponibleCuenta(c)),0);
     const meses=liquido/gastoRef;
     comps.push({nombre:'colchón de emergencia',max:10,puntos:Math.round(10*Math.min(1,meses/est.emergenciaMeses)),
       detalle:'tu dinero disponible cubre '+meses.toFixed(1)+' mes(es) de gasto · la referencia para ti es '+est.emergenciaMeses});
