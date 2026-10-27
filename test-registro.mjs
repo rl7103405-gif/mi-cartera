@@ -75,6 +75,12 @@ chk('toda posicion es un entero desde 1', R.REG_CUENTAS.every(c => Object.values
 // que nadie vuelva a escribir una de estas listas a mano junto al registro
 chk('las listas salen del registro (no hay literal paralelo)', NOMBRES.every(n => /ctasEn\(|REG_CUENTAS/.test(decl(n))),
   NOMBRES.filter(n => !/ctasEn\(|REG_CUENTAS/.test(decl(n))).join(','));
+// una cuenta de gasto, ingreso o bolsa sin campo de saldo ni tarjeta se trataria como 'externo':
+// el Atajo y la bolsa la darian por aplicada SIN mover dinero
+chk('toda cuenta de gasto, ingreso o bolsa tiene campo de saldo o es tarjeta',
+  R.REG_CUENTAS.filter(c => c.en.gasto || c.en.ingreso || c.en.stock).every(c => c.simple || c.tarjeta));
+chk('ingresos y bolsa solo a cuentas de saldo simple (no a tarjetas)',
+  R.REG_CUENTAS.filter(c => c.en.ingreso || c.en.stock).every(c => c.simple));
 chk('una cuenta no es simple y compuesta a la vez', R.REG_CUENTAS.every(c => !(c.simple && c.comp)));
 chk('toda cuenta en la lista simple trae su campo', R.REG_CUENTAS.every(c => !c.en.simple || typeof c.simple === 'string'));
 chk('toda cuenta en la lista comp trae su modelo', R.REG_CUENTAS.every(c => !c.en.comp || (c.comp && c.comp.base && c.comp.fecha && c.comp.def)));

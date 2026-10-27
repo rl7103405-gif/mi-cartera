@@ -2489,12 +2489,8 @@ async function procesarPendientesAtajo() {
       const fSnapAt=await tx.get(doc(db,'cartera','fondo'));
       const apAt=saneaFondo(fSnapAt.exists()?fSnapAt.data():null).saldosPorCuenta;
       const s=sSnap.exists()?sSnap.data():{};
-      const cuentas={
-        efectivo:Number.isFinite(s.efectivo)?s.efectivo:0,
-        nuSaldo:Number.isFinite(s.nuSaldo)?s.nuSaldo:0,
-        revMXN:Number.isFinite(s.revMXN)?s.revMXN:0,
-        efectivoGBM:Number.isFinite(s.efectivoGBM)?s.efectivoGBM:0
-      };
+      // (27-oct-2026) un saldo por cada cuenta simple del registro (efectivo, NU, Revolut y GBM legada)
+      const cuentas=Object.fromEntries(Object.values(CAMPO_SIMPLE).map(f=>[f,Number.isFinite(s[f])?s[f]:0]));
       let tarjetaDeuda=(tSnap.exists()&&Number.isFinite(tSnap.data().deuda))?tSnap.data().deuda:0;
       let revTdcDeuda=(trvSnap.exists()&&Number.isFinite(trvSnap.data().deuda))?trvSnap.data().deuda:0;
       const revTdcDeposito=(trvSnap.exists()&&Number.isFinite(trvSnap.data().deposito))?trvSnap.data().deposito:state.revTdcDeposito;
@@ -2524,18 +2520,14 @@ async function procesarPendientesAtajo() {
         // (este es el unico flujo genuinamente concurrente); si excede, se rechaza
         if(valido&&cta==='tarjetaRev'&&Math.round((Math.max(0,revTdcDeuda)+d.monto)*100)>Math.round(revTdcDeposito*100)) valido=false;
         if(valido&&tipo==='gasto'){
-          const campoAt={efectivo:'efectivo',nu:'nuSaldo',revolut:'revMXN'}[cta];
+          const campoAt=CAMPO_SIMPLE[cta];
           if(campoAt&&apAt[cta]&&Math.round((cuentas[campoAt]-d.monto)*100)<Math.round(apAt[cta]*100)) valido=false;
         }
         if(valido){
           const sgn=tipo==='gasto'?-1:1;
-          if(cta==='efectivo') cuentas.efectivo+=sgn*d.monto;
-          else if(cta==='nu') cuentas.nuSaldo+=sgn*d.monto;
-          else if(cta==='revolut') cuentas.revMXN+=sgn*d.monto;
-          else if(cta==='gbm') cuentas.efectivoGBM+=sgn*d.monto;
+          if(CAMPO_SIMPLE[cta]){ cuentas[CAMPO_SIMPLE[cta]]+=sgn*d.monto; cambioCuentas=true; }
           else if(cta==='tarjeta'){ tarjetaDeuda+=d.monto; cambioTarjeta=true; }
           else if(cta==='tarjetaRev'){ revTdcDeuda+=d.monto; cambioTarjetaRev=true; }
-          if(cta!=='tarjeta'&&cta!=='tarjetaRev') cambioCuentas=true;
         }
         estados.push({ref,id,tipo,aplicado:valido});
       };
@@ -2543,7 +2535,7 @@ async function procesarPendientesAtajo() {
       leidosI.forEach(procesa);
       estados.forEach(e=>tx.update(e.ref,{pendiente:false,aplicadoSaldo:e.aplicado}));
       // update PARCIAL con valores canonicos: no pisa el resto del doc de saldos
-      if(cambioCuentas) tx.update(saldosRef,{efectivo:cuentas.efectivo,nuSaldo:cuentas.nuSaldo,revMXN:cuentas.revMXN,efectivoGBM:cuentas.efectivoGBM});
+      if(cambioCuentas) tx.update(saldosRef,{...cuentas});
       if(cambioTarjeta) tx.update(tarjetaRef,{deuda:tarjetaDeuda});
       // set con merge: el doc tarjetaRev puede no existir todavia (update fallaria);
       // si es doc nuevo, incluir movimientos:[] para no dejarlo sin ese campo
@@ -2558,8 +2550,7 @@ async function procesarPendientesAtajo() {
       if(e.aplicado) resumen.aplicados++; else { resumen.rechazados++; console.error('movimiento del atajo rechazado',e.id); }
     });
     if(resultado.cambioCuentas){
-      state.efectivo=resultado.cuentas.efectivo; state.nuSaldo=resultado.cuentas.nuSaldo;
-      state.revMXN=resultado.cuentas.revMXN; state.efectivoGBM=resultado.cuentas.efectivoGBM;
+      Object.assign(state,resultado.cuentas);
     }
     if(resultado.cambioTarjeta) state.tarjetaDeuda=resultado.tarjetaDeuda;
     if(resultado.cambioTarjetaRev) state.revTdcDeuda=resultado.revTdcDeuda;
@@ -6637,7 +6628,7 @@ async function operarStock(tipo) {
     if(accionesEnFecha(d.simbolo, parseFechaLocal(d.fecha).getTime())<d.acciones-1e-8){ showToast('en esa fecha no tenías tantas acciones de '+d.simbolo); return; }
   }
   // 'externo' no tiene campo: la compra/venta no toca saldos (dinero fuera de la app)
-  const campo={efectivo:'efectivo',nu:'nuSaldo',revolut:'revMXN'}[d.cuenta]||null;
+  const campo=CAMPO_SIMPLE[d.cuenta]||null;
   const opBtn=document.getElementById('stock-op-btn');
   stockOpOcupado=true; dineroOcupado=true;
   if(opBtn) opBtn.disabled=true;
@@ -6686,9 +6677,7 @@ async function operarStock(tipo) {
       state.stocksOps.push(res.op);
       state.stocksOps.sort((a,b)=>a.fecha<b.fecha?-1:a.fecha>b.fecha?1:0);
       derivarPosiciones();
-      if(d.cuenta==='efectivo') state.efectivo=res.nuevoSaldo;
-      else if(d.cuenta==='nu') state.nuSaldo=res.nuevoSaldo;
-      else if(d.cuenta==='revolut') state.revMXN=res.nuevoSaldo;
+      if(campo) state[campo]=res.nuevoSaldo;
       if(res.tr) state.transferencias.unshift(res.tr);
       limpiarFormStock(); // solo tras exito: ante error los valores capturados se conservan
       render(); renderTransferencias();
