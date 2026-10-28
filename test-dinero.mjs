@@ -462,6 +462,29 @@ if (fuente.includes("'fondo'")) {
   chk('el apartado debe ser el monto del movimiento (no otro)', !!r.error && SERVIDOR[S].revMXN === 1000 && SERVIDOR[F].saldosPorCuenta.revolut === 500);
   r = await txDinero({ deltas:{nu:100}, fondo:{ delta:{nu:100}, mov:{id:'t5',tipo:'entrada',cuenta:'revolut',monto:100} } });
   chk('el apartado debe ir a la cuenta del movimiento', !!r.error && !(SERVIDOR[F].saldosPorCuenta.nu > 0));
+  // (28-oct-2026) VARIOS FONDOS: cada movimiento lleva su fondo; sacar se mide contra lo de ESE fondo
+  SERVIDOR = { [S]: { revMXN: 20000 }, [F]: { saldosPorCuenta:{revolut:5000}, movs:[{id:'v0',tipo:'apartar',cuenta:'revolut',monto:5000,fecha:'2026-10-01T00:00:00Z'}], fondos:[{id:'f_viaje1',nombre:'viaje'},{id:'f_cerr01',nombre:'viejo',cerrado:true}] } };
+  r = await txDinero({ fondo:{ delta:{revolut:2000}, mov:{id:'v1',tipo:'apartar',cuenta:'revolut',monto:2000,fondo:'f_viaje1'} } });
+  chk('VF1 apartar al fondo viaje: el total sube y el movimiento guarda su fondo', r.ok && SERVIDOR[F].saldosPorCuenta.revolut === 7000 && SERVIDOR[F].movs[0].fondo === 'f_viaje1', JSON.stringify(SERVIDOR[F]));
+  chk('VF1 reescribir el documento conserva la lista de fondos', Array.isArray(SERVIDOR[F].fondos) && SERVIDOR[F].fondos.length === 2);
+  r = await txDinero({ fondo:{ delta:{revolut:-3000}, mov:{id:'v2',tipo:'liberar',cuenta:'revolut',monto:3000,fondo:'f_viaje1'} } });
+  chk('VF2 liberar del viaje mas de lo suyo (3,000 de 2,000): rechazado aunque la cuenta tenga 7,000 apartados', !!r.error && SERVIDOR[F].saldosPorCuenta.revolut === 7000, JSON.stringify(r));
+  r = await txDinero({ fondo:{ delta:{revolut:-5500}, mov:{id:'v3',tipo:'liberar',cuenta:'revolut',monto:5500} } });
+  chk('VF2 la universidad tampoco puede tomar lo del viaje (5,500 de 5,000)', !!r.error && SERVIDOR[F].saldosPorCuenta.revolut === 7000, JSON.stringify(r));
+  r = await txDinero({ fondo:{ delta:{revolut:-5000}, mov:{id:'v4',tipo:'liberar',cuenta:'revolut',monto:5000} } });
+  chk('VF2 la universidad si libera lo suyo (5,000)', r.ok && SERVIDOR[F].saldosPorCuenta.revolut === 2000);
+  r = await txDinero({ fondo:{ delta:{revolut:100}, mov:{id:'v5',tipo:'apartar',cuenta:'revolut',monto:100,fondo:'f_cerr01'} } });
+  chk('VF3 a un fondo cerrado no se aparta', !!r.error && SERVIDOR[F].saldosPorCuenta.revolut === 2000);
+  r = await txDinero({ fondo:{ delta:{revolut:100}, mov:{id:'v6',tipo:'apartar',cuenta:'revolut',monto:100,fondo:'f_noexiste'} } });
+  chk('VF3 a un fondo que no existe no se aparta', !!r.error && SERVIDOR[F].saldosPorCuenta.revolut === 2000);
+  r = await txDinero({ fondo:{ delta:{revolut:100}, mov:{id:'v7',tipo:'apartar',cuenta:'revolut',monto:100,fondo:'<script>'} } });
+  chk('VF3 un id de fondo mal formado se rechaza', !!r.error && SERVIDOR[F].saldosPorCuenta.revolut === 2000);
+  // una version vieja reescribio el documento SIN la lista: el fondo con movimientos sigue existiendo (no se bloquea)
+  SERVIDOR[F] = { saldosPorCuenta:{revolut:3000}, movs:[{id:'w1',tipo:'apartar',cuenta:'revolut',monto:1000,fondo:'f_viaje1',fecha:'2026-10-20T00:00:00Z'},{id:'w0',tipo:'apartar',cuenta:'revolut',monto:2000,fecha:'2026-10-01T00:00:00Z'}] };
+  r = await txDinero({ fondo:{ delta:{revolut:-400}, mov:{id:'w2',tipo:'liberar',cuenta:'revolut',monto:400,fondo:'f_viaje1'} } });
+  chk('VF4 sin la lista (version vieja), el fondo con movimientos se puede usar', r.ok && SERVIDOR[F].saldosPorCuenta.revolut === 2600, JSON.stringify(r));
+  r = await txDinero({ fondo:{ delta:{revolut:-700}, mov:{id:'w3',tipo:'liberar',cuenta:'revolut',monto:700,fondo:'f_viaje1'} } });
+  chk('VF4 y su tope sigue siendo lo suyo (600)', !!r.error && SERVIDOR[F].saldosPorCuenta.revolut === 2600);
   // sin fondo todo sigue igual que siempre
   SERVIDOR = { [S]: { efectivo:10 } };
   r = await txDinero({ deltas:{efectivo:-5} });
@@ -905,6 +928,49 @@ if (HTML.includes('const docCX')) {
   forzarConflicto = 2;
   r = await txDinero({ fx: { deltas: { x_aud001: 10 } } });
   chk('X9 con dos conflictos reintenta y aplica UNA vez', r.ok && sx('x_aud001').saldo === 5);
+
+  // ── Y. (28-oct-2026) cuentas en PESOS que agrega la persona y cajitas con tasa ──
+  if (HTML.includes("MXN:{sim:'$'")) {
+    console.log('\nY. Cuentas en pesos y cajitas agregadas: interes, reanclaje, tasa y traspaso entre ellas');
+    const modX = tasa => ({ dias: 360, retDias: 365, tasa, tope: null, tasaExc: 0, ret: 0, retCap: false });
+    SERVIDOR = { [S]: { efectivo: 1000 } };
+    r = await txDinero({ fx: { crear: { x_mxn001: { nombre: 'BBVA', moneda: 'MXN', tipo: 'banco', on: true, saldo: 5000, creada: '2026-10-28' } } } });
+    chk('Y1 una cuenta en pesos se crea con moneda MXN', r.ok && sx('x_mxn001').moneda === 'MXN' && sx('x_mxn001').saldo === 5000, JSON.stringify(SERVIDOR[CX]));
+    r = await txDinero({ fx: { crear: { x_caj001: { nombre: 'Klar', moneda: 'MXN', tipo: 'cajita', on: true, saldo: 1000, creada: '2026-10-28', tasa: 10, tope: 0, tasaExc: 0, fecha: '2026-07-28' } } } });
+    chk('Y2 una cajita guarda su tasa y su fecha base', r.ok && sx('x_caj001').tipo === 'cajita' && sx('x_caj001').tasa === 10 && sx('x_caj001').fecha === '2026-07-28', JSON.stringify(sx('x_caj001')));
+    r = await txDinero({ fx: { crear: { x_caj002: { nombre: 'Mala', moneda: 'MXN', tipo: 'cajita', on: true, saldo: 1, creada: '2026-10-28', tasa: 500, fecha: 'ayer' } } } });
+    chk('Y2 una tasa absurda o una fecha mal escrita no se guardan tal cual (tasa 0, sin fecha)', r.ok && sx('x_caj002').tasa === 0 && sx('x_caj002').fecha === '', JSON.stringify(sx('x_caj002')));
+    const conInteres = Math.round(calcCompoundAt(1000, '2026-07-28', Date.now(), modX(10)) * 100) / 100;
+    r = await txDinero({ fx: { deltas: { x_caj001: 100 } } });
+    chk('Y3 meterle $100: parte del saldo CON su interes y se reancla a hoy', r.ok && Math.abs(sx('x_caj001').saldo - (conInteres + 100)) < 0.011 && sx('x_caj001').fecha === hoyLocal(),
+      JSON.stringify(sx('x_caj001')) + ' esperado ' + (conInteres + 100));
+    const antesTasa = sx('x_caj001').saldo, conInteres2 = Math.round(calcCompoundAt(antesTasa, hoyLocal(), Date.now(), modX(10)) * 100) / 100;
+    r = await txDinero({ fx: { editar: { x_caj001: { tasa: 12 } } } });
+    chk('Y4 cambiar la tasa cristaliza lo ganado con la vieja y deja la nueva', r.ok && sx('x_caj001').tasa === 12 && Math.abs(sx('x_caj001').saldo - conInteres2) < 0.011 && sx('x_caj001').fecha === hoyLocal(),
+      JSON.stringify(sx('x_caj001')) + ' esperado ' + conInteres2);
+    r = await txDinero({ fx: { editar: { x_caj001: { tasa: -3 } } } });
+    chk('Y4 una tasa negativa se rechaza', !!r.error && sx('x_caj001').tasa === 12);
+    r = await txDinero({ fx: { editar: { x_mxn001: { tasa: 5 } } } });
+    chk('Y4 una cuenta que no es cajita no lleva tasa', !!r.error && sx('x_mxn001').tasa === undefined);
+    // la cajita entra con su saldo de HOY (con interes desde su fecha base)
+    const T2 = PFX + 'transferencias/txx1', cajAntes = Math.round(calcCompoundAt(sx('x_caj001').saldo, sx('x_caj001').fecha, Date.now(), modX(12)) * 100) / 100;
+    r = await txDinero({ crear: [{ ref: { path: T2 }, data: { origen: 'x_mxn001', destino: 'x_caj001', monto: 2000, montoOrigen: 2000, monedaOrigen: 'MXN', montoDestino: 2000, monedaDestino: 'MXN', tc: 1, fecha: '2026-10-28T10:00:00Z' } }],
+      requerirAusentes: [{ path: T2 }], fx: { deltas: { x_mxn001: -2000, x_caj001: 2000 } } });
+    chk('Y5 pasar $2,000 de tu banco agregado a tu cajita: sale de uno y entra al otro', r.ok && sx('x_mxn001').saldo === 3000 && Math.abs(sx('x_caj001').saldo - (cajAntes + 2000)) < 0.011 && ef() === 1000, JSON.stringify(SERVIDOR[CX].cuentas));
+    r = await txDinero({ movBorrar: { ref: { path: T2 }, slot: null, signo: 1, monto: 2000 } });
+    chk('Y5 deshacerlo regresa los $2,000 al banco', r.ok && sx('x_mxn001').saldo === 5000 && !SERVIDOR[T2], JSON.stringify(SERVIDOR[CX].cuentas));
+    r = await txDinero({ fx: { deltas: { x_mxn001: -6000 } } });
+    chk('Y6 sacar mas de lo que hay en una cuenta en pesos: bloqueado', !!r.error && sx('x_mxn001').saldo === 5000);
+    r = await txDinero({ fx: { editar: { x_caj001: { on: false } } } });
+    chk('Y6 una cajita con saldo no se apaga', !!r.error && sx('x_caj001').on === true);
+    const T3 = PFX + 'transferencias/txx2', antesBB = sx('x_mxn001').saldo;
+    r = await txDinero({ crear: [{ ref: { path: T3 }, data: { origen: 'x_mxn001', destino: 'x_mxn001', monto: 500, montoOrigen: 500, monedaOrigen: 'MXN', montoDestino: 500, monedaDestino: 'MXN', tc: 1, fecha: '2026-10-28T10:00:00Z' } }],
+      requerirAusentes: [{ path: T3 }], fx: { deltas: { x_mxn001: 500 } } });
+    chk('Y7 una transferencia de una cuenta a ella misma se rechaza y no crea dinero (code-reviewer 28-oct)', !!r.error && sx('x_mxn001').saldo === antesBB && !SERVIDOR[T3], JSON.stringify(r));
+    SERVIDOR[CX].cuentas.x_caj001 = { ...SERVIDOR[CX].cuentas.x_caj001, saldo: -100, fecha: '2026-07-28' };
+    r = await txDinero({ permitirNegativo: true, fx: { deltas: { x_caj001: -1 } } });
+    chk('Y8 una cajita en rojo no genera interes: -100 - 1 = -101', r.ok && sx('x_caj001').saldo === -101, JSON.stringify(sx('x_caj001')));
+  }
 }
 
 console.log('\n' + '='.repeat(58));

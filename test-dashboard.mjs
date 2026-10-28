@@ -408,7 +408,7 @@ console.log('\n19. utilidadPeriodo: la cifra del mes (Inicio) y la utilidad del 
     + extrae('function msFechaMov(', 'function diaLocalDe(')
     + extrae('function movValido(', '\n') + '\n';
   const mk = (st, ov = {}) => new Function('state', 'ov', 'const CTAS_AHORRO=ov.CTAS||[];'
-    + 'const interesEnRango=ov.interesEnRango||(()=>0), rendFondoEnRango=ov.rendFondoEnRango||(()=>0),'
+    + 'const interesEnRango=ov.interesEnRango||(()=>0), rendFondoEnRango=ov.rendFondoEnRango||(()=>0), pendienteFondoEnRango=ov.pendienteFondoEnRango||(()=>0),'
     + 'inicioHistoria=ov.inicioHistoria||(()=>null), saldoCuentaEn=ov.saldoCuentaEn||(()=>null),'
     + 'valorBolsaEn=ov.valorBolsaEn||(()=>null);\n' + srcFechas + srcUP + '\nreturn utilidadPeriodo;')(st, ov);
   const start = new Date(2026, 9, 1), end = new Date(2026, 10, 1);   // octubre local

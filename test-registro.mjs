@@ -153,13 +153,14 @@ console.log('\nGrupos: las cuentas que antes se sumaban a mano en inicio, el coa
     R.REG_CUENTAS.filter(c => !c.legada && (c.simple || c.comp)).every(c => ['disponible', 'ahorro'].includes(c.grupo)),
     R.REG_CUENTAS.filter(c => !c.legada && (c.simple || c.comp) && !['disponible', 'ahorro'].includes(c.grupo)).map(c => c.id).join(','));
   // sumaGrupo real contra las formulas de antes (inicio, distribucion y coach), con saldos y apartados al azar
-  const S = new Function('getSaldoCuenta', 'apartadoDe', registro + '\n' + fnDe('sumaGrupo') + '\nreturn sumaGrupo;');
+  // (28-oct-2026) sinFondo resta fondoEnCuenta (apartado + interes del fondo sin registrar); sin interes pendiente = apartado
+  const S = new Function('getSaldoCuenta', 'apartadoDe', 'fondoEnCuenta', registro + '\n' + fnDe('sumaGrupo') + '\nreturn sumaGrupo;');
   let semilla = 4242, peor = 0;
   const rnd = () => { let t = semilla += 0x6D2B79F5; t = Math.imul(t ^ t >>> 15, t | 1); t ^= t + Math.imul(t ^ t >>> 7, t | 61); return ((t ^ t >>> 14) >>> 0) / 4294967296; };
   for (let n = 0; n < 2000; n++) {
     const sal = {}, ap = {};
     for (const c of ['efectivo', 'nu', 'revolut', 'cajita1', 'revSavings', 'mifel']) { sal[c] = (rnd() - 0.1) * 1e6; ap[c] = rnd() < 0.5 ? rnd() * 9e5 : 0; }
-    const sumaGrupo = S(c => sal[c], c => ap[c] || 0);
+    const sumaGrupo = S(c => sal[c], c => ap[c] || 0, c => ap[c] || 0);
     const viejoFisico = sal.cajita1 + sal.nu + sal.efectivo + sal.revolut + sal.revSavings + sal.mifel;
     const viejoAhorro = sal.cajita1 + sal.revSavings + sal.mifel - ap.cajita1 - ap.revSavings - ap.mifel;
     const viejoDisp = sal.efectivo + sal.nu + sal.revolut - ap.efectivo - ap.nu - ap.revolut;

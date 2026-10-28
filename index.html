@@ -316,6 +316,8 @@ html[data-tema='grafito'] .tabs{--sombra-scroll:rgba(255,255,255,.16)}
 :root{--check-opacity-dur:550ms;--check-rotate-dur:550ms;--check-rotate-from:80deg;--check-bob-dur:450ms;--check-y-amount:10px;--check-blur-dur:500ms;--check-blur-from:4px;--check-path-dur:550ms;--check-path-delay:80ms;--check-ease-out:cubic-bezier(0.22,1,0.36,1);--check-ease-opacity:cubic-bezier(0.22,1,0.36,1);--check-ease-rotate:cubic-bezier(0.22,1,0.36,1);--check-ease-bob:cubic-bezier(0.34,1.35,0.64,1);--check-ease-path:cubic-bezier(0.22,1,0.36,1);--shake-distance:6px;--shake-overshoot:4px;--shake-dur-a:80ms;--shake-dur-b:60ms;--shake-ease:cubic-bezier(0.22,1,0.36,1)}
 .desliza-dlg{margin:auto;inset:0;height:fit-content;max-height:calc(100dvh - 40px);border:1px solid var(--sup-borde,var(--border2));border-radius:var(--r);padding:0;width:calc(100% - 40px);max-width:360px;background:var(--bg2s);color:var(--text);box-shadow:var(--sombra)}
 .desliza-dlg::backdrop{background:rgba(0,0,0,0.45)}
+.asis-dlg{max-width:440px}
+.asis-bancos{display:flex;flex-wrap:wrap;gap:8px}.asis-bancos .type-opt{flex:0 0 auto;min-height:44px;padding:10px 14px}
 .desliza-dlg:not([open]){display:none}
 .desliza-caja{padding:18px;max-height:calc(100dvh - 40px);overflow:auto}
 .desliza-txt{font-size:14px;line-height:1.45;color:var(--muted);white-space:pre-line;margin-top:6px}
@@ -942,6 +944,7 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
   <!-- subpestañas: "tu perfil" (lo de siempre) y "amigos" (la competencia de la familia) -->
   <div class="subtabs" id="perfil-subtabs">
     <button type="button" class="stab active" id="ptab-perfil" onclick="perfilSub('perfil')" aria-current="page">tu perfil</button>
+    <button type="button" class="stab" id="ptab-cuentas" onclick="perfilSub('cuentas')">mis cuentas</button>
     <button type="button" class="stab" id="ptab-amigos" onclick="perfilSub('amigos')">amigos</button>
   </div>
   <div id="perfil-sub-perfil">
@@ -983,34 +986,6 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
         <div class="type-opt" id="fondo-on" onclick="setFondoTab(true)">encendida</div>
       </div>
     </div>
-    <!-- (20-oct-2026) cuentas en otra moneda, como en Revolut: las agrega la persona sola -->
-    <div class="section-title mt">cuentas en otra moneda</div>
-    <div class="panel">
-      <div class="item-meta" style="line-height:1.5;margin-bottom:10px">
-        Para el dinero que tienes en dólares australianos, dólares, euros o yuanes. Cada cuenta lleva
-        su saldo en su moneda; tu total en inicio la suma en pesos con el tipo de cambio del día, que
-        se actualiza solo una vez al día. Los gastos que registres ahí guardan el tipo de cambio de ese día.
-      </div>
-      <div id="cx-perfil-lista"><div class="item-meta">todavía no tienes cuentas en otra moneda</div></div>
-      <div class="section-title" style="margin-top:14px">agregar una cuenta</div>
-      <div class="row2">
-        <div class="field"><label for="cx-nuevo-nombre">nombre (el de tu banco, por ejemplo)</label><input type="text" id="cx-nuevo-nombre" maxlength="24" placeholder="ej. CommBank"></div>
-        <div class="field"><label for="cx-nuevo-moneda">moneda</label>
-          <select id="cx-nuevo-moneda">
-            <option value="AUD">dólar australiano (A$)</option>
-            <option value="USD">dólar estadounidense (US$)</option>
-            <option value="EUR">euro (€)</option>
-            <option value="CNY">yuan chino (¥)</option>
-          </select></div>
-      </div>
-      <div class="row2">
-        <div class="field"><label for="cx-nuevo-tipo">tipo</label>
-          <select id="cx-nuevo-tipo"><option value="banco">banco</option><option value="efectivo">efectivo</option></select></div>
-        <div class="field"><label for="cx-nuevo-saldo">saldo de hoy, en esa moneda</label><input type="number" id="cx-nuevo-saldo" step="0.01" inputmode="decimal" placeholder="ej. 500"></div>
-      </div>
-      <button type="button" class="btn btn-purple" id="cx-nuevo-btn" onclick="agregarCuentaX()">agregar cuenta</button>
-      <div class="item-meta" id="cx-fx" style="margin-top:8px">—</div>
-    </div>
     <div class="section-title mt">tus datos y tu privacidad</div>
     <div class="panel">
       <div class="item-meta" style="line-height:1.5">
@@ -1049,6 +1024,48 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
       <div class="item-meta" style="margin-top:10px">se guarda en este dispositivo</div>
     </div>
   </details>
+  </div>
+  <!-- (28-oct-2026) mis cuentas: todo lo que tienes de un vistazo (bancos, cajitas, tarjetas, otra moneda, fondos) y donde se agregan -->
+  <div id="perfil-sub-cuentas" style="display:none">
+    <div class="section-title">todo lo que tienes</div>
+    <div class="panel" id="mis-cuentas"><div class="empty-state">calculando...</div></div>
+    <!-- (20-oct-2026) cuentas en otra moneda, como en Revolut: las agrega la persona sola -->
+    <!-- (28-oct-2026) ya no solo otra moneda: tambien bancos, efectivo y cajitas en pesos -->
+    <div class="section-title mt">cuentas que tú agregas</div>
+    <div class="panel">
+      <div class="item-meta" style="line-height:1.5;margin-bottom:10px">
+        Agrega tus otros bancos, tu efectivo, tus cajitas o savings (con la tasa que te pagan) y tus cuentas en
+        dólares, euros o yuanes. Cada cuenta lleva su saldo; las de otra moneda se suman a tu total en pesos con el
+        tipo de cambio del día. Puedes registrar gastos e ingresos en ellas y pasar dinero entre tus cuentas.
+      </div>
+      <div id="cx-perfil-lista"><div class="item-meta">todavía no agregas cuentas</div></div>
+      <div class="section-title" style="margin-top:14px">agregar una cuenta</div>
+      <div class="row2">
+        <div class="field"><label for="cx-nuevo-nombre">nombre (el de tu banco, por ejemplo)</label><input type="text" id="cx-nuevo-nombre" maxlength="24" placeholder="ej. CommBank"></div>
+        <div class="field"><label for="cx-nuevo-moneda">moneda</label>
+          <select id="cx-nuevo-moneda">
+            <option value="MXN" selected>peso mexicano ($)</option>
+            <option value="AUD">dólar australiano (A$)</option>
+            <option value="USD">dólar estadounidense (US$)</option>
+            <option value="EUR">euro (€)</option>
+            <option value="CNY">yuan chino (¥)</option>
+          </select></div>
+      </div>
+      <div class="row2">
+        <div class="field"><label for="cx-nuevo-tipo">tipo</label>
+          <select id="cx-nuevo-tipo" onchange="document.getElementById('cx-nuevo-cajita').hidden=this.value!=='cajita'"><option value="banco">banco</option><option value="cajita">cajita o savings (con interés)</option><option value="efectivo">efectivo</option></select></div>
+        <div class="field"><label for="cx-nuevo-saldo">saldo de hoy, en esa moneda</label><input type="number" id="cx-nuevo-saldo" step="0.01" inputmode="decimal" placeholder="ej. 500"></div>
+      </div>
+      <div id="cx-nuevo-cajita" hidden>
+        <div class="row2">
+          <div class="field"><label for="cx-nuevo-tasa">tasa anual % que te paga</label><input type="number" id="cx-nuevo-tasa" step="0.01" inputmode="decimal" placeholder="ej. 13"></div>
+          <div class="field"><label for="cx-nuevo-tope">tope de esa tasa (vacío = sin tope)</label><input type="number" id="cx-nuevo-tope" step="0.01" inputmode="decimal" placeholder="ej. 25000"></div>
+        </div>
+        <div class="field"><label for="cx-nuevo-tasa-exc">tasa % arriba del tope (si tiene)</label><input type="number" id="cx-nuevo-tasa-exc" step="0.01" inputmode="decimal" placeholder="ej. 6.5"></div>
+      </div>
+      <button type="button" class="btn btn-purple" id="cx-nuevo-btn" onclick="agregarCuentaX()">agregar cuenta</button>
+      <div class="item-meta" id="cx-fx" style="margin-top:8px">—</div>
+    </div>
   </div>
   <div id="perfil-sub-amigos" style="display:none">
     <div class="section-title" id="amigos-titulo">amigos</div>
@@ -1238,7 +1255,15 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
 
 <!-- FONDO DE LA UNIVERSIDAD (14-sep-2026): dinero APARTADO dentro de las cuentas reales -->
 <div class="page" id="page-fondo">
-  <div class="dhead"><h2>Fondo de la universidad</h2><div class="item-meta">apartado dentro de tus cuentas: no es dinero para el día a día</div></div>
+  <div class="dhead"><h2 id="fondo-titulo">Fondo de la universidad</h2><div class="item-meta">apartado dentro de tus cuentas: no es dinero para el día a día</div></div>
+  <!-- (28-oct-2026) un fondo por subpestaña; el ultimo boton crea uno nuevo -->
+  <div class="subtabs" id="fondo-subtabs" style="flex-wrap:wrap"></div>
+  <div class="panel" id="fondo-nuevo" hidden style="margin-bottom:14px">
+    <div class="field"><label for="fondo-nuevo-nombre">nombre del fondo nuevo</label><input type="text" id="fondo-nuevo-nombre" maxlength="30" placeholder="ej. viaje, emergencias, coche"></div>
+    <button type="button" class="btn btn-purple" id="fondo-nuevo-btn" onclick="crearFondo()">crear fondo</button>
+    <div class="item-meta" style="margin-top:8px;line-height:1.45">Un fondo es dinero apartado dentro de tus cuentas para algo: no sale de tu banco, solo deja de contar como dinero para el día a día. Después de crearlo, apártale dinero con "apartar".</div>
+  </div>
+  <div class="item-meta" id="fondo-admin" style="margin:-6px 0 12px"></div>
   <div class="dkpis" id="fondo-kpis"><div class="empty-state">calculando...</div></div>
   <div class="dgrid">
     <div class="dcard"><div class="dcard-h">Registrar un movimiento del fondo</div><div class="dcard-b">
@@ -1389,6 +1414,20 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
      con showModal(): el fondo queda inerte y Escape lo cierra solo a él. Tocar la perilla sin
      arrastrarla muestra un botón aparte: es la alternativa para teclado, lector de pantalla y
      quien no puede arrastrar (dos pasos, sin límite de tiempo). -->
+<!-- (28-oct-2026) asistente de primera vez: preguntas fijas, una por pantalla, que AGREGAN cuentas y fondos (nunca
+     tocan lo que ya existe). Se abre solo con una cartera vacia, o desde "mis cuentas" -->
+<dialog class="desliza-dlg asis-dlg" id="asis-dlg" aria-labelledby="asis-tit">
+  <div class="desliza-caja">
+    <div class="item-meta" id="asis-paso" style="margin-bottom:4px"></div>
+    <div class="modal-tit" id="asis-tit"></div>
+    <div id="asis-cuerpo" style="margin-top:10px"></div>
+    <div class="row2" style="gap:8px;margin-top:14px">
+      <button type="button" class="btn" id="asis-atras" style="margin-top:0" onclick="asisMover(-1)">atrás</button>
+      <button type="button" class="btn btn-purple" id="asis-sig" style="margin-top:0" onclick="asisMover(1)">siguiente</button>
+    </div>
+    <button type="button" class="volver-btn" style="margin-top:10px" onclick="cerrarAsistente()">ahora no</button>
+  </div>
+</dialog>
 <dialog class="desliza-dlg" id="desliza-dlg" role="alertdialog" aria-labelledby="desliza-tit" aria-describedby="desliza-txt">
   <div class="desliza-caja">
     <div class="modal-tit" id="desliza-tit"></div>
@@ -1456,7 +1495,8 @@ const META_SAVINGS_DEF = 25000, META_STOCKS_DEF = 12000, META_FECHA_DEF = '2026-
 // cubren los dos ids que no siguen la regla) e inp los del formulario (input-<inp>, -base, -fecha...).
 // Los ids son contrato con las pruebas y el CSS: no se renombran. ej = textos de ejemplo de cada campo.
 // id, pref e inp van crudos a atributos y onclick: si algun dia los pone el usuario, deben ser slugs generados.
-// dist = nombre corto en 'dónde está mi dinero' (si falta, etq).
+// dist = nombre corto en 'dónde está mi dinero' (si falta, etq). banco (28-oct-2026): con que banco es, para
+// 'mis cuentas' del perfil (cuantos bancos tienes); el efectivo no lleva.
 // Mifel (25-sep-2026): Cuenta Digital con promocion de 10% BRUTO de $100 a $500,000 y 0% arriba,
 // abono diario en dias habiles, vigente al 31-oct-2026 (terminos publicados de Mifel). retCap: la
 // retencion de ISR no rebasa el interes de la banda (una banda al 0% no resta); solo esta cuenta la usa.
@@ -1466,11 +1506,11 @@ const REG_CUENTAS=[
    ui:{icono:'cash', svg:'billete', pref:'cash', sub:'pesos en mano', dist:'efectivo', inp:'efectivo', etq:'efectivo', ej:'1000', paso:'1'},
    en:{simple:1, gasto:1, ingreso:1, stock:1, fondo:4, detalle:1, transfer:1, deudaAlta:1, deuda:1,
        destino:2, pagoTj:2, pagoTjRev:2, stockSel:2, inicio:5, form:1}},
-  {id:'nu',         nombre:'NU saldo',             simple:'nuSaldo',   grupo:'disponible',
+  {id:'nu',         nombre:'NU saldo',             simple:'nuSaldo',   grupo:'disponible', banco:'Nu',
    ui:{icono:'nu', svg:'banco', pref:'nu-saldo', det:'nu-detail', sub:'disponible', dist:'NU', inp:'nu-saldo', etq:'NU saldo disponible', ej:'1500'},
    en:{simple:2, gasto:2, ingreso:2, stock:2, fondo:3, detalle:2, transfer:2, deudaAlta:2, deuda:2,
        destino:1, pagoTj:1, pagoTjRev:3, stockSel:3, inicio:2, form:2}},
-  {id:'cajita1',    nombre:'NU cajita 1',          grupo:'ahorro',
+  {id:'cajita1',    nombre:'NU cajita 1',          grupo:'ahorro', banco:'Nu',
    comp:{base:'nuCajita1Base', fecha:'nuCajita1Fecha', tasa:'nuCajita1Tasa',
          tope:'nuCajita1Tope', tasaExc:'nuCajita1TasaExc', ret:'nuCajita1Ret',
          def:{dias:360,tasa:13,tope:25000,tasaExc:6.5,ret:0}},
@@ -1487,12 +1527,12 @@ const REG_CUENTAS=[
   // legada: GBM retirado; los movimientos viejos con gbm solo se muestran/deshacen
   {id:'gbm',        nombre:'GBM efectivo',         simple:'efectivoGBM', legada:true,
    en:{simple:4, deuda:5}},
-  {id:'revolut',    nombre:'Revolut MXN',          simple:'revMXN',    grupo:'disponible',
+  {id:'revolut',    nombre:'Revolut MXN',          simple:'revMXN',    grupo:'disponible', banco:'Revolut',
    etq:{boton:'Revolut'},
    ui:{icono:'rev', svg:'mundo', pref:'rev-mxn', sub:'cuenta personal', dist:'Revolut', inp:'rev-mxn', etq:'Revolut MXN', ej:'1500'},
    en:{simple:3, gasto:4, ingreso:3, stock:3, fondo:1, detalle:3, transfer:4, deudaAlta:4, deuda:6,
        destino:4, pagoTj:4, pagoTjRev:1, stockSel:1, inicio:6, form:3}},
-  {id:'revSavings', nombre:'Revolut Savings',      grupo:'ahorro',
+  {id:'revSavings', nombre:'Revolut Savings',      grupo:'ahorro', banco:'Revolut',
    comp:{base:'revSavingsBase',fecha:'revSavingsFecha',tasa:'revSavingsTasa',
          tope:'revSavingsTope',tasaExc:'revSavingsTasaExc',ret:'revSavingsRet',
          def:{dias:360,tasa:15,tope:25000,tasaExc:7.3,ret:0.9}},
@@ -1502,7 +1542,7 @@ const REG_CUENTAS=[
        destino:5, pagoTj:5, inicio:7, form:6}},
   // vigencia: hasta cuando esta confirmada la tasa (texto AAAA-MM-DD); pasada, la tarjeta avisa.
   // estimado: la app estima el interes (sin abono confirmado); conSigno: el acumulado puede ser negativo
-  {id:'mifel',      nombre:'Mifel',                grupo:'ahorro',
+  {id:'mifel',      nombre:'Mifel',                grupo:'ahorro', banco:'Mifel',
    comp:{base:'mifelBase', fecha:'mifelFecha', tasa:'mifelTasa',
          tope:'mifelTope', tasaExc:'mifelTasaExc', ret:'mifelRet',
          def:MIFEL_DEF},
@@ -1512,10 +1552,10 @@ const REG_CUENTAS=[
    en:{comp:4, ahorro:3, proyectable:3, interes:4, fondo:6, detalle:6, transfer:6, deudaAlta:6, deuda:8,
        destino:6, inicio:8, form:7}},
   // tarjetas de credito y bolsa: su tarjeta de Inicio es propia (HTML fijo); el registro solo da su lugar
-  {id:'tarjeta',    nombre:'tarjeta NU',           tarjeta:true,
+  {id:'tarjeta',    nombre:'tarjeta NU',           tarjeta:true, banco:'Nu',
    etq:{destino:'tarjeta NU (pago)', deuda:'tarjeta NU (crédito)'},
    en:{gasto:3, deudaAlta:7, deuda:9, tarjetaDeuda:1, destino:7, inicio:3}},
-  {id:'tarjetaRev', nombre:'TDC Revolut',          tarjeta:true,
+  {id:'tarjetaRev', nombre:'TDC Revolut',          tarjeta:true, banco:'Revolut',
    etq:{destino:'TDC Revolut (pago)', deuda:'TDC Revolut (crédito)'},
    en:{gasto:5, deudaAlta:8, deuda:10, tarjetaDeuda:2, destino:8, inicio:4}},
   // el deposito vive en cartera/tarjetaRev, no en cartera/saldos: guardarManuales lo valida aparte
@@ -1695,14 +1735,14 @@ function fmtX(n, moneda) {
   return (n < 0 ? '−' : '') + sim + Math.abs(Number(n)).toLocaleString('es-MX', {minimumFractionDigits:2, maximumFractionDigits:2});
 }
 // el monto de un movimiento como se capturo: en otra moneda, 'A$12.50 (≈ $140.20)'; en pesos, igual que siempre
-const fmtMov = m => (m && Number.isFinite(m.montoOrig) && MONEDAS_X[m.moneda])
+const fmtMov = m => (m && Number.isFinite(m.montoOrig) && MONEDAS_X[m.moneda] && m.moneda !== 'MXN')
   ? fmtX(m.montoOrig, m.moneda) + ' (≈ ' + fmt(m.monto) + ')' : fmt(m && m.monto);
 // nombre visible de cualquier cuenta: las fijas de CUENTAS o una en otra moneda ('Commbank · AUD').
 // OJO: el nombre de una cuenta en otra moneda lo escribe el usuario: escaparlo al meterlo en HTML
 function nombreCuenta(k) {
   if (Object.prototype.hasOwnProperty.call(CUENTAS, k)) return CUENTAS[k];
   const x = state.cuentasX && state.cuentasX[k];
-  if (x) return x.nombre + ' · ' + x.moneda;
+  if (x) return x.moneda === 'MXN' ? x.nombre : x.nombre + ' · ' + x.moneda;
   return esIdX(k) ? '(cuenta en otra moneda)' : '';
 }
 function hoyLocal() {
@@ -2683,10 +2723,14 @@ const cent = n => Math.round(n*100);                  // comparaciones exactas, 
 // montos (resumen, promedios, calificacion) sigue en pesos sin tocarse, y solo lo que mueve el
 // saldo de la cuenta usa montoOrig. Una cuenta x_ NUNCA va en plan.deltas: va en plan.fx.
 // Las reglas de Firestore impiden borrar un movimiento x_ sin devolver su dinero (cartera-casa).
-const MONEDAS_X = {AUD:{sim:'A$', nom:'dólar australiano'}, USD:{sim:'US$', nom:'dólar estadounidense'},
+// (28-oct-2026) MXN: cuentas en PESOS que agrega la persona (sus bancos, su efectivo, sus cajitas). Tipo de cambio fijo
+// de 1 (local): nunca se pide a Frankfurter. Todo lo demas (gastos, transferencias, borrar, reglas) es igual que monedas
+const MONEDAS_X = {MXN:{sim:'$', nom:'peso mexicano', local:true}, AUD:{sim:'A$', nom:'dólar australiano'}, USD:{sim:'US$', nom:'dólar estadounidense'},
                    EUR:{sim:'€', nom:'euro'}, CNY:{sim:'¥', nom:'yuan chino'}};
-const TIPOS_CX = {efectivo:'efectivo', banco:'banco'};
-const CX_MAX = 8;   // cuentas en otra moneda por cartera
+const MONEDAS_FX = Object.keys(MONEDAS_X).filter(m => !MONEDAS_X[m].local);   // las que si llevan tipo de cambio
+// cajita: cuenta con interes compuesto diario (base 360), como las cajitas de siempre: saldo + fecha base + tasa
+const TIPOS_CX = {efectivo:'efectivo', banco:'banco', cajita:'cajita o savings'};
+const CX_MAX = 20;  // cuentas que agrega la persona (pesos y otra moneda) por cartera
 const esIdX = k => typeof k === 'string' && /^x_[a-z0-9]{6,16}$/.test(k);
 const esMovX = m => !!m && (esIdX(m.fuente) || esIdX(m.destino) || esIdX(m.origen));
 const docCX = () => doc(db, (typeof NS === 'string' ? NS : 'cartera'), 'cuentasX');
@@ -2700,9 +2744,23 @@ function saneaCX(raw) {
     out[id] = {nombre:(typeof x.nombre === 'string' && x.nombre.trim()) ? x.nombre.trim().slice(0,24) : 'cuenta',
                moneda:x.moneda, tipo:TIPOS_CX[x.tipo] ? x.tipo : 'banco', on:x.on !== false,
                saldo:c2(nFin(x.saldo)), creada:typeof x.creada === 'string' ? x.creada : ''};
+    if (out[id].tipo === 'cajita') {   // tasa anual %, tope (0 = sin tope), tasa arriba del tope y fecha base del saldo
+      const pct = v => Number.isFinite(v) && v >= 0 && v < 100 ? v : 0;
+      Object.assign(out[id], {tasa:pct(x.tasa), tope:Number.isFinite(x.tope) && x.tope > 0 ? x.tope : 0, tasaExc:pct(x.tasaExc),
+        fecha:typeof x.fecha === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(x.fecha) ? x.fecha : ''});
+    }
   }
   return out;
 }
+// modelo de interes de una cajita agregada: base 360 y sin retencion (la tasa es la que la persona ve en su banco)
+function modeloX(x) { return {dias:360, retDias:365, tasa:x.tasa || 0, tope:x.tope > 0 ? x.tope : null, tasaExc:x.tasaExc || 0, ret:0, retCap:false}; }
+// saldo de HOY de una cuenta agregada: una cajita crece desde su fecha base; las demas valen lo guardado
+function saldoX(x, ms) {
+  if (!x) return 0;
+  // en rojo no gana ni cobra interes (code-reviewer: la deuda crecia a la tasa de la cajita)
+  return (x.tipo === 'cajita' && x.saldo > 0 && x.tasa > 0 && x.fecha) ? c2(calcCompoundAt(x.saldo, x.fecha, ms == null ? Date.now() : ms, modeloX(x))) : x.saldo;
+}
+const descCajitaX = x => x.tasa + '% anual' + (x.tope > 0 ? ' hasta ' + fmt(x.tope) + ' · ' + x.tasaExc + '% excedente' : '');
 // que hay que DEVOLVER a las cuentas en otra moneda si se borra este movimiento. Sale del documento
 // del SERVIDOR (no de la pantalla). null = el movimiento esta danado y no se puede revertir.
 function reversaX(d) {
@@ -2753,8 +2811,35 @@ function saneaFondo(d) {
   if (Array.isArray(d.movs))
     out.movs = d.movs.filter(m => m && typeof m === 'object' && TIPOS_FONDO.includes(m.tipo) &&
       Number.isFinite(m.monto) && m.monto > 0 && CTAS_FONDO.includes(m.cuenta) &&
-      (m.tipo !== 'traspaso' || (CTAS_FONDO.includes(m.destino) && m.destino !== m.cuenta))).slice(0, 2000);
+      (m.tipo !== 'traspaso' || (CTAS_FONDO.includes(m.destino) && m.destino !== m.cuenta)))
+      // (28-oct-2026) los de otros fondos nunca se recortan: de ellos sale cuanto tiene cada fondo
+      .filter((m, i) => i < 2000 || (typeof m.fondo === 'string' && m.fondo !== 'u'));
+  // (28-oct-2026) varios fondos: la lista con nombre y si esta cerrado. 'u' es el de la universidad (el de siempre)
+  if (Array.isArray(d.fondos)) out.fondos = d.fondos.filter(x => x && typeof x === 'object' && esIdFondo(x.id)).slice(0, 60)
+    .map(x => ({id:x.id, nombre:(typeof x.nombre === 'string' && x.nombre.trim()) ? x.nombre.trim().slice(0, 30) : '', cerrado:x.cerrado === true,
+                creado:typeof x.creado === 'string' ? x.creado : ''}));
   return out;
+}
+// ── VARIOS FONDOS (28-oct-2026) ──
+// saldosPorCuenta sigue siendo el TOTAL apartado de todos los fondos en cada cuenta: inicio, txDinero y las validaciones
+// de siempre no cambian. Cada movimiento nuevo lleva fondo:<id>; lo de cada fondo sale de sumar sus movimientos, y el de
+// la universidad ('u') es lo demas: la historia vieja (sin la etiqueta) es toda suya, sin migrar nada.
+const FONDO_U = 'u', FONDOS_MAX = 10;
+const esIdFondo = v => v === FONDO_U || (typeof v === 'string' && /^f_[a-z0-9]{4,16}$/.test(v));
+const fondoDeMov = m => (m && typeof m.fondo === 'string' && /^f_[a-z0-9]{4,16}$/.test(m.fondo)) ? m.fondo : FONDO_U;
+// cuanto mueve un movimiento del fondo lo apartado en una cuenta (traspaso: sale de una y entra a otra)
+function deltaFondo(m, slot) {
+  if (!m) return 0; const v = nFin(m.monto);
+  if (m.tipo === 'traspaso') return (m.cuenta === slot ? -v : 0) + (m.destino === slot ? v : 0);
+  return m.cuenta === slot ? ({entrada:1, apartar:1, rendimiento:1, salida:-1, liberar:-1}[m.tipo] || 0) * v : 0;
+}
+// lo que un fondo tiene en una cuenta segun un documento saneado (fd); sirve igual en pantalla y dentro de txDinero
+function apartadoFondoEn(fd, fid, c) {
+  const movs = (fd && fd.movs) || [], tot = nFin(fd && fd.saldosPorCuenta && fd.saldosPorCuenta[c]);
+  const suyo = id => c2(movs.reduce((t, m) => fondoDeMov(m) === id ? t + deltaFondo(m, c) : t, 0));
+  if (fid !== FONDO_U) return Math.max(0, suyo(fid));
+  const otros = new Set(movs.map(fondoDeMov).filter(id => id !== FONDO_U));
+  return Math.max(0, c2(tot - [...otros].reduce((t, id) => t + Math.max(0, suyo(id)), 0)));
 }
 // lo que ESTA version no reconoce del fondo (una cuenta que agrego una version mas nueva) se conserva
 // tal cual al reescribir cartera/fondo. Sin esto, una version vieja abierta en otro aparato borraba el
@@ -2777,7 +2862,7 @@ function movsFondoConservados(d) {
     if (saneaFondo({movs:[m]}).movs.length === 1) return true;
     const ajena = (idOk(m.cuenta) && !CTAS_FONDO.includes(m.cuenta)) || (m.tipo === 'traspaso' && idOk(m.destino) && !CTAS_FONDO.includes(m.destino));
     return ajena;
-  }).slice(0, 2000);
+  }).filter((m, i) => i < 2000 || (typeof m.fondo === 'string' && m.fondo !== 'u'));   // los de otros fondos no se recortan
 }
 const fmtFondo = v => '$' + (Math.round(nFin(v) * 100) / 100).toLocaleString('es-MX', {minimumFractionDigits:2, maximumFractionDigits:2});
 // saldo FISICO de una cuenta tras esta operacion, con lo que la transaccion leyo y lo que va a escribir
@@ -2847,6 +2932,9 @@ async function txDinero(plan) {
   // (20-oct-2026) cuentas en otra moneda: plan.fx = {deltas, absolutos, crear, editar}, montos en SU moneda.
   // Una cuenta x_ en deltas/absolutos se ignoraria en silencio (no esta en CAMPO_SIMPLE): se rechaza
   const fxPlan = plan.fx || null;
+  // (28-oct-2026, code-reviewer) una transferencia de una cuenta a ella misma no existe: con dos cuentas agregadas la
+  // misma clave en fx.deltas colapsaba -sale y +sale en +sale y creaba dinero. Se rechaza aqui, no solo en la pantalla
+  if ((plan.crear || []).some(c => c && c.data && c.data.origen !== undefined && c.data.origen === c.data.destino)) return {error:'elige dos cuentas distintas'};
   if (Object.keys(deltasPlan).some(esIdX) || Object.keys(absolutos).some(esIdX)) throw new Error('una cuenta en otra moneda va en plan.fx, no en deltas');
   // instante FIJO: los reintentos de la transaccion deben calcular el mismo interes
   const ahora = Date.now(), hoy = hoyLocal();
@@ -2980,7 +3068,14 @@ async function txDinero(plan) {
           const n = {...cx[k]};
           if (typeof ed[k].nombre === 'string' && ed[k].nombre.trim()) n.nombre = ed[k].nombre.trim().slice(0,24);
           // apagar no saca dinero del patrimonio: solo se puede con saldo en cero (como en las copias)
-          if (ed[k].on === false) { if (cent(cx[k].saldo) !== 0) return {error:'para apagar ' + cx[k].nombre + ' su saldo debe estar en cero'}; n.on = false; }
+          if (ed[k].on === false) { if (cent(saldoX(cx[k], ahora)) !== 0) return {error:'para apagar ' + cx[k].nombre + ' su saldo debe estar en cero'}; n.on = false; }
+          // (28-oct-2026) cambiar la tasa de una cajita: primero se cristaliza lo que gano con la vieja (saldo de hoy, fecha hoy)
+          if (ed[k].tasa !== undefined) {
+            const t = ed[k].tasa, tp = ed[k].tope === undefined ? n.tope : ed[k].tope, te = ed[k].tasaExc === undefined ? n.tasaExc : ed[k].tasaExc;
+            if (n.tipo !== 'cajita') return {error:'solo una cajita tiene tasa'};
+            if (![t, te].every(v => Number.isFinite(v) && v >= 0 && v < 100) || !(Number.isFinite(tp) && tp >= 0)) return {error:'tasa no válida'};
+            Object.assign(n, {saldo:saldoX(cx[k], ahora), fecha:hoy, tasa:t, tope:tp, tasaExc:te});
+          }
           if (ed[k].on === true) n.on = true;
           cxCambios[k] = n;
         }
@@ -2993,10 +3088,11 @@ async function txDinero(plan) {
           if (crea[k]) return {error:'no se puede crear y mover una cuenta en la misma operación'};
           const base = cxCambios[k] || cx[k];
           const d = nFin(fxD[k]);
-          const nuevo = c2((abs[k] !== undefined ? c2(abs[k]) : base.saldo) + d);
+          // una cajita parte de su saldo de HOY (con su interes) y se reancla a hoy
+          const nuevo = c2((abs[k] !== undefined ? c2(abs[k]) : saldoX(base, ahora)) + d);
           // solo una SALIDA puede quedar bloqueada (mismo criterio que las cuentas en pesos)
           if (d < 0 && plan.permitirNegativo !== true && cent(nuevo) < 0) return {error:'saldo insuficiente en ' + base.nombre};
-          if (cent(nuevo) !== cent(base.saldo) || cxCambios[k]) cxCambios[k] = {...base, saldo:nuevo};
+          if (cent(nuevo) !== cent(base.saldo) || cxCambios[k] || base.tipo === 'cajita') cxCambios[k] = {...base, saldo:nuevo, ...(base.tipo === 'cajita' ? {fecha:hoy} : {})};
         }
       }
       const tjDelta = sinEfecto ? 0 : nFin(plan.tarjetaDelta);
@@ -3102,6 +3198,14 @@ async function txDinero(plan) {
             return {error:'movimiento del fondo no válido'};
           if (t === 'traspaso' && (!CTAS_FONDO.includes(mv.destino) || mv.destino === mv.cuenta))
             return {error:'el traspaso necesita dos cuentas distintas'};
+          // (28-oct-2026) el fondo del movimiento debe existir y estar abierto; sacar no puede pasar de lo que ESE fondo tiene
+          const fid = fondoDeMov(mv);
+          if (mv.fondo !== undefined && !esIdFondo(mv.fondo)) return {error:'ese fondo no existe'};
+          // (code-reviewer) una version vieja reescribe el documento sin la lista: un fondo con movimientos sigue existiendo
+          const entF = (fd.fondos || []).find(x => x.id === fid), existeF = entF ? !entF.cerrado : fd.movs.some(m => fondoDeMov(m) === fid);
+          if (fid !== FONDO_U && !existeF) return {error:'ese fondo no existe o está cerrado — recarga la app'};
+          if (['salida', 'traspaso', 'liberar'].includes(t) && cent(nFin(mv.monto)) > cent(apartadoFondoEn(fd, fid, mv.cuenta)))
+            return {error:'en ' + (CUENTAS[mv.cuenta] || mv.cuenta) + ' ese fondo solo tiene ' + fmtFondo(apartadoFondoEn(fd, fid, mv.cuenta))};
           const mueveSaldo = t === 'entrada' || t === 'salida' || t === 'traspaso';
           // lo esperado sale del MOVIMIENTO: el apartado y el saldo deben ser exactamente eso
           const mm = c2(nFin(mv.monto)), esperado = {};
@@ -3135,7 +3239,8 @@ async function txDinero(plan) {
         }
         if (plan.fondo) {
           const crudo = fSnap.exists() ? fSnap.data() : null;
-          fondo = {saldosPorCuenta: {...fondoAjeno(crudo).saldos, ...ap}, movs: [plan.fondo.mov, ...movsFondoConservados(crudo)]};
+          fondo = {saldosPorCuenta: {...fondoAjeno(crudo).saldos, ...ap}, movs: [plan.fondo.mov, ...movsFondoConservados(crudo)],
+                   ...(crudo && Array.isArray(crudo.fondos) ? {fondos: crudo.fondos} : {})};   // la lista de fondos se conserva tal cual
         }
       }
       // tarjeta NU
@@ -4096,7 +4201,7 @@ window.showPage = function(p, arriba) {
   if(p==='movimientos'){ renderMovimientos(); if(movSubActual==='cats') renderCategorias(); if(movSubActual==='sus') renderSuscripciones(); }
   if(p==='deudas') renderDeudas();
   if(p==='noticias') abrirNoticias(); // carga perezosa: cache primero, refresco si esta viejo
-  if(p==='perfil'){ renderPerfil(); renderScore(); renderDecisiones(); if(perfilSubActual==='amigos') perfilSub('amigos'); }
+  if(p==='perfil'){ renderPerfil(); renderScore(); renderDecisiones(); if(perfilSubActual!=='perfil') perfilSub(perfilSubActual); }
   window.scrollTo(0, arriba ? 0 : (scrollPorPagina[p] || 0));
 };
 // el desglose de 'tu dinero' al patrimonio neto: cerrado por defecto, un toque lo abre
@@ -4739,7 +4844,11 @@ function cicloTdcRev() {
 // ── RENDER ────────────────────────────────────────────────────
 function render() {
   // (21-oct-2026, Roberto) las tarjetas de inicio muestran solo lo TUYO: el fondo se ve en su pestaña
-  const tuyo=(c,s)=>apartadoDe(c)>0?Math.max(0,s-apartadoDe(c)):s;
+  // (28-oct-2026) y tampoco el interes que genero el fondo sin registrar (fondoEnCuenta)
+  const tuyo=(c,s)=>apartadoDe(c)>0?Math.max(0,s-fondoEnCuenta(c)):s;
+  // el detalle tambien sin el fondo: base tuya + rendimiento tuyo = el saldo que muestra la tarjeta
+  // (la base ya trae el interes que el fondo genero antes de su fecha: tambien es del fondo)
+  const baseTuya=(c,b)=>apartadoDe(c)>0?Math.max(0,nFin(b)-apartadoEnBase(c)-pendienteFondoAntesDeBase(c)):b;
   const sinFondo=c=>apartadoDe(c)>0?' · sin el fondo':'';
   // (27-oct-2026, paso 5b) una vuelta por cada tarjeta generica del registro (ver ui)
   const txt=(id,t)=>{ const el=document.getElementById(id); if(el) el.textContent=t; };
@@ -4747,7 +4856,7 @@ function render() {
   ctasInicio().forEach(c=>{
     const ids=idsTarjeta(c);
     if(!c.comp){ txt(ids.disp,fmt(tuyo(c.id,state[c.simple]))); txt(ids.sub,c.ui.sub+sinFondo(c.id)); return; }
-    const base=state[c.comp.base], saldo=calcCompAt(c.id,Date.now()), rend=saldo-(base||0), ac=rendAcumulado(c.id);
+    const base=baseTuya(c.id,state[c.comp.base]), saldo=calcCompAt(c.id,Date.now()), rend=tuyo(c.id,saldo)-(base||0), ac=rendPropioAcumulado(c.id);
     txt(ids.disp,fmt(tuyo(c.id,saldo)));
     txt(ids.sub,descModelo(c.id)+(c.ui.estimado?' · estimado':'')+sinFondo(c.id));
     txt(ids.base,fmt(base));
@@ -4861,7 +4970,7 @@ function render() {
   // el fondo de la universidad vive DENTRO de estas cuentas pero no es dinero para el dia a dia:
   // inicio, metas, distribucion, el snapshot y el coach usan TU dinero (fisico menos apartado)
   const fondoTot=fondoTotal();
-  const total=totalFisico-fondoTot;
+  const total=totalFisico-fondoTot-fondoGenerado();
   pintaTotal(document.getElementById('total-display'),total);
   const totLbl=document.getElementById('total-label');
   // si el fondo llego de otro dispositivo antes que los saldos, 'tu dinero' puede salir negativo un instante
@@ -4876,14 +4985,16 @@ function render() {
     const f=(t,v,cls)=>'<div class="dg-fila'+(cls?' '+cls:'')+'"><span>'+t+'</span><span>'+v+'</span></div>';
     document.getElementById('neto-display').innerHTML=f(fondoTot>0?'tu dinero (sin el fondo)':'tus cuentas',fmt(total))
       +(teDeben>0.005?f('te deben','+'+fmt(teDeben)):'')+(debes>0.005?f('tú debes','−'+fmt(debes)):'')
-      +(Math.abs(cxTot.mxn)>0.005||cxTot.pendiente?f('de eso, en otra moneda',cxTot.pendiente?'≈ '+fmt(cxTot.mxn)+' (falta un tipo de cambio)':'≈ '+fmt(cxTot.mxn)):'')
+      +(Math.abs(cxTot.mxn)>0.005||cxTot.pendiente?f(Object.values(state.cuentasX||{}).some(x=>x.moneda!=='MXN')?'de eso, en cuentas que agregaste (con otra moneda)':'de eso, en cuentas que agregaste',cxTot.pendiente?'≈ '+fmt(cxTot.mxn)+' (falta un tipo de cambio)':(Object.values(state.cuentasX||{}).some(x=>x.moneda!=='MXN')?'≈ ':'')+fmt(cxTot.mxn)):'')
       +(Math.abs(tdc)>0.005?f(tdc>0?'tarjetas de crédito':'saldo a favor en tarjetas',(tdc>0?'−':'+')+fmt(Math.abs(tdc))):'')+f('patrimonio neto',fmt(neto),'dg-total')
-      +(fondoTot>0?f('fondo de la universidad, aparte',fmt(fondoTot)):''); }
+      +(fondoTot>0?f(listaFondos().length>1?'tus fondos, aparte':'fondo de la universidad, aparte',fmt(fondoTot+fondoGenerado())+(fondoGenerado()>0.005?' (≈'+fmt(fondoGenerado())+' de interés estimado)':'')):''); }
   refrescarGananciaMes();
+  // (28-oct-2026) una cartera recien creada abre sola el asistente, una vez por sesion (nunca con datos de la cache)
+  if(!asisAuto&&datosCargados&&!cargaDesdeCache&&esCarteraNueva()){ asisAuto=true; refrescar(()=>abrirAsistente()); }
   totalesInicio={fisico:totalFisico, tuyo:total, neto, listo:true};
   refrescar(aplicarVisibilidadFondo);
   // lo apartado se resta POR CUENTA: en Savings reduce 'ahorro', en MXN reduce 'disponible'
-  renderDistribucion(sumaGrupo('ahorro',true), nvdaVal, sumaGrupo('disponible',true)+cxTot.mxn, tdcDep, posAbiertas.length>0&&!stocksCompleto);
+  renderDistribucion(sumaGrupo('ahorro',true)+cxTot.ahorro, nvdaVal, sumaGrupo('disponible',true)+cxTot.mxn-cxTot.ahorro, tdcDep, posAbiertas.length>0&&!stocksCompleto);
   refrescar(renderCuentasX);
   renderMetas({stocks:nvdaVal, stocksPendiente:posAbiertas.length>0&&!stocksCompleto, patrimonio:total});
   renderApartados();
@@ -5141,6 +5252,91 @@ function getSaldoCuenta(c) {
 // ── FONDO: lo apartado y lo libre de cada cuenta ──
 function apartadoDe(c) { const sp = state.fondo && state.fondo.saldosPorCuenta; const v = sp ? sp[c] : 0; return Number.isFinite(v) ? v : 0; }
 function fondoTotal() { return CTAS_FONDO.reduce((t, k) => t + apartadoDe(k), 0); }
+// (28-oct-2026) varios fondos en pantalla: la lista (universidad primero; los que tengan movimientos aunque no esten en
+// la lista salen como 'fondo sin nombre': nunca se esconde dinero), lo de cada uno por cuenta, su total y su interes
+function listaFondos(conCerrados) {
+  const lst = (state.fondo && state.fondo.fondos) || [], movs = (state.fondo && state.fondo.movs) || [];
+  const u = lst.find(x => x.id === FONDO_U);
+  const out = [{id:FONDO_U, nombre:(u && u.nombre) || 'universidad', cerrado:false}];
+  lst.filter(x => x.id !== FONDO_U).forEach(x => out.push({id:x.id, nombre:x.nombre || 'fondo sin nombre', cerrado:x.cerrado}));
+  movs.map(fondoDeMov).forEach(id => { if (!out.some(x => x.id === id)) out.push({id, nombre:'fondo sin nombre', cerrado:false}); });
+  return out.filter(x => conCerrados || !x.cerrado || totalFondo(x.id) > 0.005);
+}
+const apartadoFondo = (fid, c) => apartadoFondoEn(state.fondo, fid, c);
+function totalFondo(fid) { return CTAS_FONDO.reduce((t, c) => t + apartadoFondo(fid, c), 0); }
+// el interes estimado sin registrar se reparte entre los fondos segun lo que cada uno tiene en esa cuenta (estimado)
+function generadoFondoEn(fid, c) { const A = apartadoDe(c); return A > 0 ? (fondoEnCuenta(c) - A) * apartadoFondo(fid, c) / A : 0; }
+function generadoFondo(fid) { return CTAS_FONDO.reduce((t, c) => t + generadoFondoEn(fid, c), 0); }
+// (code-reviewer) si una version vieja saco dinero sin etiqueta, los fondos pueden sumar mas que lo apartado: se avisa
+function fondosDescuadrados() { return listaFondos(true).reduce((t, x) => t + totalFondo(x.id), 0) > fondoTotal() + 0.01; }
+const nombreFondo = fid => (listaFondos(true).find(x => x.id === fid) || {nombre:'fondo'}).nombre;
+let fondoActual = FONDO_U;
+// (28-oct-2026, Beto: "los rendimientos del fondo se quedan en el fondo") el interes que genero lo apartado y aun
+// no se registra (ESTIMADO, rendFondoSugerido) tambien es del fondo: inicio, total, donut, metas y coach no lo cuentan
+// como tuyo, y la pestaña fondo lo suma como generado. Al registrar el abono real queda exacto. Solo es lectura: las
+// transferencias siguen validando contra lo apartado registrado (lo canonico en la nube)
+// tramos del interes que genero lo apartado y aun no se registra: desde el ultimo abono registrado de esa cuenta (o, si
+// nunca se ha registrado, desde el primer movimiento del fondo en ella), cada tramo con lo que HABIA apartado. Apartar,
+// liberar o traspasar NO reinicia el reloj (code-reviewer 28-oct: antes cualquier movimiento lo ponia en cero y ese interes
+// pasaba a ser tuyo de golpe). Dias completos locales, como los cuenta el interes compuesto. diario: el interes que la
+// cuenta agrega por tener F apartado, con tu dinero en la banda alta (misma convencion de siempre); con el saldo de hoy
+const diaLocal = t => Math.floor(t / 86400000 - new Date(t).getTimezoneOffset() / 1440);
+function tramosFondo(slot) {
+  if (!CAMPO_COMP[slot] || !(apartadoDe(slot) > 0)) return [];
+  const movs = ((state.fondo && state.fondo.movs) || []).map(m => ({m, t: msFechaMov(m && (m.fecha || m.creado)), d: deltaFondo(m, slot)}))
+    .filter(x => x.t !== null && x.d !== 0).sort((p, q) => p.t - q.t);
+  const rend = movs.filter(x => x.m.tipo === 'rendimiento' && x.m.cuenta === slot);
+  const ancla = rend.length ? rend[rend.length - 1].t : (movs.length ? movs[0].t : null);
+  if (ancla === null) return [];   // sin movimientos no hay desde cuando contar: no se inventa
+  const S = getSaldoCuenta(slot), hoy = hoyLocal(), m = modeloComp(state, CAMPO_COMP[slot]), en360 = parseFechaLocal(hoy).getTime() + 360 * 86400000;
+  const gana = x => x > 0 ? calcCompoundAt(x, hoy, en360, m) - x : 0;
+  const gS = gana(S), diario = F => { const f = Math.min(Math.max(0, F), Math.max(0, S)); return f > 0 ? (gS - gana(S - f)) / 360 : 0; };
+  const tramos = []; let F = apartadoDe(slot), fin = diaLocal(Date.now());
+  const despues = movs.filter(x => x.t > ancla);
+  for (let i = despues.length - 1; i >= 0; i--) { const d0 = diaLocal(despues[i].t); tramos.push({desde: d0, hasta: Math.max(d0, fin), diario: diario(F)}); F -= despues[i].d; fin = d0; }
+  const d0 = diaLocal(ancla); tramos.push({desde: d0, hasta: Math.max(d0, fin), diario: diario(F)});
+  return tramos;
+}
+// interes del fondo sin registrar en los dias [desde, hasta) (dias locales); sin limites = todo
+function pendienteFondoEntre(slot, desde, hasta) {
+  return tramosFondo(slot).reduce((t, x) => { const a = Math.max(x.desde, desde == null ? -Infinity : desde), b = Math.min(x.hasta, hasta == null ? Infinity : hasta);
+    return b > a ? t + x.diario * (b - a) : t; }, 0);
+}
+function pendienteFondo(c) { return c2(Math.max(0, pendienteFondoEntre(c))); }
+// lo del fondo dentro de una cuenta: apartado + su interes sin registrar, nunca mas que el saldo ni menos que lo apartado
+function fondoEnCuenta(c) { const A = apartadoDe(c); if (!(A > 0)) return 0; return Math.min(A + pendienteFondo(c), Math.max(A, getSaldoCuenta(c))); }
+// lo tuyo de una cuenta: su saldo sin lo del fondo (UNA sola regla para inicio, mis cuentas, colchon...)
+function saldoTuyo(c) { const s = getSaldoCuenta(c); return apartadoDe(c) > 0 ? Math.max(0, s - fondoEnCuenta(c)) : s; }
+function fondoGenerado() { return CTAS_FONDO.reduce((t, k) => t + (apartadoDe(k) > 0 ? fondoEnCuenta(k) - apartadoDe(k) : 0), 0); }
+// interes del fondo sin registrar que cae en un periodo (estimado): la ganancia del mes y el resumen lo restan como lo registrado
+function pendienteFondoEnRango(start, end) { const a = diaLocal(start.getTime()), b = diaLocal(end.getTime()); return CTAS_FONDO.reduce((t, k) => t + Math.max(0, pendienteFondoEntre(k, a, b)), 0); }
+// lo que ya se registro como rendimiento del fondo en una cuenta (de cualquier fecha: la semilla es lo que el banco
+// reporto en total, asi que se le resta todo). Fondo liberado: ese interes ya es tuyo
+function rendFondoRegistrado(slot) {
+  if (!(apartadoDe(slot) > 0)) return 0;
+  return ((state.fondo && state.fondo.movs) || []).filter(m => m && m.tipo === 'rendimiento' && m.cuenta === slot).reduce((t, m) => t + nFin(m.monto), 0);
+}
+// el apartado que ya estaba en la cuenta en su fecha base: apartar, liberar y conciliar rendimiento no reanclan la
+// cuenta, asi que lo que movieron despues de esa fecha no es parte de la base
+function apartadoEnBase(slot) {
+  const cfg = CAMPO_COMP[slot], fb = cfg ? state[cfg.fecha] : null;
+  if (typeof fb !== 'string') return apartadoDe(slot);
+  const ini = parseFechaLocal(fb).getTime(), sg = {apartar:1, rendimiento:1, liberar:-1};
+  const despues = ((state.fondo && state.fondo.movs) || []).reduce((t, m) => {
+    if (!m || m.cuenta !== slot || !sg[m.tipo]) return t;
+    const ms = msFechaMov(m.fecha || m.creado); return (ms !== null && ms >= ini) ? t + sg[m.tipo] * nFin(m.monto) : t;
+  }, 0);
+  return Math.max(0, apartadoDe(slot) - despues);
+}
+// lo que el fondo genero sin registrar ANTES de la fecha base de la cuenta: ya quedo dentro del saldo base capturado
+function pendienteFondoAntesDeBase(slot) {
+  const cfg = CAMPO_COMP[slot], fb = cfg ? state[cfg.fecha] : null;
+  if (!(apartadoDe(slot) > 0) || typeof fb !== 'string') return 0;
+  return Math.max(0, Math.min(pendienteFondo(slot), c2(pendienteFondoEntre(slot, null, diaLocal(parseFechaLocal(fb).getTime())))));
+}
+// el interes que genero TU dinero en toda la historia: el acumulado de la cuenta menos lo del fondo (registrado y pendiente)
+// (no baja de cero por el fondo: la historia del banco puede empezar despues de abonos viejos del fondo)
+function rendPropioAcumulado(slot) { const ac = rendAcumulado(slot); return Math.max(Math.min(ac, 0), ac - rendFondoRegistrado(slot) - pendienteFondo(slot)); }
 // fondo total reconstruido a una fecha, sumando los movimientos anteriores a ella
 // (traspaso no cambia el total, solo mueve entre cuentas): sirve para saber si el
 // fondo estuvo presente DURANTE un periodo aunque hoy ya no tenga saldo
@@ -5157,7 +5353,9 @@ function fondoAl(ms) {
 function disponibleCuenta(c) { return getSaldoCuenta(c) - apartadoDe(c); }
 // (27-oct-2026) saldo de las cuentas de un grupo del registro; sinFondo: resta lo apartado de cada una.
 // Es la UNICA suma de cuentas: inicio, distribucion y el coach la comparten
-function sumaGrupo(g, sinFondo) { return ctasGrupo(g).reduce((s, c) => s + getSaldoCuenta(c) - (sinFondo ? apartadoDe(c) : 0), 0); }
+// (sin recorte a cero por cuenta, a proposito: el total debe cuadrar con el banco aunque el fondo diga mas que el
+// saldo un instante; inicio lo avisa como 'sincronizando el fondo'. Las tarjetas y mis cuentas si recortan: saldoTuyo)
+function sumaGrupo(g, sinFondo) { return ctasGrupo(g).reduce((s, c) => s + getSaldoCuenta(c) - (sinFondo ? fondoEnCuenta(c) : 0), 0); }
 // todo lo que suma al patrimonio (fondo incluido): las cuentas de los dos grupos, la bolsa a precio de hoy,
 // el deposito de la TDC Revolut (dinero propio, aunque congelado) y las cuentas en otra moneda en pesos (20-oct).
 // Inicio y el coach usan esta MISMA suma
@@ -5340,13 +5538,13 @@ const fxEnBanda = (m, v) => Number.isFinite(v) && FX_BANDAS[m] && v >= FX_BANDAS
 function saneaFx(raw) {
   if (!raw || typeof raw !== 'object' || typeof raw.fecha !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(raw.fecha)) return null;
   const mxnPor = {};
-  for (const m of Object.keys(MONEDAS_X)) { const v = raw.mxnPor && raw.mxnPor[m]; if (fxEnBanda(m, v)) mxnPor[m] = v; }
+  for (const m of MONEDAS_FX) { const v = raw.mxnPor && raw.mxnPor[m]; if (fxEnBanda(m, v)) mxnPor[m] = v; }
   if (!Object.keys(mxnPor).length) return null;
   return {fecha:raw.fecha, bajado:typeof raw.bajado === 'string' ? raw.bajado : '', mxnPor,
           fuente:typeof raw.fuente === 'string' ? raw.fuente.slice(0,60) : ''};
 }
 // pesos por 1 unidad de esa moneda; null si no hay dato (nunca se inventa: se marca pendiente)
-const tcDe = moneda => (state.fx && state.fx.mxnPor && Number.isFinite(state.fx.mxnPor[moneda])) ? state.fx.mxnPor[moneda] : null;
+const tcDe = moneda => moneda === 'MXN' ? 1 : (state.fx && state.fx.mxnPor && Number.isFinite(state.fx.mxnPor[moneda])) ? state.fx.mxnPor[moneda] : null;
 // dias desde la fecha del tipo de cambio (el BCE no publica en fin de semana: hasta 4 es normal)
 function fxDias() {
   if (!state.fx) return null;
@@ -5364,19 +5562,19 @@ async function asegurarTipoCambio(forzar) {
   const hoy = hoyLocal();
   if (!forzar && state.fx && state.fx.bajado === hoy) return state.fx;
   // (20-oct-2026, QA) sin cuentas en otra moneda no se pide nada: agregarCuentaX lo fuerza al crear la primera
-  if (!forzar && !Object.keys(state.cuentasX || {}).length) return state.fx;
+  if (!forzar && !Object.values(state.cuentasX || {}).some(x => x.moneda !== 'MXN')) return state.fx;   // las de pesos no lo necesitan
   // con datos de la cache no se escribe: mercado podria tener un tipo mas nuevo en el servidor
   if (!datosCargados || cargaDesdeCache || navigator.onLine === false) return state.fx;
   if (fxEnVuelo) return fxEnVuelo;
   fxEnVuelo = (async () => {
     try {
-      const r = await fetch('https://api.frankfurter.dev/v1/latest?base=MXN&symbols=' + Object.keys(MONEDAS_X).join(','), {cache:'no-store'});
+      const r = await fetch('https://api.frankfurter.dev/v1/latest?base=MXN&symbols=' + MONEDAS_FX.join(','), {cache:'no-store'});
       if (!r.ok) throw new Error('HTTP ' + r.status);
       const j = await r.json();
       if (!j || j.base !== 'MXN') throw new Error('respuesta con base distinta de MXN');
       const previo = state.fx, diasPrevio = fxDias();
       const mxnPor = {};
-      for (const m of Object.keys(MONEDAS_X)) {
+      for (const m of MONEDAS_FX) {
         const v = j.rates && j.rates[m];
         const ant = previo && previo.mxnPor && previo.mxnPor[m];
         // (20-oct-2026, QA) una moneda que no llego o llego mal HEREDA la ultima guardada: si no, una respuesta
@@ -5404,15 +5602,17 @@ async function asegurarTipoCambio(forzar) {
   return fxEnVuelo;
 }
 // lo que valen en pesos todas las cuentas en otra moneda. pendiente = hay saldo sin tipo de cambio
+// (28-oct-2026) ahorro = lo que esta en cajitas agregadas (para el donut: va con el ahorro, no con lo disponible)
 function totalCuentasX() {
-  let mxn = 0, pendiente = false;
+  let mxn = 0, ahorro = 0, pendiente = false;
   for (const x of Object.values(state.cuentasX || {})) {
-    if (cent(x.saldo) === 0) continue;
+    const sx = saldoX(x);
+    if (cent(sx) === 0) continue;
     const tc = tcDe(x.moneda);
     if (!tc) { pendiente = true; continue; }
-    mxn += x.saldo * tc;
+    mxn += sx * tc; if (x.tipo === 'cajita') ahorro += sx * tc;
   }
-  return {mxn:c2(mxn), pendiente};
+  return {mxn:c2(mxn), ahorro:c2(ahorro), pendiente};
 }
 const cuentasXActivas = () => Object.entries(state.cuentasX || {}).filter(([, x]) => x.on)
   .sort((a, b) => String(a[1].creada).localeCompare(String(b[1].creada)));
@@ -5420,7 +5620,7 @@ const cuentasXActivas = () => Object.entries(state.cuentasX || {}).filter(([, x]
 // ── formularios: botones de cuenta en otra moneda junto a los de siempre ──
 function pintarFuentesX() {
   const activas = cuentasXActivas();
-  const boton = (id, x, fn, actual) => `<div class="type-opt${actual === id ? ' active' : ''}" data-cx="${id}" onclick="${fn}('${id}')">${escapeHtml(x.nombre)} · ${x.moneda}</div>`;
+  const boton = (id, x, fn, actual) => `<div class="type-opt${actual === id ? ' active' : ''}" data-cx="${id}" onclick="${fn}('${id}')">${escapeHtml(x.nombre)}${x.moneda === 'MXN' ? '' : ' · ' + x.moneda}</div>`;
   [['gasto-fuente-x', 'setFuente', state.fuenteGasto], ['ingreso-destino-x', 'setDestinoIngreso', state.destinoIngreso]].forEach(([el, fn, actual]) => {
     const c = document.getElementById(el); if (!c) return;
     c.innerHTML = activas.map(([id, x]) => boton(id, x, fn, actual)).join('');
@@ -5435,8 +5635,8 @@ function pintarFuentesX() {
     const antes = s.value;
     const g = s.querySelector('optgroup[data-cx]'); if (g) g.remove();
     if (activas.length) {
-      const og = document.createElement('optgroup'); og.label = 'en otra moneda'; og.setAttribute('data-cx', '1');
-      activas.forEach(([id, x]) => { const o = document.createElement('option'); o.value = id; o.textContent = x.nombre + ' · ' + x.moneda; og.appendChild(o); });
+      const og = document.createElement('optgroup'); og.label = 'cuentas que agregaste'; og.setAttribute('data-cx', '1');
+      activas.forEach(([id, x]) => { const o = document.createElement('option'); o.value = id; o.textContent = x.moneda === 'MXN' ? x.nombre : x.nombre + ' · ' + x.moneda; og.appendChild(o); });
       s.appendChild(og);
     }
     if ([...s.options].some(o => o.value === antes)) s.value = antes;
@@ -5449,7 +5649,7 @@ function pintarAyudaMontoX(tipo) {
   const id = tipo === 'gasto' ? state.fuenteGasto : state.destinoIngreso;
   const el = document.getElementById(tipo + '-x-ayuda'); if (!el) return;
   const x = esIdX(id) && state.cuentasX[id];
-  if (!x) { el.hidden = true; return; }
+  if (!x || x.moneda === 'MXN') { el.hidden = true; return; }   // en pesos no hay nada que convertir
   const tc = tcDe(x.moneda);
   const v = parseFloat((document.getElementById(tipo + '-monto') || {}).value);
   el.textContent = 'escribe el monto en ' + MONEDAS_X[x.moneda].nom + ' (' + MONEDAS_X[x.moneda].sim + ')' +
@@ -5497,7 +5697,7 @@ async function altaMovX(tipo, cat, montoOrig, nota, cuentaId, btn, fecha) {
   const ref = doc(collection(db, esGasto ? 'gastos' : 'ingresos'));
   // monto = PESOS al tipo de hoy (lo que suman resumen y promedios); montoOrig = lo que mueve la cuenta
   const mov = {cat, monto:m, nota, [esGasto ? 'fuente' : 'destino']:cuentaId, fecha:fecha || creado, creado,
-               montoOrig:mo, moneda:x.moneda, tc, tcFecha:state.fx.fecha};
+               montoOrig:mo, moneda:x.moneda, tc, tcFecha:x.moneda === 'MXN' ? hoyLocal() : state.fx.fecha};   // en pesos puede no haber state.fx
   // sin señal: a la bandeja con el tipo de cambio ya fijado (el comando es inmutable)
   if (hayQueGuardarEnTelefono()) return guardarEnTelefonoConCandado(tipo, ref.id, mov, false, btn, uidCaptura);
   const plan = planAltaX(ref, mov, esGasto);
@@ -5520,7 +5720,7 @@ async function altaMovX(tipo, cat, montoOrig, nota, cuentaId, btn, fecha) {
   insertarPorFecha(lista, {...mov, id:ref.id});
   refrescar(render, renderMovimientos);
   const queda = res.cx && res.cx[cuentaId] ? res.cx[cuentaId].saldo : null;
-  showToast((esGasto ? '-' : '+') + fmtX(mo, x.moneda) + ' (≈ ' + fmt(m) + ') registrado' + (queda !== null && queda < 0 ? ' · ojo: ' + x.nombre + ' quedó en rojo' : ''));
+  showToast((esGasto ? '-' : '+') + fmtX(mo, x.moneda) + (x.moneda === 'MXN' ? '' : ' (≈ ' + fmt(m) + ')') + ' registrado' + (queda !== null && queda < 0 ? ' · ojo: ' + x.nombre + ' quedó en rojo' : ''));
   if (esGasto) avisoCategoria(cat, mov.fecha);
   return true;
 }
@@ -5528,10 +5728,15 @@ async function altaMovX(tipo, cat, montoOrig, nota, cuentaId, btn, fecha) {
 // ── transferencia entre una cuenta en pesos y una en otra moneda ──
 async function registrarTransferenciaX(origen, destino) {
   const btn = document.getElementById('transfer-btn');
+  if (origen === destino) { showToast('elige dos cuentas distintas'); return; }
   const mo = monedaDeCuenta(origen), md = monedaDeCuenta(destino);
   if (!mo || !md) { showToast('esa cuenta ya no existe'); return; }
-  if (esIdX(origen) && esIdX(destino)) { showToast('entre dos cuentas en otra moneda todavía no: pásalo primero a una cuenta en pesos'); return; }
-  if (destino === 'tarjeta' || destino === 'tarjetaRev') { showToast('la tarjeta se paga desde una cuenta en pesos'); return; }
+  // (28-oct-2026) entre dos cuentas agregadas de la MISMA moneda (tu banco en pesos -> tu cajita): solo plan.fx
+  if (esIdX(origen) && esIdX(destino)) {
+    if (mo !== md) { showToast('entre dos monedas distintas todavía no: pásalo primero a una cuenta en pesos'); return; }
+    return transferirEntreX(origen, destino, mo);
+  }
+  if (destino === 'tarjeta' || destino === 'tarjetaRev') { showToast('la tarjeta se paga desde una de tus cuentas fijas (efectivo, Nu, Revolut…)'); return; }
   const CTAS_PESOS = ['efectivo','nu','cajita1','revolut','revSavings','mifel'];
   const lado = esIdX(origen) ? destino : origen;   // la cuenta en pesos
   if (!CTAS_PESOS.includes(lado)) { showToast('cuenta no válida'); return; }
@@ -5543,7 +5748,7 @@ async function registrarTransferenciaX(origen, destino) {
   const x = state.cuentasX[esIdX(origen) ? origen : destino];
   if (!x || !x.on) { showToast('esa cuenta en otra moneda está apagada o ya no existe'); return; }
   // avisos tempranos con lo que hay en pantalla; txDinero revalida todo contra la nube
-  if (esIdX(origen) && cent(sale) > cent(x.saldo)) { showToast('saldo insuficiente en ' + x.nombre); return; }
+  if (esIdX(origen) && cent(sale) > cent(saldoX(x))) { showToast('saldo insuficiente en ' + x.nombre); return; }
   if (!esIdX(origen) && cent(sale) > cent(disponibleCuenta(origen))) { showToast('saldo insuficiente en ' + CUENTAS[origen]); return; }
   if (dineroOcupado) { showToast('espera, hay otra operación en curso'); return; }
   const fechaTr = fechaMovOpcional('transfer-fecha'); if (fechaTr === null) return;
@@ -5562,6 +5767,39 @@ async function registrarTransferenciaX(origen, destino) {
   catch(e) { err = e; }
   finally { btn.disabled = false; liberarDinero(); }
   if (err) { console.error('registrarTransferenciaX', err); showToast(msgFalloDinero()); return; }
+  const limpiar = () => ['transfer-monto','transfer-llega','transfer-nota','transfer-fecha'].forEach(i => { const e = document.getElementById(i); if (e) e.value = ''; });
+  if (res.error && res.codigo === 'ya-existe') { limpiar(); yaAplicado(); return; }
+  if (res.error) { showToast(res.error); return; }
+  aplicarRes(res);
+  tr.id = ref.id; insertarPorFecha(state.transferencias, tr);
+  limpiar();
+  refrescar(render, renderTransferencias, renderMovimientos);
+  showToast(textoMontoTransfer(tr) + ' · ' + nombreCuenta(origen) + ' → ' + nombreCuenta(destino));
+}
+async function transferirEntreX(origen, destino, moneda) {
+  const btn = document.getElementById('transfer-btn');
+  if (origen === destino) { showToast('elige dos cuentas distintas'); return; }
+  const xo = state.cuentasX[origen], xd = state.cuentasX[destino];
+  if (!xo || !xd || !xo.on || !xd.on) { showToast('una de esas cuentas está apagada o ya no existe'); return; }
+  const sale = c2(parseFloat(document.getElementById('transfer-monto').value));
+  if (!(sale > 0)) { showToast('ingresa cuánto pasaste'); return; }
+  if (cent(sale) > cent(saldoX(xo))) { showToast('saldo insuficiente en ' + xo.nombre); return; }
+  const tc = tcDe(moneda);
+  if (!tc) { showToast('todavía no hay tipo de cambio de ' + moneda + ': abre la app una vez con señal'); return; }
+  if (dineroOcupado) { showToast('espera, hay otra operación en curso'); return; }
+  const fechaTr = fechaMovOpcional('transfer-fecha'); if (fechaTr === null) return;
+  const nota = document.getElementById('transfer-nota').value.trim();
+  // monto en PESOS (al tipo de hoy) para el historial; montoOrigen = montoDestino porque es la misma moneda
+  const tr = {origen, destino, monto:c2(sale * tc), nota, fecha:fechaTr, creado:new Date().toISOString(),
+              montoOrigen:sale, monedaOrigen:moneda, montoDestino:sale, monedaDestino:moneda, tc};
+  const ref = doc(collection(db, 'transferencias'));
+  const plan = {crear:[{ref, data:tr}], requerirAusentes:[ref], fx:{deltas:{[origen]:-sale, [destino]:sale}}};
+  let res = null, err = null;
+  btn.disabled = true; dineroOcupado = true;
+  try { res = await txDinero(plan); }
+  catch(e) { err = e; }
+  finally { btn.disabled = false; liberarDinero(); }
+  if (err) { console.error('transferirEntreX', err); showToast(msgFalloDinero()); return; }
   const limpiar = () => ['transfer-monto','transfer-llega','transfer-nota','transfer-fecha'].forEach(i => { const e = document.getElementById(i); if (e) e.value = ''; });
   if (res.error && res.codigo === 'ya-existe') { limpiar(); yaAplicado(); return; }
   if (res.error) { showToast(res.error); return; }
@@ -5637,26 +5875,31 @@ function renderCuentasXSinCuidar() {
   const act = document.activeElement;
   const escribiendoEn = sel => !!(act && act.matches && act.matches('input,textarea,select') && act.closest && act.closest(sel));
   // en Inicio: las encendidas, y las apagadas que todavia tengan saldo (nunca se esconde dinero)
-  const visibles = Object.entries(state.cuentasX || {}).filter(([, x]) => x.on || cent(x.saldo) !== 0)
+  const visibles = Object.entries(state.cuentasX || {}).filter(([, x]) => x.on || cent(saldoX(x)) !== 0)
     .sort((a, b) => String(a[1].creada).localeCompare(String(b[1].creada)));
   if (cont && !escribiendoEn('#cx-cards')) {
     cont.hidden = !visibles.length;
     cont.innerHTML = visibles.map(([id, x]) => {
-      const tc = tcDe(x.moneda), abierta = cxAbiertas.has(id);
+      const tc = tcDe(x.moneda), abierta = cxAbiertas.has(id), sx = saldoX(x), mxn = x.moneda === 'MXN', caj = x.tipo === 'cajita';
+      // (28-oct-2026) en pesos no hay conversion; una cajita dice su tasa y lo que gano desde su fecha base
+      const icono = caj ? '%' : (mxn ? '$' : x.moneda);
+      const sub = (caj ? descCajitaX(x) : (mxn ? TIPOS_CX[x.tipo] : MONEDAS_X[x.moneda].nom)) + (caj && !mxn ? ' · ' + MONEDAS_X[x.moneda].nom : '');
+      const cambio = caj ? (cent(sx - x.saldo) > 0 ? '+' + fmtX(c2(sx - x.saldo), x.moneda) + ' desde el ' + parseFechaLocal(x.fecha).toLocaleDateString('es-MX', {day:'numeric', month:'short'}) : '')
+                         + (!mxn && tc ? (caj ? ' · ' : '') + '≈ ' + fmt(c2(sx * tc)) : '') : (mxn ? '' : (tc ? '≈ ' + fmt(c2(sx * tc)) : 'sin tipo de cambio'));
       const movs = abierta ? movsDeCuentaX(id) : [];
       const det = abierta ? `<div class="card-detail" style="display:block" onclick="event.stopPropagation()">
           ${movs.length ? movs.map(m => `<div class="detail-row"><span class="detail-label">${m.t} · ${fmtFechaMov(m.f, {day:'numeric', month:'short'})}</span><span class="detail-val">${m.v}</span></div>`).join('') : '<div class="item-meta">sin movimientos todavía</div>'}
           <div class="field" style="margin-top:10px"><label for="cx-saldo-${id}">actualizar saldo · lo que muestra tu app hoy (${MONEDAS_X[x.moneda].sim})</label>
-            <input type="number" id="cx-saldo-${id}" step="0.01" inputmode="decimal" placeholder="ej. ${x.saldo || 500}"></div>
+            <input type="number" id="cx-saldo-${id}" step="0.01" inputmode="decimal" placeholder="ej. ${sx || 500}"></div>
           <button type="button" class="btn btn-purple" style="margin-top:4px" onclick="guardarSaldoX('${id}')">guardar saldo</button>
-          <div class="item-meta" style="margin-top:8px">${escapeHtml(textoFx())}</div>
+          ${mxn ? '' : '<div class="item-meta" style="margin-top:8px">' + escapeHtml(textoFx()) + '</div>'}
         </div>` : '';
       return `<div class="card" onclick="toggleCuentaX('${id}')">
         <div class="card-header" role="button" tabindex="0" aria-expanded="${abierta}">
-          <div class="card-left"><div class="card-icon icon-rev" aria-hidden="true" style="font-weight:700;font-size:12px">${x.moneda}</div>
-            <div><div class="card-name">${escapeHtml(x.nombre)}</div><div class="card-sub">${MONEDAS_X[x.moneda].nom}${x.on ? '' : ' · apagada'}</div></div></div>
-          <div class="card-right"><div class="card-amount">${fmtX(x.saldo, x.moneda)}</div>
-            <div class="card-change neu">${tc ? '≈ ' + fmt(c2(x.saldo * tc)) : 'sin tipo de cambio'}</div></div>
+          <div class="card-left"><div class="card-icon icon-rev" aria-hidden="true" style="font-weight:700;font-size:12px">${icono}</div>
+            <div><div class="card-name">${escapeHtml(x.nombre)}</div><div class="card-sub">${escapeHtml(sub)}${x.on ? '' : ' · apagada'}</div></div></div>
+          <div class="card-right"><div class="card-amount">${fmtX(sx, x.moneda)}</div>
+            <div class="card-change ${caj && cent(sx - x.saldo) > 0 ? 'pos' : 'neu'}">${escapeHtml(cambio)}</div></div>
         </div>${det}</div>`;
     }).join('');
   }
@@ -5666,13 +5909,16 @@ function renderCuentasXSinCuidar() {
     const todas = Object.entries(state.cuentasX || {}).sort((a, b) => String(a[1].creada).localeCompare(String(b[1].creada)));
     per.innerHTML = todas.length ? todas.map(([id, x]) => `<div class="item-row" style="flex-wrap:wrap;gap:6px">
         <div style="flex:1 1 160px"><input type="text" id="cx-nom-${id}" maxlength="24" value="${escapeHtml(x.nombre)}" aria-label="nombre de la cuenta" style="width:100%">
-          <div class="item-meta">${MONEDAS_X[x.moneda].nom} · ${TIPOS_CX[x.tipo]} · ${fmtX(x.saldo, x.moneda)}${x.on ? '' : ' · apagada'}</div></div>
+          <div class="item-meta">${MONEDAS_X[x.moneda].nom} · ${TIPOS_CX[x.tipo]}${x.tipo === 'cajita' ? ' · ' + escapeHtml(descCajitaX(x)) : ''} · ${fmtX(saldoX(x), x.moneda)}${x.on ? '' : ' · apagada'}</div>
+          ${x.tipo === 'cajita' ? `<div style="display:flex;gap:6px;margin-top:6px;align-items:center"><input type="number" id="cx-tasa-${id}" step="0.01" inputmode="decimal" placeholder="tasa ${x.tasa}%" aria-label="tasa anual nueva de ${escapeHtml(x.nombre)}" style="width:110px">
+            <button type="button" class="btn" style="margin-top:0;padding:8px 10px;font-size:12px" onclick="cambiarTasaX('${id}')">cambiar tasa</button></div>` : ''}</div>
         <div style="display:flex;gap:6px">
           <button type="button" class="btn" style="margin-top:0;padding:8px 10px;font-size:12px" onclick="renombrarCuentaX('${id}')">guardar nombre</button>
           <button type="button" class="btn" style="margin-top:0;padding:8px 10px;font-size:12px" onclick="encenderCuentaX('${id}', ${!x.on})">${x.on ? 'apagar' : 'encender'}</button>
-        </div></div>`).join('') : '<div class="item-meta">todavía no tienes cuentas en otra moneda</div>';
+        </div></div>`).join('') : '<div class="item-meta">todavía no agregas cuentas</div>';
   }
-  const fx = document.getElementById('cx-fx'); if (fx) fx.textContent = textoFx();
+  // el tipo de cambio solo importa si hay alguna cuenta en moneda extranjera
+  const fx = document.getElementById('cx-fx'); if (fx) { fx.hidden = !Object.values(state.cuentasX || {}).some(x => x.moneda !== 'MXN'); fx.textContent = textoFx(); }
 }
 window.agregarCuentaX = async function() {
   const nombre = (document.getElementById('cx-nuevo-nombre').value || '').trim();
@@ -5683,27 +5929,37 @@ window.agregarCuentaX = async function() {
   if (!nombre) { showToast('ponle un nombre a la cuenta (por ejemplo, el de tu banco)'); return; }
   if (!MONEDAS_X[moneda] || !TIPOS_CX[tipo]) { showToast('elige la moneda y el tipo'); return; }
   if (!Number.isFinite(saldo) || saldo < 0) { showToast('el saldo inicial no es válido'); return; }
-  if (Object.keys(state.cuentasX).length >= CX_MAX) { showToast('máximo ' + CX_MAX + ' cuentas en otra moneda'); return; }
+  if (Object.keys(state.cuentasX).length >= CX_MAX) { showToast('máximo ' + CX_MAX + ' cuentas agregadas'); return; }
+  // (28-oct-2026) una cajita lleva su tasa anual (obligatoria) y, si su banco la topa, el tope y la tasa de arriba
+  let extra = {};
+  if (tipo === 'cajita') {
+    const num = id => { const v = (document.getElementById(id) || {}).value; return v === undefined || v === '' ? null : parseFloat(v); };
+    const tasa = num('cx-nuevo-tasa'), tope = num('cx-nuevo-tope'), tasaExc = num('cx-nuevo-tasa-exc');
+    if (!(Number.isFinite(tasa) && tasa > 0 && tasa < 100)) { showToast('escribe la tasa anual que te paga, por ejemplo 12.5'); return; }
+    if (tope !== null && !(Number.isFinite(tope) && tope >= 0)) { showToast('el tope no es válido (déjalo vacío si no tiene)'); return; }
+    if (tasaExc !== null && !(Number.isFinite(tasaExc) && tasaExc >= 0 && tasaExc < 100)) { showToast('la tasa de arriba del tope no es válida'); return; }
+    extra = {tasa, tope:tope || 0, tasaExc:tasaExc || 0, fecha:hoyLocal()};
+  }
   if (Object.values(state.cuentasX).some(x => x.nombre.toLowerCase() === nombre.toLowerCase() && x.moneda === moneda)) { showToast('ya tienes una cuenta con ese nombre y esa moneda'); return; }
   // (27-oct-2026) sin tipo de cambio SI se crea (usuario-real: en el aeropuerto no se podia anotar lo que se trae).
   // Es seguro: un gasto o ingreso en esa cuenta pide tipo de cambio en altaMovX, una transferencia lo saca de lo que
   // salio y lo que llego, la tarjeta dice "sin tipo de cambio" y el total queda pendiente (sin foto del dia)
-  if (!tcDe(moneda)) await asegurarTipoCambio(true);
+  if (!tcDe(moneda)) await asegurarTipoCambio(true);   // en pesos tcDe ya es 1: no se pide nada
   const sinTc = !tcDe(moneda);
   if (dineroOcupado) { showToast('espera, hay otra operación en curso'); return; }
   const id = 'x_' + (Date.now().toString(36) + Math.random().toString(36).slice(2, 8)).slice(0, 14).toLowerCase();
   const btn = document.getElementById('cx-nuevo-btn');
   let res = null, err = null;
   btn.disabled = true; dineroOcupado = true;
-  try { res = await txDinero({fx:{crear:{[id]:{nombre, moneda, tipo, on:true, saldo, creada:new Date().toISOString()}}}}); }
+  try { res = await txDinero({fx:{crear:{[id]:{nombre, moneda, tipo, on:true, saldo, creada:new Date().toISOString(), ...extra}}}}); }
   catch(e) { err = e; }
   finally { btn.disabled = false; liberarDinero(); }
   if (err) { console.error('agregarCuentaX', err); showToast(msgFalloDinero()); return; }
   if (res.error && res.codigo !== 'ya-existe') { showToast(res.error); return; }
   if (res.cx) aplicarRes(res);
-  ['cx-nuevo-nombre','cx-nuevo-saldo'].forEach(i => document.getElementById(i).value = '');
+  ['cx-nuevo-nombre','cx-nuevo-saldo','cx-nuevo-tasa','cx-nuevo-tope','cx-nuevo-tasa-exc'].forEach(i => { const e = document.getElementById(i); if (e) e.value = ''; });
   refrescar(render, renderCuentasX, pintarFuentesX);
-  showToast('cuenta agregada: ' + nombre + ' · ' + moneda + (sinTc ? ' · aún sin tipo de cambio: su equivalente en pesos aparece en cuanto se baje' : ''));
+  showToast('cuenta agregada: ' + nombre + (moneda === 'MXN' ? '' : ' · ' + moneda) + (sinTc ? ' · aún sin tipo de cambio: su equivalente en pesos aparece en cuanto se baje' : ''));
 };
 async function cambiarCuentaX(id, editar, ok) {
   if (dineroOcupado) { showToast('espera, hay otra operación en curso'); return; }
@@ -5718,6 +5974,13 @@ async function cambiarCuentaX(id, editar, ok) {
   refrescar(render, renderCuentasX, pintarFuentesX, renderMovimientos, renderTransferencias);
   showToast(ok);
 }
+// (28-oct-2026) cambiar la tasa de una cajita agregada: la transaccion cristaliza lo ganado con la tasa vieja
+window.cambiarTasaX = id => {
+  const el = document.getElementById('cx-tasa-' + id), t = parseFloat(el && el.value);
+  const x = state.cuentasX[id]; if (!x) return;
+  if (!(Number.isFinite(t) && t >= 0 && t < 100)) { showToast('escribe la tasa anual, por ejemplo 12.5'); return; }
+  cambiarCuentaX(id, {tasa:t}, 'tasa de ' + x.nombre + ': ' + t + '% anual');
+};
 window.renombrarCuentaX = id => {
   const n = (document.getElementById('cx-nom-' + id).value || '').trim();
   if (!n) { showToast('el nombre no puede quedar vacío'); return; }
@@ -7787,6 +8050,7 @@ function renderPerfil() {
     av.style.backgroundImage=p.foto?('url("'+p.foto+'")'):'';
     if(ini) ini.textContent=p.foto?'':((nom?nom[0]:'·').toUpperCase());
   }
+  if(perfilSubActual==='cuentas') refrescar(renderMisCuentas); // (28-oct) se repinta con el perfil; refrescar: un dato raro no corta lo demas
 }
 // ── TABLERO DE INVERSIONES: encendido/apagado desde el perfil ─────────────────
 // Vive en el perfil (cartera/perfil.dashboard) y no en un ajuste local, para que la
@@ -7802,16 +8066,187 @@ const AMIGO_NOMBRES={cartera:'Roberto',eli:'Eli',zoe:'Zoe',tono:'Toño'};
 // participar viene ENCENDIDO: solo se apaga si el usuario lo apago expresamente (perfil.amigos === false)
 function amigosVisible(){ return !(state.perfil&&state.perfil.amigos===false); }
 let perfilSubActual='perfil';
-window.perfilSub=function(cual){
-  perfilSubActual=cual==='amigos'?'amigos':'perfil';
-  const a=document.getElementById('perfil-sub-perfil'), b=document.getElementById('perfil-sub-amigos');
-  if(a) a.style.display=perfilSubActual==='perfil'?'':'none'; if(b) b.style.display=perfilSubActual==='amigos'?'':'none';
-  const ta=document.getElementById('ptab-perfil'), tb=document.getElementById('ptab-amigos');
-  if(ta&&tb){
-    ta.classList.toggle('active',perfilSubActual==='perfil'); tb.classList.toggle('active',perfilSubActual==='amigos');
-    if(perfilSubActual==='perfil'){ ta.setAttribute('aria-current','page'); tb.removeAttribute('aria-current'); }
-    else { tb.setAttribute('aria-current','page'); ta.removeAttribute('aria-current'); }
+// ── ASISTENTE DE PRIMERA VEZ (28-oct-2026) ──────────────────────
+// No es inteligencia artificial: preguntas fijas, una por pantalla. Junta las respuestas y al final crea TODO en una
+// sola operacion (txDinero: efectivo + cuentas que tu agregas) y despues los fondos. Solo agrega: los bancos que ya
+// tienes no se ofrecen y nada de lo existente se toca.
+const BANCOS_MX = ['Nu', 'Revolut', 'BBVA', 'Banorte', 'Santander', 'Banamex', 'HSBC', 'Klar', 'Mercado Pago', 'Hey Banco', 'Openbank', 'Mifel', 'Stori', 'Ualá'];
+let asis = null, asisAuto = false;
+function bancosQueYaTienes() {
+  const s = new Set(REG_CUENTAS.filter(c => c.banco && !c.legada && (c.grupo || c.tarjeta)).map(c => c.banco.toLowerCase()));
+  Object.values(state.cuentasX || {}).forEach(x => s.add(x.nombre.toLowerCase().replace(/ cajita$/, '')));
+  return s;
+}
+// una cartera recien creada: sin saldos, sin movimientos y sin cuentas agregadas
+function esCarteraNueva() {
+  return !state.gastos.length && !state.ingresos.length && !state.transferencias.length && !Object.keys(state.cuentasX || {}).length &&
+    REG_CUENTAS.flatMap(c => c.simple ? [c.simple] : c.comp ? [c.comp.base] : []).every(k => !(Math.abs(nFin(state[k])) > 0.005)) && !(fondoTotal() > 0);
+}
+window.abrirAsistente = function() {
+  asis = {paso: 0, efectivo: null, elegidos: [], otro: '', det: {}, fondos: ''};
+  const d = document.getElementById('asis-dlg'); if (!d) return;
+  pintarAsistente(); if (!d.open) d.showModal();
+};
+window.cerrarAsistente = () => { const d = document.getElementById('asis-dlg'); if (d && d.open) d.close(); asis = null; };
+const asisPasos = () => ['hola', 'efectivo', 'bancos', ...asis.elegidos.map((b, i) => 'det' + i), 'fondos', 'resumen'];
+function pintarAsistente() {
+  const pasos = asisPasos(), p = pasos[asis.paso], e = escapeHtml, cuerpo = document.getElementById('asis-cuerpo');
+  const tit = t => { document.getElementById('asis-tit').textContent = t; };
+  document.getElementById('asis-paso').textContent = 'paso ' + (asis.paso + 1) + ' de ' + pasos.length;
+  document.getElementById('asis-atras').hidden = asis.paso === 0;
+  document.getElementById('asis-sig').textContent = p === 'resumen' ? 'crear todo' : (p === 'hola' ? 'empezar' : 'siguiente');
+  const campo = (id, etq, ej, v) => '<div class="field"><label for="' + id + '">' + e(etq) + '</label><input type="number" id="' + id + '" step="0.01" inputmode="decimal" placeholder="' + e(ej) + '" value="' + (v == null ? '' : e(v)) + '"></div>';
+  if (p === 'hola') { tit('Vamos a armar tu cartera');
+    cuerpo.innerHTML = '<p class="item-meta" style="line-height:1.5">Te hago unas preguntas cortas: tu efectivo, tus bancos y tus cajitas, y si quieres apartar dinero para algo. Al final creo todo junto. Lo que ya tienes no se toca, y todo se puede cambiar después en "mis cuentas".</p>'; }
+  else if (p === 'efectivo') { tit('¿Cuánto efectivo traes hoy?');
+    cuerpo.innerHTML = campo('asis-efectivo', 'pesos en mano (déjalo vacío si no quieres cambiarlo)', 'ej. 500', asis.efectivo); }
+  else if (p === 'bancos') { tit('¿Qué otros bancos tienes?');
+    const ya = bancosQueYaTienes(), opciones = BANCOS_MX.filter(b => !ya.has(b.toLowerCase()));
+    cuerpo.innerHTML = '<div class="item-meta" style="margin-bottom:8px">toca los que tengas; los que ya están en tu cartera no salen aquí</div><div class="asis-bancos">' +
+      opciones.map(b => '<button type="button" class="type-opt' + (asis.elegidos.includes(b) ? ' active' : '') + '" aria-pressed="' + asis.elegidos.includes(b) + '" data-banco="' + e(b) + '">' + e(b) + '</button>').join('') + '</div>' +
+      '<div class="field" style="margin-top:10px"><label for="asis-otro">¿otro? escribe su nombre</label><input type="text" id="asis-otro" maxlength="24" placeholder="ej. Banco Azteca" value="' + e(asis.otro) + '"></div>';
+    cuerpo.querySelectorAll('[data-banco]').forEach(b => b.addEventListener('click', () => { const n = b.dataset.banco, i = asis.elegidos.indexOf(n);
+      if (i >= 0) asis.elegidos.splice(i, 1); else asis.elegidos.push(n); pintarAsistente(); })); }
+  else if (p.startsWith('det')) { const b = asis.elegidos[+p.slice(3)], d = asis.det[b] || (asis.det[b] = {tipo: 'cuenta'}); tit('¿Qué tienes en ' + b + '?');
+    const op = (v, t) => '<button type="button" class="type-opt' + (d.tipo === v ? ' active' : '') + '" aria-pressed="' + (d.tipo === v) + '" data-tipo="' + v + '">' + t + '</button>';
+    cuerpo.innerHTML = '<div class="asis-bancos">' + op('cuenta', 'cuenta normal') + op('cajita', 'cajita o savings') + op('ambas', 'las dos') + '</div>' +
+      (d.tipo !== 'cajita' ? campo('asis-cuenta', 'saldo de la cuenta hoy', 'ej. 3000', d.cuenta) : '') +
+      (d.tipo !== 'cuenta' ? campo('asis-cajita', 'saldo de la cajita hoy', 'ej. 10000', d.cajita) + campo('asis-tasa', 'tasa anual % que te paga', 'ej. 13', d.tasa) : '');
+    cuerpo.querySelectorAll('[data-tipo]').forEach(x => x.addEventListener('click', () => { asisLeer(); d.tipo = x.dataset.tipo; pintarAsistente(); })); }
+  else if (p === 'fondos') { tit('¿Quieres apartar dinero para algo?');
+    cuerpo.innerHTML = '<p class="item-meta" style="line-height:1.5">Un fondo es dinero que se queda en tu banco pero deja de contar para el día a día: un viaje, emergencias, un coche. Escribe sus nombres separados por comas, o déjalo vacío.</p>' +
+      '<div class="field"><label for="asis-fondos">fondos</label><input type="text" id="asis-fondos" maxlength="120" placeholder="ej. viaje, emergencias" value="' + e(asis.fondos) + '"></div>'; }
+  else { tit('Esto voy a crear'); const l = asisResumen();
+    cuerpo.innerHTML = l.length ? '<div>' + l.map(x => '<div class="item-row"><div class="item-title">' + e(x[0]) + '</div><div class="item-amt-pos">' + e(x[1]) + '</div></div>').join('') + '</div>'
+      : '<div class="item-meta">No elegiste nada nuevo. Puedes cerrar y seguir como estás.</div>'; }
+}
+// guarda lo que hay en pantalla en asis (sin validar: la validacion es al avanzar)
+function asisLeer() {
+  const v = id => { const el = document.getElementById(id); return el ? el.value.trim() : undefined; }, p = asisPasos()[asis.paso];
+  if (p === 'efectivo') asis.efectivo = v('asis-efectivo');
+  if (p === 'bancos') asis.otro = v('asis-otro') || '';
+  if (p && p.startsWith('det')) { const d = asis.det[asis.elegidos[+p.slice(3)]]; ['cuenta', 'cajita', 'tasa'].forEach(k => { const x = v('asis-' + k); if (x !== undefined) d[k] = x; }); }
+  if (p === 'fondos') asis.fondos = v('asis-fondos') || '';
+}
+const asisNum = t => t === '' || t == null ? null : parseFloat(t);
+function asisFondos() { return [...new Set((asis.fondos || '').split(',').map(x => x.trim().slice(0, 30)).filter(Boolean))]; }
+function asisResumen() {
+  const l = [], ef = asisNum(asis.efectivo);
+  if (ef !== null) l.push(['efectivo', fmt(ef)]);
+  asis.elegidos.forEach(b => { const d = asis.det[b] || {};
+    if (d.tipo !== 'cajita') l.push([b, fmt(asisNum(d.cuenta) || 0)]);
+    if (d.tipo !== 'cuenta') l.push([b + ' cajita · ' + asisNum(d.tasa) + '% anual', fmt(asisNum(d.cajita) || 0)]); });
+  asisFondos().forEach(n => l.push(['fondo: ' + n, 'vacío, para apartarle']));
+  return l;
+}
+window.asisMover = async function(dir) {
+  if (!asis) return;
+  asisLeer();
+  const p = asisPasos()[asis.paso];
+  if (dir > 0) {
+    if (p === 'efectivo' && asis.efectivo !== '' && asis.efectivo != null && !(Number.isFinite(asisNum(asis.efectivo)) && asisNum(asis.efectivo) >= 0)) { showToast('escribe el efectivo como número, por ejemplo 500'); return; }
+    if (p === 'bancos' && asis.otro) { const o = asis.otro.slice(0, 24);
+      if (bancosQueYaTienes().has(o.toLowerCase())) { showToast(o + ' ya está en tu cartera'); return; }
+      if (!asis.elegidos.includes(o)) asis.elegidos.push(o); asis.otro = ''; }
+    if (p.startsWith('det')) { const b = asis.elegidos[+p.slice(3)], d = asis.det[b];
+      const ok = x => x === '' || x == null || (Number.isFinite(asisNum(x)) && asisNum(x) >= 0);
+      if (!ok(d.cuenta) || !ok(d.cajita)) { showToast('los saldos van como número, por ejemplo 3000'); return; }
+      if (d.tipo !== 'cuenta' && !(asisNum(d.tasa) > 0 && asisNum(d.tasa) < 100)) { showToast('escribe la tasa anual de la cajita de ' + b + ', por ejemplo 13'); return; } }
+    if (p === 'resumen') return asisCrear();
   }
+  asis.paso = Math.max(0, Math.min(asisPasos().length - 1, asis.paso + dir));
+  pintarAsistente();
+};
+async function asisCrear() {
+  const crear = {}, hoy = hoyLocal(), ahora = new Date().toISOString();
+  const nuevoIdX = () => 'x_' + (Date.now().toString(36) + Math.random().toString(36).slice(2, 8)).slice(0, 14).toLowerCase();
+  asis.elegidos.forEach(b => { const d = asis.det[b] || {};
+    if (d.tipo !== 'cajita') crear[nuevoIdX()] = {nombre: b, moneda: 'MXN', tipo: 'banco', on: true, saldo: c2(asisNum(d.cuenta) || 0), creada: ahora};
+    if (d.tipo !== 'cuenta') crear[nuevoIdX()] = {nombre: (b + ' cajita').slice(0, 24), moneda: 'MXN', tipo: 'cajita', on: true, saldo: c2(asisNum(d.cajita) || 0), creada: ahora,
+      tasa: asisNum(d.tasa), tope: 0, tasaExc: 0, fecha: hoy}; });
+  if (Object.keys(state.cuentasX || {}).length + Object.keys(crear).length > CX_MAX) { showToast('son demasiadas cuentas: máximo ' + CX_MAX); return; }
+  const ef = asisNum(asis.efectivo), plan = {};
+  if (ef !== null) plan.absolutos = {efectivo: c2(ef)};
+  if (Object.keys(crear).length) plan.fx = {crear};
+  const fondos = asisFondos();
+  if (!plan.absolutos && !plan.fx && !fondos.length) { cerrarAsistente(); return; }
+  const btn = document.getElementById('asis-sig');
+  if (plan.absolutos || plan.fx) {
+    if (dineroOcupado) { showToast('espera, hay otra operación en curso'); return; }
+    let res = null, err = null;
+    btn.disabled = true; dineroOcupado = true;
+    try { res = await txDinero(plan); } catch (e) { err = e; }
+    finally { btn.disabled = false; liberarDinero(); }
+    if (err) { console.error('asistente', err); showToast(msgFalloDinero()); return; }
+    if (res.error && res.codigo !== 'ya-existe') { showToast(res.error); return; }
+    if (!res.error) aplicarRes(res);
+  }
+  // los fondos van aparte (su lista vive en cartera/fondo): si alguno ya existe, se salta
+  for (const n of fondos) {
+    const id = 'f_' + (Date.now().toString(36) + Math.random().toString(36).slice(2, 6)).slice(0, 12);
+    await cambiarListaFondos(lista => { if (lista.some(x => !x.cerrado && x.nombre.toLowerCase() === n.toLowerCase())) return 'ya tienes el fondo ' + n;
+      if (lista.filter(x => x.id !== FONDO_U && !x.cerrado).length >= FONDOS_MAX) return 'máximo ' + FONDOS_MAX + ' fondos';
+      lista.push({id, nombre: n, cerrado: false, creado: new Date().toISOString()}); }, 'fondo creado: ' + n);
+  }
+  cerrarAsistente();
+  refrescar(render, renderCuentasX, pintarFuentesX, renderMisCuentas, renderFondo);
+  showToast('listo: tu cartera quedó armada');
+}
+// ── MIS CUENTAS (28-oct-2026) ─────────────────────────────────
+// Todo lo que tiene la persona de un vistazo: cuantos bancos, sus cuentas del dia a dia, las que dan interes,
+// tarjetas, cuentas en otra moneda, fondos y bolsa. Montos sin el fondo (lo tuyo), como inicio. Solo lectura:
+// agregar y cambiar cuentas vive debajo, en cada seccion.
+function renderMisCuentas() {
+  const el = document.getElementById('mis-cuentas'); if (!el) return;
+  const e = escapeHtml;
+  const fila = (nom, sub, monto, cls) => '<div class="item-row"><div style="flex:1;min-width:0"><div class="item-title">' + e(nom) + '</div>' +
+    (sub ? '<div class="item-meta">' + e(sub) + '</div>' : '') + '</div><div class="' + (cls || 'item-amt-pos') + '" style="white-space:nowrap">' + e(monto) + '</div></div>';
+  const bloque = (tit, filas) => filas.length ? '<div class="section-title" style="margin-top:14px">' + e(tit) + ' · ' + filas.length + '</div>' + filas.join('') : '';
+  // las agregadas: encendidas, y apagadas que todavia tengan saldo (como inicio y el total: nunca se esconde dinero)
+  const cxs = Object.entries(state.cuentasX || {}).filter(([, x]) => x.on || cent(saldoX(x)) !== 0)
+    .sort((a, b) => String(a[1].creada).localeCompare(String(b[1].creada)));
+  const apag = x => x.on ? '' : ' · apagada';
+  const montoX = x => { const tc = tcDe(x.moneda), sx = saldoX(x); return x.moneda === 'MXN' ? '' : (tc ? ' · ≈ ' + fmt(c2(sx * tc)) : ' · sin tipo de cambio'); };
+  // bancos: los del registro con saldo o tarjeta, y los nombres de las cuentas agregadas que no son efectivo (sin repetir)
+  const bancos = new Map();
+  REG_CUENTAS.filter(c => c.banco && !c.legada && (c.grupo || c.tarjeta)).forEach(c => bancos.set(c.banco.toLowerCase(), c.banco));
+  cxs.filter(([, x]) => x.tipo !== 'efectivo').forEach(([, x]) => { if (!bancos.has(x.nombre.toLowerCase())) bancos.set(x.nombre.toLowerCase(), x.nombre); });
+  const dia = ctasGrupo('disponible').map(id => fila(CUENTAS[id], (ctaReg(id).banco || 'en mano') + (apartadoDe(id) > 0 ? ' · sin el fondo' : ''), fmt(saldoTuyo(id))))
+    .concat(cxs.filter(([, x]) => x.moneda === 'MXN' && x.tipo !== 'cajita').map(([, x]) => fila(x.nombre, TIPOS_CX[x.tipo] + ' · la agregaste tú' + apag(x), fmtX(saldoX(x), 'MXN'))));
+  const interes = ctasGrupo('ahorro').map(id => fila(CUENTAS[id], descModelo(id) + (apartadoDe(id) > 0 ? ' · sin el fondo' : ''), fmt(saldoTuyo(id))))
+    .concat(cxs.filter(([, x]) => x.tipo === 'cajita').map(([, x]) => fila(x.nombre + (x.moneda === 'MXN' ? '' : ' · ' + x.moneda), descCajitaX(x) + montoX(x) + apag(x), fmtX(saldoX(x), x.moneda))));
+  const tdc = [];
+  if (Number.isFinite(state.tarjetaDeuda)) tdc.push(fila('tarjeta NU', 'deuda actual · corte el 18', fmt(state.tarjetaDeuda), state.tarjetaDeuda > 0.005 ? 'item-amt-neg' : 'item-amt-pos'));
+  if (Number.isFinite(state.revTdcDeposito) || Number.isFinite(state.revTdcDeuda))
+    tdc.push(fila('TDC Revolut', 'deuda actual · límite ' + fmt(state.revTdcDeposito || 0), fmt(state.revTdcDeuda || 0), (state.revTdcDeuda || 0) > 0.005 ? 'item-amt-neg' : 'item-amt-pos'));
+  const otra = cxs.filter(([, x]) => x.moneda !== 'MXN' && x.tipo !== 'cajita')
+    .map(([, x]) => fila(x.nombre + ' · ' + x.moneda, TIPOS_CX[x.tipo] + montoX(x) + apag(x), fmtX(saldoX(x), x.moneda)));
+  // (28-oct-2026) cada fondo con lo suyo (el de la universidad solo si tiene dinero o hay otros)
+  const lf = listaFondos(), fondos = lf.filter(x => x.id !== FONDO_U || totalFondo(FONDO_U) > 0.005 || lf.length > 1).map(x => { const g = generadoFondo(x.id);
+    return fila(x.id === FONDO_U && x.nombre === 'universidad' ? 'fondo de la universidad' : 'fondo: ' + x.nombre, 'apartado dentro de tus cuentas' + (g > 0.005 ? ' · incluye ≈' + fmt(g) + ' de interés estimado' : ''), fmt(totalFondo(x.id) + g)); });
+  const posA = Object.entries(state.posiciones || {}).filter(([, p]) => p.acciones > 0);
+  // en modo privado tampoco se dicen las acciones (como inicio: con acciones y precio publico se reconstruye el monto)
+  const bolsa = posA.length ? [fila('bolsa', modoPrivado ? 'posiciones ocultas' : posA.length + (posA.length === 1 ? ' acción' : ' acciones') + ' · ' + posA.map(([k]) => k).join(', '), 'en inversiones', 'item-meta')] : [];
+  const nB = bancos.size, resumen = [nB + (nB === 1 ? ' banco' : ' bancos') + (nB ? ' (' + [...bancos.values()].join(', ') + ')' : ''),
+    interes.length + (interes.length === 1 ? ' cuenta con interés' : ' cuentas con interés'),
+    tdc.length + (tdc.length === 1 ? ' tarjeta de crédito' : ' tarjetas de crédito')];
+  if (otra.length) resumen.push(otra.length + ' en otra moneda');
+  if (fondos.length) resumen.push(fondos.length + (fondos.length === 1 ? ' fondo' : ' fondos'));
+  el.innerHTML = '<div class="item-meta" style="line-height:1.5">' + e(resumen.join(' · ')) + '</div>' +
+    bloque('para el día a día', dia) + bloque('con interés: cajitas y savings', interes) + bloque('tarjetas de crédito', tdc) +
+    bloque('en otra moneda', otra) + bloque('fondos', fondos) + bloque('inversiones', bolsa) +
+    '<button type="button" class="btn" style="margin-top:14px" onclick="abrirFondoNuevo()">+ crear un fondo (viaje, emergencias…)</button>' +
+    '<button type="button" class="btn btn-purple" style="margin-top:8px" onclick="abrirAsistente()">agregar bancos y fondos con preguntas</button>';
+}
+window.perfilSub=function(cual){
+  // (28-oct-2026) tres subpestañas: tu perfil, mis cuentas y amigos
+  perfilSubActual=['amigos','cuentas'].includes(cual)?cual:'perfil';
+  ['perfil','cuentas','amigos'].forEach(k=>{
+    const d=document.getElementById('perfil-sub-'+k), t=document.getElementById('ptab-'+k);
+    if(d) d.style.display=perfilSubActual===k?'':'none';
+    if(t){ t.classList.toggle('active',perfilSubActual===k); if(perfilSubActual===k) t.setAttribute('aria-current','page'); else t.removeAttribute('aria-current'); }
+  });
+  if(perfilSubActual==='cuentas') renderMisCuentas();
   if(perfilSubActual==='amigos') (amigosVisible()?publicarFicha():Promise.resolve()).then(()=>renderAmigos());
 };
 function aplicarVisibilidadAmigos(){
@@ -7954,7 +8389,8 @@ window.setDashboard = async function(valor) {
 // ── pestaña del FONDO DE LA UNIVERSIDAD ──────────────────────────────────────
 // visible si la encendio en el perfil O si ya hay dinero apartado: un fondo con saldo no se
 // puede esconder, seria dinero que no se ve en ningun lado
-function fondoVisible() { return !!(state.perfil && state.perfil.fondoTab) || fondoTotal() > 0; }
+function fondoVisible() { const nv = document.getElementById('fondo-nuevo');   // (y mientras se crea uno desde mis cuentas)
+  return !!(state.perfil && state.perfil.fondoTab) || fondoTotal() > 0 || listaFondos().length > 1 || !!(nv && !nv.hidden); }
 function aplicarVisibilidadFondo() {
   const on = fondoVisible();
   const tab = document.getElementById('tab-fondo'); if (tab) tab.hidden = !on;
@@ -7989,9 +8425,13 @@ window.fondoTipoCambio = function() {
   if (ay) {
     let txt = FONDO_AYUDA[t] || '';
     if (t === 'rendimiento') {
-      const c = (document.getElementById('fondo-cuenta') || {}).value, sug = rendFondoSugerido(c);
-      txt += sug ? ' En ' + (CUENTAS[c] || c) + ', desde tu último registro del fondo (' + sug.dias + ' días) el fondo generó ≈' + fmt(sug.monto) +
-                   ' (estimado). Revolut abona a diario: basta con registrarlo una vez al mes.'
+      const c = (document.getElementById('fondo-cuenta') || {}).value, sug0 = rendFondoSugerido(c);
+      // (code-reviewer) con varios fondos se sugiere la parte de ESTE fondo; el abono del banco se registra en cada fondo
+      const parteF = apartadoDe(c) > 0 ? apartadoFondo(fondoActual, c) / apartadoDe(c) : 0, varios = listaFondos().length > 1;
+      const sug = sug0 && {...sug0, monto: c2(sug0.monto * (varios ? parteF : 1))};
+      txt += sug ? (sug.sinAncla ? ' En ' + (CUENTAS[c] || c) + ' el fondo todavía no tiene movimientos: no hay desde cuándo estimar.'
+                   : ' En ' + (CUENTAS[c] || c) + ', desde tu último abono registrado (o desde que apartaste ahí), hace ' + sug.dias + ' días, el fondo generó ≈' + fmt(sug.monto) +
+                   ' (estimado)' + (varios ? ', la parte de este fondo: registra el abono en cada fondo con la misma fecha.' : '. Revolut abona a diario: basta con registrarlo una vez al mes, con la fecha del abono.'))
                  : ' Esa cuenta no le genera interés al fondo.';
     }
     ay.textContent = txt;
@@ -8001,15 +8441,10 @@ window.fondoTipoCambio = function() {
 // para no dejar a Roberto sacando la cuenta: el banco le abona uno solo mezclado con el suyo
 function rendFondoSugerido(slot) {
   if (!CAMPO_COMP[slot] || !(apartadoDe(slot) > 0)) return null;
-  const S = getSaldoCuenta(slot);
-  if (S === null) return null;
-  const F = Math.min(apartadoDe(slot), Math.max(0, S)), hoy = hoyLocal(), m = modeloComp(state, CAMPO_COMP[slot]);
-  const gana = x => x > 0 ? calcCompoundAt(x, hoy, parseFechaLocal(hoy).getTime() + 360 * 86400000, m) - x : 0;
-  const diario = (gana(S) - gana(S - F)) / 360;
-  const ult = ((state.fondo && state.fondo.movs) || []).find(x => x.cuenta === slot || x.destino === slot); // el mas nuevo va primero
-  const desde = ult ? msFechaMov(ult.fecha || ult.creado) : null;
-  const dias = desde !== null ? Math.max(0, Math.floor((Date.now() - desde) / 86400000)) : 30;
-  return {dias, monto: c2(diario * dias)};
+  // (28-oct-2026, code-reviewer) dias y monto de la MISMA ancla: el ultimo abono registrado o, si nunca, el primer movimiento
+  const tr = tramosFondo(slot);
+  if (!tr.length) return {dias:0, monto:0, sinAncla:true};
+  return {dias: diaLocal(Date.now()) - tr[tr.length - 1].desde, monto: pendienteFondo(slot)};
 }
 // lo que el fondo AGREGA de interes al mes (ESTIMADO): tu dinero ocupa primero la banda alta
 function rendEstimadoFondoMes() {
@@ -8030,16 +8465,31 @@ function renderFondo() {
     if (sel && !sel.options.length) sel.innerHTML = CTAS_FONDO.map(c => '<option value="' + c + '">' + escapeHtml(CUENTAS[c] || c) + '</option>').join('');
   });
   fondoTipoCambio();
-  const F = fondoTotal(), T = totalesInicio, estMes = rendEstimadoFondoMes();
-  const movs = (state.fondo && state.fondo.movs) || [];
+  // (28-oct-2026) varios fondos: subpestañas y todo lo de abajo es del fondo abierto (fondoActual)
+  const fondos = listaFondos();
+  if (!fondos.some(x => x.id === fondoActual)) fondoActual = FONDO_U;
+  const st = document.getElementById('fondo-subtabs');
+  if (st) st.innerHTML = fondos.map(x => '<button type="button" class="stab' + (x.id === fondoActual ? ' active" aria-current="page' : '') + '" onclick="verFondo(\'' + x.id + '\')">' + escapeHtml(x.nombre) + '</button>').join('') +
+    (fondos.length < FONDOS_MAX + 1 ? '<button type="button" class="stab" onclick="verFondo(\'nuevo\')">+ fondo</button>' : '');
+  const tit = document.getElementById('fondo-titulo'); if (tit) tit.textContent = fondoActual === FONDO_U && nombreFondo(FONDO_U) === 'universidad' ? 'Fondo de la universidad' : 'Fondo: ' + nombreFondo(fondoActual);
+  const adm = document.getElementById('fondo-admin');
+  if (adm) adm.innerHTML = fondoActual === FONDO_U && fondos.length === 1 ? '' :
+    '<span id="fondo-ren" hidden><input type="text" id="fondo-renombrar" maxlength="30" aria-label="nombre nuevo del fondo" style="width:160px"> <button type="button" class="volver-btn" onclick="renombrarFondo(true)">guardar</button> · </span>' +
+    '<button type="button" class="volver-btn" onclick="renombrarFondo()">cambiar nombre</button>' +
+    (fondoActual !== FONDO_U ? ' · <button type="button" class="volver-btn" onclick="cerrarFondo()">cerrar este fondo</button>' : '');
+  if (adm && fondosDescuadrados()) adm.innerHTML += '<div style="color:var(--red);margin-top:6px">ojo: tus fondos suman más que lo apartado. Pasa cuando una versión vieja de la app movió el fondo: actualiza la app en todos tus aparatos.</div>';
+  const FA = fondoActual, F = totalFondo(FA), G = generadoFondo(FA), T = totalesInicio, Ftot = fondoTotal(), Gtot = fondoGenerado();
+  const parte = Ftot > 0 ? F / Ftot : 0, estMes = rendEstimadoFondoMes() * parte;
+  const movs = ((state.fondo && state.fondo.movs) || []).filter(m => fondoDeMov(m) === FA);
   const suma = tipos => movs.filter(m => tipos.includes(m.tipo)).reduce((t, m) => t + m.monto, 0);
   const kpi = (l, n, sub, hero) => '<div class="dkpi' + (hero ? ' hero' : '') + '"><div class="l">' + escapeHtml(l) + '</div>' +
     '<div class="n">' + escapeHtml(n) + '</div>' + (sub ? '<div class="s">' + escapeHtml(sub) + '</div>' : '') + '</div>';
   k.innerHTML =
-    kpi('fondo apartado', fmt(F), F > 0 ? 'dentro de tus cuentas, separado de tu dinero disponible' : 'todavía no hay dinero apartado', true) +
+    // (28-oct-2026) el interes que genero el fondo es del fondo desde el primer dia: se suma como estimado hasta registrar el abono
+    kpi('fondo', fmt(F + G), F > 0 ? (G > 0.005 ? 'apartado ' + fmt(F) + ' + ≈' + fmt(G) + ' de interés generado (estimado hasta que registres el abono)' : 'dentro de tus cuentas, separado de tu dinero disponible') : 'todavía no hay dinero apartado', true) +
     kpi('tu dinero', T.listo ? fmt(T.tuyo) : '—', 'lo tuyo, sin el fondo') +
-    kpi('patrimonio completo', T.listo ? fmt(T.fisico) : '—', 'tu dinero + el fondo') +
-    kpi('neto completo', T.listo ? fmt(T.neto + F) : '—', 'suma lo que te deben y resta tus tarjetas') +
+    kpi('patrimonio completo', T.listo ? fmt(T.fisico) : '—', fondos.length > 1 ? 'tu dinero + todos tus fondos' : 'tu dinero + el fondo') +
+    kpi('neto completo', T.listo ? fmt(T.neto + Ftot + Gtot) : '—', 'suma lo que te deben y resta tus tarjetas') +
     kpi('rinde al mes', estMes > 0.005 ? '≈' + fmt(estMes) : '—', 'estimado: el interés que agrega el fondo' +
       (apartadoDe('mifel') > 0 && state.mifelVigencia ? ' · supone que Mifel sigue al ' + state.mifelTasa + '% después del ' + state.mifelVigencia : '')) +
     kpi('ha entrado', fmt(suma(['entrada', 'apartar', 'rendimiento'])), 'entradas, apartados y rendimientos') +
@@ -8047,17 +8497,18 @@ function renderFondo() {
   const cu = document.getElementById('fondo-cuentas');
   if (cu) {
     // (21-oct-2026, Roberto) una tarjetita por cuenta: lo del fondo, lo que hay en el banco y lo tuyo
-    const filas = CTAS_FONDO.filter(c => apartadoDe(c) > 0).map(c => {
+    const filas = CTAS_FONDO.filter(c => apartadoFondo(FA, c) > 0).map(c => {
       const saldo = getSaldoCuenta(c), falta = apartadoDe(c) - saldo;
       return '<div class="dkpi"><div class="l">' + escapeHtml(CUENTAS[c] || c) + '</div>' +
-        '<div class="n">' + fmt(apartadoDe(c)) + '</div><div class="s"' + (falta > 0.005 ? ' style="color:var(--red)"' : '') + '>' +
+        '<div class="n">' + fmt(apartadoFondo(FA, c) + generadoFondoEn(FA, c)) + '</div><div class="s"' + (falta > 0.005 ? ' style="color:var(--red)"' : '') + '>' +
         (falta > 0.005 ? 'ojo: en el banco hay ' + fmt(saldo) + ', menos que lo apartado'
-                       : 'del fondo · en el banco hay ' + fmt(saldo) + ' · tuyo ' + fmt(Math.max(0, saldo - apartadoDe(c))) + (CAMPO_COMP[c] ? '' : ' · esta cuenta no genera interés')) +
+                       : 'del fondo · en el banco hay ' + fmt(saldo) + ' · tuyo ' + fmt(Math.max(0, saldo - fondoEnCuenta(c))) +
+                         (CAMPO_COMP[c] ? (generadoFondoEn(FA, c) > 0.005 ? ' · el fondo generó ≈+' + fmt(generadoFondoEn(FA, c)) + ' sin registrar (estimado)' : '') : ' · esta cuenta no genera interés')) +
         '</div></div>';
     }).join('');
     cu.innerHTML = (filas ? '<div class="dkpis">' + filas + '</div>' : '<div class="empty-state">sin dinero apartado todavía</div>') +
       '<div class="item-meta" style="margin-top:8px;line-height:1.5">El interés que el banco le paga al fondo <b>no se aparta solo</b>: ' +
-      'cuando veas el abono en tu banco, regístralo como "el banco abonó rendimiento del fondo". Mientras no lo registres, ese interés cuenta como tuyo.' +
+      'cuando veas el abono en tu banco, regístralo como "el banco abonó rendimiento del fondo". Mientras no lo registres, la app ya lo cuenta como del fondo con un estimado (no como tuyo); al registrarlo queda exacto.' +
       (estMes > 0.005 ? ' Estimado: ≈' + fmt(estMes) + ' al mes, contando que tu dinero ocupa primero la banda de mayor tasa.' : '') + '</div>';
   }
   const mv = document.getElementById('fondo-movs');
@@ -8074,6 +8525,70 @@ function renderFondo() {
       : '<div class="empty-state">sin movimientos todavía</div>';
   }
 }
+// desde mis cuentas: la pestaña puede estar apagada (sin dinero apartado); se muestra para crear el fondo
+window.abrirFondoNuevo = function() { const t = document.getElementById('tab-fondo'); if (t) t.hidden = false; showPage('fondo'); verFondo('nuevo'); };
+window.verFondo = function(fid) {
+  const nuevo = document.getElementById('fondo-nuevo');
+  if (fid === 'nuevo') { if (nuevo) { nuevo.hidden = false; const i = document.getElementById('fondo-nuevo-nombre'); if (i) i.focus(); } return; }
+  if (nuevo) nuevo.hidden = true;
+  fondoActual = esIdFondo(fid) ? fid : FONDO_U;
+  refrescar(renderFondo, fondoTipoCambio);
+};
+// la lista de fondos se escribe sola (mergeFields): no toca saldosPorCuenta ni movs. Se lee del SERVIDOR dentro de la
+// transaccion para no pisar un fondo que otro aparato acaba de crear
+async function cambiarListaFondos(cambio, ok) {
+  if (dineroOcupado) { showToast('espera, hay otra operación en curso'); return false; }
+  dineroOcupado = true;
+  let res = null;
+  try {
+    res = await runTransaction(db, async tx => {
+      const ref = doc(db, 'cartera', 'fondo'), sn = await tx.get(ref);
+      const fd = saneaFondo(sn.exists() ? sn.data() : null), lista = (fd.fondos || []).map(x => ({...x}));
+      const err = cambio(lista, fd); if (err) return {error: err};
+      tx.set(ref, {fondos: lista}, {mergeFields: ['fondos']});
+      return {lista};
+    });
+  } catch (e) { console.error('fondos', e); res = {error: msgFalloDinero()}; }
+  finally { liberarDinero(); }
+  if (res.error) { showToast(res.error); return false; }
+  state.fondo = {...(state.fondo || {}), fondos: res.lista};
+  refrescar(render, renderFondo, aplicarVisibilidadFondo);
+  showToast(ok); return true;
+}
+window.crearFondo = async function() {
+  const el = document.getElementById('fondo-nuevo-nombre'), nombre = (el && el.value || '').trim().slice(0, 30);
+  if (!nombre) { showToast('ponle nombre al fondo, por ejemplo "viaje"'); return; }
+  const id = 'f_' + (Date.now().toString(36) + Math.random().toString(36).slice(2, 6)).slice(0, 12);
+  const ok = await cambiarListaFondos(lista => {
+    if (lista.filter(x => x.id !== FONDO_U && !x.cerrado).length >= FONDOS_MAX) return 'máximo ' + FONDOS_MAX + ' fondos abiertos';
+    if (lista.some(x => !x.cerrado && x.nombre.toLowerCase() === nombre.toLowerCase()) || nombre.toLowerCase() === nombreFondo(FONDO_U).toLowerCase()) return 'ya tienes un fondo con ese nombre';
+    lista.push({id, nombre, cerrado:false, creado:new Date().toISOString()});
+  }, 'fondo creado: ' + nombre);
+  if (ok) { if (el) el.value = ''; fondoActual = id; const n = document.getElementById('fondo-nuevo'); if (n) n.hidden = true; refrescar(renderFondo, fondoTipoCambio); }
+};
+window.renombrarFondo = async function(guardar) {
+  const fid = fondoActual, actual = nombreFondo(fid), caja = document.getElementById('fondo-ren'), el = document.getElementById('fondo-renombrar');
+  if (!guardar) { if (caja) caja.hidden = false; if (el) { el.value = actual; el.focus(); } return; }
+  const nombre = (el && el.value || '').trim().slice(0, 30);
+  if (!nombre) { showToast('escribe el nombre nuevo'); return; }
+  if (listaFondos().some(x => x.id !== fid && x.nombre.toLowerCase() === nombre.toLowerCase())) { showToast('ya tienes un fondo con ese nombre'); return; }
+  const ok = await cambiarListaFondos(lista => {
+    if (lista.some(y => y.id !== fid && !y.cerrado && y.nombre.toLowerCase() === nombre.toLowerCase())) return 'ya tienes un fondo con ese nombre';
+    const x = lista.find(y => y.id === fid);
+    if (x) x.nombre = nombre; else lista.push({id:fid, nombre, cerrado:false, creado:new Date().toISOString()});
+  }, 'nombre del fondo: ' + nombre);
+  if (ok && caja) caja.hidden = true;
+};
+window.cerrarFondo = async function() {
+  const fid = fondoActual; if (fid === FONDO_U) return;
+  if (totalFondo(fid) > 0.005) { showToast('para cerrarlo, primero libera o traspasa lo que tiene (' + fmt(totalFondo(fid)) + ')'); return; }
+  if (!(await confirmarDeslizando({titulo:'cerrar ' + nombreFondo(fid), texto:'Deja de aparecer; su historia se conserva.', verbo:'cerrar'}))) return;
+  const ok = await cambiarListaFondos((lista, fd) => {
+    if (CTAS_FONDO.some(c => apartadoFondoEn(fd, fid, c) > 0.005)) return 'ese fondo todavía tiene dinero';
+    const x = lista.find(y => y.id === fid); if (x) x.cerrado = true; else lista.push({id:fid, nombre:nombreFondo(fid), cerrado:true, creado:''});
+  }, 'fondo cerrado');
+  if (ok) { fondoActual = FONDO_U; refrescar(renderFondo); }
+};
 window.registrarFondo = async function() {
   const tipo = document.getElementById('fondo-tipo').value;
   const cuenta = document.getElementById('fondo-cuenta').value;
@@ -8084,14 +8599,15 @@ window.registrarFondo = async function() {
   if (!Number.isFinite(monto) || monto <= 0) { showToast('ingresa un monto válido'); return; }
   if (tipo === 'traspaso' && (!CTAS_FONDO.includes(destino) || destino === cuenta)) { showToast('elige una cuenta destino distinta'); return; }
   // avisos tempranos con lo que hay en pantalla; txDinero revalida TODO contra la nube
-  const ap = apartadoDe(cuenta), saldo = getSaldoCuenta(cuenta);
-  if (['salida', 'traspaso', 'liberar'].includes(tipo) && cent(monto) > cent(ap)) { showToast('en ' + CUENTAS[cuenta] + ' el fondo solo tiene ' + fmt(ap)); return; }
+  // (28-oct-2026) sacar solo de lo que tiene ESTE fondo; apartar se mide contra todo lo apartado en la cuenta
+  const ap = apartadoDe(cuenta), apF = apartadoFondo(fondoActual, cuenta), saldo = getSaldoCuenta(cuenta);
+  if (['salida', 'traspaso', 'liberar'].includes(tipo) && cent(monto) > cent(apF)) { showToast('en ' + CUENTAS[cuenta] + ' este fondo solo tiene ' + fmt(apF)); return; }
   if (['salida', 'traspaso'].includes(tipo) && cent(monto) > cent(saldo)) { showToast('saldo insuficiente en ' + CUENTAS[cuenta]); return; }
   if (['apartar', 'rendimiento'].includes(tipo) && cent(ap + monto) > cent(saldo)) { showToast('en ' + CUENTAS[cuenta] + ' solo hay ' + fmt(Math.max(0, saldo - ap)) + ' sin apartar'); return; }
   if (dineroOcupado) { showToast('espera, hay otra operación en curso'); return; }
   const fecha = fechaMovOpcional('fondo-fecha'); if (fecha === null) return;
   const m = c2(monto), ahora = new Date().toISOString();
-  const mov = {id: nuevoId(), tipo, cuenta, monto: m, nota, fecha, creado: ahora};
+  const mov = {id: nuevoId(), tipo, cuenta, monto: m, nota, fecha, creado: ahora, ...(fondoActual !== FONDO_U ? {fondo: fondoActual} : {})};
   const plan = {fondo: {mov, delta: {}}};
   if (tipo === 'entrada') { plan.deltas = {[cuenta]: m}; plan.fondo.delta[cuenta] = m; }
   else if (tipo === 'salida') { plan.deltas = {[cuenta]: -m}; plan.fondo.delta[cuenta] = -m; }
@@ -8226,7 +8742,7 @@ window.editarPerfil = async function() {
 function valorMeta(cuenta, ctx) {
   if(cuenta==='stocks') return ctx.stocks;
   if(cuenta==='patrimonio') return ctx.patrimonio;
-  return getSaldoCuenta(cuenta)-apartadoDe(cuenta); // lo apartado del fondo no cuenta para tus metas
+  return saldoTuyo(cuenta); // lo apartado del fondo (y lo que genero) no cuenta para tus metas
 }
 function metaBloqueada(cuenta, ctx) { return cuenta==='stocks' && ctx.stocksPendiente; }
 function renderMetas(ctx) {
@@ -9310,7 +9826,7 @@ function calcularCierre(start,end,modo) {
     posA.forEach(([k,p])=>{ const mk=state.accionesMkt[k]; if(mk&&Number.isFinite(mk.precio)&&stCompleto) stVal+=p.acciones*mk.precio*state.usdMxn; else stCompleto=false; });
     // patrimonio con la MISMA formula del total de inicio ('total' no existe en este
     // scope: referirlo aqui tronaba calcularCierre y dejaba el coach en "calculando...")
-    const patTot=patrimonioFisico(stVal)-fondoTotal();
+    const patTot=patrimonioFisico(stVal)-fondoTotal()-fondoGenerado();
     const ctxM={stocks:stVal, stocksPendiente:posA.length>0&&!stCompleto, patrimonio:patTot};
     // una entrada por meta: el coach las recorre en vez de hablar de dos cuentas fijas
     const lista=(MT.items||[]).map(m=>({
@@ -9376,8 +9892,8 @@ function calcScore(m) {
   const gastoRef=promedioGastoMensual();
   if(gastoRef>0){
     // (20-oct-2026) + las cuentas en otra moneda (en pesos); una en rojo no resta
-    const liquido=[...ctasGrupo('disponible'),...ctasGrupo('ahorro')].reduce((s,c)=>s+Math.max(0,disponibleCuenta(c)),0)
-      +Object.values(state.cuentasX||{}).reduce((s,x)=>{ const tc=tcDe(x.moneda); return s+(tc?Math.max(0,x.saldo*tc):0); },0);
+    const liquido=[...ctasGrupo('disponible'),...ctasGrupo('ahorro')].reduce((s,c)=>s+Math.max(0,saldoTuyo(c)),0)
+      +Object.values(state.cuentasX||{}).reduce((s,x)=>{ const tc=tcDe(x.moneda); return s+(tc?Math.max(0,saldoX(x)*tc):0); },0);
     const meses=liquido/gastoRef;
     comps.push({nombre:'colchón de emergencia',max:10,puntos:Math.round(10*Math.min(1,meses/est.emergenciaMeses)),
       detalle:'tu dinero disponible cubre '+meses.toFixed(1)+' mes(es) de gasto · la referencia para ti es '+est.emergenciaMeses});
@@ -9726,7 +10242,7 @@ function utilidadPeriodo(start,end) {
   // que mover dinero ya no borra la historia. Solo es parcial si la historia de una cuenta
   // empieza dentro del periodo (antes de eso no hay tramos ni semilla)
   const intBruto=(dias>0)?CTAS_AHORRO.reduce((s,k)=>s+interesEnRango(k,start.getTime(),endC.getTime()),0):0;
-  const intereses=intBruto-rendFondoEnRango(start,endC); // lo conciliado al fondo no es tuyo
+  const intereses=intBruto-rendFondoEnRango(start,endC)-pendienteFondoEnRango(start,endC); // lo del fondo (conciliado y estimado) no es tuyo
   const dentro=h=>!!h&&parseFechaLocal(h).getTime()>start.getTime()&&parseFechaLocal(h).getTime()<endC.getTime();
   const hDentro=CTAS_AHORRO.map(k=>inicioHistoria(k)).find(dentro);
   // cobertura: si una cuenta tiene historia pero ningun tramo cubre el arranque del periodo, esos
@@ -9859,7 +10375,7 @@ function renderRendimientos(start, end, balance) {
   const sinDatosMF=!h3||endC.getTime()<=parseFechaLocal(h3).getTime();
   const rendMF=(!sinDatosMF&&dias>0)?interesEnRango('mifel',start.getTime(),endC.getTime()):0;
   const parcialMF=!sinDatosMF&&start.getTime()<parseFechaLocal(h3).getTime();
-  const rendFondo=rendFondoEnRango(start,endC);
+  const rendFondo=rendFondoEnRango(start,endC)+pendienteFondoEnRango(start,endC); // (28-oct) + lo estimado sin registrar
   const rendTotal=rend1+rendRS+rendMF-rendFondo;
   const real=balance+rendTotal;
   const sgn=(v,cls)=>`<span class="${v>=0?'item-amt-pos':'item-amt-neg'}"${cls?' style="font-size:15px"':''}>${v>=0?'+':'−'}${fmt(Math.abs(v))}</span>`;

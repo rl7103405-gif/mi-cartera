@@ -14,9 +14,12 @@ if (!expr.includes('cuentasX')) { console.log('esta copia no tiene cuentas en ot
 let ok = 0, mal = 0;
 const chk = (n, c, d) => { if (c) { ok++; console.log('  PASA  ' + n); } else { mal++; console.log('  FALLA ' + n + '  -> ' + d); } };
 function liquido(saldos, cuentasX, tcs) {
-  return new Function('ctasGrupo', 'disponibleCuenta', 'state', 'tcDe', expr + '\nreturn liquido;')(
+  // (28-oct-2026) lo liquido de cada cuenta es saldoTuyo (sin el fondo ni su interes); antes disponibleCuenta
+  return new Function('ctasGrupo', 'disponibleCuenta', 'saldoTuyo', 'saldoX', 'state', 'tcDe', expr + '\nreturn liquido;')(
     g => ({ disponible: ['efectivo', 'nu'], ahorro: ['cajita1'] })[g] || [],
     c => saldos[c] || 0,
+    c => saldos[c] || 0,
+    x => x.saldo,
     { cuentasX },
     m => tcs[m] || null);
 }
