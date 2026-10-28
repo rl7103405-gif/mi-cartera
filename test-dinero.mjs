@@ -940,11 +940,11 @@ if (HTML.includes('const docCX')) {
     chk('Y2 una cajita guarda su tasa y su fecha base', r.ok && sx('x_caj001').tipo === 'cajita' && sx('x_caj001').tasa === 10 && sx('x_caj001').fecha === '2026-07-28', JSON.stringify(sx('x_caj001')));
     r = await txDinero({ fx: { crear: { x_caj002: { nombre: 'Mala', moneda: 'MXN', tipo: 'cajita', on: true, saldo: 1, creada: '2026-10-28', tasa: 500, fecha: 'ayer' } } } });
     chk('Y2 una tasa absurda o una fecha mal escrita no se guardan tal cual (tasa 0, sin fecha)', r.ok && sx('x_caj002').tasa === 0 && sx('x_caj002').fecha === '', JSON.stringify(sx('x_caj002')));
-    const conInteres = Math.round(calcCompoundAt(1000, '2026-07-28', Date.now(), modX(10)) * 100) / 100;
+    const conInteres = Math.round(calcEsp(1000, '2026-07-28', Date.now(), modX(10)) * 100) / 100;
     r = await txDinero({ fx: { deltas: { x_caj001: 100 } } });
     chk('Y3 meterle $100: parte del saldo CON su interes y se reancla a hoy', r.ok && Math.abs(sx('x_caj001').saldo - (conInteres + 100)) < 0.011 && sx('x_caj001').fecha === hoyLocal(),
       JSON.stringify(sx('x_caj001')) + ' esperado ' + (conInteres + 100));
-    const antesTasa = sx('x_caj001').saldo, conInteres2 = Math.round(calcCompoundAt(antesTasa, hoyLocal(), Date.now(), modX(10)) * 100) / 100;
+    const antesTasa = sx('x_caj001').saldo, conInteres2 = Math.round(calcEsp(antesTasa, hoyLocal(), Date.now(), modX(10)) * 100) / 100;
     r = await txDinero({ fx: { editar: { x_caj001: { tasa: 12 } } } });
     chk('Y4 cambiar la tasa cristaliza lo ganado con la vieja y deja la nueva', r.ok && sx('x_caj001').tasa === 12 && Math.abs(sx('x_caj001').saldo - conInteres2) < 0.011 && sx('x_caj001').fecha === hoyLocal(),
       JSON.stringify(sx('x_caj001')) + ' esperado ' + conInteres2);
@@ -953,7 +953,7 @@ if (HTML.includes('const docCX')) {
     r = await txDinero({ fx: { editar: { x_mxn001: { tasa: 5 } } } });
     chk('Y4 una cuenta que no es cajita no lleva tasa', !!r.error && sx('x_mxn001').tasa === undefined);
     // la cajita entra con su saldo de HOY (con interes desde su fecha base)
-    const T2 = PFX + 'transferencias/txx1', cajAntes = Math.round(calcCompoundAt(sx('x_caj001').saldo, sx('x_caj001').fecha, Date.now(), modX(12)) * 100) / 100;
+    const T2 = PFX + 'transferencias/txx1', cajAntes = Math.round(calcEsp(sx('x_caj001').saldo, sx('x_caj001').fecha, Date.now(), modX(12)) * 100) / 100;
     r = await txDinero({ crear: [{ ref: { path: T2 }, data: { origen: 'x_mxn001', destino: 'x_caj001', monto: 2000, montoOrigen: 2000, monedaOrigen: 'MXN', montoDestino: 2000, monedaDestino: 'MXN', tc: 1, fecha: '2026-10-28T10:00:00Z' } }],
       requerirAusentes: [{ path: T2 }], fx: { deltas: { x_mxn001: -2000, x_caj001: 2000 } } });
     chk('Y5 pasar $2,000 de tu banco agregado a tu cajita: sale de uno y entra al otro', r.ok && sx('x_mxn001').saldo === 3000 && Math.abs(sx('x_caj001').saldo - (cajAntes + 2000)) < 0.011 && ef() === 1000, JSON.stringify(SERVIDOR[CX].cuentas));

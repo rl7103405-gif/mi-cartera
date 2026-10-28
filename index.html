@@ -943,6 +943,7 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
     <button type="button" class="btn" style="margin-top:0" onclick="editarPerfil()">editar mis datos</button>
     <button type="button" class="btn" style="margin-top:0" onclick="cambiarFoto()">cambiar foto</button>
   </div>
+  <div style="margin:-8px 0 12px;text-align:right"><button type="button" class="volver-btn" id="quitar-foto-btn" hidden onclick="quitarFoto()">quitar foto</button></div>
   <!-- subpestañas: "tu perfil" (lo de siempre) y "amigos" (la competencia de la familia) -->
   <div class="subtabs" id="perfil-subtabs">
     <button type="button" class="stab active" id="ptab-perfil" onclick="perfilSub('perfil')" aria-current="page">tu perfil</button>
@@ -977,9 +978,9 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
   <div class="sec">
     <div class="section-title">tu referencia personal</div>
     <div class="panel">
-      <div class="item-meta" id="perfil-resumen">—</div>
-      <div class="item-meta" style="margin-top:8px" id="perfil-fuente">—</div>
-      <button type="button" class="btn btn-red" style="margin-top:12px" onclick="quitarFoto()">quitar foto de perfil</button>
+      <!-- (28-oct-2026, Roberto: "mas ordenado") un renglon por dato; quitar foto se fue junto a la foto -->
+      <div id="perfil-resumen"><div class="item-meta">—</div></div>
+      <div class="item-meta" style="margin-top:10px;line-height:1.45" id="perfil-fuente">—</div>
     </div>
     <div class="section-title mt">tus datos y tu privacidad</div>
     <div class="panel">
@@ -8067,10 +8068,16 @@ function renderPerfil() {
   const p=state.perfil||{}, est=estandarDe(p);
   const edad=p.anoNac?(new Date().getFullYear()-p.anoNac):null;
   const viv={familia:'vives con familia (sin renta)',renta:'pagas renta',propia:'casa propia'}[p.vivienda]||'situación de vivienda sin capturar';
-  if(el) el.textContent=(edad?(edad+' años · '):'')+viv+(p.dependientes?(' · '+p.dependientes+' dependiente(s)'):'')
-    +(p.ingresoBase?(' · ingreso base '+fmt(p.ingresoBase)):'')
-    +' → tu referencia: ahorrar '+est.ahorroObj+'% y no pasar de '+est.gastoMax+'% en gastos';
+  if(el){
+    const fila=(t,v)=>'<div class="item-row"><div class="item-meta" style="font-size:13px">'+escapeHtml(t)+'</div><div style="font-weight:600;text-align:right">'+escapeHtml(v)+'</div></div>';
+    el.innerHTML=fila('tu situación',[edad?edad+' años':null,viv,p.dependientes?p.dependientes+' dependiente(s)':null].filter(Boolean).join(' · '))
+      +(p.ingresoBase?fila('ingreso base al mes',fmt(p.ingresoBase)):'')
+      +fila('ahorrar cada mes','al menos '+est.ahorroObj+'% (mínimo '+est.ahorroMin+'%)')
+      +fila('gastar','hasta '+est.gastoMax+'% de lo que entra')
+      +fila('colchón de emergencia',est.emergenciaMeses+' meses de gasto');
+  }
   const fu=document.getElementById('perfil-fuente'); if(fu) fu.textContent='de dónde sale: '+est.fuente;
+  const qf=document.getElementById('quitar-foto-btn'); if(qf) qf.hidden=!p.foto;
   // encabezado: avatar (foto o inicial), nombre y subtitulo
   const nom=(p.nombre||'').trim();
   const nEl=document.getElementById('perfil-nombre'); if(nEl) nEl.textContent=nom||'tu perfil';
@@ -9927,7 +9934,9 @@ function calcularCierre(start,end,modo) {
 // Mide SOLO lo que la app observa con fiabilidad: aportaciones registradas / ingresos,
 // control de gasto, constancia y colchon. Los componentes sin datos se excluyen y se
 // renormaliza, informando cuales quedaron fuera.
-const SCORE_VER='1.0';
+// 1.1 (28-oct-2026, Roberto): constancia completa con 3 meses seguidos (antes 6). Las calificaciones de amigos solo se
+// comparan entre la MISMA version: por eso cambia en las cinco carteras a la vez
+const SCORE_VER='1.1';
 // por que un mes NO cuenta como bueno, en una frase — para que 0/20 diga que arreglar
 function porQueNoConto(m) {
   if(m.gPct===null) return 'no hay ingresos registrados';
@@ -9957,9 +9966,9 @@ function calcScore(m) {
       detalle:'gastaste el '+m.gPct.toFixed(0)+'% de tus ingresos · tu referencia es no pasar de '+est.gastoMax+'%'});
   } else excluidos.push('control de gasto (sin ingresos registrados)');
   // 3) constancia (20): meses buenos seguidos, tope a 6 para no premiar eternamente lo mismo
-  comps.push({nombre:'constancia',max:20,puntos:Math.round(20*Math.min(1,m.racha/6)),
+  comps.push({nombre:'constancia',max:20,puntos:Math.round(20*Math.min(1,m.racha/3)),
     // (28-oct-2026) se dice cuanto falta: los 20 puntos son con 6 meses seguidos (con 3 meses = 10, que no es un error)
-    detalle:(m.racha>=1?('llevas '+(m.racha>=24?'24 o más':m.racha)+' mes(es) seguidos cerrando bien'+(m.racha<6?' · los 20 puntos son con 6 meses: te faltan '+(6-m.racha):'')):('este mes no contó: '+porQueNoConto(m)))
+    detalle:(m.racha>=1?('llevas '+(m.racha>=24?'24 o más':m.racha)+' mes(es) seguidos cerrando bien'+(m.racha<3?' · los 20 puntos son con 3 meses: te faltan '+(3-m.racha):'')):('este mes no contó: '+porQueNoConto(m)))
       +' · se recalcula con tu referencia actual, así que cambia si editas tu perfil'});
   // 4) colchon (10): meses de gasto cubiertos por dinero DISPONIBLE (sin bolsa, sin el
   // deposito congelado de la TDC, sin lo que te deben) contra el objetivo del estandar
