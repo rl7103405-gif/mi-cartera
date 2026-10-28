@@ -319,6 +319,9 @@ html[data-tema='grafito'] .tabs{--sombra-scroll:rgba(255,255,255,.16)}
 .asis-dlg{max-width:440px}
 #cx-perfil-lista input{font:inherit;font-size:14px;padding:10px 12px;border:1px solid var(--border2);border-radius:var(--rs);background:var(--bg3);color:var(--text);min-height:44px;box-sizing:border-box}
 .mc-banco{border:1px solid var(--border2);border-radius:var(--rs);padding:4px 12px 6px;margin-bottom:10px}
+/* (28-oct-2026) mis cuentas: todos los cuadritos iguales, en cuadricula en escritorio */
+.mc-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,380px),1fr));gap:0 12px;align-items:start}
+.mc-tipo{font-size:11px;color:var(--muted);margin-top:1px}
 .asis-bancos{display:flex;flex-wrap:wrap;gap:8px}.asis-bancos .type-opt{flex:0 0 auto;min-height:44px;padding:10px 14px}
 .desliza-dlg:not([open]){display:none}
 .desliza-caja{padding:18px;max-height:calc(100dvh - 40px);overflow:auto}
@@ -1008,7 +1011,7 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
   </div>
   <!-- (28-oct-2026) mis cuentas: todo lo que tienes de un vistazo (bancos, cajitas, tarjetas, otra moneda, fondos) y donde se agregan -->
   <div id="perfil-sub-cuentas" style="display:none">
-    <div class="section-title">tus bancos</div>
+    <div class="section-title">dónde está tu dinero</div>
     <div class="panel" id="mis-cuentas"><div class="empty-state">calculando...</div></div>
     <!-- (20-oct-2026) cuentas en otra moneda, como en Revolut: las agrega la persona sola -->
     <!-- (28-oct-2026) ya no solo otra moneda: tambien bancos, efectivo y cajitas en pesos -->
@@ -1104,7 +1107,7 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
   </div>
   <div class="sec">
     <!-- (28-oct-2026) los apartados ahora son fondos: separan el dinero de verdad. Aqui solo se ve el avance -->
-    <div class="section-title">mis fondos</div>
+    <div class="section-title">metas de tus fondos</div>
     <div class="panel" id="apartados-panel"><div class="empty-state">cargando...</div></div>
   </div>
   </div>
@@ -8309,7 +8312,7 @@ function renderMisCuentas() {
   // (28-oct-2026) una tarjeta por banco con lo que tienes ahi; el efectivo, los fondos y la bolsa aparte
   const bancos = new Map();   // clave en minusculas -> {nombre, filas:[{prod, sub, monto, neg}], total}
   const meter = (banco, fila) => { const k = banco.toLowerCase(); if (!bancos.has(k)) bancos.set(k, {nombre: banco, filas: [], total: 0});
-    const b = bancos.get(k); b.filas.push(fila); if (!fila.neg && Number.isFinite(fila.valor)) b.total += fila.valor; };
+    const b = bancos.get(k); b.filas.push(fila); if (!fila.neg && Number.isFinite(fila.valor)) b.total += fila.valor; else if (!fila.neg) b.pend = true; };
   REG_CUENTAS.filter(c => c.banco && !c.legada && c.grupo).forEach(c => { const v = saldoTuyo(c.id);
     meter(c.banco, {prod: c.prod || c.nombre, sub: (c.comp ? descModelo(c.id) : '') + (apartadoDe(c.id) > 0 ? (c.comp ? ' · ' : '') + 'sin el fondo' : ''), monto: fmt(v), valor: v}); });
   // tarjetas: lo que debes (no suma al banco) y, en Revolut, el deposito de garantia (si es tuyo)
@@ -8328,21 +8331,26 @@ function renderMisCuentas() {
       monto: fmtX(sx, x.moneda), valor: pesos === null ? NaN : pesos};
     if (x.tipo === 'efectivo') efX.push({...fila, prod: x.nombre + (x.moneda === 'MXN' ? '' : ' · ' + x.moneda)});
     else meter(x.tipo === 'cajita' ? x.nombre.replace(/ cajita$/i, '') : x.nombre, fila); });
-  const tarjeta = b => '<div class="mc-banco"><div class="item-row" style="border-bottom:0;padding-bottom:2px"><div class="item-title" style="font-weight:600">' + e(b.nombre) + '</div>' +
-    '<div class="item-amt-pos" style="white-space:nowrap">' + e(fmt(b.total)) + '</div></div>' +
-    b.filas.map(x => '<div class="item-row" style="padding-left:12px"><div style="flex:1;min-width:0"><div>' + e(x.prod) + '</div>' + (x.sub ? '<div class="item-meta">' + e(x.sub) + '</div>' : '') + '</div>' +
-      '<div class="' + (x.neg ? (/[1-9]/.test(x.monto) ? 'item-amt-neg' : 'item-meta') : 'item-amt-pos') + '" style="white-space:nowrap">' + e(x.neg ? (/[1-9]/.test(x.monto) ? '−' + x.monto : x.monto) : x.monto) + '</div></div>').join('') + '</div>';
+  // (28-oct-2026, Beto: "no se distingue qué es cada cosa") TODO va en un cuadrito igual: nombre, qué es y su total
+  const caja = (tit, tipo, filas, total) => '<div class="mc-banco"><div class="item-row" style="border-bottom:0;padding-bottom:2px"><div style="min-width:0">' +
+    '<div class="item-title" style="font-weight:600">' + e(tit) + '</div><div class="mc-tipo">' + e(tipo) + '</div></div>' +
+    (total ? '<div class="item-amt-pos" style="white-space:nowrap;font-weight:600">' + e(total) + '</div>' : '') + '</div>' +
+    filas.map(x => '<div class="item-row" style="padding-left:12px"><div style="flex:1;min-width:0"><div>' + e(x.prod) + '</div>' + (x.sub ? '<div class="item-meta">' + e(x.sub) + '</div>' : '') + '</div>' +
+      '<div class="' + (x.neg ? (/[1-9]/.test(x.monto) ? 'item-amt-neg' : 'item-meta') : x.otro ? 'item-meta' : 'item-amt-pos') + '" style="white-space:nowrap">' + e(x.neg ? (/[1-9]/.test(x.monto) ? '−' + x.monto : x.monto) : x.monto) + '</div></div>').join('') + '</div>';
   const ef = saldoTuyo('efectivo');
-  const efectivo = [{prod: 'en mano', monto: fmt(ef)}].concat(efX);
-  const lf = listaFondos(), fondos = lf.filter(x => x.id !== FONDO_U || totalFondo(FONDO_U) > 0.005 || lf.length > 1).map(x => { const g = generadoFondo(x.id);
-    return {prod: x.id === FONDO_U && x.nombre === 'universidad' ? 'universidad' : x.nombre, sub: g > 0.005 ? 'incluye ≈' + fmt(g) + ' de interés estimado' : '', monto: fmt(totalFondo(x.id) + g)}; });
+  const efectivo = [{prod: 'en mano', monto: fmt(ef), valor: ef}].concat(efX);
+  const efTot = efectivo.reduce((t, x) => t + (Number.isFinite(x.valor) ? x.valor : 0), 0), efPend = efectivo.some(x => !Number.isFinite(x.valor));
+  // (code-reviewer) una cuenta en otra moneda sin tipo de cambio no suma: el cuadrito lo dice en vez de mostrar un total "completo"
+  const PEND = ' · el total no incluye una cuenta sin tipo de cambio';
+  const lf = listaFondos(), fondos = lf.filter(x => x.id !== FONDO_U || totalFondo(FONDO_U) > 0.005 || lf.length > 1).map(x => { const g = generadoFondo(x.id), v = totalFondo(x.id) + g;
+    return {prod: x.nombre, sub: g > 0.005 ? 'incluye ≈' + fmt(g) + ' de interés estimado' : '', monto: fmt(v), valor: v}; });
   const posA = Object.entries(state.posiciones || {}).filter(([, p]) => p.acciones > 0);
-  const bloque = (tit, filas) => filas.length ? '<div class="section-title" style="margin-top:16px">' + e(tit) + '</div>' + filas.map(x =>
-    '<div class="item-row"><div style="flex:1;min-width:0"><div>' + e(x.prod) + '</div>' + (x.sub ? '<div class="item-meta">' + e(x.sub) + '</div>' : '') + '</div><div class="item-amt-pos" style="white-space:nowrap">' + e(x.monto) + '</div></div>').join('') : '';
-  el.innerHTML = [...bancos.values()].map(tarjeta).join('') +
-    bloque('efectivo', efectivo) + bloque('fondos', fondos) +
-    (posA.length ? bloque('inversiones', [{prod: 'bolsa', sub: modoPrivado ? 'posiciones ocultas' : posA.map(([k]) => k).join(', '), monto: 'en inversiones'}]) : '') +
-    '<button type="button" class="btn" style="margin-top:14px" onclick="abrirFondoNuevo()">+ crear un fondo (viaje, emergencias…)</button>';
+  el.innerHTML = '<div class="mc-grid">' +
+    [...bancos.values()].map(b => caja(b.nombre, 'banco' + (b.pend ? PEND : ''), b.filas, fmt(b.total))).join('') +
+    caja('Efectivo', 'billetes y monedas' + (efX.length ? ', también en otras monedas' : '') + (efPend ? PEND : ''), efectivo, fmt(efTot)) +
+    (fondos.length ? caja('Fondos', 'apartados dentro de tus bancos: no los cuentes para gastar', fondos, fmt(fondos.reduce((t, x) => t + x.valor, 0))) : '') +
+    (posA.length ? caja('Inversiones', 'bolsa', [{prod: modoPrivado ? 'posiciones ocultas' : posA.map(([k]) => k).join(', '), monto: 'ver en inversiones', otro: true}], '') : '') +
+    '</div><button type="button" class="btn" style="margin-top:14px" onclick="abrirFondoNuevo()">+ crear un fondo (viaje, emergencias…)</button>';
 }
 window.perfilSub=function(cual){
   // (28-oct-2026) tres subpestañas: tu perfil, mis cuentas y amigos
@@ -8903,33 +8911,93 @@ window.exportarMisDatosExcel = async function() {
   showToast('armando tu Excel...');
   try {
     const ExcelJS = await cargarExcelJS(), wb = new ExcelJS.Workbook(), MON = '"$"#,##0.00';
-    const hoja = (nombre, cols, filas) => {
-      const ws = wb.addWorksheet(nombre);
+    wb.creator = 'Mi Cartera'; wb.created = new Date();
+    // (28-oct-2026, Beto: "más bonito y más ordenado, y que puedas ir por las diferentes categorías") encabezado verde,
+    // pestañas de color, filtro en cada columna y un total al pie que SOLO suma lo filtrado (SUBTOTAL 109): filtras
+    // "Comida" y el total es el de comida. La fila en blanco antes del total lo deja fuera del rango del filtro
+    const VERDE = 'FF2F6B4F', CLARO = 'FFE8F1EC';
+    const encabezado = row => { row.height = 22; row.eachCell(c => { c.font = {bold: true, color: {argb: 'FFFFFFFF'}};
+      c.fill = {type: 'pattern', pattern: 'solid', fgColor: {argb: VERDE}}; c.alignment = {vertical: 'middle'}; }); };
+    // la hoja Resumen va primero: se crea ya y se llena al final, cuando ya se sabe que hojas hay
+    const resumen = wb.addWorksheet('Resumen', {properties: {tabColor: {argb: VERDE}}});
+    const hojas = [];
+    const hoja = (nombre, cols, filas, opts = {}) => {
+      const ws = wb.addWorksheet(nombre, {properties: {tabColor: {argb: opts.color || 'FF7FA38E'}}});
       ws.columns = cols.map(([h, k, w, tipo]) => ({header: h, key: k, width: w || 18, style: tipo === 'mon' ? {numFmt: MON} : tipo === 'fecha' ? {numFmt: 'dd/mm/yyyy'} : {}}));
-      ws.getRow(1).font = {bold: true}; ws.views = [{state: 'frozen', ySplit: 1}];
+      encabezado(ws.getRow(1)); ws.views = [{state: 'frozen', ySplit: 1}];
       filas.forEach(x => ws.addRow(x));
       if (filas.length) ws.autoFilter = {from: {row: 1, column: 1}, to: {row: 1, column: cols.length}};
+      if (filas.length && opts.total) {
+        const ci = cols.findIndex(c => c[1] === opts.total) + 1, L = ws.getColumn(ci).letter;
+        ws.addRow([]);
+        const r = ws.addRow([]); r.getCell(1).value = 'total (solo lo que estés filtrando)';
+        // con su resultado guardado: los visores sin calculo (la vista previa del celular) no lo muestran en 0
+        r.getCell(ci).value = {formula: 'SUBTOTAL(109,' + L + '2:' + L + (filas.length + 1) + ')', result: c2(filas.reduce((t, x) => t + (Number(x[opts.total]) || 0), 0))};
+        r.getCell(ci).numFmt = MON;
+        r.eachCell({includeEmpty: true}, c => { c.font = {bold: true}; c.fill = {type: 'pattern', pattern: 'solid', fgColor: {argb: CLARO}}; });
+      }
+      hojas.push([nombre, opts.desc || '']);
+      return ws;
+    };
+    // categorias contra meses (ultimos 12 con datos): para ver en que se va cada mes sin armar una tabla dinamica
+    const porCategoria = (nombre, lista, desc) => {
+      const mesDe = f => { const d = fechaLocal(f); return d && Number.isFinite(d.getTime()) ? d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') : null; };
+      // (code-reviewer) los 12 meses SEGUIDOS hasta este (un mes sin movimientos sale en 0, no se salta); Map: una categoria
+      // llamada "__proto__" no ensucia nada
+      const hoy = new Date(), meses = Array.from({length: 12}, (_, i) => { const d = new Date(hoy.getFullYear(), hoy.getMonth() - 11 + i, 1);
+        return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0'); });
+      const tabM = new Map();
+      lista.forEach(x => { const m = mesDe(x.fecha); if (!meses.includes(m)) return; const c = String(x.cat || 'sin categoría');
+        if (!tabM.has(c)) tabM.set(c, Object.create(null)); const t = tabM.get(c); t[m] = (t[m] || 0) + nFin(x.monto); });
+      const tab = Object.fromEntries(tabM);
+      const cats = Object.keys(tab).sort((a, b) => meses.reduce((t, m) => t + (tab[b][m] || 0), 0) - meses.reduce((t, m) => t + (tab[a][m] || 0), 0));
+      const cols = [['categoría', 'cat', 20]].concat(meses.map(m => [MESES_CORTO[+m.slice(5) - 1] + ' ' + m.slice(2, 4), m, 13, 'mon'])).concat([['total', 'tot', 15, 'mon']]);
+      const ws = hoja(nombre, cols, cats.map(c => Object.assign({cat: c, tot: c2(meses.reduce((t, m) => t + (tab[c][m] || 0), 0))}, ...meses.map(m => ({[m]: c2(tab[c][m] || 0)})))), {desc, color: 'FFB7CFC0'});
+      if (cats.length) { ws.addRow([]); const r = ws.addRow(Object.assign({cat: 'total del mes', tot: c2(cats.reduce((t, c) => t + meses.reduce((s, m) => s + (tab[c][m] || 0), 0), 0))},
+          ...meses.map(m => ({[m]: c2(cats.reduce((t, c) => t + (tab[c][m] || 0), 0))}))));
+        r.eachCell({includeEmpty: true}, c => { c.font = {bold: true}; c.fill = {type: 'pattern', pattern: 'solid', fgColor: {argb: CLARO}}; }); }
     };
     // ExcelJS escribe las fechas en UTC: se arma el dia LOCAL como medianoche UTC (si no, en Sydney o China sale un dia antes)
     const diaXl = d => (d && Number.isFinite(d.getTime())) ? new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate())) : null;
-    const fecha = f => { const t = msFechaMov(f); return t === null ? null : diaXl(new Date(t)); };
+    // (28-oct-2026) 'AAAA-MM-DD' es un dia LOCAL: con msFechaMov salia como UTC y el Excel lo ponia un dia antes
+    const fechaLocal = f => { if (typeof f === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(f)) return parseFechaLocal(f); const t = msFechaMov(f); return t === null ? null : new Date(t); };
+    const fecha = f => { const d = fechaLocal(f); return d ? diaXl(d) : null; };
     const cta = k => nombreCuenta(k) || k || '';
     // (tarjetas, deposito de la TDC y bolsa no son saldos de cuenta: van en la app y en la copia JSON)
     hoja('Cuentas', [['banco', 'banco', 14], ['cuenta', 'cuenta', 24], ['saldo hoy', 'saldo', 16, 'mon'], ['del fondo', 'fondo', 16, 'mon'], ['tuyo', 'tuyo', 16, 'mon'], ['moneda', 'moneda', 10]],
       REG_CUENTAS.filter(c => !c.legada && c.grupo).map(c => ({banco: c.banco || '', cuenta: c.nombre, saldo: c2(getSaldoCuenta(c.id)), fondo: c2(fondoEnCuenta(c.id)), tuyo: c2(saldoTuyo(c.id)), moneda: 'MXN'}))
-        .concat(Object.values(state.cuentasX || {}).map(x => ({banco: x.nombre.replace(/ cajita$/i, ''), cuenta: x.nombre + ' (' + (TIPOS_CX[x.tipo] || x.tipo) + ')', saldo: c2(saldoX(x)), fondo: 0, tuyo: c2(saldoX(x)), moneda: x.moneda}))));
+        .concat(Object.values(state.cuentasX || {}).map(x => ({banco: x.nombre.replace(/ cajita$/i, ''), cuenta: x.nombre + ' (' + (TIPOS_CX[x.tipo] || x.tipo) + ')', saldo: c2(saldoX(x)), fondo: 0, tuyo: c2(saldoX(x)), moneda: x.moneda}))),
+      {desc: 'el saldo de hoy de cada cuenta, lo del fondo y lo tuyo', color: VERDE});
     hoja('Gastos', [['fecha', 'f', 12, 'fecha'], ['categoría', 'cat', 18], ['monto', 'monto', 14, 'mon'], ['pagado con', 'cta', 22], ['nota', 'nota', 32]],
-      state.gastos.map(g => ({f: fecha(g.fecha), cat: g.cat, monto: nFin(g.monto), cta: cta(g.fuente), nota: g.nota || ''})));
+      state.gastos.map(g => ({f: fecha(g.fecha), cat: g.cat, monto: nFin(g.monto), cta: cta(g.fuente), nota: g.nota || ''})), {total: 'monto', desc: 'cada gasto; filtra por categoría o cuenta y el total se ajusta', color: 'FFC0504D'});
+    porCategoria('Gastos por categoría', state.gastos, 'cuánto gastaste en cada categoría, mes por mes');
     hoja('Ingresos', [['fecha', 'f', 12, 'fecha'], ['categoría', 'cat', 18], ['monto', 'monto', 14, 'mon'], ['a la cuenta', 'cta', 22], ['nota', 'nota', 32]],
-      state.ingresos.map(g => ({f: fecha(g.fecha), cat: g.cat, monto: nFin(g.monto), cta: cta(g.destino), nota: g.nota || ''})));
+      state.ingresos.map(g => ({f: fecha(g.fecha), cat: g.cat, monto: nFin(g.monto), cta: cta(g.destino), nota: g.nota || ''})), {total: 'monto', desc: 'cada ingreso; filtra por categoría o cuenta y el total se ajusta', color: 'FF4F81BD'});
+    porCategoria('Ingresos por categoría', state.ingresos, 'cuánto entró de cada categoría, mes por mes');
     hoja('Transferencias', [['fecha', 'f', 12, 'fecha'], ['de', 'de', 22], ['a', 'a', 22], ['monto', 'monto', 14, 'mon'], ['nota', 'nota', 32]],
-      state.transferencias.map(t => ({f: fecha(t.fecha), de: cta(t.origen), a: cta(t.destino), monto: nFin(t.monto), nota: t.nota || ''})));
+      state.transferencias.map(t => ({f: fecha(t.fecha), de: cta(t.origen), a: cta(t.destino), monto: nFin(t.monto), nota: t.nota || ''})), {total: 'monto', desc: 'dinero que moviste entre tus cuentas (no es gasto)'});
     hoja('Deudas', [['persona', 'p', 18], ['fecha', 'f', 12, 'fecha'], ['tipo', 't', 16], ['monto', 'monto', 14, 'mon'], ['nota', 'nota', 32]],
-      Object.values(state.personas || {}).flatMap(p => (p.movimientos || []).map(m => ({p: p.nombre || '', f: fecha(m.fecha), t: m.tipo || '', monto: nFin(m.monto), nota: [m.subcat, m.nota].filter(Boolean).join(' · ')}))));
+      Object.values(state.personas || {}).flatMap(p => (p.movimientos || []).map(m => ({p: p.nombre || '', f: fecha(m.fecha), t: m.tipo || '', monto: nFin(m.monto), nota: [m.subcat, m.nota].filter(Boolean).join(' · ')}))),
+      {desc: 'lo que te deben y lo que debes, por persona (filtra por persona)'});
     hoja('Fondos', [['fondo', 'fo', 18], ['fecha', 'f', 12, 'fecha'], ['qué pasó', 't', 22], ['cuenta', 'cta', 20], ['monto', 'monto', 14, 'mon'], ['nota', 'nota', 28]],
-      ((state.fondo && state.fondo.movs) || []).map(m => ({fo: nombreFondo(fondoDeMov(m)), f: fecha(m.fecha || m.creado), t: FONDO_TIPOS_TXT[m.tipo] || m.tipo, cta: cta(m.cuenta) + (m.destino ? ' → ' + cta(m.destino) : ''), monto: nFin(m.monto), nota: m.nota || ''})));
+      ((state.fondo && state.fondo.movs) || []).map(m => ({fo: nombreFondo(fondoDeMov(m)), f: fecha(m.fecha || m.creado), t: FONDO_TIPOS_TXT[m.tipo] || m.tipo, cta: cta(m.cuenta) + (m.destino ? ' → ' + cta(m.destino) : ''), monto: nFin(m.monto), nota: m.nota || ''})),
+      {desc: 'lo que entró, apartaste, generó y sacaste de cada fondo', color: 'FF8064A2'});
     hoja('Patrimonio', [['fecha', 'f', 12, 'fecha'], ['tu dinero', 'total', 16, 'mon']],
-      (state.snapshots || []).map(x => ({f: diaXl(parseFechaLocal(x.f)), total: nFin(x.total)})));
+      (state.snapshots || []).map(x => ({f: diaXl(parseFechaLocal(x.f)), total: nFin(x.total)})), {desc: 'cómo ha cambiado tu dinero día por día'});
+    // la portada: tus cifras de hoy y una liga a cada hoja
+    // (code-reviewer) antes de cargar del servidor los totales valen 0: se escribe "sin calcular", nunca un $0 falso
+    const T = (totalesInicio && totalesInicio.listo && datosCargados && !cargaDesdeCache) ? totalesInicio : {}, fT = fondoTotal() + fondoGenerado();
+    resumen.columns = [{width: 34}, {width: 22}, {width: 60}];
+    const t1 = resumen.addRow(['Mi Cartera · mis datos']); t1.font = {bold: true, size: 16, color: {argb: VERDE}}; t1.height = 26;
+    resumen.addRow(['al ' + new Date().toLocaleDateString('es-MX', {day: 'numeric', month: 'long', year: 'numeric'})]).font = {color: {argb: 'FF6B7B72'}};
+    resumen.addRow([]);
+    encabezado(resumen.addRow(['hoy', 'monto', '']));
+    [['tu dinero (sin los fondos)', T.tuyo], ['tus fondos', T.listo ? fT : null], ['patrimonio completo', T.fisico], ['neto (con lo que te deben y tus tarjetas)', Number.isFinite(T.neto) ? T.neto + fT : null]]
+      .forEach(([l, v]) => { const r = resumen.addRow([l, Number.isFinite(v) ? c2(v) : 'sin calcular']); r.getCell(2).numFmt = MON; });
+    resumen.addRow([]);
+    encabezado(resumen.addRow(['hoja', '', 'qué tiene']));
+    hojas.forEach(([n, d]) => { const r = resumen.addRow([{text: n, hyperlink: "#'" + n + "'!A1"}, '', d]);
+      r.getCell(1).font = {color: {argb: 'FF2F6B4F'}, underline: true}; });
     const buf = await wb.xlsx.writeBuffer();
     const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([buf], {type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}));
     a.download = 'mis-datos-' + hoyLocal() + '.xlsx'; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1500);
@@ -9138,25 +9206,24 @@ function mesesHasta(fechaYM) { // meses INCLUSIVOS desde el mes actual hasta YYY
   const hoy=hoyLocal();
   return (+fechaYM.slice(0,4)-+hoy.slice(0,4))*12+(+fechaYM.slice(5,7)-+hoy.slice(5,7))+1;
 }
-// (28-oct-2026, Roberto: "mis apartados ya es un fondo") el lado derecho de metas muestra los FONDOS con su avance;
-// apartar y la meta se manejan en la pestaña fondo. Los apartados viejos (solo letrero) se ven aparte para pasarlos a fondo
+// (28-oct-2026, Roberto: "mis apartados ya es un fondo") el lado derecho de metas muestra SOLO las metas de tus fondos:
+// aqui no se crean fondos ni se les pone meta (eso es de la pestaña fondo, para que no se confundan). Los apartados
+// viejos (solo letrero) se ven aparte para pasarlos a fondo
 function renderApartados() {
   const el=document.getElementById('apartados-panel'); if(!el) return;
-  const fondos=listaFondos().filter(x=>x.id!==FONDO_U||totalFondo(x.id)>0.005||metaFondo(x.id));
+  const fondos=listaFondos().filter(x=>metaFondo(x.id));
   const filas=fondos.map(x=>{
     const tiene=totalFondo(x.id)+generadoFondo(x.id), mt=metaFondo(x.id), av=mt?avanceMeta(tiene,mt):null;
     return `<div class="resumen-bar" style="padding:10px 0;border-bottom:0.5px solid var(--border)"><div class="bar-header"><span class="bar-label">${escapeHtml(x.nombre)}</span><span class="bar-amt" style="color:var(--accent-dark)">${fmt(tiene)}${mt?' / '+fmt(mt.objetivo):''}</span></div>`+
       (mt?`<div class="bar-track" style="height:6px"><div class="bar-fill" style="width:${Math.max(0,Math.min(100,av.pct)).toFixed(1)}%"></div></div>`:'')+
-      // en la copia local (sin confirmar con el servidor) las metas no estan cargadas: no se afirma "sin meta"
-      `<div class="bar-header" style="margin-top:4px"><span class="item-meta">${mt?escapeHtml(av.txt):datosCargados?'apartado, sin meta':''}</span>`+
-      `<button type="button" class="del-btn" style="font-size:12px;color:var(--accent);padding:2px 0 2px 10px" onclick="irAFondo('${x.id}',${mt||!datosCargados?'false':'true'})">${mt||!datosCargados?'ver fondo':'+ ponerle meta'}</button></div></div>`;
+      `<div class="bar-header" style="margin-top:4px"><span class="item-meta">${escapeHtml(av.txt)}</span>`+
+      `<button type="button" class="del-btn" style="font-size:12px;color:var(--accent);padding:2px 0 2px 10px" onclick="irAFondo('${x.id}',false)">ver fondo</button></div></div>`;
   }).join('');
   const viejos=state.apartados.map(a=>
     `<div class="resumen-bar"><div class="bar-header"><span class="bar-label">${escapeHtml(a.nombre)}</span><span style="display:flex;align-items:center"><span class="bar-amt">${fmt(a.ahorrado)} / ${fmt(a.meta)}</span><button type="button" class="del-btn del-x" aria-label="borrar" onclick="eliminarApartado('${a.id}')">&times;</button></span></div>`+
     `<div class="bar-header" style="margin-top:4px"><span class="item-meta">no separa dinero: solo es un letrero</span><button type="button" class="del-btn" style="font-size:12px;color:var(--accent);padding:2px 0 2px 10px" onclick="pasarAFondo('${a.id}')">pasar a fondo</button></div></div>`).join('');
-  el.innerHTML=(filas||'<div class="empty-state">todavía no tienes fondos — crea uno para juntar para algo</div>')+
-    `<button type="button" class="btn" style="margin-top:10px" onclick="abrirFondoNuevo()">+ nuevo fondo</button>`+
-    `<div class="item-meta" style="text-align:center;margin-top:8px;line-height:1.45">un fondo separa el dinero dentro de tus cuentas: deja de contar como tuyo para gastar, y lo que genera es suyo</div>`+
+  // en la copia local (sin confirmar con el servidor) las metas no estan cargadas: no se afirma que no hay
+  el.innerHTML=(filas||`<div class="empty-state">${datosCargados?'ninguno de tus fondos tiene meta — pónsela en la pestaña fondo':'cargando…'}</div>`)+
     (viejos?`<div class="section-title mt">apartados de antes</div>${viejos}`:'');
 }
 window.eliminarApartado = async function(id) {
