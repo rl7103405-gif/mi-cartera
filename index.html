@@ -317,6 +317,8 @@ html[data-tema='grafito'] .tabs{--sombra-scroll:rgba(255,255,255,.16)}
 .desliza-dlg{margin:auto;inset:0;height:fit-content;max-height:calc(100dvh - 40px);border:1px solid var(--sup-borde,var(--border2));border-radius:var(--r);padding:0;width:calc(100% - 40px);max-width:360px;background:var(--bg2s);color:var(--text);box-shadow:var(--sombra)}
 .desliza-dlg::backdrop{background:rgba(0,0,0,0.45)}
 .asis-dlg{max-width:440px}
+#cx-perfil-lista input{font:inherit;font-size:14px;padding:10px 12px;border:1px solid var(--border2);border-radius:var(--rs);background:var(--bg3);color:var(--text);min-height:44px;box-sizing:border-box}
+.mc-banco{border:1px solid var(--border2);border-radius:var(--rs);padding:4px 12px 6px;margin-bottom:10px}
 .asis-bancos{display:flex;flex-wrap:wrap;gap:8px}.asis-bancos .type-opt{flex:0 0 auto;min-height:44px;padding:10px 14px}
 .desliza-dlg:not([open]){display:none}
 .desliza-caja{padding:18px;max-height:calc(100dvh - 40px);overflow:auto}
@@ -948,64 +950,7 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
     <button type="button" class="stab" id="ptab-amigos" onclick="perfilSub('amigos')">amigos</button>
   </div>
   <div id="perfil-sub-perfil">
-  <div class="inicio-grid">
-  <div class="sec">
-    <div class="section-title">tu manejo del dinero</div>
-    <div class="panel" id="score-panel"><div class="empty-state">calculando...</div></div>
-    <div class="section-title mt">tus inversiones frente a otras opciones</div>
-    <div class="panel" id="decisiones-panel"><div class="empty-state">calculando...</div></div>
-  </div>
-  <div class="sec">
-    <div class="section-title">tu referencia personal</div>
-    <div class="panel">
-      <div class="item-meta" id="perfil-resumen">—</div>
-      <div class="item-meta" style="margin-top:8px" id="perfil-fuente">—</div>
-      <button type="button" class="btn btn-red" style="margin-top:12px" onclick="quitarFoto()">quitar foto de perfil</button>
-    </div>
-    <!-- interruptor del tablero de inversiones: no todo el mundo invierte, y a quien no
-         lo hace una pestaña llena de graficas vacias solo le estorba -->
-    <div class="section-title mt">tablero de inversiones</div>
-    <div class="panel">
-      <div class="item-meta" style="line-height:1.5;margin-bottom:10px">
-        Enciéndelo si compras acciones y quieres una pestaña con el detalle: cuánto llevas
-        invertido, cuánto vale hoy, cómo va cada posición y a qué le estás apostando.
-        Si no inviertes, déjalo apagado y la pestaña ni aparece.
-      </div>
-      <div class="type-toggle" id="dashboard-toggle">
-        <div class="type-opt" id="dash-off" onclick="setDashboard(false)">apagado</div>
-        <div class="type-opt" id="dash-on" onclick="setDashboard(true)">encendido</div>
-      </div>
-
-      <div class="item-meta" style="line-height:1.5;margin:14px 0 8px">
-        <b>Pestaña del fondo de la universidad.</b> Para llevar ese dinero apartado de tus cuentas:
-        no cuenta como tuyo en inicio, en tus metas ni en tu score, y ninguna operación normal lo
-        puede tocar. La protección aplica aunque la pestaña esté apagada.
-      </div>
-      <div class="type-toggle" id="fondo-toggle">
-        <div class="type-opt" id="fondo-off" onclick="setFondoTab(false)">apagada</div>
-        <div class="type-opt" id="fondo-on" onclick="setFondoTab(true)">encendida</div>
-      </div>
-    </div>
-    <div class="section-title mt">tus datos y tu privacidad</div>
-    <div class="panel">
-      <div class="item-meta" style="line-height:1.5">
-        <b>Qué se guarda:</b> lo que tú capturas — saldos, movimientos, deudas, metas, tu perfil y tu foto.
-        La app no pide claves de tu banco ni se conecta con él: todo lo escribes tú.<br><br>
-        <b>Dónde:</b> en una base de datos de Google Firebase. Viaja cifrado y solo tu cuenta
-        puede leerlo desde la app.<br><br>
-        <b>Quién más puede verlo:</b> quien administre el proyecto de Firebase donde vive esta
-        copia puede consultar los datos desde la consola de Google. Si esta app te la instaló
-        otra persona, esa persona tiene esa posibilidad técnica.<br><br>
-        <b>Tus derechos:</b> puedes descargar todo lo tuyo cuando quieras con el botón de abajo,
-        y pedir que se borre por completo a quien administre la app.<br><br>
-        <b>Esto es una app casera</b>, no un servicio financiero: no guarda tu dinero, no mueve
-        fondos y no garantiza rendimientos. Verifica siempre contra las apps de tus bancos.
-      </div>
-      <button type="button" class="btn" style="margin-top:12px" onclick="exportarMisDatos()">descargar todos mis datos</button>
-    </div>
-  </div>
-  </div>
-  <!-- 'color de la app' vivia en Inicio; es ajuste, no dato del dia: va en perfil -->
+  <!-- 'color de la app': ajuste del perfil, arriba para que se vea (28-oct-2026, Beto) -->
   <details class="acc" style="margin-bottom:20px">
     <summary>
       <div class="acc-icon chip-verde"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 0 1 0 18c-2 0-1-2-1-3s-1-2-2-2-3 1-3-1a9 9 0 0 1 6-12Z"/></svg></div>
@@ -1024,10 +969,42 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
       <div class="item-meta" style="margin-top:10px">se guarda en este dispositivo</div>
     </div>
   </details>
+  <div class="inicio-grid">
+  <div class="sec">
+    <div class="section-title">tu manejo del dinero</div>
+    <div class="panel" id="score-panel"><div class="empty-state">calculando...</div></div>
+  </div>
+  <div class="sec">
+    <div class="section-title">tu referencia personal</div>
+    <div class="panel">
+      <div class="item-meta" id="perfil-resumen">—</div>
+      <div class="item-meta" style="margin-top:8px" id="perfil-fuente">—</div>
+      <button type="button" class="btn btn-red" style="margin-top:12px" onclick="quitarFoto()">quitar foto de perfil</button>
+    </div>
+    <div class="section-title mt">tus datos y tu privacidad</div>
+    <div class="panel">
+      <div class="item-meta" style="line-height:1.5">
+        <b>Qué se guarda:</b> lo que tú capturas — saldos, movimientos, deudas, metas, tu perfil y tu foto.
+        La app no pide claves de tu banco ni se conecta con él: todo lo escribes tú.<br><br>
+        <b>Dónde:</b> en una base de datos de Google Firebase. Viaja cifrado y solo tu cuenta
+        puede leerlo desde la app.<br><br>
+        <b>Quién más puede verlo:</b> quien administre el proyecto de Firebase donde vive esta
+        copia puede consultar los datos desde la consola de Google. Si esta app te la instaló
+        otra persona, esa persona tiene esa posibilidad técnica.<br><br>
+        <b>Tus derechos:</b> puedes descargar todo lo tuyo cuando quieras con el botón de abajo,
+        y pedir que se borre por completo a quien administre la app.<br><br>
+        <b>Esto es una app casera</b>, no un servicio financiero: no guarda tu dinero, no mueve
+        fondos y no garantiza rendimientos. Verifica siempre contra las apps de tus bancos.
+      </div>
+      <button type="button" class="btn" style="margin-top:12px" onclick="exportarMisDatosExcel()">descargar todos mis datos (Excel)</button>
+      <button type="button" class="volver-btn" style="margin-top:8px" onclick="exportarMisDatos()">copia técnica completa (JSON)</button>
+    </div>
+  </div>
+  </div>
   </div>
   <!-- (28-oct-2026) mis cuentas: todo lo que tienes de un vistazo (bancos, cajitas, tarjetas, otra moneda, fondos) y donde se agregan -->
   <div id="perfil-sub-cuentas" style="display:none">
-    <div class="section-title">todo lo que tienes</div>
+    <div class="section-title">tus bancos</div>
     <div class="panel" id="mis-cuentas"><div class="empty-state">calculando...</div></div>
     <!-- (20-oct-2026) cuentas en otra moneda, como en Revolut: las agrega la persona sola -->
     <!-- (28-oct-2026) ya no solo otra moneda: tambien bancos, efectivo y cajitas en pesos -->
@@ -1065,6 +1042,30 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
       </div>
       <button type="button" class="btn btn-purple" id="cx-nuevo-btn" onclick="agregarCuentaX()">agregar cuenta</button>
       <div class="item-meta" id="cx-fx" style="margin-top:8px">—</div>
+    </div>
+    <!-- interruptor del tablero de inversiones: no todo el mundo invierte, y a quien no
+         lo hace una pestaña llena de graficas vacias solo le estorba -->
+    <div class="section-title mt">qué pestañas ves</div>
+    <div class="panel">
+      <div class="item-meta" style="line-height:1.5;margin-bottom:10px">
+        Enciéndelo si compras acciones y quieres una pestaña con el detalle: cuánto llevas
+        invertido, cuánto vale hoy, cómo va cada posición y a qué le estás apostando.
+        Si no inviertes, déjalo apagado y la pestaña ni aparece.
+      </div>
+      <div class="type-toggle" id="dashboard-toggle">
+        <div class="type-opt" id="dash-off" onclick="setDashboard(false)">apagado</div>
+        <div class="type-opt" id="dash-on" onclick="setDashboard(true)">encendido</div>
+      </div>
+
+      <div class="item-meta" style="line-height:1.5;margin:14px 0 8px">
+        <b>Pestaña de tus fondos.</b> Para llevar el dinero que apartas (universidad, viaje, emergencias):
+        no cuenta como tuyo en inicio, en tus metas ni en tu score, y ninguna operación normal lo
+        puede tocar. La protección aplica aunque la pestaña esté apagada.
+      </div>
+      <div class="type-toggle" id="fondo-toggle">
+        <div class="type-opt" id="fondo-off" onclick="setFondoTab(false)">apagada</div>
+        <div class="type-opt" id="fondo-on" onclick="setFondoTab(true)">encendida</div>
+      </div>
     </div>
   </div>
   <div id="perfil-sub-amigos" style="display:none">
@@ -1265,6 +1266,9 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
   </div>
   <div class="item-meta" id="fondo-admin" style="margin:-6px 0 12px"></div>
   <div class="dkpis" id="fondo-kpis"><div class="empty-state">calculando...</div></div>
+  <!-- (28-oct-2026) cuanto ha generado el fondo y como ha subido: va aqui, NUNCA en el resumen (es dinero aparte) -->
+  <div class="chart-titulo"><div class="section-title" style="margin:0">cómo ha crecido este fondo</div><div id="fondo-modos"></div></div>
+  <div class="panel" id="fondo-chart" style="margin-bottom:16px"></div>
   <div class="dgrid">
     <div class="dcard"><div class="dcard-h">Registrar un movimiento del fondo</div><div class="dcard-b">
       <div class="field"><label for="fondo-tipo">qué pasó</label>
@@ -1496,7 +1500,7 @@ const META_SAVINGS_DEF = 25000, META_STOCKS_DEF = 12000, META_FECHA_DEF = '2026-
 // Los ids son contrato con las pruebas y el CSS: no se renombran. ej = textos de ejemplo de cada campo.
 // id, pref e inp van crudos a atributos y onclick: si algun dia los pone el usuario, deben ser slugs generados.
 // dist = nombre corto en 'dónde está mi dinero' (si falta, etq). banco (28-oct-2026): con que banco es, para
-// 'mis cuentas' del perfil (cuantos bancos tienes); el efectivo no lleva.
+// 'mis cuentas' del perfil (cuantos bancos tienes); el efectivo no lleva. prod: el nombre del producto dentro de su banco.
 // Mifel (25-sep-2026): Cuenta Digital con promocion de 10% BRUTO de $100 a $500,000 y 0% arriba,
 // abono diario en dias habiles, vigente al 31-oct-2026 (terminos publicados de Mifel). retCap: la
 // retencion de ISR no rebasa el interes de la banda (una banda al 0% no resta); solo esta cuenta la usa.
@@ -1506,11 +1510,11 @@ const REG_CUENTAS=[
    ui:{icono:'cash', svg:'billete', pref:'cash', sub:'pesos en mano', dist:'efectivo', inp:'efectivo', etq:'efectivo', ej:'1000', paso:'1'},
    en:{simple:1, gasto:1, ingreso:1, stock:1, fondo:4, detalle:1, transfer:1, deudaAlta:1, deuda:1,
        destino:2, pagoTj:2, pagoTjRev:2, stockSel:2, inicio:5, form:1}},
-  {id:'nu',         nombre:'NU saldo',             simple:'nuSaldo',   grupo:'disponible', banco:'Nu',
+  {id:'nu',         nombre:'NU saldo',             simple:'nuSaldo',   grupo:'disponible', banco:'Nu', prod:'cuenta',
    ui:{icono:'nu', svg:'banco', pref:'nu-saldo', det:'nu-detail', sub:'disponible', dist:'NU', inp:'nu-saldo', etq:'NU saldo disponible', ej:'1500'},
    en:{simple:2, gasto:2, ingreso:2, stock:2, fondo:3, detalle:2, transfer:2, deudaAlta:2, deuda:2,
        destino:1, pagoTj:1, pagoTjRev:3, stockSel:3, inicio:2, form:2}},
-  {id:'cajita1',    nombre:'NU cajita 1',          grupo:'ahorro', banco:'Nu',
+  {id:'cajita1',    nombre:'NU cajita 1',          grupo:'ahorro', banco:'Nu', prod:'cajita 1',
    comp:{base:'nuCajita1Base', fecha:'nuCajita1Fecha', tasa:'nuCajita1Tasa',
          tope:'nuCajita1Tope', tasaExc:'nuCajita1TasaExc', ret:'nuCajita1Ret',
          def:{dias:360,tasa:13,tope:25000,tasaExc:6.5,ret:0}},
@@ -1527,12 +1531,12 @@ const REG_CUENTAS=[
   // legada: GBM retirado; los movimientos viejos con gbm solo se muestran/deshacen
   {id:'gbm',        nombre:'GBM efectivo',         simple:'efectivoGBM', legada:true,
    en:{simple:4, deuda:5}},
-  {id:'revolut',    nombre:'Revolut MXN',          simple:'revMXN',    grupo:'disponible', banco:'Revolut',
+  {id:'revolut',    nombre:'Revolut MXN',          simple:'revMXN',    grupo:'disponible', banco:'Revolut', prod:'cuenta en pesos',
    etq:{boton:'Revolut'},
    ui:{icono:'rev', svg:'mundo', pref:'rev-mxn', sub:'cuenta personal', dist:'Revolut', inp:'rev-mxn', etq:'Revolut MXN', ej:'1500'},
    en:{simple:3, gasto:4, ingreso:3, stock:3, fondo:1, detalle:3, transfer:4, deudaAlta:4, deuda:6,
        destino:4, pagoTj:4, pagoTjRev:1, stockSel:1, inicio:6, form:3}},
-  {id:'revSavings', nombre:'Revolut Savings',      grupo:'ahorro', banco:'Revolut',
+  {id:'revSavings', nombre:'Revolut Savings',      grupo:'ahorro', banco:'Revolut', prod:'Savings',
    comp:{base:'revSavingsBase',fecha:'revSavingsFecha',tasa:'revSavingsTasa',
          tope:'revSavingsTope',tasaExc:'revSavingsTasaExc',ret:'revSavingsRet',
          def:{dias:360,tasa:15,tope:25000,tasaExc:7.3,ret:0.9}},
@@ -1542,7 +1546,7 @@ const REG_CUENTAS=[
        destino:5, pagoTj:5, inicio:7, form:6}},
   // vigencia: hasta cuando esta confirmada la tasa (texto AAAA-MM-DD); pasada, la tarjeta avisa.
   // estimado: la app estima el interes (sin abono confirmado); conSigno: el acumulado puede ser negativo
-  {id:'mifel',      nombre:'Mifel',                grupo:'ahorro', banco:'Mifel',
+  {id:'mifel',      nombre:'Mifel',                grupo:'ahorro', banco:'Mifel', prod:'cuenta digital',
    comp:{base:'mifelBase', fecha:'mifelFecha', tasa:'mifelTasa',
          tope:'mifelTope', tasaExc:'mifelTasaExc', ret:'mifelRet',
          def:MIFEL_DEF},
@@ -1552,10 +1556,10 @@ const REG_CUENTAS=[
    en:{comp:4, ahorro:3, proyectable:3, interes:4, fondo:6, detalle:6, transfer:6, deudaAlta:6, deuda:8,
        destino:6, inicio:8, form:7}},
   // tarjetas de credito y bolsa: su tarjeta de Inicio es propia (HTML fijo); el registro solo da su lugar
-  {id:'tarjeta',    nombre:'tarjeta NU',           tarjeta:true, banco:'Nu',
+  {id:'tarjeta',    nombre:'tarjeta NU',           tarjeta:true, banco:'Nu', prod:'tarjeta de crédito',
    etq:{destino:'tarjeta NU (pago)', deuda:'tarjeta NU (crédito)'},
    en:{gasto:3, deudaAlta:7, deuda:9, tarjetaDeuda:1, destino:7, inicio:3}},
-  {id:'tarjetaRev', nombre:'TDC Revolut',          tarjeta:true, banco:'Revolut',
+  {id:'tarjetaRev', nombre:'TDC Revolut',          tarjeta:true, banco:'Revolut', prod:'tarjeta de crédito',
    etq:{destino:'TDC Revolut (pago)', deuda:'TDC Revolut (crédito)'},
    en:{gasto:5, deudaAlta:8, deuda:10, tarjetaDeuda:2, destino:8, inicio:4}},
   // el deposito vive en cartera/tarjetaRev, no en cartera/saldos: guardarManuales lo valida aparte
@@ -5267,6 +5271,28 @@ function totalFondo(fid) { return CTAS_FONDO.reduce((t, c) => t + apartadoFondo(
 // el interes estimado sin registrar se reparte entre los fondos segun lo que cada uno tiene en esa cuenta (estimado)
 function generadoFondoEn(fid, c) { const A = apartadoDe(c); return A > 0 ? (fondoEnCuenta(c) - A) * apartadoFondo(fid, c) / A : 0; }
 function generadoFondo(fid) { return CTAS_FONDO.reduce((t, c) => t + generadoFondoEn(fid, c), 0); }
+// (28-oct-2026) lo que ha generado un fondo: los abonos que registraste (tipo rendimiento) + el interes estimado que
+// todavia no registras. Solo se muestra en la pestaña fondo: el resumen y 'cuanto gano tu dinero' no lo cuentan
+function rendRegistradoFondo(fid) { return ((state.fondo && state.fondo.movs) || []).reduce((t, m) => m && m.tipo === 'rendimiento' && fondoDeMov(m) === fid ? t + nFin(m.monto) : t, 0); }
+let modoFondoChart = 'valor';
+window.setModoFondoChart = m => { modoFondoChart = m === 'generado' ? 'generado' : 'valor'; renderChart('fondo-chart'); };
+// serie del fondo abierto en el tiempo, de sus movimientos (el de la universidad: los que no llevan etiqueta). El ultimo
+// punto es HOY con lo que tiene de verdad (incluye el interes estimado), aunque la historia vieja no tenga movimientos
+function serieFondo(fid, modo) {
+  const movs = ((state.fondo && state.fondo.movs) || []).filter(m => m && fondoDeMov(m) === fid)
+    .map(m => ({m, t: msFechaMov(m.fecha || m.creado)})).filter(x => x.t !== null).sort((a, b) => a.t - b.t);
+  let v = 0; const pts = [];
+  for (const {m, t} of movs) {
+    if (modo === 'generado') { if (m.tipo !== 'rendimiento') continue; v += nFin(m.monto); }
+    else v += CTAS_FONDO.reduce((s, c) => s + deltaFondo(m, c), 0);
+    pts.push({x: t, y: c2(v)});
+  }
+  const hoy = modo === 'generado' ? rendRegistradoFondo(fid) + generadoFondo(fid) : totalFondo(fid) + generadoFondo(fid);
+  if (modo === 'generado' && pts.length && movs.length) pts.unshift({x: movs[0].t, y: 0});
+  else if (modo === 'generado' && movs.length) pts.push({x: movs[0].t, y: 0});
+  pts.push({x: Date.now(), y: c2(hoy)});
+  return pts;
+}
 // (code-reviewer) si una version vieja saco dinero sin etiqueta, los fondos pueden sumar mas que lo apartado: se avisa
 function fondosDescuadrados() { return listaFondos(true).reduce((t, x) => t + totalFondo(x.id), 0) > fondoTotal() + 0.01; }
 const nombreFondo = fid => (listaFondos(true).find(x => x.id === fid) || {nombre:'fondo'}).nombre;
@@ -7746,6 +7772,14 @@ function renderChart(chartId) {
     const gm=document.getElementById('gbm-modos'); if(gm) gm.innerHTML=modos;
     document.getElementById('gbm-chart').innerHTML=html;
   }
+  else if(chartId==='fondo-chart'){
+    const el=document.getElementById('fondo-chart'); if(!el) return;
+    const fm=document.getElementById('fondo-modos');
+    if(fm) fm.innerHTML='<div class="chart-modos" role="group" aria-label="Qué ver en la gráfica del fondo">'+[['valor','valor del fondo'],['generado','lo que ha generado']].map(([k,t])=>
+      `<button type="button" class="chart-modo${modoFondoChart===k?' active':''}" aria-pressed="${modoFondoChart===k}" onclick="setModoFondoChart('${k}')"><span>${t}</span></button>`).join('')+'</div>';
+    el.innerHTML=chartBlock('fondo-chart',serieFondo(fondoActual,modoFondoChart),modoFondoChart==='generado'?'var(--accent)':'var(--d2)',modoFondoChart==='generado'?'generado':'cambio')
+      +'<div class="chart-nota">'+(modoFondoChart==='generado'?'los abonos que registraste y, hoy, el interés estimado que falta registrar':'lo apartado en el fondo; hoy incluye el interés estimado')+' · aparte de tu resumen</div>';
+  }
   else
     document.getElementById('patrimonio-chart').innerHTML=chartBlock('patrimonio-chart',(state.snapshots||[]).map(s=>({x:parseFechaLocal(s.f).getTime(),y:s.total})),'var(--d2)','cambio');
 }
@@ -8199,44 +8233,43 @@ async function asisCrear() {
 function renderMisCuentas() {
   const el = document.getElementById('mis-cuentas'); if (!el) return;
   const e = escapeHtml;
-  const fila = (nom, sub, monto, cls) => '<div class="item-row"><div style="flex:1;min-width:0"><div class="item-title">' + e(nom) + '</div>' +
-    (sub ? '<div class="item-meta">' + e(sub) + '</div>' : '') + '</div><div class="' + (cls || 'item-amt-pos') + '" style="white-space:nowrap">' + e(monto) + '</div></div>';
-  const bloque = (tit, filas) => filas.length ? '<div class="section-title" style="margin-top:14px">' + e(tit) + ' · ' + filas.length + '</div>' + filas.join('') : '';
-  // las agregadas: encendidas, y apagadas que todavia tengan saldo (como inicio y el total: nunca se esconde dinero)
+  // (28-oct-2026) una tarjeta por banco con lo que tienes ahi; el efectivo, los fondos y la bolsa aparte
+  const bancos = new Map();   // clave en minusculas -> {nombre, filas:[{prod, sub, monto, neg}], total}
+  const meter = (banco, fila) => { const k = banco.toLowerCase(); if (!bancos.has(k)) bancos.set(k, {nombre: banco, filas: [], total: 0});
+    const b = bancos.get(k); b.filas.push(fila); if (!fila.neg && Number.isFinite(fila.valor)) b.total += fila.valor; };
+  REG_CUENTAS.filter(c => c.banco && !c.legada && c.grupo).forEach(c => { const v = saldoTuyo(c.id);
+    meter(c.banco, {prod: c.prod || c.nombre, sub: (c.comp ? descModelo(c.id) : '') + (apartadoDe(c.id) > 0 ? (c.comp ? ' · ' : '') + 'sin el fondo' : ''), monto: fmt(v), valor: v}); });
+  // tarjetas: lo que debes (no suma al banco) y, en Revolut, el deposito de garantia (si es tuyo)
+  if (Number.isFinite(state.tarjetaDeuda)) meter('Nu', {prod: 'tarjeta de crédito', sub: 'lo que debes · corte el 18', monto: fmt(state.tarjetaDeuda), neg: true});
+  if (Number.isFinite(state.revTdcDeposito) && state.revTdcDeposito > 0) {
+    meter('Revolut', {prod: 'depósito de la tarjeta', sub: 'tu garantía: es tuyo, aunque congelado', monto: fmt(state.revTdcDeposito), valor: state.revTdcDeposito});
+    meter('Revolut', {prod: 'tarjeta de crédito', sub: 'lo que debes', monto: fmt(state.revTdcDeuda || 0), neg: true});
+  }
+  // las que agregaste: una cajita 'Klar cajita' va con su banco 'Klar'; las apagadas con saldo tambien (no se esconde dinero)
   const cxs = Object.entries(state.cuentasX || {}).filter(([, x]) => x.on || cent(saldoX(x)) !== 0)
     .sort((a, b) => String(a[1].creada).localeCompare(String(b[1].creada)));
-  const apag = x => x.on ? '' : ' · apagada';
-  const montoX = x => { const tc = tcDe(x.moneda), sx = saldoX(x); return x.moneda === 'MXN' ? '' : (tc ? ' · ≈ ' + fmt(c2(sx * tc)) : ' · sin tipo de cambio'); };
-  // bancos: los del registro con saldo o tarjeta, y los nombres de las cuentas agregadas que no son efectivo (sin repetir)
-  const bancos = new Map();
-  REG_CUENTAS.filter(c => c.banco && !c.legada && (c.grupo || c.tarjeta)).forEach(c => bancos.set(c.banco.toLowerCase(), c.banco));
-  cxs.filter(([, x]) => x.tipo !== 'efectivo').forEach(([, x]) => { if (!bancos.has(x.nombre.toLowerCase())) bancos.set(x.nombre.toLowerCase(), x.nombre); });
-  const dia = ctasGrupo('disponible').map(id => fila(CUENTAS[id], (ctaReg(id).banco || 'en mano') + (apartadoDe(id) > 0 ? ' · sin el fondo' : ''), fmt(saldoTuyo(id))))
-    .concat(cxs.filter(([, x]) => x.moneda === 'MXN' && x.tipo !== 'cajita').map(([, x]) => fila(x.nombre, TIPOS_CX[x.tipo] + ' · la agregaste tú' + apag(x), fmtX(saldoX(x), 'MXN'))));
-  const interes = ctasGrupo('ahorro').map(id => fila(CUENTAS[id], descModelo(id) + (apartadoDe(id) > 0 ? ' · sin el fondo' : ''), fmt(saldoTuyo(id))))
-    .concat(cxs.filter(([, x]) => x.tipo === 'cajita').map(([, x]) => fila(x.nombre + (x.moneda === 'MXN' ? '' : ' · ' + x.moneda), descCajitaX(x) + montoX(x) + apag(x), fmtX(saldoX(x), x.moneda))));
-  const tdc = [];
-  if (Number.isFinite(state.tarjetaDeuda)) tdc.push(fila('tarjeta NU', 'deuda actual · corte el 18', fmt(state.tarjetaDeuda), state.tarjetaDeuda > 0.005 ? 'item-amt-neg' : 'item-amt-pos'));
-  if (Number.isFinite(state.revTdcDeposito) || Number.isFinite(state.revTdcDeuda))
-    tdc.push(fila('TDC Revolut', 'deuda actual · límite ' + fmt(state.revTdcDeposito || 0), fmt(state.revTdcDeuda || 0), (state.revTdcDeuda || 0) > 0.005 ? 'item-amt-neg' : 'item-amt-pos'));
-  const otra = cxs.filter(([, x]) => x.moneda !== 'MXN' && x.tipo !== 'cajita')
-    .map(([, x]) => fila(x.nombre + ' · ' + x.moneda, TIPOS_CX[x.tipo] + montoX(x) + apag(x), fmtX(saldoX(x), x.moneda)));
-  // (28-oct-2026) cada fondo con lo suyo (el de la universidad solo si tiene dinero o hay otros)
+  let efX = [];
+  cxs.forEach(([, x]) => { const sx = saldoX(x), tc = tcDe(x.moneda), pesos = tc ? c2(sx * tc) : null;
+    const fila = {prod: x.tipo === 'cajita' ? 'cajita o savings' : (x.tipo === 'efectivo' ? 'efectivo' : 'cuenta') + (x.moneda === 'MXN' ? '' : ' en ' + MONEDAS_X[x.moneda].nom),
+      sub: (x.tipo === 'cajita' ? descCajitaX(x) : '') + (x.moneda !== 'MXN' ? (x.tipo === 'cajita' ? ' · ' : '') + (pesos !== null ? '≈ ' + fmt(pesos) : 'sin tipo de cambio: no suma todavía') : '') + (x.on ? '' : ' · apagada'),
+      monto: fmtX(sx, x.moneda), valor: pesos === null ? NaN : pesos};
+    if (x.tipo === 'efectivo') efX.push({...fila, prod: x.nombre + (x.moneda === 'MXN' ? '' : ' · ' + x.moneda)});
+    else meter(x.tipo === 'cajita' ? x.nombre.replace(/ cajita$/i, '') : x.nombre, fila); });
+  const tarjeta = b => '<div class="mc-banco"><div class="item-row" style="border-bottom:0;padding-bottom:2px"><div class="item-title" style="font-weight:600">' + e(b.nombre) + '</div>' +
+    '<div class="item-amt-pos" style="white-space:nowrap">' + e(fmt(b.total)) + '</div></div>' +
+    b.filas.map(x => '<div class="item-row" style="padding-left:12px"><div style="flex:1;min-width:0"><div>' + e(x.prod) + '</div>' + (x.sub ? '<div class="item-meta">' + e(x.sub) + '</div>' : '') + '</div>' +
+      '<div class="' + (x.neg ? (/[1-9]/.test(x.monto) ? 'item-amt-neg' : 'item-meta') : 'item-amt-pos') + '" style="white-space:nowrap">' + e(x.neg ? (/[1-9]/.test(x.monto) ? '−' + x.monto : x.monto) : x.monto) + '</div></div>').join('') + '</div>';
+  const ef = saldoTuyo('efectivo');
+  const efectivo = [{prod: 'en mano', monto: fmt(ef)}].concat(efX);
   const lf = listaFondos(), fondos = lf.filter(x => x.id !== FONDO_U || totalFondo(FONDO_U) > 0.005 || lf.length > 1).map(x => { const g = generadoFondo(x.id);
-    return fila(x.id === FONDO_U && x.nombre === 'universidad' ? 'fondo de la universidad' : 'fondo: ' + x.nombre, 'apartado dentro de tus cuentas' + (g > 0.005 ? ' · incluye ≈' + fmt(g) + ' de interés estimado' : ''), fmt(totalFondo(x.id) + g)); });
+    return {prod: x.id === FONDO_U && x.nombre === 'universidad' ? 'universidad' : x.nombre, sub: g > 0.005 ? 'incluye ≈' + fmt(g) + ' de interés estimado' : '', monto: fmt(totalFondo(x.id) + g)}; });
   const posA = Object.entries(state.posiciones || {}).filter(([, p]) => p.acciones > 0);
-  // en modo privado tampoco se dicen las acciones (como inicio: con acciones y precio publico se reconstruye el monto)
-  const bolsa = posA.length ? [fila('bolsa', modoPrivado ? 'posiciones ocultas' : posA.length + (posA.length === 1 ? ' acción' : ' acciones') + ' · ' + posA.map(([k]) => k).join(', '), 'en inversiones', 'item-meta')] : [];
-  const nB = bancos.size, resumen = [nB + (nB === 1 ? ' banco' : ' bancos') + (nB ? ' (' + [...bancos.values()].join(', ') + ')' : ''),
-    interes.length + (interes.length === 1 ? ' cuenta con interés' : ' cuentas con interés'),
-    tdc.length + (tdc.length === 1 ? ' tarjeta de crédito' : ' tarjetas de crédito')];
-  if (otra.length) resumen.push(otra.length + ' en otra moneda');
-  if (fondos.length) resumen.push(fondos.length + (fondos.length === 1 ? ' fondo' : ' fondos'));
-  el.innerHTML = '<div class="item-meta" style="line-height:1.5">' + e(resumen.join(' · ')) + '</div>' +
-    bloque('para el día a día', dia) + bloque('con interés: cajitas y savings', interes) + bloque('tarjetas de crédito', tdc) +
-    bloque('en otra moneda', otra) + bloque('fondos', fondos) + bloque('inversiones', bolsa) +
-    '<button type="button" class="btn" style="margin-top:14px" onclick="abrirFondoNuevo()">+ crear un fondo (viaje, emergencias…)</button>' +
-    '<button type="button" class="btn btn-purple" style="margin-top:8px" onclick="abrirAsistente()">agregar bancos y fondos con preguntas</button>';
+  const bloque = (tit, filas) => filas.length ? '<div class="section-title" style="margin-top:16px">' + e(tit) + '</div>' + filas.map(x =>
+    '<div class="item-row"><div style="flex:1;min-width:0"><div>' + e(x.prod) + '</div>' + (x.sub ? '<div class="item-meta">' + e(x.sub) + '</div>' : '') + '</div><div class="item-amt-pos" style="white-space:nowrap">' + e(x.monto) + '</div></div>').join('') : '';
+  el.innerHTML = [...bancos.values()].map(tarjeta).join('') +
+    bloque('efectivo', efectivo) + bloque('fondos', fondos) +
+    (posA.length ? bloque('inversiones', [{prod: 'bolsa', sub: modoPrivado ? 'posiciones ocultas' : posA.map(([k]) => k).join(', '), monto: 'en inversiones'}]) : '') +
+    '<button type="button" class="btn" style="margin-top:14px" onclick="abrirFondoNuevo()">+ crear un fondo (viaje, emergencias…)</button>';
 }
 window.perfilSub=function(cual){
   // (28-oct-2026) tres subpestañas: tu perfil, mis cuentas y amigos
@@ -8492,7 +8525,8 @@ function renderFondo() {
     kpi('neto completo', T.listo ? fmt(T.neto + Ftot + Gtot) : '—', 'suma lo que te deben y resta tus tarjetas') +
     kpi('rinde al mes', estMes > 0.005 ? '≈' + fmt(estMes) : '—', 'estimado: el interés que agrega el fondo' +
       (apartadoDe('mifel') > 0 && state.mifelVigencia ? ' · supone que Mifel sigue al ' + state.mifelTasa + '% después del ' + state.mifelVigencia : '')) +
-    kpi('ha entrado', fmt(suma(['entrada', 'apartar', 'rendimiento'])), 'entradas, apartados y rendimientos') +
+    kpi('ha generado', fmt(rendRegistradoFondo(FA) + G), 'en total: ' + fmt(rendRegistradoFondo(FA)) + ' de abonos registrados' + (G > 0.005 ? ' + ≈' + fmt(G) + ' estimado' : '') + ' · no entra a tu resumen', true) +
+    kpi('ha entrado', fmt(suma(['entrada', 'apartar'])), 'lo que tú metiste: entradas y apartados') +
     kpi('se ha usado', fmt(suma(['salida', 'liberar'])), 'pagos y lo liberado a tu dinero');
   const cu = document.getElementById('fondo-cuentas');
   if (cu) {
@@ -8511,6 +8545,7 @@ function renderFondo() {
       'cuando veas el abono en tu banco, regístralo como "el banco abonó rendimiento del fondo". Mientras no lo registres, la app ya lo cuenta como del fondo con un estimado (no como tuyo); al registrarlo queda exacto.' +
       (estMes > 0.005 ? ' Estimado: ≈' + fmt(estMes) + ' al mes, contando que tu dinero ocupa primero la banda de mayor tasa.' : '') + '</div>';
   }
+  refrescar(() => renderChart('fondo-chart'));
   const mv = document.getElementById('fondo-movs');
   if (mv) {
     const neg = t => t === 'salida' || t === 'liberar';
@@ -8681,6 +8716,44 @@ async function guardarPerfil(cambios,msgOk) {
   }finally{ perfilGuardando=false; }
 }
 // portabilidad: descarga en un archivo todo lo que la app guarda de esta persona
+// (28-oct-2026, Beto: 'yo quiero que se descargue en Excel') una hoja por tema, con fechas y montos con formato
+window.exportarMisDatosExcel = async function() {
+  showToast('armando tu Excel...');
+  try {
+    const ExcelJS = await cargarExcelJS(), wb = new ExcelJS.Workbook(), MON = '"$"#,##0.00';
+    const hoja = (nombre, cols, filas) => {
+      const ws = wb.addWorksheet(nombre);
+      ws.columns = cols.map(([h, k, w, tipo]) => ({header: h, key: k, width: w || 18, style: tipo === 'mon' ? {numFmt: MON} : tipo === 'fecha' ? {numFmt: 'dd/mm/yyyy'} : {}}));
+      ws.getRow(1).font = {bold: true}; ws.views = [{state: 'frozen', ySplit: 1}];
+      filas.forEach(x => ws.addRow(x));
+      if (filas.length) ws.autoFilter = {from: {row: 1, column: 1}, to: {row: 1, column: cols.length}};
+    };
+    // ExcelJS escribe las fechas en UTC: se arma el dia LOCAL como medianoche UTC (si no, en Sydney o China sale un dia antes)
+    const diaXl = d => (d && Number.isFinite(d.getTime())) ? new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate())) : null;
+    const fecha = f => { const t = msFechaMov(f); return t === null ? null : diaXl(new Date(t)); };
+    const cta = k => nombreCuenta(k) || k || '';
+    // (tarjetas, deposito de la TDC y bolsa no son saldos de cuenta: van en la app y en la copia JSON)
+    hoja('Cuentas', [['banco', 'banco', 14], ['cuenta', 'cuenta', 24], ['saldo hoy', 'saldo', 16, 'mon'], ['del fondo', 'fondo', 16, 'mon'], ['tuyo', 'tuyo', 16, 'mon'], ['moneda', 'moneda', 10]],
+      REG_CUENTAS.filter(c => !c.legada && c.grupo).map(c => ({banco: c.banco || '', cuenta: c.nombre, saldo: c2(getSaldoCuenta(c.id)), fondo: c2(fondoEnCuenta(c.id)), tuyo: c2(saldoTuyo(c.id)), moneda: 'MXN'}))
+        .concat(Object.values(state.cuentasX || {}).map(x => ({banco: x.nombre.replace(/ cajita$/i, ''), cuenta: x.nombre + ' (' + (TIPOS_CX[x.tipo] || x.tipo) + ')', saldo: c2(saldoX(x)), fondo: 0, tuyo: c2(saldoX(x)), moneda: x.moneda}))));
+    hoja('Gastos', [['fecha', 'f', 12, 'fecha'], ['categoría', 'cat', 18], ['monto', 'monto', 14, 'mon'], ['pagado con', 'cta', 22], ['nota', 'nota', 32]],
+      state.gastos.map(g => ({f: fecha(g.fecha), cat: g.cat, monto: nFin(g.monto), cta: cta(g.fuente), nota: g.nota || ''})));
+    hoja('Ingresos', [['fecha', 'f', 12, 'fecha'], ['categoría', 'cat', 18], ['monto', 'monto', 14, 'mon'], ['a la cuenta', 'cta', 22], ['nota', 'nota', 32]],
+      state.ingresos.map(g => ({f: fecha(g.fecha), cat: g.cat, monto: nFin(g.monto), cta: cta(g.destino), nota: g.nota || ''})));
+    hoja('Transferencias', [['fecha', 'f', 12, 'fecha'], ['de', 'de', 22], ['a', 'a', 22], ['monto', 'monto', 14, 'mon'], ['nota', 'nota', 32]],
+      state.transferencias.map(t => ({f: fecha(t.fecha), de: cta(t.origen), a: cta(t.destino), monto: nFin(t.monto), nota: t.nota || ''})));
+    hoja('Deudas', [['persona', 'p', 18], ['fecha', 'f', 12, 'fecha'], ['tipo', 't', 16], ['monto', 'monto', 14, 'mon'], ['nota', 'nota', 32]],
+      Object.values(state.personas || {}).flatMap(p => (p.movimientos || []).map(m => ({p: p.nombre || '', f: fecha(m.fecha), t: m.tipo || '', monto: nFin(m.monto), nota: [m.subcat, m.nota].filter(Boolean).join(' · ')}))));
+    hoja('Fondos', [['fondo', 'fo', 18], ['fecha', 'f', 12, 'fecha'], ['qué pasó', 't', 22], ['cuenta', 'cta', 20], ['monto', 'monto', 14, 'mon'], ['nota', 'nota', 28]],
+      ((state.fondo && state.fondo.movs) || []).map(m => ({fo: nombreFondo(fondoDeMov(m)), f: fecha(m.fecha || m.creado), t: FONDO_TIPOS_TXT[m.tipo] || m.tipo, cta: cta(m.cuenta) + (m.destino ? ' → ' + cta(m.destino) : ''), monto: nFin(m.monto), nota: m.nota || ''})));
+    hoja('Patrimonio', [['fecha', 'f', 12, 'fecha'], ['tu dinero', 'total', 16, 'mon']],
+      (state.snapshots || []).map(x => ({f: diaXl(parseFechaLocal(x.f)), total: nFin(x.total)})));
+    const buf = await wb.xlsx.writeBuffer();
+    const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([buf], {type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}));
+    a.download = 'mis-datos-' + hoyLocal() + '.xlsx'; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1500);
+    showToast('tu Excel está listo');
+  } catch (e) { console.error('exportarMisDatosExcel', e); showToast('no se pudo armar el Excel: revisa tu señal (la herramienta de Excel se baja la primera vez)'); }
+};
 window.exportarMisDatos = function() {
   try{
     const datos={
@@ -9885,7 +9958,8 @@ function calcScore(m) {
   } else excluidos.push('control de gasto (sin ingresos registrados)');
   // 3) constancia (20): meses buenos seguidos, tope a 6 para no premiar eternamente lo mismo
   comps.push({nombre:'constancia',max:20,puntos:Math.round(20*Math.min(1,m.racha/6)),
-    detalle:(m.racha>=1?('llevas '+(m.racha>=24?'24 o más':m.racha)+' mes(es) seguidos cerrando bien'):('este mes no contó: '+porQueNoConto(m)))
+    // (28-oct-2026) se dice cuanto falta: los 20 puntos son con 6 meses seguidos (con 3 meses = 10, que no es un error)
+    detalle:(m.racha>=1?('llevas '+(m.racha>=24?'24 o más':m.racha)+' mes(es) seguidos cerrando bien'+(m.racha<6?' · los 20 puntos son con 6 meses: te faltan '+(6-m.racha):'')):('este mes no contó: '+porQueNoConto(m)))
       +' · se recalcula con tu referencia actual, así que cambia si editas tu perfil'});
   // 4) colchon (10): meses de gasto cubiertos por dinero DISPONIBLE (sin bolsa, sin el
   // deposito congelado de la TDC, sin lo que te deben) contra el objetivo del estandar
@@ -10585,6 +10659,7 @@ window.fetchAll = async function() {
 
 initChartInteraccion('gbm-chart');
 initChartInteraccion('patrimonio-chart');
+initChartInteraccion('fondo-chart');
 initPieInteraccion('res-pie');
 initPieInteraccion('res-pie-ingresos');
 initPieInteraccion('dash-pie');

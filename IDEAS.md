@@ -436,3 +436,8 @@ app NUNCA bloquea un gasto.
 - A 390: selects cortan "dólar australiano"; "-A$45.00 (≈ $589.75)" se parte en tres renglones; "· 27 oct" colgando sin nota. Campo de renombrar sin estilo.
 - A 1536: la tarjeta de la cuenta x_ queda sola en media fila; pastilla gris suelta entre efectivo y Revolut MXN (¿anterior?).
 - En Sydney, las cuentas x_ quedan hasta abajo de Inicio, debajo de tarjetas en $0: decide Beto si suben.
+
+## Pedidos de Roberto del 28-oct-2026 (mañana) que quedan para otra sesión
+- "Tu referencia personal" en el perfil, más ordenada (sin detalle todavía de cómo: preguntarle qué le estorba).
+- Buscar amigos por nombre de usuario: necesita el servidor del registro solo (Firebase nuevo, fin de semana).
+- Constancia de la calificación: hoy los 20 puntos son con 6 meses seguidos (3 meses = 10). Si Roberto quiere, bajar a 3 o 4.
