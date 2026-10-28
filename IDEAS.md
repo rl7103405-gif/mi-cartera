@@ -427,3 +427,12 @@ con 9,035 personas (Irrational Labs) mostró que un presupuesto que no se ve al 
 Ocho sesiones en orden: límite semanal, al pasarte + resumen del lunes, pagos (tarjeta y fijos), exportar todo a
 Excel, captura rápida, gastos hormiga; después notificaciones e importar estados de cuenta. Regla fija de Roberto: la
 app NUNCA bloquea un gasto.
+
+## De usuario-real "Beto en Sydney" (27-oct-2026, monedas) — amarillos sin hacer
+- Mostrar la diferencia cambiaria con su cifra: al transferir ("comisión del cambio: $X") y cuando el total se mueve solo por el tipo de cambio.
+- Escribir "A$1 = $13.11" donde ya sale la fecha del tipo de cambio (tarjeta y perfil); avisar en el total si el tipo es viejo.
+- La etiqueta del monto no dice la moneda (sigue "monto · ej. 150") hasta elegir cuenta; "actualizar saldos" no lista las cuentas x_ (están en su tarjeta).
+- "Disponible: efectivo + NU + Revolut" ya incluye las cuentas en otra moneda y no lo dice (subGrupo).
+- A 390: selects cortan "dólar australiano"; "-A$45.00 (≈ $589.75)" se parte en tres renglones; "· 27 oct" colgando sin nota. Campo de renombrar sin estilo.
+- A 1536: la tarjeta de la cuenta x_ queda sola en media fila; pastilla gris suelta entre efectivo y Revolut MXN (¿anterior?).
+- En Sydney, las cuentas x_ quedan hasta abajo de Inicio, debajo de tarjetas en $0: decide Beto si suben.

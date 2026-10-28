@@ -56,7 +56,7 @@ const state = {
   nuCajita1Base:0, nuSaldo:0, efectivo:0, revMXN:0, nuCajita1Fecha:'',
   tarjetaDeuda:0, tarjetaMovimientos:[], revTdcDeuda:0, revTdcDeposito:0, revTdcMovs:[],
   personas:{}, catsGasto:['Otros'], catsIngreso:['Otros'], snapshots:[],
-  ivvPrecio:0, usdMxn:0, accionesMkt:{},
+  ivvPrecio:0, usdMxn:0, accionesMkt:{}, cuentasX:{}, fx:null,
   gastos:[], ingresos:[], transferencias:[], stocksOps:[], posiciones:{}
 };
 const limpio = () => JSON.parse(JSON.stringify(state));
@@ -75,6 +75,17 @@ const HAY_FONDO = fuente.includes("'fondo'");
 const HAY_CUENTAS = fuente.includes("'cuentas'");
 // (27-oct-2026) CTAS_FONDO sale del registro de cuentas: se carga antes que el saneo del fondo
 const registroSrc = HTML.includes('// ── REGISTRO DE CUENTAS') ? extrae('// ── REGISTRO DE CUENTAS', '// ── fin registro de cuentas') : '';
+// (20-oct-2026) cuentas en otra moneda: su doc entra al todo o nada, y el tipo de cambio sale de mercado
+const HAY_CX = fuente.includes('docCX()');
+function extraeFn(nombre) {
+  const i = HTML.indexOf('function ' + nombre + '(');
+  if (i < 0) throw new Error('no encontrado: function ' + nombre);
+  let j = HTML.indexOf('{', i), prof = 0;
+  for (; j < HTML.length; j++) { if (HTML[j] === '{') prof++; else if (HTML[j] === '}' && --prof === 0) return HTML.slice(i, j + 1); }
+  throw new Error('llaves sin cerrar en ' + nombre);
+}
+const cxSrc = HAY_CX ? 'const nFin = (v,d=0) => Number.isFinite(v) ? v : d; const c2 = n => Math.round(n*100)/100;\n'
+  + extrae('const MONEDAS_X =', '// que hay que DEVOLVER') + '\n' + extrae('const FX_BANDAS =', 'function saneaFx(') + '\n' + extraeFn('saneaFx') + '\n' : '';
 const fondoSrc = HAY_FONDO ? registroSrc + extrae('// ── fondo: saneo', '// ── fin saneo fondo') : '';
 // la casa (30-sep): la carga normaliza las categorías de ingreso con conCatPapa ("Mes papá" primero)
 const papaSrc = HTML.includes('const conCatPapa')
@@ -90,7 +101,7 @@ const VALS = [db, doc, collection, query, orderBy, getDocFromCache, getDocsFromC
   window, loadFromFirebase, showToast, renderCatSelect, refrescar,
   renderPersonaSelect, render, renderMovimientos, renderTransferencias, datosCargados];
 const { pintarDesdeCache, marcarCopiaLocal, marcarSincronizado } = new Function(
-  ...ARGS, papaSrc + fondoSrc + fuente + '\nreturn { pintarDesdeCache, marcarCopiaLocal, marcarSincronizado };'
+  ...ARGS, papaSrc + fondoSrc + cxSrc + fuente + '\nreturn { pintarDesdeCache, marcarCopiaLocal, marcarSincronizado };'
 )(...VALS);
 
 // ── utilidades ──────────────────────────────────────────────
@@ -112,6 +123,11 @@ function cacheCompleta() {
   if (HAY_TDCREV) CACHE[`${NS}/tarjetaRev`] = { deuda:200, deposito:1000, movimientos:[] };
   if (HAY_MERCADO) CACHE[`${NS}/mercado`] = { ivvPrecio:154.2, usdMxn:18.5, accionesMkt:{NVDA:{precio:120}} };
   if (HAY_CUENTAS) CACHE[`${NS}/cuentas`] = { slots:{ tarjeta:{on:false} } };
+  if (HAY_CX) {
+    CACHE[`${NS}/cuentasX`] = { cuentas:{ x_abc123:{nombre:'CommBank', moneda:'AUD', tipo:'banco', on:true, saldo:500, creada:'2026-10-20'},
+                                          x_malo:{nombre:'rota', moneda:'XYZ', saldo:1} } };
+    if (HAY_MERCADO) CACHE[`${NS}/mercado`].fx = { fecha:'2026-10-20', bajado:'2026-10-20', mxnPor:{AUD:12.94, XYZ:5}, fuente:'BCE' };
+  }
   if (HAY_FONDO) CACHE[`${NS}/fondo`] = { saldosPorCuenta:{revolut:800000, gbm:5}, movs:[{id:'f1',tipo:'entrada',cuenta:'revolut',monto:800000,fecha:'2026-09-28',creado:'2026-09-28T10:00:00Z'}] };
   COLS = {
     [PFX+'gastos']:         [{id:'g1',monto:150,cat:'Comida',fecha:'2026-09-02T00:00:00Z'},
@@ -147,12 +163,18 @@ if (HAY_MERCADO) chk('aplica las cotizaciones (si no, el patrimonio saldria de m
 if (HAY_FONDO) chk('aplica el fondo (si no, inicio pintaria lo apartado como tuyo)',
   state.fondo && state.fondo.saldosPorCuenta.revolut === 800000 && state.fondo.movs.length === 1, JSON.stringify(state.fondo));
 if (HAY_FONDO) chk('el fondo se sanea: una cuenta fuera del catalogo no entra', state.fondo && state.fondo.saldosPorCuenta.gbm === undefined);
+if (HAY_CX) chk('aplica las cuentas en otra moneda (si no, el total saldria bajo)',
+  state.cuentasX.x_abc123 && state.cuentasX.x_abc123.saldo === 500 && state.cuentasX.x_abc123.moneda === 'AUD', JSON.stringify(state.cuentasX));
+if (HAY_CX) chk('una cuenta con id o moneda raros se descarta', !state.cuentasX.x_malo && Object.keys(state.cuentasX).length === 1);
+if (HAY_CX && HAY_MERCADO) chk('aplica el tipo de cambio y descarta monedas fuera del catalogo',
+  state.fx && state.fx.mxnPor.AUD === 12.94 && state.fx.mxnPor.XYZ === undefined, JSON.stringify(state.fx));
 chk('NO escribio NADA en Firestore', ESCRITURAS === 0, 'escrituras=' + ESCRITURAS);
 
 // ═══ 2. TODO O NADA ═══
 console.log('\n2. Si falta CUALQUIER pieza, no pinta nada (todo o nada)');
 for (const falta of ['saldos','tarjeta','personas','categorias','historial',...DOCS_OPC,
-                     ...(HAY_MERCADO?['mercado']:[]), ...(HAY_FONDO?['fondo']:[]), ...(HAY_CUENTAS?['cuentas']:[])]) {
+                     ...(HAY_MERCADO?['mercado']:[]), ...(HAY_FONDO?['fondo']:[]), ...(HAY_CUENTAS?['cuentas']:[]),
+                     ...(HAY_CX?['cuentasX']:[])]) {
   reset(); cacheCompleta(); delete CACHE[`${NS}/${falta}`];
   ok = await pintarDesdeCache();
   chk('sin ' + falta + ' -> false y estado intacto', ok === false && state.efectivo === 0,

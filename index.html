@@ -331,6 +331,8 @@ html[data-tema='grafito'] .tabs{--sombra-scroll:rgba(255,255,255,.16)}
 /* el botón de confirmar ocupa su lugar aunque esté oculto: la perilla no salta al aparecer.
    visibility:hidden lo saca del foco y del lector igual que hidden */
 .desliza-si[hidden]{display:none!important}
+/* (20-oct-2026) cuentas en otra moneda: .cards y .type-toggle definen display y le ganan a hidden */
+#cx-cards[hidden],#gasto-fuente-x[hidden],#ingreso-destino-x[hidden]{display:none!important}
 .desliza-pista{display:flex;align-items:center;justify-content:center;height:46px;margin-top:4px;font-size:13px;color:var(--muted);text-align:center}
 .desliza-pista[hidden]{display:none}
 /* el monto con error se ve rojo aunque tenga el foco (el anillo verde lo tapaba) */
@@ -720,6 +722,8 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
       </div>
     </div>
   </div>
+  <!-- (20-oct-2026) cuentas en otra moneda: una tarjeta por cuenta (renderCuentasX). Se agregan en perfil -->
+  <div class="cards" id="cx-cards" hidden style="margin-top:12px"></div>
 
   <div class="inicio-grid">
   <div class="sec">
@@ -754,13 +758,16 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
   <div class="panel">
     <div class="row2" style="gap:8px">
       <div class="field"><label>desde</label>
-        <select id="transfer-origen"></select>
+        <select id="transfer-origen" onchange="ajustarTransferX()"></select>
       </div>
       <div class="field"><label>hacia</label>
-        <select id="transfer-destino"></select>
+        <select id="transfer-destino" onchange="ajustarTransferX()"></select>
       </div>
     </div>
-    <div class="field"><label>monto</label><input type="number" id="transfer-monto" placeholder="ej. 4000" step="0.01" inputmode="decimal"></div>
+    <div class="field"><label id="transfer-monto-lbl" for="transfer-monto">monto</label><input type="number" id="transfer-monto" placeholder="ej. 4000" step="0.01" inputmode="decimal"></div>
+    <!-- (20-oct-2026) solo entre monedas distintas: lo que llego del otro lado (la diferencia es la comision) -->
+    <div class="field" id="transfer-llega-wrap" hidden><label id="transfer-llega-lbl" for="transfer-llega">llega</label><input type="number" id="transfer-llega" placeholder="ej. 300" step="0.01" inputmode="decimal"></div>
+    <div class="item-meta" id="transfer-llega-ayuda" hidden style="margin:-4px 0 10px"></div>
     <div class="field"><label>nota (opcional)</label><input type="text" id="transfer-nota" placeholder="ej. depósito en cajero"></div>
     <div class="field"><label>fecha (YYYY-MM-DD, vacía = hoy)</label><input type="text" id="transfer-fecha" placeholder="hoy"></div>
     <button class="btn btn-purple" id="transfer-btn" onclick="registrarTransferencia()">transferir</button>
@@ -807,11 +814,14 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
       <div class="field"><label>categoría</label>
         <select id="gasto-cat" onchange="handleCatChange('gasto',this)"></select>
       </div>
-      <div class="field"><label>monto</label><input type="number" id="gasto-monto" placeholder="ej. 150" step="1" inputmode="decimal"></div>
+      <div class="field"><label>monto</label><input type="number" id="gasto-monto" placeholder="ej. 150" step="1" inputmode="decimal" oninput="pintarAyudaMontoX('gasto')"></div>
+      <div class="item-meta" id="gasto-x-ayuda" hidden style="margin:-4px 0 10px"></div>
       <div class="field"><label>nota (opcional)</label><input type="text" id="gasto-nota" maxlength="200" placeholder="ej. taquería"></div>
       <div class="field"><label>fecha (YYYY-MM-DD, vacía = hoy)</label><input type="text" id="gasto-fecha" placeholder="hoy"></div>
       <div class="field"><label>pagado con</label>
         <div class="type-toggle" id="gasto-fuente-toggle"><!-- botones: pintarListasCuentas() --></div>
+        <!-- (20-oct-2026) cuentas en otra moneda: se pintan solas (pintarFuentesX) -->
+        <div class="type-toggle" id="gasto-fuente-x" hidden style="margin-top:6px"></div>
       </div>
       <button class="btn btn-purple" id="gasto-btn" onclick="registrarGasto()">registrar gasto</button>
     </div>
@@ -821,11 +831,13 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
       <div class="field"><label>categoría</label>
         <select id="ingreso-cat" onchange="handleCatChange('ingreso',this)"></select>
       </div>
-      <div class="field"><label>monto</label><input type="number" id="ingreso-monto" placeholder="ej. 5000" step="1" inputmode="decimal"></div>
+      <div class="field"><label>monto</label><input type="number" id="ingreso-monto" placeholder="ej. 5000" step="1" inputmode="decimal" oninput="pintarAyudaMontoX('ingreso')"></div>
+      <div class="item-meta" id="ingreso-x-ayuda" hidden style="margin:-4px 0 10px"></div>
       <div class="field"><label>nota (opcional)</label><input type="text" id="ingreso-nota" maxlength="200" placeholder="ej. pago proyecto"></div>
       <div class="field"><label>fecha (YYYY-MM-DD, vacía = hoy)</label><input type="text" id="ingreso-fecha" placeholder="hoy"></div>
       <div class="field"><label>entra a</label>
         <div class="type-toggle" id="ingreso-destino-toggle"><!-- botones: pintarListasCuentas() --></div>
+        <div class="type-toggle" id="ingreso-destino-x" hidden style="margin-top:6px"></div>
       </div>
       <button class="btn btn-green" id="ingreso-btn" onclick="registrarIngreso()">registrar ingreso</button>
     </div>
@@ -970,6 +982,34 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
         <div class="type-opt" id="fondo-off" onclick="setFondoTab(false)">apagada</div>
         <div class="type-opt" id="fondo-on" onclick="setFondoTab(true)">encendida</div>
       </div>
+    </div>
+    <!-- (20-oct-2026) cuentas en otra moneda, como en Revolut: las agrega la persona sola -->
+    <div class="section-title mt">cuentas en otra moneda</div>
+    <div class="panel">
+      <div class="item-meta" style="line-height:1.5;margin-bottom:10px">
+        Para el dinero que tienes en dólares australianos, dólares, euros o yuanes. Cada cuenta lleva
+        su saldo en su moneda; tu total en inicio la suma en pesos con el tipo de cambio del día, que
+        se actualiza solo una vez al día. Los gastos que registres ahí guardan el tipo de cambio de ese día.
+      </div>
+      <div id="cx-perfil-lista"><div class="item-meta">todavía no tienes cuentas en otra moneda</div></div>
+      <div class="section-title" style="margin-top:14px">agregar una cuenta</div>
+      <div class="row2">
+        <div class="field"><label for="cx-nuevo-nombre">nombre (el de tu banco, por ejemplo)</label><input type="text" id="cx-nuevo-nombre" maxlength="24" placeholder="ej. CommBank"></div>
+        <div class="field"><label for="cx-nuevo-moneda">moneda</label>
+          <select id="cx-nuevo-moneda">
+            <option value="AUD">dólar australiano (A$)</option>
+            <option value="USD">dólar estadounidense (US$)</option>
+            <option value="EUR">euro (€)</option>
+            <option value="CNY">yuan chino (¥)</option>
+          </select></div>
+      </div>
+      <div class="row2">
+        <div class="field"><label for="cx-nuevo-tipo">tipo</label>
+          <select id="cx-nuevo-tipo"><option value="banco">banco</option><option value="efectivo">efectivo</option></select></div>
+        <div class="field"><label for="cx-nuevo-saldo">saldo de hoy, en esa moneda</label><input type="number" id="cx-nuevo-saldo" step="0.01" inputmode="decimal" placeholder="ej. 500"></div>
+      </div>
+      <button type="button" class="btn btn-purple" id="cx-nuevo-btn" onclick="agregarCuentaX()">agregar cuenta</button>
+      <div class="item-meta" id="cx-fx" style="margin-top:8px">—</div>
     </div>
     <div class="section-title mt">tus datos y tu privacidad</div>
     <div class="panel">
@@ -1646,6 +1686,25 @@ function fmt(n) {
   if (n === null || n === undefined || isNaN(n)) return '$—';
   return '$' + Number(n).toLocaleString('es-MX', {minimumFractionDigits:2, maximumFractionDigits:2});
 }
+// (20-oct-2026) monto en la moneda de una cuenta en otra moneda: 'A$12.50'. fmt() se queda para pesos
+function fmtX(n, moneda) {
+  // una moneda que no esta en MONEDAS_X (documento danado o ajeno) lleva '¤': nunca su texto crudo, que va a innerHTML
+  const sim = (Object.prototype.hasOwnProperty.call(MONEDAS_X, moneda) && MONEDAS_X[moneda].sim) || '¤';
+  if (modoPrivado) return sim + ' ····';
+  if (n === null || n === undefined || isNaN(n)) return sim + '—';
+  return (n < 0 ? '−' : '') + sim + Math.abs(Number(n)).toLocaleString('es-MX', {minimumFractionDigits:2, maximumFractionDigits:2});
+}
+// el monto de un movimiento como se capturo: en otra moneda, 'A$12.50 (≈ $140.20)'; en pesos, igual que siempre
+const fmtMov = m => (m && Number.isFinite(m.montoOrig) && MONEDAS_X[m.moneda])
+  ? fmtX(m.montoOrig, m.moneda) + ' (≈ ' + fmt(m.monto) + ')' : fmt(m && m.monto);
+// nombre visible de cualquier cuenta: las fijas de CUENTAS o una en otra moneda ('Commbank · AUD').
+// OJO: el nombre de una cuenta en otra moneda lo escribe el usuario: escaparlo al meterlo en HTML
+function nombreCuenta(k) {
+  if (Object.prototype.hasOwnProperty.call(CUENTAS, k)) return CUENTAS[k];
+  const x = state.cuentasX && state.cuentasX[k];
+  if (x) return x.nombre + ' · ' + x.moneda;
+  return esIdX(k) ? '(cuenta en otra moneda)' : '';
+}
 function hoyLocal() {
   // fecha local YYYY-MM-DD (NO usar toISOString: de noche en Mexico da la fecha de manana en UTC)
   const d = new Date();
@@ -1915,7 +1974,7 @@ onAuthStateChanged(auth, async user => {
       document.getElementById('loading-overlay').classList.add('hidden');
       renderCatSelect('gasto-cat', state.catsGasto);
       renderCatSelect('ingreso-cat', state.catsIngreso);
-      refrescar(renderPersonaSelect, render, renderMovimientos, renderTransferencias);
+      refrescar(renderPersonaSelect, render, renderMovimientos, renderTransferencias, pintarFuentesX);
       aplicarVisibilidadDashboard();
       if (dashboardEncendido()) refrescar(renderDashboard);
       marcarCopiaLocal(true);
@@ -1958,6 +2017,9 @@ onAuthStateChanged(auth, async user => {
     // 15-oct-2026, Roberto: los precios de bolsa se piden SOLO cuando el usuario pulsa
     // "actualizar", no cada vez que abre la app. Al abrir se ven los ultimos guardados.
     document.getElementById('status-inicio').textContent=textoEstadoPrecios();
+    // (20-oct-2026) cuentas en otra moneda: botones en los formularios y el tipo de cambio una vez al dia
+    refrescar(pintarFuentesX);
+    if (!cargaDesdeCache) asegurarTipoCambio().then(()=>refrescar(render, pintarFuentesX)).catch(e=>console.error('tipo de cambio',e));
   } else {
     document.getElementById('login-screen').classList.remove('hidden');
     document.getElementById('loading-overlay').classList.add('hidden');
@@ -1993,6 +2055,8 @@ let state = {
   ivvPrecio:154, ivvVar:null, ivvHistory:[],
   nvdaPrecio:null, nvdaPrev:null, nvdaFecha:'', usdMxn:null, usdMxnPrev:null, usdMxnFecha:'',
   nvdaHistory:[], usdMxnHistory:[],
+  // (20-oct-2026) cuentas en otra moneda (doc <NS>/cuentasX) y el tipo de cambio del dia (mercado.fx)
+  cuentasX:{}, fx:null,
   rendimientos:[], // tramos cerrados de interes de las cuentas compuestas: un doc por tramo (ver C_REND)
   stocksOps:[], posiciones:{}, accionesMkt:{}, // ledger de operaciones de bolsa, posiciones derivadas y cotizaciones por simbolo
   // datos por ticker que NINGUNA API gratis da (el tablero del video los saca de un
@@ -2052,12 +2116,14 @@ async function pintarDesdeCache() {
       getDocsFromCache(query(collection(db,'transferencias'), orderBy('fecha','desc'))),
       getDocsFromCache(query(collection(db,'stocksOps'), orderBy('fecha','asc'))),
       getDocsFromCache(query(collection(db,C_REND), orderBy('fin','asc'))),
+      // (20-oct-2026) las cuentas en otra moneda entran al TODO O NADA: sin ellas el total saldria bajo
+      getDocFromCache(docCX()),
     ]);
   } catch(e) { return false; }
   // getDocFromCache/getDocsFromCache LANZAN si eso no esta guardado en el aparato:
   // si alguna falto, la copia local no alcanza para una pantalla coherente
   if (r.some(x => x.status !== 'fulfilled')) return false;
-  const [sD,tD,trvD,pD,cD,hD,mD,fD,gS,iS,trS,opS,rS] = r.map(x => x.value);
+  const [sD,tD,trvD,pD,cD,hD,mD,fD,gS,iS,trS,opS,rS,xD] = r.map(x => x.value);
   // sin saldos, personas o tarjeta no alcanza para una pantalla coherente: pintar
   // personas vacio enseñaria los PERSONAS_DEFAULT del codigo como si fueran deudas reales
   if (!sD.exists() || !pD.exists() || !tD.exists()) return false;
@@ -2102,7 +2168,9 @@ async function pintarDesdeCache() {
       if (Number.isFinite(m.ivvPrecio)) state.ivvPrecio = m.ivvPrecio;
       if (Number.isFinite(m.usdMxn)) state.usdMxn = m.usdMxn;
       if (m.accionesMkt && typeof m.accionesMkt === 'object' && !Array.isArray(m.accionesMkt))
-        state.accionesMkt = m.accionesMkt; }
+        state.accionesMkt = m.accionesMkt;
+      state.fx = saneaFx(m.fx); }
+    state.cuentasX = saneaCX(xD.exists() ? xD.data() : null);
     const ord = (a,b) => (String(b.fecha||'')+'|'+String(b.creado||'')).localeCompare(String(a.fecha||'')+'|'+String(a.creado||''));
     state.gastos         = gS.docs.map(x => ({id:x.id, ...x.data()})).sort(ord);
     state.ingresos       = iS.docs.map(x => ({id:x.id, ...x.data()})).sort(ord);
@@ -2158,12 +2226,13 @@ window.reintentarSync = async function() {
   if (!ok) { showToast('sigue sin conexión'); return; }
   renderCatSelect('gasto-cat', state.catsGasto);
   renderCatSelect('ingreso-cat', state.catsIngreso);
-  refrescar(renderPersonaSelect, render, renderMovimientos, renderTransferencias);
+  refrescar(renderPersonaSelect, render, renderMovimientos, renderTransferencias, pintarFuentesX);
   // otra vez desde la cache: sigue sin red aunque la carga "saliera bien"
   if (cargaDesdeCache) { marcarCopiaLocal(true, true); showToast('sigue sin conexión'); return; }
   // tres lecturas invalidadas seguidas: no se anuncia nada confirmado; banda y reintento siguen
   if (!estable) { setSyncDot('err'); marcarCopiaLocal(true, true); return; }
   marcarSincronizado();
+  asegurarTipoCambio().then(()=>refrescar(render, pintarFuentesX)).catch(()=>{});
   showToast('datos actualizados');
 };
 function marcarSincronizado() {
@@ -2184,7 +2253,7 @@ async function loadFromFirebase() {
       sDoc, mDoc, pDoc, perDoc, tDoc,
       trvDoc, hDoc, aDoc, mtDoc, cDoc, tkDoc, fDoc,
       gSnap, iSnap, trSnap, opSnap
-    , rendSnap] = await Promise.all([
+    , rendSnap, cxDoc] = await Promise.all([
       getDoc(doc(db,'cartera','saldos')),
       getDoc(doc(db,'cartera','mercado')),
       getDoc(doc(db,'cartera','personas')),
@@ -2202,6 +2271,8 @@ async function loadFromFirebase() {
       getDocs(query(collection(db,'transferencias'), orderBy('fecha','desc'))),
       getDocs(query(collection(db,'stocksOps'), orderBy('fecha','asc'))),
       getDocs(query(collection(db,C_REND), orderBy('fin','asc'))),
+      // (20-oct-2026) cuentas en otra moneda: si no existe, no hay ninguna (nunca se siembra al cargar)
+      getDoc(docCX()),
     ]);
     // si los datos vinieron de la cache local (red caida o lentisima) NO se corren
     // las siembras/migraciones: decidirian sobre un estado viejo y podrian reaplicar
@@ -2209,8 +2280,9 @@ async function loadFromFirebase() {
     // (15-oct-2026) "vino del servidor" se certifica con TODAS las lecturas, no solo con saldos:
     // cualquiera que salga de la cache (gastos, ingresos, personas...) deja el estado sin confirmar
     const desdeCache = [sDoc, mDoc, pDoc, perDoc, tDoc, trvDoc, hDoc, aDoc, mtDoc, cDoc, tkDoc, fDoc,
-      gSnap, iSnap, trSnap, opSnap, rendSnap].some(s => !!(s && s.metadata && s.metadata.fromCache));
+      gSnap, iSnap, trSnap, opSnap, rendSnap, cxDoc].some(s => !!(s && s.metadata && s.metadata.fromCache));
     cargaDesdeCache = desdeCache;
+    state.cuentasX = saneaCX(cxDoc.exists() ? cxDoc.data() : null);
     // el fondo se carga SIEMPRE, exista o no: sin el, inicio pintaria el dinero apartado como tuyo
     state.fondo = saneaFondo(fDoc.exists() ? fDoc.data() : null);
     if (sDoc.exists()) {
@@ -2254,6 +2326,7 @@ async function loadFromFirebase() {
       if (typeof m.usdMxnFecha === 'string') state.usdMxnFecha = m.usdMxnFecha;
       if (Array.isArray(m.nvdaHistory)) state.nvdaHistory = m.nvdaHistory;
       if (Array.isArray(m.usdMxnHistory)) state.usdMxnHistory = m.usdMxnHistory;
+      state.fx = saneaFx(m.fx); // tipo de cambio del dia para las cuentas en otra moneda
       if (m.accionesMkt && typeof m.accionesMkt==='object') {
         const limpio={};
         Object.entries(m.accionesMkt).forEach(([k,mk])=>{
@@ -2548,7 +2621,9 @@ function suscribirEnVivo() {
     [doc(db,'cartera','tarjeta'),    aplicarTarjetaRemota,     ()=>refrescar(render,renderMovimientos)],
     [doc(db,'cartera','tarjetaRev'), aplicarTarjetaRevRemota,  ()=>refrescar(render,renderMovimientos)],
     [doc(db,'cartera','personas'),   aplicarPersonasRemotas,   ()=>refrescar(render,renderDeudas,renderPersonaSelect)],
-    [doc(db,'cartera','fondo'),      d=>{ state.fondo=saneaFondo(d); }, ()=>refrescar(render,renderFondo)]
+    [doc(db,'cartera','fondo'),      d=>{ state.fondo=saneaFondo(d); }, ()=>refrescar(render,renderFondo)],
+    // (20-oct-2026) un gasto en otra moneda desde otro aparato mueve esta cuenta: se ve sin recargar
+    [docCX(),                        d=>{ state.cuentasX=saneaCX(d); }, ()=>refrescar(render,renderCuentasX,pintarFuentesX)]
   ];
   pares.forEach(([ref,aplica,pinta])=>{
     const u=onSnapshot(ref, snap=>{
@@ -2600,6 +2675,52 @@ function desuscribir() { unsubs.forEach(u=>{ try{ u(); }catch(e){} }); unsubs=[]
 const nFin = (v,d=0) => Number.isFinite(v) ? v : d;   // lo que llegue corrupto vale 0
 const c2   = n => Math.round(n*100)/100;              // corta el ruido de punto flotante
 const cent = n => Math.round(n*100);                  // comparaciones exactas, en centavos
+// ── CUENTAS EN OTRA MONEDA (20-oct-2026, sesion 0 del plan) ──────────────────────
+// Cuentas que la persona agrega sola (nombre, moneda, tipo), como en Revolut. Viven en
+// <NS>/cuentasX, APARTE de saldos: una version vieja de la app no las conoce y no las pisa.
+// El saldo va en SU moneda. Un gasto o ingreso en otra moneda guarda `monto` YA EN PESOS (al
+// tipo de cambio del dia en que se capturo) mas montoOrig/moneda/tc/tcFecha: todo lo que suma
+// montos (resumen, promedios, calificacion) sigue en pesos sin tocarse, y solo lo que mueve el
+// saldo de la cuenta usa montoOrig. Una cuenta x_ NUNCA va en plan.deltas: va en plan.fx.
+// Las reglas de Firestore impiden borrar un movimiento x_ sin devolver su dinero (cartera-casa).
+const MONEDAS_X = {AUD:{sim:'A$', nom:'dólar australiano'}, USD:{sim:'US$', nom:'dólar estadounidense'},
+                   EUR:{sim:'€', nom:'euro'}, CNY:{sim:'¥', nom:'yuan chino'}};
+const TIPOS_CX = {efectivo:'efectivo', banco:'banco'};
+const CX_MAX = 8;   // cuentas en otra moneda por cartera
+const esIdX = k => typeof k === 'string' && /^x_[a-z0-9]{6,16}$/.test(k);
+const esMovX = m => !!m && (esIdX(m.fuente) || esIdX(m.destino) || esIdX(m.origen));
+const docCX = () => doc(db, (typeof NS === 'string' ? NS : 'cartera'), 'cuentasX');
+// lo que llegue raro se descarta (nunca se inventa una cuenta ni una moneda)
+function saneaCX(raw) {
+  const out = {}, c = raw && raw.cuentas;
+  if (!c || typeof c !== 'object' || Array.isArray(c)) return out;
+  for (const id of Object.keys(c)) {
+    const x = c[id];
+    if (!esIdX(id) || !x || typeof x !== 'object' || !MONEDAS_X[x.moneda]) continue;
+    out[id] = {nombre:(typeof x.nombre === 'string' && x.nombre.trim()) ? x.nombre.trim().slice(0,24) : 'cuenta',
+               moneda:x.moneda, tipo:TIPOS_CX[x.tipo] ? x.tipo : 'banco', on:x.on !== false,
+               saldo:c2(nFin(x.saldo)), creada:typeof x.creada === 'string' ? x.creada : ''};
+  }
+  return out;
+}
+// que hay que DEVOLVER a las cuentas en otra moneda si se borra este movimiento. Sale del documento
+// del SERVIDOR (no de la pantalla). null = el movimiento esta danado y no se puede revertir.
+function reversaX(d) {
+  const r = {};
+  if (!esMovX(d)) return r;
+  const pos = v => Number.isFinite(v) && v > 0;
+  // ambiguo = danado: fuente y destino a la vez, o fuente/destino sin origen (no se revierte dos veces)
+  if (d.fuente !== undefined && d.destino !== undefined && (esIdX(d.fuente) && esIdX(d.destino) || d.origen === undefined)) return null;
+  if (d.origen !== undefined && d.destino !== undefined) {           // transferencia
+    if (esIdX(d.origen))  { if (!pos(d.montoOrigen))  return null; r[d.origen]  = c2(d.montoOrigen); }
+    if (esIdX(d.destino)) { if (!pos(d.montoDestino)) return null; r[d.destino] = c2(nFin(r[d.destino]) - d.montoDestino); }
+    return r;
+  }
+  if (!pos(d.montoOrig)) return null;
+  if (esIdX(d.fuente)) r[d.fuente] = c2(d.montoOrig);                 // gasto: el dinero regresa
+  else if (esIdX(d.destino)) r[d.destino] = c2(-d.montoOrig);         // ingreso: el dinero sale
+  return r;
+}
 // coleccion de tramos de rendimiento: un documento por tramo CERRADO de una cuenta de interes
 const C_REND = (typeof PFX === 'string' ? PFX : '') + 'rendimientos';
 // fecha REAL, no solo con forma de fecha: '2026-02-30' se normaliza a marzo y '2026-13-01' no existe
@@ -2723,6 +2844,10 @@ async function txDinero(plan) {
   const mb = plan.movBorrar || null;
   const me = plan.movEditar || null;
   if (me && (!me.ref || !me.datos || !(me.signo === 1 || me.signo === -1) || !me.antes || !me.despues)) throw new Error('movEditar mal armado');
+  // (20-oct-2026) cuentas en otra moneda: plan.fx = {deltas, absolutos, crear, editar}, montos en SU moneda.
+  // Una cuenta x_ en deltas/absolutos se ignoraria en silencio (no esta en CAMPO_SIMPLE): se rechaza
+  const fxPlan = plan.fx || null;
+  if (Object.keys(deltasPlan).some(esIdX) || Object.keys(absolutos).some(esIdX)) throw new Error('una cuenta en otra moneda va en plan.fx, no en deltas');
   // instante FIJO: los reintentos de la transaccion deben calcular el mismo interes
   const ahora = Date.now(), hoy = hoyLocal();
   // referencias FIJAS para los tramos de rendimiento: se crean fuera de la transaccion para
@@ -2757,6 +2882,8 @@ async function txDinero(plan) {
       for (const v of (plan.verificarIguales||[])) ver.push({v, snap: await tx.get(v.ref)});
       const mbSnap = mb ? await tx.get(mb.ref) : null;
       const meSnap = me ? await tx.get(me.ref) : null;
+      // cuentas en otra moneda: si el plan las mueve, o si se borra/edita un movimiento (puede ser x_)
+      const xSnap  = (fxPlan || mb || me) ? await tx.get(docCX()) : null;
       // ── FASE 2: validar contra lo LEIDO. Cualquier return aborta sin escribir nada ──
       // (16-oct-2026, Codex) un movimiento con id propio que el documento YA trae: el commit anterior SI
       // llego y el SDK reintento tras perder la respuesta. Repetirlo sumaria otra vez el dinero (mismo bug
@@ -2816,6 +2943,62 @@ async function txDinero(plan) {
         }
       }
       const sinEfecto = (mb || me) && !aplicaMov;
+      // ── CUENTAS EN OTRA MONEDA: lo que el plan mueve + lo que hay que devolver al BORRAR un
+      // movimiento x_ (leido del documento del servidor, igual que las banderas del Atajo) ──
+      const cx = saneaCX(xSnap && xSnap.exists() ? xSnap.data() : null);
+      const cxCambios = {};
+      if (me && esMovX(meSnap.data()))
+        return {error:'un movimiento en otra moneda solo se edita en categoría, nota y fecha: para cambiar el monto o la cuenta, bórralo y regístralo de nuevo'};
+      if (fxPlan || mb) {
+        const fxD = {}, fxPlanD = (fxPlan && fxPlan.deltas) || {};
+        for (const k in fxPlanD) {
+          if (!esIdX(k) || !Number.isFinite(fxPlanD[k])) return {error:'cuenta en otra moneda no válida'};
+          if (!cx[k]) return {error:'esa cuenta en otra moneda ya no existe — recarga la app'};
+          if (!cx[k].on) return {error:'la cuenta ' + cx[k].nombre + ' está apagada: enciéndela en perfil'};
+          fxD[k] = c2(nFin(fxD[k]) + fxPlanD[k]);
+        }
+        if (mb && aplicaMov) {
+          const r = reversaX(mbSnap.data());
+          if (r === null) return {error:'ese movimiento en otra moneda está dañado: no se puede deshacer solo'};
+          for (const k in r) {
+            if (!cx[k]) return {error:'la cuenta en otra moneda de ese movimiento ya no existe'};
+            fxD[k] = c2(nFin(fxD[k]) + r[k]);
+          }
+        }
+        const crea = (fxPlan && fxPlan.crear) || {};
+        for (const k in crea) {
+          // la misma cuenta ya creada (respuesta perdida y reintento del SDK): exito para quien llama
+          if (cx[k]) return {error:'esa cuenta ya existe', codigo:'ya-existe'};
+          if (Object.keys(cx).length + Object.keys(cxCambios).length >= CX_MAX) return {error:'máximo ' + CX_MAX + ' cuentas en otra moneda'};
+          const n = saneaCX({cuentas:{[k]:crea[k]}})[k];
+          if (!n || !(cent(n.saldo) >= 0)) return {error:'cuenta en otra moneda no válida'};
+          cxCambios[k] = n;
+        }
+        const ed = (fxPlan && fxPlan.editar) || {};
+        for (const k in ed) {
+          if (!cx[k]) return {error:'esa cuenta ya no existe — recarga la app'};
+          const n = {...cx[k]};
+          if (typeof ed[k].nombre === 'string' && ed[k].nombre.trim()) n.nombre = ed[k].nombre.trim().slice(0,24);
+          // apagar no saca dinero del patrimonio: solo se puede con saldo en cero (como en las copias)
+          if (ed[k].on === false) { if (cent(cx[k].saldo) !== 0) return {error:'para apagar ' + cx[k].nombre + ' su saldo debe estar en cero'}; n.on = false; }
+          if (ed[k].on === true) n.on = true;
+          cxCambios[k] = n;
+        }
+        const abs = (fxPlan && fxPlan.absolutos) || {};
+        for (const k in abs) {
+          if (!cx[k]) return {error:'esa cuenta ya no existe — recarga la app'};
+          if (!Number.isFinite(abs[k])) return {error:'saldo no válido'};
+        }
+        for (const k of new Set([...Object.keys(abs), ...Object.keys(fxD)])) {
+          if (crea[k]) return {error:'no se puede crear y mover una cuenta en la misma operación'};
+          const base = cxCambios[k] || cx[k];
+          const d = nFin(fxD[k]);
+          const nuevo = c2((abs[k] !== undefined ? c2(abs[k]) : base.saldo) + d);
+          // solo una SALIDA puede quedar bloqueada (mismo criterio que las cuentas en pesos)
+          if (d < 0 && plan.permitirNegativo !== true && cent(nuevo) < 0) return {error:'saldo insuficiente en ' + base.nombre};
+          if (cent(nuevo) !== cent(base.saldo) || cxCambios[k]) cxCambios[k] = {...base, saldo:nuevo};
+        }
+      }
       const tjDelta = sinEfecto ? 0 : nFin(plan.tarjetaDelta);
       const trDelta = sinEfecto ? 0 : nFin(plan.tdcRevDelta);
       const slotsAplicar = sinEfecto ? [] :
@@ -3038,10 +3221,13 @@ async function txDinero(plan) {
       if (usaPersona) tx.set(doc(db,'cartera','personas'), {data:{[plan.persona.key]:persona}}, {merge:true});
       // set COMPLETO (sin merge): una cuenta que queda en cero debe desaparecer del mapa
       if (fondo) tx.set(doc(db,'cartera','fondo'), fondo);
+      // merge profundo: toca UNICAMENTE las cuentas en otra moneda que cambiaron
+      if (Object.keys(cxCambios).length) tx.set(docCX(), {cuentas:cxCambios}, {merge:true});
       for (const c of (plan.crear||[])) tx.set(c.ref, c.data);
       for (const r of (plan.borrar||[])) tx.delete(r);
       for (const t of tramos) tx.set(t.ref, t.data);
       return {ok:true, saldos:saldosFinales, campos, tarjeta, tdcRev, persona, fondo,
+              cx: Object.keys(cxCambios).length ? cxCambios : null,
               tramos: tramos.map(t => ({id:t.ref.id || null, ...t.data})),
               movAplicaba: mb ? !movSinEfecto(mbSnap.data()) : me ? !movSinEfecto(meSnap.data()) : undefined,
               // el documento tal como QUEDO (lo del servidor + lo escrito): la pantalla se actualiza con esto
@@ -3080,6 +3266,7 @@ function aplicarRes(res) {
   }
   if (res.tarjeta) { state.tarjetaDeuda = res.tarjeta.deuda; state.tarjetaMovimientos = res.tarjeta.movimientos; }
   if (res.fondo)   state.fondo = saneaFondo(res.fondo);
+  if (res.cx)      state.cuentasX = {...(state.cuentasX||{}), ...res.cx};
   if (res.tdcRev)  { state.revTdcDeuda = res.tdcRev.deuda; state.revTdcDeposito = res.tdcRev.deposito; state.revTdcMovs = res.tdcRev.movimientos; }
   if (Array.isArray(res.tramos) && res.tramos.length) state.rendimientos = [...(state.rendimientos||[]), ...res.tramos];
 }
@@ -4178,8 +4365,9 @@ function pintarMovsCuenta(key) {
     state.transferencias.forEach(tr=>{
       if(tr.origen===tr.destino) return; // dato corrupto: se omite
       const t=msFechaMov(tr.fecha); if(t===null||t<desde) return;
-      if(tr.origen===key) items.push({t,txt:'transferencia a '+(CUENTAS[tr.destino]||'(cuenta desconocida)'),monto:-tr.monto});
-      else if(tr.destino===key) items.push({t,txt:'transferencia desde '+(CUENTAS[tr.origen]||'(cuenta desconocida)'),monto:tr.monto});
+      // nombreCuenta cubre tambien las cuentas x_ (nombre del usuario): el txt se escapa al pintar (escapeHtml(i.txt))
+      if(tr.origen===key) items.push({t,txt:'transferencia a '+(nombreCuenta(tr.destino)||'(cuenta desconocida)'),monto:-tr.monto});
+      else if(tr.destino===key) items.push({t,txt:'transferencia desde '+(nombreCuenta(tr.origen)||'(cuenta desconocida)'),monto:tr.monto});
     });
     items.sort((a,b)=>b.t-a.t);
     const filas=items.slice(0,15).map(i=>
@@ -4215,8 +4403,12 @@ window.setMovTipo = t => {
   // el historial se filtra al tipo elegido (pedido de Roberto); 'todos' queda manual
   window.setMovFiltro(t==='gasto'?'gastos':'ingresos');
 };
-window.setFuente = f => { state.fuenteGasto=f; document.querySelectorAll('#gasto-fuente-toggle .type-opt').forEach(el=>el.classList.toggle('active',el.dataset.cuenta===f)); };
-window.setDestinoIngreso = f => { state.destinoIngreso=f; document.querySelectorAll('#ingreso-destino-toggle .type-opt').forEach(el=>el.classList.toggle('active',el.dataset.cuenta===f)); };
+// (20-oct-2026) las cuentas en otra moneda tienen su propia fila de botones (data-cx: NO data-cta, que las copias
+// con cuentas configurables usan para esconder lo que no es una de sus cuentas fijas): se marca la elegida en las dos
+window.setFuente = f => { state.fuenteGasto=f; document.querySelectorAll('#gasto-fuente-toggle .type-opt').forEach(el=>el.classList.toggle('active',el.dataset.cuenta===f));
+  document.querySelectorAll('#gasto-fuente-x .type-opt').forEach(el=>el.classList.toggle('active',el.dataset.cx===f)); pintarAyudaMontoX('gasto'); };
+window.setDestinoIngreso = f => { state.destinoIngreso=f; document.querySelectorAll('#ingreso-destino-toggle .type-opt').forEach(el=>el.classList.toggle('active',el.dataset.cuenta===f));
+  document.querySelectorAll('#ingreso-destino-x .type-opt').forEach(el=>el.classList.toggle('active',el.dataset.cx===f)); pintarAyudaMontoX('ingreso'); };
 window.setTipoDeuda = t => { state.tipoDeuda=t; ['cargo','pago','debo','pague'].forEach(id=>document.getElementById('tipo-'+id).classList.toggle('active',id===t)); ajustarCuentasDeuda(); };
 // (16-oct-2026) una tarjeta de credito solo sirve cuando el dinero SALE (le presto, le pago): en
 // "me pagaron" / "yo debo" el dinero entra y una tarjeta no recibe dinero. Se apagan esas opciones
@@ -4663,6 +4855,8 @@ function render() {
 
   // GBM retirado (vendido jul-2026, el dinero migro a Revolut): fuera del total.
   // El deposito de la TDC Revolut SI es activo (dinero propio, aunque congelado)
+  // (20-oct-2026) las cuentas en otra moneda, en pesos al tipo de cambio de hoy, van dentro de patrimonioFisico
+  const cxTot=totalCuentasX();
   const totalFisico=patrimonioFisico(nvdaVal);
   // el fondo de la universidad vive DENTRO de estas cuentas pero no es dinero para el dia a dia:
   // inicio, metas, distribucion, el snapshot y el coach usan TU dinero (fisico menos apartado)
@@ -4682,13 +4876,15 @@ function render() {
     const f=(t,v,cls)=>'<div class="dg-fila'+(cls?' '+cls:'')+'"><span>'+t+'</span><span>'+v+'</span></div>';
     document.getElementById('neto-display').innerHTML=f(fondoTot>0?'tu dinero (sin el fondo)':'tus cuentas',fmt(total))
       +(teDeben>0.005?f('te deben','+'+fmt(teDeben)):'')+(debes>0.005?f('tú debes','−'+fmt(debes)):'')
+      +(Math.abs(cxTot.mxn)>0.005||cxTot.pendiente?f('de eso, en otra moneda',cxTot.pendiente?'≈ '+fmt(cxTot.mxn)+' (falta un tipo de cambio)':'≈ '+fmt(cxTot.mxn)):'')
       +(Math.abs(tdc)>0.005?f(tdc>0?'tarjetas de crédito':'saldo a favor en tarjetas',(tdc>0?'−':'+')+fmt(Math.abs(tdc))):'')+f('patrimonio neto',fmt(neto),'dg-total')
       +(fondoTot>0?f('fondo de la universidad, aparte',fmt(fondoTot)):''); }
   refrescarGananciaMes();
   totalesInicio={fisico:totalFisico, tuyo:total, neto, listo:true};
   refrescar(aplicarVisibilidadFondo);
   // lo apartado se resta POR CUENTA: en Savings reduce 'ahorro', en MXN reduce 'disponible'
-  renderDistribucion(sumaGrupo('ahorro',true), nvdaVal, sumaGrupo('disponible',true), tdcDep, posAbiertas.length>0&&!stocksCompleto);
+  renderDistribucion(sumaGrupo('ahorro',true), nvdaVal, sumaGrupo('disponible',true)+cxTot.mxn, tdcDep, posAbiertas.length>0&&!stocksCompleto);
+  refrescar(renderCuentasX);
   renderMetas({stocks:nvdaVal, stocksPendiente:posAbiertas.length>0&&!stocksCompleto, patrimonio:total});
   renderApartados();
   renderStockDatalist();
@@ -4698,7 +4894,8 @@ function render() {
   const now=new Date();
   document.getElementById('last-update').textContent='actualizado '+now.toLocaleDateString('es-MX',{day:'numeric',month:'short'})+' · '+now.toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'});
   // si falta el precio de alguna posicion, el total esta incompleto y no debe quedar como snapshot del dia
-  if (posAbiertas.length===0||stocksCompleto) maybeSnapshot(total,0); // esquema legado: campo gbm queda en 0
+  // (20-oct-2026) igual con una cuenta en otra moneda sin tipo de cambio: el total saldria bajo, no se guarda
+  if ((posAbiertas.length===0||stocksCompleto) && !cxTot.pendiente) maybeSnapshot(total,0); // esquema legado: campo gbm queda en 0
 }
 
 // guarda un snapshot diario del patrimonio para las graficas (1 por dia, solo si cambio)
@@ -4961,9 +5158,10 @@ function disponibleCuenta(c) { return getSaldoCuenta(c) - apartadoDe(c); }
 // (27-oct-2026) saldo de las cuentas de un grupo del registro; sinFondo: resta lo apartado de cada una.
 // Es la UNICA suma de cuentas: inicio, distribucion y el coach la comparten
 function sumaGrupo(g, sinFondo) { return ctasGrupo(g).reduce((s, c) => s + getSaldoCuenta(c) - (sinFondo ? apartadoDe(c) : 0), 0); }
-// todo lo que suma al patrimonio (fondo incluido): las cuentas de los dos grupos, la bolsa a precio de hoy
-// y el deposito de la TDC Revolut (dinero propio, aunque congelado). Inicio y el coach usan esta MISMA suma
-function patrimonioFisico(bolsa) { return sumaGrupo('ahorro')+sumaGrupo('disponible')+bolsa+(Number.isFinite(state.revTdcDeposito)?state.revTdcDeposito:0); }
+// todo lo que suma al patrimonio (fondo incluido): las cuentas de los dos grupos, la bolsa a precio de hoy,
+// el deposito de la TDC Revolut (dinero propio, aunque congelado) y las cuentas en otra moneda en pesos (20-oct).
+// Inicio y el coach usan esta MISMA suma
+function patrimonioFisico(bolsa) { return sumaGrupo('ahorro')+sumaGrupo('disponible')+bolsa+(Number.isFinite(state.revTdcDeposito)?state.revTdcDeposito:0)+totalCuentasX().mxn; }
 // totales que calcula render(): la pestaña del fondo los reusa en vez de repetir la formula
 let totalesInicio = {fisico:0, tuyo:0, neto:0, listo:false};
 // lo que se concilio al fondo como rendimiento en un periodo: no es rendimiento TUYO
@@ -4982,6 +5180,8 @@ window.registrarTransferencia = async function() {
   const btn=document.getElementById('transfer-btn');
   const origen=document.getElementById('transfer-origen').value;
   const destino=document.getElementById('transfer-destino').value;
+  // (20-oct-2026) si un lado es una cuenta en otra moneda, va por su propio camino (lo que salio y lo que llego)
+  if(esIdX(origen)||esIdX(destino)) return registrarTransferenciaX(origen,destino);
   const monto=Math.round(parseFloat(document.getElementById('transfer-monto').value)*100)/100;
   const nota=document.getElementById('transfer-nota').value.trim();
   if(!Number.isFinite(monto)||monto<=0){showToast('ingresa un monto válido');return;}
@@ -5086,6 +5286,7 @@ async function transferirDelFondo(btn, cuenta, destino, m, nota, fecha) {
 window.eliminarTransferencia = async function(id) {
   const idx=state.transferencias.findIndex(t=>t.id===id); if(idx<0)return;
   const t=state.transferencias[idx];
+  if(esMovX(t)) return eliminarTransferenciaX(t); // (20-oct-2026) en otra moneda: cada lado regresa en su moneda
   if(t.destino==='tarjeta'||t.destino==='tarjetaRev'){showToast('los pagos a tarjeta no se pueden deshacer aquí');return;}
   if(t.origen==='gbm'||t.destino==='gbm'){showToast('las transferencias del GBM retirado ya no se pueden deshacer');return;}
   if(t.origen==='stocks'||t.destino==='stocks'||t.opId){showToast('las operaciones de bolsa no se deshacen: registra la operación inversa');return;}
@@ -5122,9 +5323,426 @@ function renderTransferencias() {
   c.innerHTML=state.transferencias.slice(0,20).map(t=>{
     const fecha=fmtFechaMov(t.fecha,{day:'numeric',month:'short'});
     const del=(t.id&&t.destino!=='tarjeta'&&t.destino!=='tarjetaRev'&&t.origen!=='stocks'&&t.destino!=='stocks'&&!t.opId)?`<button type="button" class="del-btn del-x" aria-label="borrar" onclick="eliminarTransferencia('${t.id}')">&times;</button>`:'';
-    return`<div class="item-row"><div><div class="item-cat">${escapeHtml(CUENTAS[t.origen]||t.origen)} → ${escapeHtml(CUENTAS[t.destino]||t.destino)}</div><div class="item-meta">${escapeHtml(t.nota||'')} · ${fecha}</div></div><div style="display:flex;align-items:center"><div style="font-size:14px;font-weight:600;color:var(--purple)">${fmt(t.monto)}</div>${del}</div></div>`;
+    return`<div class="item-row"><div><div class="item-cat">${escapeHtml(nombreCuenta(t.origen)||t.origen)} → ${escapeHtml(nombreCuenta(t.destino)||t.destino)}</div><div class="item-meta">${escapeHtml(t.nota||'')} · ${fecha}</div></div><div style="display:flex;align-items:center"><div style="font-size:14px;font-weight:600;color:var(--purple)">${textoMontoTransfer(t)}</div>${del}</div></div>`;
   }).join('');
 }
+
+// ── CUENTAS EN OTRA MONEDA: tipo de cambio, totales, pantallas y altas (20-oct-2026) ──
+// Ver el bloque "CUENTAS EN OTRA MONEDA" junto a txDinero para el modelo de datos.
+// Tipo de cambio: Frankfurter (tipos de referencia diarios del Banco Central Europeo; gratis, sin
+// llave y con CORS abierto, comprobado el 20-oct-2026). Se baja UNA vez al dia local (Roberto: "no
+// cambia mucho") y se guarda en <NS>/mercado.fx para que todos los aparatos usen el mismo numero.
+// En fin de semana el BCE no publica: `fecha` es la del ultimo dia habil y `bajado` el dia local.
+// bandas plausibles en pesos por 1 unidad (CIFRAS ESTIMADAS al 20-oct-2026: revisarlas de vez en cuando).
+// Un tipo fuera de su banda se descarta, para que una respuesta danada no mueva el saldo en pesos
+const FX_BANDAS = {AUD:[6,25], USD:[10,35], EUR:[12,40], CNY:[1,6]};
+const fxEnBanda = (m, v) => Number.isFinite(v) && FX_BANDAS[m] && v >= FX_BANDAS[m][0] && v <= FX_BANDAS[m][1];
+function saneaFx(raw) {
+  if (!raw || typeof raw !== 'object' || typeof raw.fecha !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(raw.fecha)) return null;
+  const mxnPor = {};
+  for (const m of Object.keys(MONEDAS_X)) { const v = raw.mxnPor && raw.mxnPor[m]; if (fxEnBanda(m, v)) mxnPor[m] = v; }
+  if (!Object.keys(mxnPor).length) return null;
+  return {fecha:raw.fecha, bajado:typeof raw.bajado === 'string' ? raw.bajado : '', mxnPor,
+          fuente:typeof raw.fuente === 'string' ? raw.fuente.slice(0,60) : ''};
+}
+// pesos por 1 unidad de esa moneda; null si no hay dato (nunca se inventa: se marca pendiente)
+const tcDe = moneda => (state.fx && state.fx.mxnPor && Number.isFinite(state.fx.mxnPor[moneda])) ? state.fx.mxnPor[moneda] : null;
+// dias desde la fecha del tipo de cambio (el BCE no publica en fin de semana: hasta 4 es normal)
+function fxDias() {
+  if (!state.fx) return null;
+  const d = Math.round((parseFechaLocal(hoyLocal()) - parseFechaLocal(state.fx.fecha)) / 86400000);
+  return Number.isFinite(d) ? d : null;
+}
+function textoFx() {
+  if (!state.fx) return 'sin tipo de cambio todavía: se baja solo al abrir la app con señal';
+  const f = parseFechaLocal(state.fx.fecha).toLocaleDateString('es-MX', {day:'numeric', month:'short'});
+  const d = fxDias();
+  return 'tipo de cambio del ' + f + (d !== null && d > 4 ? ' (de hace ' + d + ' días: estimado)' : '') + ' · Banco Central Europeo';
+}
+let fxEnVuelo = null;
+async function asegurarTipoCambio(forzar) {
+  const hoy = hoyLocal();
+  if (!forzar && state.fx && state.fx.bajado === hoy) return state.fx;
+  // (20-oct-2026, QA) sin cuentas en otra moneda no se pide nada: agregarCuentaX lo fuerza al crear la primera
+  if (!forzar && !Object.keys(state.cuentasX || {}).length) return state.fx;
+  // con datos de la cache no se escribe: mercado podria tener un tipo mas nuevo en el servidor
+  if (!datosCargados || cargaDesdeCache || navigator.onLine === false) return state.fx;
+  if (fxEnVuelo) return fxEnVuelo;
+  fxEnVuelo = (async () => {
+    try {
+      const r = await fetch('https://api.frankfurter.dev/v1/latest?base=MXN&symbols=' + Object.keys(MONEDAS_X).join(','), {cache:'no-store'});
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      const j = await r.json();
+      if (!j || j.base !== 'MXN') throw new Error('respuesta con base distinta de MXN');
+      const previo = state.fx, diasPrevio = fxDias();
+      const mxnPor = {};
+      for (const m of Object.keys(MONEDAS_X)) {
+        const v = j.rates && j.rates[m];
+        const ant = previo && previo.mxnPor && previo.mxnPor[m];
+        // (20-oct-2026, QA) una moneda que no llego o llego mal HEREDA la ultima guardada: si no, una respuesta
+        // parcial borraria su tipo y la cuenta desapareceria del total en todos los aparatos
+        const hereda = () => { if (Number.isFinite(ant) && fxEnBanda(m, ant)) mxnPor[m] = ant; };
+        if (!(Number.isFinite(v) && v > 0)) { hereda(); continue; }
+        const pesos = +(1 / v).toFixed(6);
+        if (!fxEnBanda(m, pesos)) { console.error('tipo de cambio fuera de rango, se descarta', m, pesos); hereda(); continue; }
+        // un salto de mas de 15% contra un tipo de hace 30 dias o menos no se acepta: se conserva el anterior
+        if (Number.isFinite(ant) && diasPrevio !== null && diasPrevio <= 30 && Math.abs(pesos - ant) / ant > 0.15) {
+          console.error('tipo de cambio con salto sospechoso, se conserva el anterior', m, ant, pesos);
+          mxnPor[m] = ant; continue;
+        }
+        mxnPor[m] = pesos;
+      }
+      const nuevo = saneaFx({fecha:j.date, bajado:hoy, mxnPor, fuente:'BCE vía Frankfurter'});
+      if (!nuevo) throw new Error('respuesta sin tipos de cambio');
+      state.fx = nuevo;
+      // el tipo COMPLETO, sin merge profundo de mxnPor: una moneda que ya no sirve no sobrevive en el servidor
+      await setDoc(doc(db, (typeof NS === 'string' ? NS : 'cartera'), 'mercado'), {fx:nuevo}, {mergeFields:['fx']});
+    } catch(e) { console.error('tipo de cambio', e); }
+    finally { fxEnVuelo = null; }
+    return state.fx;
+  })();
+  return fxEnVuelo;
+}
+// lo que valen en pesos todas las cuentas en otra moneda. pendiente = hay saldo sin tipo de cambio
+function totalCuentasX() {
+  let mxn = 0, pendiente = false;
+  for (const x of Object.values(state.cuentasX || {})) {
+    if (cent(x.saldo) === 0) continue;
+    const tc = tcDe(x.moneda);
+    if (!tc) { pendiente = true; continue; }
+    mxn += x.saldo * tc;
+  }
+  return {mxn:c2(mxn), pendiente};
+}
+const cuentasXActivas = () => Object.entries(state.cuentasX || {}).filter(([, x]) => x.on)
+  .sort((a, b) => String(a[1].creada).localeCompare(String(b[1].creada)));
+
+// ── formularios: botones de cuenta en otra moneda junto a los de siempre ──
+function pintarFuentesX() {
+  const activas = cuentasXActivas();
+  const boton = (id, x, fn, actual) => `<div class="type-opt${actual === id ? ' active' : ''}" data-cx="${id}" onclick="${fn}('${id}')">${escapeHtml(x.nombre)} · ${x.moneda}</div>`;
+  [['gasto-fuente-x', 'setFuente', state.fuenteGasto], ['ingreso-destino-x', 'setDestinoIngreso', state.destinoIngreso]].forEach(([el, fn, actual]) => {
+    const c = document.getElementById(el); if (!c) return;
+    c.innerHTML = activas.map(([id, x]) => boton(id, x, fn, actual)).join('');
+    c.hidden = !activas.length;
+  });
+  // si la cuenta elegida se apago o desaparecio (en este u otro aparato), se regresa a efectivo
+  if (esIdX(state.fuenteGasto) && !activas.some(([id]) => id === state.fuenteGasto)) window.setFuente('efectivo');
+  if (esIdX(state.destinoIngreso) && !activas.some(([id]) => id === state.destinoIngreso)) window.setDestinoIngreso('efectivo');
+  // transferencias: un grupo aparte en los dos selects (el valor elegido se conserva si sigue existiendo)
+  ['transfer-origen', 'transfer-destino'].forEach(sid => {
+    const s = document.getElementById(sid); if (!s) return;
+    const antes = s.value;
+    const g = s.querySelector('optgroup[data-cx]'); if (g) g.remove();
+    if (activas.length) {
+      const og = document.createElement('optgroup'); og.label = 'en otra moneda'; og.setAttribute('data-cx', '1');
+      activas.forEach(([id, x]) => { const o = document.createElement('option'); o.value = id; o.textContent = x.nombre + ' · ' + x.moneda; og.appendChild(o); });
+      s.appendChild(og);
+    }
+    if ([...s.options].some(o => o.value === antes)) s.value = antes;
+  });
+  ajustarTransferX();
+  pintarAyudaMontoX('gasto'); pintarAyudaMontoX('ingreso');
+}
+// debajo del monto: en que moneda se escribe y a cuanto equivale en pesos
+function pintarAyudaMontoX(tipo) {
+  const id = tipo === 'gasto' ? state.fuenteGasto : state.destinoIngreso;
+  const el = document.getElementById(tipo + '-x-ayuda'); if (!el) return;
+  const x = esIdX(id) && state.cuentasX[id];
+  if (!x) { el.hidden = true; return; }
+  const tc = tcDe(x.moneda);
+  const v = parseFloat((document.getElementById(tipo + '-monto') || {}).value);
+  el.textContent = 'escribe el monto en ' + MONEDAS_X[x.moneda].nom + ' (' + MONEDAS_X[x.moneda].sim + ')' +
+    (tc ? (Number.isFinite(v) && v > 0 ? ' · ≈ ' + fmt(c2(v * tc)) : '') + ' · ' + MONEDAS_X[x.moneda].sim + '1 = ' + fmt(tc) + ' · ' + textoFx()
+        : ' · sin tipo de cambio todavía: conéctate una vez para bajarlo');
+  el.hidden = false;
+}
+window.pintarAyudaMontoX = pintarAyudaMontoX;
+// transferencia entre monedas distintas: se pide lo que SALIO y lo que LLEGO (la diferencia es la comision)
+function monedaDeCuenta(k) { return esIdX(k) ? ((state.cuentasX[k] || {}).moneda || null) : 'MXN'; }
+window.ajustarTransferX = ajustarTransferX;
+function ajustarTransferX() {
+  const o = document.getElementById('transfer-origen'), d = document.getElementById('transfer-destino');
+  const wrap = document.getElementById('transfer-llega-wrap'); if (!o || !d || !wrap) return;
+  const mo = monedaDeCuenta(o.value), md = monedaDeCuenta(d.value);
+  const cruza = !!mo && !!md && mo !== md;
+  wrap.hidden = !cruza;
+  const lblM = document.getElementById('transfer-monto-lbl');
+  if (lblM) lblM.textContent = cruza ? 'sale (' + (mo === 'MXN' ? '$' : MONEDAS_X[mo].sim) + ')' : 'monto';
+  const lblL = document.getElementById('transfer-llega-lbl');
+  if (lblL && cruza) lblL.textContent = 'llega (' + (md === 'MXN' ? '$' : MONEDAS_X[md].sim) + ')';
+  const ay = document.getElementById('transfer-llega-ayuda');
+  if (ay) { ay.hidden = !cruza; if (cruza) ay.textContent = 'escribe lo que de verdad llegó: la diferencia contra el tipo de cambio es la comisión del cambio · ' + textoFx(); }
+}
+
+// ── alta de un gasto o ingreso en una cuenta en otra moneda ──
+// el plan de cada alta, compartido por el formulario y por la bandeja (igual que planAltaGasto)
+function planAltaX(ref, mov, esGasto) {
+  const id = esGasto ? mov.fuente : mov.destino;
+  // el gasto YA OCURRIO: se avisa si deja la cuenta en rojo, no se bloquea (igual que en pesos)
+  return {crear:[{ref, data:mov}], permitirNegativo:esGasto, fx:{deltas:{[id]: esGasto ? -mov.montoOrig : mov.montoOrig}}};
+}
+async function altaMovX(tipo, cat, montoOrig, nota, cuentaId, btn, fecha) {
+  const esGasto = tipo === 'gasto';
+  const x = state.cuentasX[cuentaId];
+  if (!x) { showToast('esa cuenta ya no existe'); return false; }
+  if (!x.on) { showToast('esa cuenta está apagada: enciéndela en perfil'); return false; }
+  const tc = tcDe(x.moneda);
+  if (!tc) { showToast('todavía no hay tipo de cambio de ' + x.moneda + ': abre la app una vez con señal'); return false; }
+  if (dineroOcupado) { showToast('espera, hay otra operación en curso'); return false; }
+  const mo = c2(montoOrig), m = c2(mo * tc);
+  if (!(mo > 0) || !(m > 0)) { showToast('ingresa un monto válido'); return false; }
+  const uidCaptura = uidActual();
+  const creado = new Date().toISOString();
+  const ref = doc(collection(db, esGasto ? 'gastos' : 'ingresos'));
+  // monto = PESOS al tipo de hoy (lo que suman resumen y promedios); montoOrig = lo que mueve la cuenta
+  const mov = {cat, monto:m, nota, [esGasto ? 'fuente' : 'destino']:cuentaId, fecha:fecha || creado, creado,
+               montoOrig:mo, moneda:x.moneda, tc, tcFecha:state.fx.fecha};
+  // sin señal: a la bandeja con el tipo de cambio ya fijado (el comando es inmutable)
+  if (hayQueGuardarEnTelefono()) return guardarEnTelefonoConCandado(tipo, ref.id, mov, false, btn, uidCaptura);
+  const plan = planAltaX(ref, mov, esGasto);
+  plan.requerirAusentes = [ref];   // regla que no se rompe: sin esto, una respuesta perdida cobra dos veces
+  let res = null, err = null;
+  if (btn) btn.disabled = true; dineroOcupado = true;
+  try { res = await txDinero(plan); }
+  catch(e) { err = e; }
+  finally { if (btn) btn.disabled = false; liberarDinero(); }
+  if (err && esErrorDeRed(err)) { console.error('altaMovX, a la bandeja', err); return guardarEnTelefonoConCandado(tipo, ref.id, mov, true, btn, uidCaptura); }
+  if (err) { console.error('altaMovX', err); showToast(msgFalloDinero()); return false; }
+  const lista = esGasto ? state.gastos : state.ingresos;
+  if (res.error && res.codigo === 'ya-existe') {
+    await traerYaEstaba(ref, lista);
+    if (!lista.some(z => z.id === ref.id)) { insertarPorFecha(lista, {...mov, id:ref.id}); refrescar(render, renderMovimientos); }
+    showToast((esGasto ? '-' : '+') + fmtX(mo, x.moneda) + ' registrado'); return true;
+  }
+  if (res.error) { showToast(res.error); return false; }
+  aplicarRes(res);
+  insertarPorFecha(lista, {...mov, id:ref.id});
+  refrescar(render, renderMovimientos);
+  const queda = res.cx && res.cx[cuentaId] ? res.cx[cuentaId].saldo : null;
+  showToast((esGasto ? '-' : '+') + fmtX(mo, x.moneda) + ' (≈ ' + fmt(m) + ') registrado' + (queda !== null && queda < 0 ? ' · ojo: ' + x.nombre + ' quedó en rojo' : ''));
+  if (esGasto) avisoCategoria(cat, mov.fecha);
+  return true;
+}
+
+// ── transferencia entre una cuenta en pesos y una en otra moneda ──
+async function registrarTransferenciaX(origen, destino) {
+  const btn = document.getElementById('transfer-btn');
+  const mo = monedaDeCuenta(origen), md = monedaDeCuenta(destino);
+  if (!mo || !md) { showToast('esa cuenta ya no existe'); return; }
+  if (esIdX(origen) && esIdX(destino)) { showToast('entre dos cuentas en otra moneda todavía no: pásalo primero a una cuenta en pesos'); return; }
+  if (destino === 'tarjeta' || destino === 'tarjetaRev') { showToast('la tarjeta se paga desde una cuenta en pesos'); return; }
+  const CTAS_PESOS = ['efectivo','nu','cajita1','revolut','revSavings','mifel'];
+  const lado = esIdX(origen) ? destino : origen;   // la cuenta en pesos
+  if (!CTAS_PESOS.includes(lado)) { showToast('cuenta no válida'); return; }
+  const sale = c2(parseFloat(document.getElementById('transfer-monto').value));
+  const cruza = mo !== md;
+  const llega = cruza ? c2(parseFloat(document.getElementById('transfer-llega').value)) : sale;
+  if (!(sale > 0)) { showToast('ingresa cuánto salió'); return; }
+  if (!(llega > 0)) { showToast('ingresa cuánto llegó'); return; }
+  const x = state.cuentasX[esIdX(origen) ? origen : destino];
+  if (!x || !x.on) { showToast('esa cuenta en otra moneda está apagada o ya no existe'); return; }
+  // avisos tempranos con lo que hay en pantalla; txDinero revalida todo contra la nube
+  if (esIdX(origen) && cent(sale) > cent(x.saldo)) { showToast('saldo insuficiente en ' + x.nombre); return; }
+  if (!esIdX(origen) && cent(sale) > cent(disponibleCuenta(origen))) { showToast('saldo insuficiente en ' + CUENTAS[origen]); return; }
+  if (dineroOcupado) { showToast('espera, hay otra operación en curso'); return; }
+  const fechaTr = fechaMovOpcional('transfer-fecha'); if (fechaTr === null) return;
+  const nota = document.getElementById('transfer-nota').value.trim();
+  // monto = lo que se movio en PESOS (el lado en pesos): asi aportaciones, Dietz e historial no se equivocan
+  const mPesos = esIdX(origen) ? llega : sale, mX = esIdX(origen) ? sale : llega;
+  const tr = {origen, destino, monto:mPesos, nota, fecha:fechaTr, creado:new Date().toISOString(),
+              montoOrigen:sale, monedaOrigen:mo, montoDestino:llega, monedaDestino:md, tc:+(mPesos / mX).toFixed(6)};
+  const ref = doc(collection(db, 'transferencias'));
+  const plan = {crear:[{ref, data:tr}], requerirAusentes:[ref],
+                deltas:{[lado]: esIdX(origen) ? mPesos : -mPesos},
+                fx:{deltas:{[esIdX(origen) ? origen : destino]: esIdX(origen) ? -mX : mX}}};
+  let res = null, err = null;
+  btn.disabled = true; dineroOcupado = true;
+  try { res = await txDinero(plan); }
+  catch(e) { err = e; }
+  finally { btn.disabled = false; liberarDinero(); }
+  if (err) { console.error('registrarTransferenciaX', err); showToast(msgFalloDinero()); return; }
+  const limpiar = () => ['transfer-monto','transfer-llega','transfer-nota','transfer-fecha'].forEach(i => { const e = document.getElementById(i); if (e) e.value = ''; });
+  if (res.error && res.codigo === 'ya-existe') { limpiar(); yaAplicado(); return; }
+  if (res.error) { showToast(res.error); return; }
+  aplicarRes(res);
+  tr.id = ref.id; insertarPorFecha(state.transferencias, tr);
+  limpiar();
+  refrescar(render, renderTransferencias, renderMovimientos);
+  showToast(textoMontoTransfer(tr) + ' · ' + nombreCuenta(origen) + ' → ' + nombreCuenta(destino));
+}
+// '$1,000.00 → A$76.90' o el monto de siempre
+function textoMontoTransfer(t) {
+  if (!esMovX(t) || !Number.isFinite(t.montoOrigen) || !Number.isFinite(t.montoDestino)) return fmt(t.monto);
+  // solo 'MXN' o una moneda de MONEDAS_X; cualquier otra cosa sale como '¤' (fmtX), nunca el texto del documento
+  const f = (n, m) => m === 'MXN' ? fmt(n) : fmtX(n, m);
+  return t.monedaOrigen === t.monedaDestino ? f(t.montoOrigen, t.monedaOrigen) : f(t.montoOrigen, t.monedaOrigen) + ' → ' + f(t.montoDestino, t.monedaDestino);
+}
+async function eliminarTransferenciaX(t) {
+  if (dineroOcupado) { showToast('espera, hay otra operación en curso'); return; }
+  const visto = {monto:t.monto, origen:t.origen, destino:t.destino, montoOrigen:t.montoOrigen, montoDestino:t.montoDestino};
+  if (!(await confirmarDeslizando({titulo:'¿Deshacer la transferencia?', texto:'¿Deshacer ' + textoMontoTransfer(t) + ' (' + nombreCuenta(t.origen) + ' → ' + nombreCuenta(t.destino) + ')? El dinero regresa a su cuenta original, en su moneda.', verbo:'deshacer'}))) return;
+  if (!sigueIgual(visto, state.transferencias.find(z => z.id === t.id), ['monto','origen','destino','montoOrigen','montoDestino'])) return;
+  if (dineroOcupado) { showToast('espera, hay otra operación en curso'); return; }
+  const ref = doc(db, 'transferencias', t.id), m = c2(nFin(t.monto));
+  // el lado en pesos va por movBorrar (borra el documento y aborta si otro aparato ya lo hizo); el lado
+  // en otra moneda lo calcula txDinero desde el documento del SERVIDOR (reversaX). Sin permitirNegativo:
+  // sacar de la cuenta destino se rechaza si ya no alcanza.
+  const lado = esIdX(t.origen) ? t.destino : t.origen;
+  const plan = {movBorrar:{ref, slot:(CAMPO_SIMPLE[lado] || CAMPO_COMP[lado]) ? lado : null, signo: esIdX(t.origen) ? -1 : 1, monto:m},
+                verificarIguales:[{ref, campos:{monto:m, origen:t.origen, destino:t.destino, montoOrigen:t.montoOrigen, montoDestino:t.montoDestino}}]};
+  let res = null, err = null;
+  dineroOcupado = true;
+  try { res = await txDinero(plan); }
+  catch(e) { err = e; }
+  finally { liberarDinero(); }
+  if (err) { console.error('eliminarTransferenciaX', err); showToast(msgFalloDinero()); return; }
+  if (res.error) { showToast(res.error); return; }
+  aplicarRes(res);
+  const i2 = state.transferencias.findIndex(z => z.id === t.id); if (i2 >= 0) state.transferencias.splice(i2, 1);
+  refrescar(render, renderTransferencias);
+  showToast('transferencia deshecha');
+}
+
+// ── pantallas: tarjetas en Inicio y administracion en Perfil ──
+const cxAbiertas = new Set();   // tarjetas de Inicio con el detalle abierto (sobreviven al repintado)
+window.toggleCuentaX = function(id) {
+  if (cxAbiertas.has(id)) cxAbiertas.delete(id); else cxAbiertas.add(id);
+  renderCuentasX();
+};
+// ultimos movimientos de una cuenta en otra moneda (gastos, ingresos y transferencias)
+function movsDeCuentaX(id) {
+  const g = state.gastos.filter(z => z.fuente === id).map(z => ({f:z.fecha, t:escapeHtml(z.cat) + (z.nota ? ' · ' + escapeHtml(z.nota) : ''), v:'-' + fmtX(z.montoOrig, z.moneda)}));
+  const i = state.ingresos.filter(z => z.destino === id).map(z => ({f:z.fecha, t:escapeHtml(z.cat) + (z.nota ? ' · ' + escapeHtml(z.nota) : ''), v:'+' + fmtX(z.montoOrig, z.moneda)}));
+  const tr = state.transferencias.filter(z => z.origen === id || z.destino === id).map(z => ({f:z.fecha,
+    t:escapeHtml(z.origen === id ? 'a ' + nombreCuenta(z.destino) : 'de ' + nombreCuenta(z.origen)),
+    v:z.origen === id ? '-' + fmtX(z.montoOrigen, z.monedaOrigen) : '+' + fmtX(z.montoDestino, z.monedaDestino)}));
+  return [...g, ...i, ...tr].sort((a, b) => (msFechaMov(b.f) || 0) - (msFechaMov(a.f) || 0)).slice(0, 8);
+}
+function renderCuentasX() {
+  // render() corre seguido (snapshots en vivo): lo que la persona va escribiendo no se debe perder al repintar
+  const escrito = {};
+  document.querySelectorAll('#cx-cards input, #cx-perfil-lista input').forEach(i => { if (i.id && i.value !== i.defaultValue) escrito[i.id] = i.value; });
+  const enfocado = document.activeElement && document.activeElement.id;
+  try { renderCuentasXSinCuidar(); }
+  finally {
+    for (const id in escrito) { const e = document.getElementById(id); if (e) e.value = escrito[id]; }
+    if (enfocado && escrito[enfocado] !== undefined) { const e = document.getElementById(enfocado); if (e) try { e.focus(); } catch(_) {} }
+  }
+}
+function renderCuentasXSinCuidar() {
+  const cont = document.getElementById('cx-cards');
+  // si el cursor esta en un campo de escribir de esa zona, NO se reconstruye (en iOS cierra el teclado);
+  // el siguiente repintado ya lo actualiza. Solo campos: un clic en la tarjeta si debe repintar
+  const act = document.activeElement;
+  const escribiendoEn = sel => !!(act && act.matches && act.matches('input,textarea,select') && act.closest && act.closest(sel));
+  // en Inicio: las encendidas, y las apagadas que todavia tengan saldo (nunca se esconde dinero)
+  const visibles = Object.entries(state.cuentasX || {}).filter(([, x]) => x.on || cent(x.saldo) !== 0)
+    .sort((a, b) => String(a[1].creada).localeCompare(String(b[1].creada)));
+  if (cont && !escribiendoEn('#cx-cards')) {
+    cont.hidden = !visibles.length;
+    cont.innerHTML = visibles.map(([id, x]) => {
+      const tc = tcDe(x.moneda), abierta = cxAbiertas.has(id);
+      const movs = abierta ? movsDeCuentaX(id) : [];
+      const det = abierta ? `<div class="card-detail" style="display:block" onclick="event.stopPropagation()">
+          ${movs.length ? movs.map(m => `<div class="detail-row"><span class="detail-label">${m.t} · ${fmtFechaMov(m.f, {day:'numeric', month:'short'})}</span><span class="detail-val">${m.v}</span></div>`).join('') : '<div class="item-meta">sin movimientos todavía</div>'}
+          <div class="field" style="margin-top:10px"><label for="cx-saldo-${id}">actualizar saldo · lo que muestra tu app hoy (${MONEDAS_X[x.moneda].sim})</label>
+            <input type="number" id="cx-saldo-${id}" step="0.01" inputmode="decimal" placeholder="ej. ${x.saldo || 500}"></div>
+          <button type="button" class="btn btn-purple" style="margin-top:4px" onclick="guardarSaldoX('${id}')">guardar saldo</button>
+          <div class="item-meta" style="margin-top:8px">${escapeHtml(textoFx())}</div>
+        </div>` : '';
+      return `<div class="card" onclick="toggleCuentaX('${id}')">
+        <div class="card-header" role="button" tabindex="0" aria-expanded="${abierta}">
+          <div class="card-left"><div class="card-icon icon-rev" aria-hidden="true" style="font-weight:700;font-size:12px">${x.moneda}</div>
+            <div><div class="card-name">${escapeHtml(x.nombre)}</div><div class="card-sub">${MONEDAS_X[x.moneda].nom}${x.on ? '' : ' · apagada'}</div></div></div>
+          <div class="card-right"><div class="card-amount">${fmtX(x.saldo, x.moneda)}</div>
+            <div class="card-change neu">${tc ? '≈ ' + fmt(c2(x.saldo * tc)) : 'sin tipo de cambio'}</div></div>
+        </div>${det}</div>`;
+    }).join('');
+  }
+  // Perfil: la lista para administrar y el formulario para agregar
+  const per = document.getElementById('cx-perfil-lista');
+  if (per && !escribiendoEn('#cx-perfil-lista')) {
+    const todas = Object.entries(state.cuentasX || {}).sort((a, b) => String(a[1].creada).localeCompare(String(b[1].creada)));
+    per.innerHTML = todas.length ? todas.map(([id, x]) => `<div class="item-row" style="flex-wrap:wrap;gap:6px">
+        <div style="flex:1 1 160px"><input type="text" id="cx-nom-${id}" maxlength="24" value="${escapeHtml(x.nombre)}" aria-label="nombre de la cuenta" style="width:100%">
+          <div class="item-meta">${MONEDAS_X[x.moneda].nom} · ${TIPOS_CX[x.tipo]} · ${fmtX(x.saldo, x.moneda)}${x.on ? '' : ' · apagada'}</div></div>
+        <div style="display:flex;gap:6px">
+          <button type="button" class="btn" style="margin-top:0;padding:8px 10px;font-size:12px" onclick="renombrarCuentaX('${id}')">guardar nombre</button>
+          <button type="button" class="btn" style="margin-top:0;padding:8px 10px;font-size:12px" onclick="encenderCuentaX('${id}', ${!x.on})">${x.on ? 'apagar' : 'encender'}</button>
+        </div></div>`).join('') : '<div class="item-meta">todavía no tienes cuentas en otra moneda</div>';
+  }
+  const fx = document.getElementById('cx-fx'); if (fx) fx.textContent = textoFx();
+}
+window.agregarCuentaX = async function() {
+  const nombre = (document.getElementById('cx-nuevo-nombre').value || '').trim();
+  const moneda = document.getElementById('cx-nuevo-moneda').value;
+  const tipo = document.getElementById('cx-nuevo-tipo').value;
+  const saldoTxt = document.getElementById('cx-nuevo-saldo').value;
+  const saldo = saldoTxt === '' ? 0 : c2(parseFloat(saldoTxt));
+  if (!nombre) { showToast('ponle un nombre a la cuenta (por ejemplo, el de tu banco)'); return; }
+  if (!MONEDAS_X[moneda] || !TIPOS_CX[tipo]) { showToast('elige la moneda y el tipo'); return; }
+  if (!Number.isFinite(saldo) || saldo < 0) { showToast('el saldo inicial no es válido'); return; }
+  if (Object.keys(state.cuentasX).length >= CX_MAX) { showToast('máximo ' + CX_MAX + ' cuentas en otra moneda'); return; }
+  if (Object.values(state.cuentasX).some(x => x.nombre.toLowerCase() === nombre.toLowerCase() && x.moneda === moneda)) { showToast('ya tienes una cuenta con ese nombre y esa moneda'); return; }
+  // (27-oct-2026) sin tipo de cambio SI se crea (usuario-real: en el aeropuerto no se podia anotar lo que se trae).
+  // Es seguro: un gasto o ingreso en esa cuenta pide tipo de cambio en altaMovX, una transferencia lo saca de lo que
+  // salio y lo que llego, la tarjeta dice "sin tipo de cambio" y el total queda pendiente (sin foto del dia)
+  if (!tcDe(moneda)) await asegurarTipoCambio(true);
+  const sinTc = !tcDe(moneda);
+  if (dineroOcupado) { showToast('espera, hay otra operación en curso'); return; }
+  const id = 'x_' + (Date.now().toString(36) + Math.random().toString(36).slice(2, 8)).slice(0, 14).toLowerCase();
+  const btn = document.getElementById('cx-nuevo-btn');
+  let res = null, err = null;
+  btn.disabled = true; dineroOcupado = true;
+  try { res = await txDinero({fx:{crear:{[id]:{nombre, moneda, tipo, on:true, saldo, creada:new Date().toISOString()}}}}); }
+  catch(e) { err = e; }
+  finally { btn.disabled = false; liberarDinero(); }
+  if (err) { console.error('agregarCuentaX', err); showToast(msgFalloDinero()); return; }
+  if (res.error && res.codigo !== 'ya-existe') { showToast(res.error); return; }
+  if (res.cx) aplicarRes(res);
+  ['cx-nuevo-nombre','cx-nuevo-saldo'].forEach(i => document.getElementById(i).value = '');
+  refrescar(render, renderCuentasX, pintarFuentesX);
+  showToast('cuenta agregada: ' + nombre + ' · ' + moneda + (sinTc ? ' · aún sin tipo de cambio: su equivalente en pesos aparece en cuanto se baje' : ''));
+};
+async function cambiarCuentaX(id, editar, ok) {
+  if (dineroOcupado) { showToast('espera, hay otra operación en curso'); return; }
+  let res = null, err = null;
+  dineroOcupado = true;
+  try { res = await txDinero({fx:{editar:{[id]:editar}}}); }
+  catch(e) { err = e; }
+  finally { liberarDinero(); }
+  if (err) { console.error('cambiarCuentaX', err); showToast(msgFalloDinero()); return; }
+  if (res.error) { showToast(res.error); return; }
+  aplicarRes(res);
+  refrescar(render, renderCuentasX, pintarFuentesX, renderMovimientos, renderTransferencias);
+  showToast(ok);
+}
+window.renombrarCuentaX = id => {
+  const n = (document.getElementById('cx-nom-' + id).value || '').trim();
+  if (!n) { showToast('el nombre no puede quedar vacío'); return; }
+  const yo = state.cuentasX[id]; if (!yo) return;
+  if (Object.entries(state.cuentasX).some(([k, x]) => k !== id && x.nombre.toLowerCase() === n.toLowerCase() && x.moneda === yo.moneda)) { showToast('ya tienes una cuenta con ese nombre y esa moneda'); return; }
+  cambiarCuentaX(id, {nombre:n}, 'nombre guardado');
+};
+window.encenderCuentaX = (id, on) => cambiarCuentaX(id, {on:!!on}, on ? 'cuenta encendida' : 'cuenta apagada');
+window.guardarSaldoX = async function(id) {
+  const x = state.cuentasX[id]; if (!x) return;
+  const v = c2(parseFloat(document.getElementById('cx-saldo-' + id).value));
+  if (!Number.isFinite(v)) { showToast('escribe el saldo que muestra tu app'); return; }
+  if (dineroOcupado) { showToast('espera, hay otra operación en curso'); return; }
+  let res = null, err = null;
+  dineroOcupado = true;
+  try { res = await txDinero({fx:{absolutos:{[id]:v}}}); }
+  catch(e) { err = e; }
+  finally { liberarDinero(); }
+  if (err) { console.error('guardarSaldoX', err); showToast(msgFalloDinero()); return; }
+  if (res.error) { showToast(res.error); return; }
+  aplicarRes(res);
+  { const e = document.getElementById('cx-saldo-' + id); if (e) e.value = ''; } // ya se guardo: que no lo restaure el repintado
+  refrescar(render, renderCuentasX);
+  showToast('saldo de ' + x.nombre + ': ' + fmtX(v, x.moneda));
+};
 
 // ── SIN SEÑAL: LA BANDEJA DEL TELÉFONO (15-oct-2026) ─────────────────────────────
 // Copia del modelo de la app del rancho (prodeco/app-rancho, diseno-captura-sin-senal.md,
@@ -5292,7 +5910,11 @@ async function guardarEnTelefono(tipo, id, mov, dudoso, uidCaptura) {
   const c = {id, uid, tipo, cat:mov.cat, monto:mov.monto, nota:mov.nota || '',
              cuenta: tipo === 'gasto' ? mov.fuente : mov.destino, fecha:mov.fecha, creado:mov.creado,
              version:B_VERSION, estado:B_EST.PENDIENTE, intentos:0, ultimoError:null, reclamadoEn:null,
-             dudoso:!!dudoso, secuencia:null};
+             dudoso:!!dudoso, secuencia:null,
+             // (20-oct-2026) en otra moneda el tipo de cambio queda FIJO al capturar (el comando es inmutable).
+             // Misma B_VERSION a proposito: una version vieja de la app no conoce la cuenta x_ y lo deja
+             // "para revisar" sin mover dinero; los comandos viejos (sin fx) siguen subiendo igual
+             fx: Number.isFinite(mov.montoOrig) ? {montoOrig:mov.montoOrig, moneda:mov.moneda, tc:mov.tc, tcFecha:mov.tcFecha} : null};
   try { await guardarComando(c); }
   catch(e) {
     if (e && e.name === 'ConstraintError') { showToast('ese movimiento ya estaba guardado en tu teléfono'); return true; }
@@ -5300,7 +5922,7 @@ async function guardarEnTelefono(tipo, id, mov, dudoso, uidCaptura) {
     showToast('NO se guardó: ' + ((e && e.message) || 'el teléfono no dejó guardarlo'));
     return false;
   }
-  showToast((tipo === 'gasto' ? '-' : '+') + fmt(mov.monto) + ' guardado en tu teléfono · se sube cuando haya señal');
+  showToast((tipo === 'gasto' ? '-' : '+') + fmtMov(mov) + ' guardado en tu teléfono · se sube cuando haya señal');
   return true;
 }
 // (15-oct-2026) el guardado en el telefono toma el MISMO candado que el camino en linea: sin el,
@@ -5350,7 +5972,14 @@ async function subirComando(c) {
   if (c.tipo !== 'gasto' && c.tipo !== 'ingreso') return {negocio:'tipo de movimiento desconocido'};
   if (!/^[A-Za-z0-9]{20}$/.test(String(c.id))) return {negocio:'el movimiento guardado está dañado'};
   if (!(Number.isFinite(c.monto) && c.monto > 0)) return {negocio:'monto no válido'};
-  if (!(esGasto ? FUENTES_GASTO : DESTINOS_INGRESO).includes(c.cuenta)) return {negocio:'esa cuenta ya no existe en la app'};
+  // (20-oct-2026) en otra moneda: la cuenta se valida contra lo que dice el SERVIDOR (state.cuentasX ya cargado)
+  const fx = c.fx || null;
+  if (fx) {
+    if (!esIdX(c.cuenta) || !state.cuentasX[c.cuenta]) return {negocio:'esa cuenta en otra moneda ya no existe'};
+    if (!state.cuentasX[c.cuenta].on) return {negocio:'esa cuenta está apagada: enciéndela en perfil y reintenta'};
+    if (!(Number.isFinite(fx.montoOrig) && fx.montoOrig > 0) || !(Number.isFinite(fx.tc) && fx.tc > 0) ||
+        fx.moneda !== state.cuentasX[c.cuenta].moneda || typeof fx.tcFecha !== 'string') return {negocio:'el movimiento guardado está dañado'};
+  } else if (!(esGasto ? FUENTES_GASTO : DESTINOS_INGRESO).includes(c.cuenta)) return {negocio:'esa cuenta ya no existe en la app'};
   if (typeof c.cat !== 'string' || !c.cat.trim()) return {negocio:'falta la categoría'};
   // el formulario no pone tope a la nota ni a la categoria (las categorias propias llegan a 40);
   // aqui se acota a 200 y 60 para que un comando danado o inflado no suba tal cual al servidor
@@ -5360,7 +5989,8 @@ async function subirComando(c) {
   const ref = doc(db, esGasto ? 'gastos' : 'ingresos', c.id);
   const mov = esGasto ? {cat:c.cat, monto:c2(c.monto), nota:c.nota || '', fuente:c.cuenta, fecha:c.fecha, creado:c.creado}
                       : {cat:c.cat, monto:c2(c.monto), nota:c.nota || '', destino:c.cuenta, fecha:c.fecha, creado:c.creado};
-  const plan = esGasto ? planAltaGasto(ref, mov) : planAltaIngreso(ref, mov);
+  if (fx) Object.assign(mov, {montoOrig:c2(fx.montoOrig), moneda:fx.moneda, tc:fx.tc, tcFecha:fx.tcFecha});
+  const plan = fx ? planAltaX(ref, mov, esGasto) : esGasto ? planAltaGasto(ref, mov) : planAltaIngreso(ref, mov);
   plan.requerirAusentes = [ref];
   let res;
   // el candado dineroOcupado NO se toma aqui: lo pone correrBandeja antes de reclamar y lo suelta
@@ -5502,11 +6132,11 @@ function renderBandeja() {
       const esGasto = c.tipo === 'gasto';
       const estado = c.estado === B_EST.REVISAR ? 'no subió: ' + (c.ultimoError || 'revisar')
                    : c.estado === B_EST.ENVIANDO ? 'subiendo…' : 'por subir';
-      const meta = [c.nota || '', fmtFechaMov(c.fecha, {day:'numeric', month:'short'}), CUENTAS[c.cuenta] || '(cuenta desconocida)', estado]
+      const meta = [c.nota || '', fmtFechaMov(c.fecha, {day:'numeric', month:'short'}), nombreCuenta(c.cuenta) || '(cuenta desconocida)', estado]
         .filter(Boolean).map(escapeHtml).join(' · ');
       const reint = c.estado === B_EST.REVISAR ? `<button type="button" class="btn" style="margin-left:8px;padding:6px 10px;font-size:12px" onclick="reintentarBandeja('${escapeHtml(c.id)}')">reintentar</button>` : '';
       const del = bDescartable(c) ? `<button type="button" class="del-btn del-x" aria-label="descartar" onclick="descartarBandeja('${escapeHtml(c.id)}')">&times;</button>` : '';
-      return `<div class="item-row"><div><div class="item-cat">${escapeHtml(c.cat)}</div><div class="item-meta">${meta}</div></div><div style="display:flex;align-items:center"><div class="item-amt-pago">${esGasto ? '-' : '+'}${fmt(c.monto)}</div>${reint}${del}</div></div>`;
+      return `<div class="item-row"><div><div class="item-cat">${escapeHtml(c.cat)}</div><div class="item-meta">${meta}</div></div><div style="display:flex;align-items:center"><div class="item-amt-pago">${esGasto ? '-' : '+'}${c.fx ? fmtX(c.fx.montoOrig, c.fx.moneda) : fmt(c.monto)}</div>${reint}${del}</div></div>`;
     }).join('');
 }
 window.reintentarBandeja = async function(id) {
@@ -5626,7 +6256,11 @@ async function altaGasto(cat,monto,nota,fuente,btn,fecha,extra) {
 window.registrarGasto = async function() {
   if(!montoValido('gasto-monto')) return;
   const fecha=fechaMovOpcional('gasto-fecha'); if(fecha===null) return;
-  const ok=await altaGasto(
+  // (20-oct-2026) una cuenta en otra moneda va por su propio camino (plan.fx), nunca por deltas
+  const ok=esIdX(state.fuenteGasto) ? await altaMovX('gasto',
+    document.getElementById('gasto-cat').value, parseFloat(document.getElementById('gasto-monto').value),
+    document.getElementById('gasto-nota').value.trim(), state.fuenteGasto, document.getElementById('gasto-btn'), fecha)
+  : await altaGasto(
     document.getElementById('gasto-cat').value,
     parseFloat(document.getElementById('gasto-monto').value),
     document.getElementById('gasto-nota').value.trim(),
@@ -5642,7 +6276,7 @@ window.eliminarGasto = async function(id) {
   const sinEfecto=movSinEfecto(g); // capturado por atajo y nunca aplicado: borrar no toca cuentas
   if(dineroOcupado){showToast('espera, hay otra operación en curso');return;}
   const visto={monto:g.monto,fuente:g.fuente,cat:g.cat};
-  if(!(await confirmarDeslizando({titulo:'¿Eliminar el gasto?', texto:(g.nota?'“'+g.nota+'”\n':'')+'¿Eliminar gasto de '+fmt(g.monto)+' en '+g.cat+'? '+(sinEfecto?'(no afecta saldos: no estaba aplicado)':'El dinero se devuelve a '+(g.fuente==='tarjeta'||g.fuente==='tarjetaRev'?'la tarjeta':CUENTAS[g.fuente]||g.fuente)), verbo:'eliminar'})))return;
+  if(!(await confirmarDeslizando({titulo:'¿Eliminar el gasto?', texto:(g.nota?'“'+g.nota+'”\n':'')+'¿Eliminar gasto de '+fmtMov(g)+' en '+g.cat+'? '+(sinEfecto?'(no afecta saldos: no estaba aplicado)':'El dinero se devuelve a '+(g.fuente==='tarjeta'||g.fuente==='tarjetaRev'?'la tarjeta':nombreCuenta(g.fuente)||g.fuente)), verbo:'eliminar'})))return;
   if(!sigueIgual(visto,state.gastos.find(x=>x.id===id),['monto','fuente','cat']))return;
   if(dineroOcupado){showToast('espera, hay otra operación en curso');return;} // el confirm bloquea: revalidar al volver
   const m=c2(nFin(g.monto));
@@ -5654,7 +6288,8 @@ window.eliminarGasto = async function(id) {
   const enCuenta=CAMPO_SIMPLE[g.fuente]||CAMPO_COMP[g.fuente];
   const plan={permitirNegativo:true, permitirDeudaNegativa:true,
     movBorrar:{ref, slot:enCuenta?g.fuente:null, signo:1, monto:m},
-    verificarIguales:[{ref, campos:{monto:m, fuente:g.fuente}}]};
+    // en otra moneda txDinero devuelve montoOrig a su cuenta (lo lee del servidor): se verifica que no cambio
+    verificarIguales:[{ref, campos:{monto:m, fuente:g.fuente, ...(esMovX(g)?{montoOrig:g.montoOrig, moneda:g.moneda}:{})}}]};
   if(g.fuente==='tarjeta') plan.tarjetaDelta=-m;
   else if(g.fuente==='tarjetaRev') plan.tdcRevDelta=-m;
   let res=null,err=null;
@@ -5734,12 +6369,13 @@ function renderMovimientos() {
     const fecha=fmtFechaMov(it.fecha,{day:'numeric',month:'short'});
     const esGasto=m.tipo==='gasto';
     // catalogo CUENTAS (nunca el valor crudo): el Atajo escribe por REST y el campo podria traer cualquier cosa
-    const cuenta=CUENTAS[esGasto?it.fuente:it.destino]||'(cuenta desconocida)';
+    // (20-oct-2026) nombreCuenta incluye las cuentas en otra moneda, cuyo nombre escribe el usuario: se escapa
+    const cuenta=escapeHtml(nombreCuenta(esGasto?it.fuente:it.destino)||'(cuenta desconocida)');
     const del=it.id?`<button type="button" class="del-btn del-x" aria-label="borrar" onclick="${esGasto?'eliminarGasto':'eliminarIngreso'}('${it.id}')">&times;</button>`:'';
     // editar corrige la captura SIN mover dinero ni fecha: por eso no hace falta borrar y volver a registrar
     const edit=it.id?`<button class="edit-btn" title="editar movimiento" aria-label="editar movimiento" onclick="editarMovimiento('${esGasto?'gasto':'ingreso'}','${it.id}')">&#9998;</button>`:'';
     const marca=it.pendiente===true?' · atajo: pendiente de aplicar':(it.porAtajo===true&&it.aplicadoSaldo===false?' · atajo: rechazado (no afectó saldos)':'');
-    return`<div class="item-row"><div><div class="item-cat">${escapeHtml(it.cat)}</div><div class="item-meta">${escapeHtml(it.nota||'')} · ${fecha} · ${cuenta}${marca}</div></div><div style="display:flex;align-items:center"><div class="${esGasto?'item-amt-neg':'item-amt-pos'}">${esGasto?'-':'+'}${fmt(it.monto)}</div>${edit}${del}</div></div>`;
+    return`<div class="item-row"><div><div class="item-cat">${escapeHtml(it.cat)}</div><div class="item-meta">${escapeHtml(it.nota||'')} · ${fecha} · ${cuenta}${marca}</div></div><div style="display:flex;align-items:center"><div class="${esGasto?'item-amt-neg':'item-amt-pos'}">${esGasto?'-':'+'}${fmtMov(it)}</div>${edit}${del}</div></div>`;
   }).join('');
 }
 
@@ -5789,17 +6425,23 @@ window.editarMovimiento = function(tipo, id) {
   const opciones = [...EDIT_CUENTAS[tipo]];
   // un documento legado o del Atajo puede venir SIN cuenta: no se pinta pastilla para "undefined"
   if (it[campo] && !opciones.includes(it[campo])) opciones.unshift(it[campo]);
-  const bloqueadas = movRechazado(it);
+  // (20-oct-2026) en otra moneda tambien se bloquean monto y cuenta: el monto en pesos depende del tipo de
+  // cambio de su dia y las reglas del servidor no dejan cambiarlo (se borra y se registra de nuevo)
+  const enX = esMovX(it);
+  const bloqueadas = movRechazado(it) || enX;
   document.getElementById('edit-mov-cuenta').innerHTML = opciones.map(c=>{
-    const legada = !EDIT_CUENTAS[tipo].includes(c);
+    const legada = !EDIT_CUENTAS[tipo].includes(c) && !enX;
     return `<button type="button" class="type-opt${c===it[campo]?' active':''}" data-cta="${escapeHtml(String(c))}"`
       +` aria-pressed="${c===it[campo]}"${(legada&&c!==it[campo])||bloqueadas?' disabled':''} onclick="elegirCuentaEdit(this)">`
-      +escapeHtml(CUENTAS[c]||String(c||'(sin cuenta)'))+(legada?' (anterior)':'')+'</button>';
+      +escapeHtml(nombreCuenta(c)||String(c||'(sin cuenta)'))+(legada?' (anterior)':'')+'</button>';
   }).join('') + (it[campo] ? '' : '<div class="item-meta" style="flex:1 0 100%">sin cuenta registrada'+(bloqueadas?'':': elige una')+'</div>');
   const inpMonto = document.getElementById('edit-mov-monto');
   inpMonto.disabled = bloqueadas;
   inpMonto.classList.remove('is-error','is-shaking'); inpMonto.removeAttribute('aria-invalid'); // restos de un intento anterior
-  document.getElementById('edit-mov-sub').textContent = bloqueadas
+  if (enX) document.getElementById('edit-mov-monto').value = String(c2(nFin(it.monto)));
+  document.getElementById('edit-mov-sub').textContent = enX
+    ? 'movimiento en otra moneda ('+fmtMov(it)+'): puedes cambiar categoría, nota y fecha; para corregir el monto o la cuenta, bórralo y regístralo de nuevo'
+    : bloqueadas
     ? 'este movimiento del Atajo fue rechazado: puedes cambiar categoría, nota y fecha; para corregir el monto o la cuenta, bórralo y regístralo de nuevo'
     : (it.suscripcion ? 'pago de una suscripción: no se puede cambiar de mes' : (movSinEfecto(it) ? 'pendiente del Atajo: aún no mueve tus saldos' : ''));
   pintarEfectoEdit();
@@ -5815,7 +6457,7 @@ window.elegirCuentaEdit = function(btn) {
 };
 // la linea que dice que le va a pasar a tus saldos si guardas
 function textoEfectoEdit(tipo, ctaVieja, m1, ctaNueva, m2) {
-  const nom = c => c==='tarjeta'||c==='tarjetaRev' ? (CUENTAS[c]||'la tarjeta') : (CUENTAS[c]||c);
+  const nom = c => c==='tarjeta'||c==='tarjetaRev' ? (CUENTAS[c]||'la tarjeta') : (nombreCuenta(c)||c);
   if (!ctaVieja) { // sin cuenta original: nunca afecto ninguna, no hay nada que devolver
     if (tipo==='gasto') return 'no devuelve nada (sin cuenta registrada) y '+((ctaNueva==='tarjeta'||ctaNueva==='tarjetaRev') ? 'sube '+fmt(m2)+' la deuda de '+nom(ctaNueva) : 'saca '+fmt(m2)+' de '+nom(ctaNueva));
     return 'no resta nada (sin cuenta registrada) y suma '+fmt(m2)+' a '+nom(ctaNueva);
@@ -5925,7 +6567,8 @@ window.guardarEdicionMov = async function() {
   // un movimiento rechazado por el Atajo tiene monto y cuenta deshabilitados: se conservan los
   // originales y NO se valida el monto (si venia invalido, justo por eso fue rechazado), para
   // que si se puedan corregir categoria, nota y fecha
-  const rechazado=movRechazado(it);
+  // (20-oct-2026) un movimiento en otra moneda se trata igual: monto y cuenta fijos, solo metadatos
+  const rechazado=movRechazado(it)||esMovX(it);
   const cuenta=rechazado?visto[campo]:editMov.cuenta;
   if(!cat){ showToast('elige una categoría'); return; }
   const m1=c2(nFin(visto.monto));
@@ -6008,7 +6651,7 @@ window.guardarEdicionMov = async function() {
   if(!cuenta && !movSinEfecto(it)){ showToast('este movimiento no tiene cuenta registrada: elige una cuenta para guardar el cambio'); return; }
   const antesConfirmar={monto:it.monto,[campo]:ctaVieja,cat:it.cat,nota:it.nota,fecha:it.fecha,pendiente:it.pendiente,aplicadoSaldo:it.aplicadoSaldo};
   const texto = movSinEfecto(it)
-    ? 'Todavía no mueve tus saldos: el Atajo lo aplicará con '+fmt(m2)+(cuenta!==ctaVieja?' y la cuenta nueva ('+(CUENTAS[cuenta]||cuenta)+')':'')+'.'
+    ? 'Todavía no mueve tus saldos: el Atajo lo aplicará con '+fmt(m2)+(cuenta!==ctaVieja?' y la cuenta nueva ('+(nombreCuenta(cuenta)||cuenta)+')':'')+'.'
     : 'Al guardar, '+textoEfectoEdit(tipo, ctaVieja, m1, cuenta, m2)+'.';
   if(!(await confirmarDeslizando({titulo:'¿Guardar los cambios?', texto, verbo:'guardar', tono:'ok'}))) return;
   if(!sigueIgual(antesConfirmar, lista().find(x=>x.id===id), ['monto',campo,'cat','nota','fecha','pendiente','aplicadoSaldo'])) return;
@@ -6103,7 +6746,10 @@ async function altaIngreso(cat,monto,nota,destino,btn,fecha) {
 window.registrarIngreso = async function() {
   if(!montoValido('ingreso-monto')) return;
   const fecha=fechaMovOpcional('ingreso-fecha'); if(fecha===null) return;
-  const ok=await altaIngreso(
+  const ok=esIdX(state.destinoIngreso) ? await altaMovX('ingreso',
+    document.getElementById('ingreso-cat').value, parseFloat(document.getElementById('ingreso-monto').value),
+    document.getElementById('ingreso-nota').value.trim(), state.destinoIngreso, document.getElementById('ingreso-btn'), fecha)
+  : await altaIngreso(
     document.getElementById('ingreso-cat').value,
     parseFloat(document.getElementById('ingreso-monto').value),
     document.getElementById('ingreso-nota').value.trim(),
@@ -6119,7 +6765,7 @@ window.eliminarIngreso = async function(id) {
   const sinEfecto=movSinEfecto(g);
   if(dineroOcupado){showToast('espera, hay otra operación en curso');return;}
   const visto={monto:g.monto,destino:g.destino,cat:g.cat};
-  if(!(await confirmarDeslizando({titulo:'¿Eliminar el ingreso?', texto:(g.nota?'“'+g.nota+'”\n':'')+'¿Eliminar ingreso de '+fmt(g.monto)+' ('+g.cat+')? '+(sinEfecto?'(no afecta saldos: no estaba aplicado)':'Se resta de '+(CUENTAS[g.destino]||g.destino)), verbo:'eliminar'})))return;
+  if(!(await confirmarDeslizando({titulo:'¿Eliminar el ingreso?', texto:(g.nota?'“'+g.nota+'”\n':'')+'¿Eliminar ingreso de '+fmtMov(g)+' ('+g.cat+')? '+(sinEfecto?'(no afecta saldos: no estaba aplicado)':'Se resta de '+(nombreCuenta(g.destino)||g.destino)), verbo:'eliminar'})))return;
   if(!sigueIgual(visto,state.ingresos.find(x=>x.id===id),['monto','destino','cat']))return;
   if(dineroOcupado){showToast('espera, hay otra operación en curso');return;} // el confirm bloquea: revalidar al volver
   const m=c2(nFin(g.monto));
@@ -6132,7 +6778,7 @@ window.eliminarIngreso = async function(id) {
   // podria haberle cambiado monto o cuenta; sin esto se restaria el monto VIEJO de la cuenta vieja
   const plan={permitirNegativo:true,
     movBorrar:{ref, slot:(CAMPO_SIMPLE[g.destino]||CAMPO_COMP[g.destino])?g.destino:null, signo:-1, monto:m},
-    verificarIguales:[{ref, campos:{monto:m, destino:g.destino}}]};
+    verificarIguales:[{ref, campos:{monto:m, destino:g.destino, ...(esMovX(g)?{montoOrig:g.montoOrig, moneda:g.moneda}:{})}}]};
   let res=null,err=null;
   dineroOcupado=true;
   try{ res=await txDinero(plan); }
@@ -7529,7 +8175,9 @@ window.exportarMisDatos = function() {
       gastos:state.gastos, ingresos:state.ingresos, transferencias:state.transferencias,
       operacionesBolsa:state.stocksOps, personas:state.personas,
       apartados:state.apartados, fondo:state.fondo, categorias:{gasto:state.catsGasto,ingreso:state.catsIngreso},
-      historial:state.snapshots
+      historial:state.snapshots,
+      // (20-oct-2026) cuentas en otra moneda (saldo en SU moneda) y el tipo de cambio usado
+      cuentasOtraMoneda:state.cuentasX, tipoDeCambio:state.fx
     };
     const blob=new Blob([JSON.stringify(datos,null,2)],{type:'application/json'});
     const url=URL.createObjectURL(blob);
@@ -8727,7 +9375,9 @@ function calcScore(m) {
   // deposito congelado de la TDC, sin lo que te deben) contra el objetivo del estandar
   const gastoRef=promedioGastoMensual();
   if(gastoRef>0){
-    const liquido=[...ctasGrupo('disponible'),...ctasGrupo('ahorro')].reduce((s,c)=>s+Math.max(0,disponibleCuenta(c)),0);
+    // (20-oct-2026) + las cuentas en otra moneda (en pesos); una en rojo no resta
+    const liquido=[...ctasGrupo('disponible'),...ctasGrupo('ahorro')].reduce((s,c)=>s+Math.max(0,disponibleCuenta(c)),0)
+      +Object.values(state.cuentasX||{}).reduce((s,x)=>{ const tc=tcDe(x.moneda); return s+(tc?Math.max(0,x.saldo*tc):0); },0);
     const meses=liquido/gastoRef;
     comps.push({nombre:'colchón de emergencia',max:10,puntos:Math.round(10*Math.min(1,meses/est.emergenciaMeses)),
       detalle:'tu dinero disponible cubre '+meses.toFixed(1)+' mes(es) de gasto · la referencia para ti es '+est.emergenciaMeses});
@@ -9021,7 +9671,7 @@ function desgloseCatHTML(items, cls, abierto) {
   const tipo=cls==='neg'?'gasto':'ingreso';
   const ord=items.slice().sort((a,b)=>String(b.fecha||'').localeCompare(String(a.fecha||'')));
   const filas=ord.map(m=>`<div class="cat-mov"><span class="cat-mov-f">${escapeHtml(fmtFechaMov(m.fecha,{day:'numeric',month:'short'}))}</span>`+
-    `<span class="cat-mov-n">${escapeHtml(m.nota||'sin nota')}<span class="cat-mov-c">${escapeHtml(CUENTAS[tipo==='gasto'?m.fuente:m.destino]||'—')}</span></span>`+
+    `<span class="cat-mov-n">${escapeHtml(m.nota||'sin nota')}<span class="cat-mov-c">${escapeHtml(nombreCuenta(tipo==='gasto'?m.fuente:m.destino)||'—')}</span></span>`+
     `<span class="cat-mov-m ${cls}">${fmt(m.monto)}</span>`+
     (m.id?`<button type="button" class="edit-btn cat-mov-e" title="editar movimiento" aria-label="editar movimiento" onclick="editarMovimiento('${tipo}','${escapeHtml(m.id)}')">&#9998;</button>`:'')+
     `</div>`).join('');

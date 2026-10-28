@@ -809,13 +809,102 @@ if (fuente.includes('movEditar')) {
     // el texto del efecto no dice "undefined" cuando no hay cuenta original
     const iT = HTML.indexOf('function textoEfectoEdit('); let dd = 0, jj = HTML.indexOf('{', iT);
     for (; jj < HTML.length; jj++) { if (HTML[jj] === '{') dd++; else if (HTML[jj] === '}') { dd--; if (!dd) break; } }
-    const textoEfecto = new Function('CUENTAS', 'fmt', 'c2', HTML.slice(iT, jj + 1) + '\nreturn textoEfectoEdit;')(CUENTAS, n => '$' + n, n => Math.round(n * 100) / 100);
+    const textoEfecto = new Function('CUENTAS', 'fmt', 'c2', 'nombreCuenta', HTML.slice(iT, jj + 1) + '\nreturn textoEfectoEdit;')(CUENTAS, n => '$' + n, n => Math.round(n * 100) / 100, k => CUENTAS[k] || '');
     const t1 = textoEfecto('gasto', undefined, 100, 'efectivo', 150), t2 = textoEfecto('ingreso', undefined, 100, 'nu', 150), t3 = textoEfecto('gasto', undefined, 100, 'tarjeta', 150);
     chk('E18 el texto del efecto sin cuenta original no dice undefined', !/undefined|null/.test(t1 + t2 + t3) && /saca \$150/.test(t1) && /suma \$150/.test(t2) && /sube \$150/.test(t3), [t1, t2, t3].join(' | '));
     // el modal no pinta pastilla para una cuenta ausente
     const iE = HTML.indexOf('window.editarMovimiento = function'), cuerpoE = HTML.slice(iE, HTML.indexOf('\n};', iE));
     chk('E18 editarMovimiento no agrega pastilla para una cuenta ausente', /if \(it\[campo\] && !opciones\.includes\(it\[campo\]\)\) opciones\.unshift/.test(cuerpoE) && /sin cuenta registrada/.test(cuerpoE));
   } finally { rechazaUndefined = false; }
+}
+
+// ═══════════════ X. CUENTAS EN OTRA MONEDA (20-oct-2026) ═══════════════
+if (HTML.includes('const docCX')) {
+  console.log('\nX. Cuentas en otra moneda: plan.fx, reintentos y reversa desde el servidor');
+  const S = R('cartera/saldos'), CX = R('cartera/cuentasX');
+  const sx = id => (SERVIDOR[CX] && SERVIDOR[CX].cuentas && SERVIDOR[CX].cuentas[id]) || {};
+  const nueva = (saldo, extra = {}) => ({ nombre: 'CommBank', moneda: 'AUD', tipo: 'banco', on: true, saldo, creada: '2026-10-20', ...extra });
+  let r;
+  // crear
+  SERVIDOR = { [S]: { efectivo: 1000 } };
+  r = await txDinero({ fx: { crear: { x_aud001: nueva(100) } } });
+  chk('X1 crear una cuenta: queda con su saldo y su moneda', r.ok && sx('x_aud001').saldo === 100 && sx('x_aud001').moneda === 'AUD', JSON.stringify(SERVIDOR[CX]));
+  r = await txDinero({ fx: { crear: { x_aud001: nueva(999) } } });
+  chk('X1 crearla otra vez (respuesta perdida): ya-existe y no pisa el saldo', r.codigo === 'ya-existe' && sx('x_aud001').saldo === 100);
+  r = await txDinero({ fx: { crear: { x_mal001: nueva(5, { moneda: 'XYZ' }) } } });
+  chk('X1 una moneda fuera del catalogo se rechaza', !!r.error && !sx('x_mal001').moneda);
+  // gasto en otra moneda: monto en pesos + montoOrig; solo se mueve la cuenta x_
+  const G1 = PFX + 'gastos/gx1';
+  const gx = { cat: 'Comida', monto: 388.2, nota: '', fuente: 'x_aud001', fecha: '2026-10-20T10:00:00Z', creado: '2026-10-20T10:00:00Z', montoOrig: 30, moneda: 'AUD', tc: 12.94, tcFecha: '2026-10-20' };
+  const planG = () => ({ crear: [{ ref: { path: G1 }, data: gx }], requerirAusentes: [{ path: G1 }], permitirNegativo: true, fx: { deltas: { x_aud001: -30 } } });
+  r = await txDinero(planG());
+  chk('X2 gasto en AUD: la cuenta baja 30, efectivo intacto, el doc guarda pesos y AUD', r.ok && sx('x_aud001').saldo === 70 && ef() === 1000 && SERVIDOR[G1].monto === 388.2 && SERVIDOR[G1].montoOrig === 30, JSON.stringify(sx('x_aud001')));
+  chk('X2 el resultado trae la cuenta para la pantalla (res.cx)', r.cx && r.cx.x_aud001 && r.cx.x_aud001.saldo === 70);
+  r = await txDinero(planG());
+  chk('X2 reintento con la respuesta perdida: ya-existe y NO cobra dos veces', r.codigo === 'ya-existe' && sx('x_aud001').saldo === 70);
+  // una cuenta x_ en deltas se rechaza (se ignoraria en silencio)
+  let lanzo = false;
+  try { await txDinero({ deltas: { x_aud001: -5 } }); } catch (e) { lanzo = /plan\.fx/.test(e.message); }
+  chk('X3 una cuenta x_ en deltas lanza error (nunca se ignora en silencio)', lanzo && sx('x_aud001').saldo === 70);
+  // borrar el gasto: la reversa sale del documento del SERVIDOR, aunque la pantalla no la mande
+  r = await txDinero({ permitirNegativo: true, movBorrar: { ref: { path: G1 }, slot: null, signo: 1, monto: 388.2 },
+    verificarIguales: [{ ref: { path: G1 }, campos: { monto: 388.2, fuente: 'x_aud001', montoOrig: 30, moneda: 'AUD' } }] });
+  chk('X4 borrar el gasto devuelve 30 AUD a su cuenta y borra el doc', r.ok && sx('x_aud001').saldo === 100 && !SERVIDOR[G1] && ef() === 1000, JSON.stringify(r));
+  // ingreso y su borrado (la reversa resta)
+  const I1 = PFX + 'ingresos/ix1';
+  SERVIDOR[I1] = { cat: 'Trabajo', monto: 647, destino: 'x_aud001', montoOrig: 50, moneda: 'AUD', tc: 12.94, tcFecha: '2026-10-20', fecha: '2026-10-20T10:00:00Z' };
+  SERVIDOR[CX].cuentas.x_aud001.saldo = 150;
+  r = await txDinero({ permitirNegativo: true, movBorrar: { ref: { path: I1 }, slot: null, signo: -1, monto: 647 } });
+  chk('X4 borrar un ingreso en AUD le resta 50 a la cuenta', r.ok && sx('x_aud001').saldo === 100 && !SERVIDOR[I1]);
+  // un movimiento danado (sin montoOrig) no se deshace solo
+  SERVIDOR[I1] = { cat: 'Trabajo', monto: 647, destino: 'x_aud001', moneda: 'AUD', fecha: '2026-10-20T10:00:00Z' };
+  r = await txDinero({ permitirNegativo: true, movBorrar: { ref: { path: I1 }, slot: null, signo: -1, monto: 647 } });
+  chk('X4 un movimiento en otra moneda sin montoOrig: error y nada se borra', !!r.error && !!SERVIDOR[I1] && sx('x_aud001').saldo === 100);
+  // ambiguo (fuente y destino x_ a la vez, o fuente y destino sin origen): danado, no se revierte dos veces
+  for (const [nom, dd] of [['fuente y destino x_', { fuente: 'x_aud001', destino: 'x_aud001' }], ['fuente y destino sin origen', { fuente: 'efectivo', destino: 'x_aud001' }]]) {
+    SERVIDOR[I1] = { cat: 'Trabajo', monto: 647, montoOrig: 50, moneda: 'AUD', fecha: '2026-10-20T10:00:00Z', ...dd };
+    r = await txDinero({ permitirNegativo: true, movBorrar: { ref: { path: I1 }, slot: null, signo: -1, monto: 647 } });
+    chk('X4 documento ambiguo (' + nom + '): error y nada se borra ni se revierte', !!r.error && !!SERVIDOR[I1] && sx('x_aud001').saldo === 100, JSON.stringify(r));
+  }
+  delete SERVIDOR[I1];
+  // editar con dinero un movimiento x_ se rechaza
+  SERVIDOR[G1] = { ...gx };
+  r = await txDinero({ permitirNegativo: true, movEditar: { ref: { path: G1 }, signo: 1, antes: { slot: null, monto: 388.2 }, despues: { slot: 'efectivo', monto: 388.2 }, datos: { fuente: 'efectivo' } } });
+  chk('X5 editar monto o cuenta de un movimiento en otra moneda: error, nada cambia', !!r.error && SERVIDOR[G1].fuente === 'x_aud001' && ef() === 1000 && sx('x_aud001').saldo === 100);
+  delete SERVIDOR[G1];
+  // transferencia pesos -> AUD y su deshacer
+  const T1 = PFX + 'transferencias/tx1';
+  const tr = { origen: 'efectivo', destino: 'x_aud001', monto: 500, nota: '', fecha: '2026-10-20T10:00:00Z', creado: '2026-10-20T10:00:00Z',
+    montoOrigen: 500, monedaOrigen: 'MXN', montoDestino: 38, monedaDestino: 'AUD', tc: 13.157895 };
+  r = await txDinero({ crear: [{ ref: { path: T1 }, data: tr }], requerirAusentes: [{ path: T1 }], deltas: { efectivo: -500 }, fx: { deltas: { x_aud001: 38 } } });
+  chk('X6 transferir $500 a AUD: efectivo 500, la cuenta sube 38', r.ok && ef() === 500 && sx('x_aud001').saldo === 138, JSON.stringify({ ef: ef(), x: sx('x_aud001') }));
+  SERVIDOR[CX].cuentas.x_aud001.saldo = 10;  // ya gasto casi todo
+  r = await txDinero({ movBorrar: { ref: { path: T1 }, slot: 'efectivo', signo: 1, monto: 500 } });
+  chk('X6 deshacer sin saldo suficiente del lado AUD: error, nada se mueve', !!r.error && ef() === 500 && sx('x_aud001').saldo === 10 && !!SERVIDOR[T1], JSON.stringify(r));
+  SERVIDOR[CX].cuentas.x_aud001.saldo = 138;
+  r = await txDinero({ movBorrar: { ref: { path: T1 }, slot: 'efectivo', signo: 1, monto: 500 } });
+  chk('X6 deshacer: regresan $500 al efectivo y salen 38 AUD', r.ok && ef() === 1000 && sx('x_aud001').saldo === 100 && !SERVIDOR[T1]);
+  // apagar / encender y altas a una cuenta apagada
+  r = await txDinero({ fx: { editar: { x_aud001: { on: false } } } });
+  chk('X7 apagar con saldo distinto de cero: error', !!r.error && sx('x_aud001').on === true);
+  r = await txDinero({ fx: { absolutos: { x_aud001: 0 } } });
+  chk('X7 actualizar el saldo a mano (absoluto)', r.ok && sx('x_aud001').saldo === 0);
+  r = await txDinero({ fx: { editar: { x_aud001: { on: false, nombre: '  CBA  ' } } } });
+  chk('X7 con saldo en cero se apaga y se renombra (sin espacios)', r.ok && sx('x_aud001').on === false && sx('x_aud001').nombre === 'CBA');
+  r = await txDinero({ fx: { deltas: { x_aud001: 20 } } });
+  chk('X7 una cuenta apagada no recibe movimientos nuevos', !!r.error && sx('x_aud001').saldo === 0);
+  r = await txDinero({ fx: { deltas: { x_nadie1: 5 } } });
+  chk('X7 una cuenta que no existe: error', !!r.error);
+  // una salida que deja en rojo sin permitirNegativo se bloquea; con permitirNegativo (gasto) se avisa y pasa
+  await txDinero({ fx: { editar: { x_aud001: { on: true } } } });
+  r = await txDinero({ fx: { deltas: { x_aud001: -5 } } });
+  chk('X8 salida que deja en rojo sin permitirNegativo: bloqueada', !!r.error && sx('x_aud001').saldo === 0);
+  r = await txDinero({ permitirNegativo: true, fx: { deltas: { x_aud001: -5 } } });
+  chk('X8 un gasto que ya ocurrio si pasa aunque deje en rojo', r.ok && sx('x_aud001').saldo === -5);
+  // nunca se lee despues de escribir y un conflicto no duplica (el simulador lo revisa)
+  forzarConflicto = 2;
+  r = await txDinero({ fx: { deltas: { x_aud001: 10 } } });
+  chk('X9 con dos conflictos reintenta y aplica UNA vez', r.ok && sx('x_aud001').saldo === 5);
 }
 
 console.log('\n' + '='.repeat(58));
