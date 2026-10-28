@@ -1103,7 +1103,8 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
     <div class="panel" id="camino-panel"><div class="empty-state">calculando...</div></div>
   </div>
   <div class="sec">
-    <div class="section-title">mis apartados</div>
+    <!-- (28-oct-2026) los apartados ahora son fondos: separan el dinero de verdad. Aqui solo se ve el avance -->
+    <div class="section-title">mis fondos</div>
     <div class="panel" id="apartados-panel"><div class="empty-state">cargando...</div></div>
   </div>
   </div>
@@ -1265,11 +1266,17 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
   <div class="subtabs" id="fondo-subtabs" style="flex-wrap:wrap"></div>
   <div class="panel" id="fondo-nuevo" hidden style="margin-bottom:14px">
     <div class="field"><label for="fondo-nuevo-nombre">nombre del fondo nuevo</label><input type="text" id="fondo-nuevo-nombre" maxlength="30" placeholder="ej. viaje, emergencias, coche"></div>
+    <div class="row2" style="gap:8px">
+      <div class="field"><label for="fondo-nuevo-meta">meta (opcional)</label><input type="number" id="fondo-nuevo-meta" min="0" step="0.01" inputmode="decimal" placeholder="ej. 10000"></div>
+      <div class="field"><label for="fondo-nuevo-fecha">para cuándo (opcional)</label><input type="text" id="fondo-nuevo-fecha" maxlength="7" inputmode="numeric" placeholder="AAAA-MM"></div>
+    </div>
     <button type="button" class="btn btn-purple" id="fondo-nuevo-btn" onclick="crearFondo()">crear fondo</button>
     <div class="item-meta" style="margin-top:8px;line-height:1.45">Un fondo es dinero apartado dentro de tus cuentas para algo: no sale de tu banco, solo deja de contar como dinero para el día a día. Después de crearlo, apártale dinero con "apartar".</div>
   </div>
   <div class="item-meta" id="fondo-admin" style="margin:-6px 0 12px"></div>
   <div class="dkpis" id="fondo-kpis"><div class="empty-state">calculando...</div></div>
+  <!-- (28-oct-2026) la meta del fondo (antes "mis apartados" de metas): avance, y su forma para ponerla o cambiarla -->
+  <div id="fondo-meta" style="margin-bottom:12px"></div>
   <!-- (28-oct-2026) cuanto ha generado el fondo y como ha subido: va aqui, NUNCA en el resumen (es dinero aparte) -->
   <div class="chart-titulo"><div class="section-title" style="margin:0">cómo ha crecido este fondo</div><div id="fondo-modos"></div></div>
   <div class="panel" id="fondo-chart" style="margin-bottom:16px"></div>
@@ -2116,6 +2123,9 @@ let state = {
   mesOffset:0, resPeriodo:'mes',
   catsGasto:[...CATS_GASTO_DEFAULT], catsIngreso:[...CATS_INGRESO_DEFAULT],
   apartados:[],
+  // (28-oct-2026) meta de cada fondo {fid:{objetivo, fecha:'AAAA-MM'|''}}: doc aparte (cartera/metasFondos) porque
+  // cartera/fondo se reescribe entero y una version vieja borraria lo que no conoce
+  metasFondos:{},
   // fondo de la universidad: dinero APARTADO dentro de las cuentas reales (ver saneaFondo)
   fondo:{saldosPorCuenta:{}, movs:[]},
   // perfil para el estandar personalizado (vacio = estandar generico, no bloquea nada)
@@ -2301,7 +2311,7 @@ async function loadFromFirebase() {
       sDoc, mDoc, pDoc, perDoc, tDoc,
       trvDoc, hDoc, aDoc, mtDoc, cDoc, tkDoc, fDoc,
       gSnap, iSnap, trSnap, opSnap
-    , rendSnap, cxDoc] = await Promise.all([
+    , rendSnap, cxDoc, mfDoc] = await Promise.all([
       getDoc(doc(db,'cartera','saldos')),
       getDoc(doc(db,'cartera','mercado')),
       getDoc(doc(db,'cartera','personas')),
@@ -2321,6 +2331,8 @@ async function loadFromFirebase() {
       getDocs(query(collection(db,C_REND), orderBy('fin','asc'))),
       // (20-oct-2026) cuentas en otra moneda: si no existe, no hay ninguna (nunca se siembra al cargar)
       getDoc(docCX()),
+      // la meta es de pantalla: si esta lectura falla (doc nunca cacheado y sin señal) no tumba toda la carga
+      getDoc(doc(db,'cartera','metasFondos')).catch(()=>null),
     ]);
     // si los datos vinieron de la cache local (red caida o lentisima) NO se corren
     // las siembras/migraciones: decidirian sobre un estado viejo y podrian reaplicar
@@ -2328,8 +2340,9 @@ async function loadFromFirebase() {
     // (15-oct-2026) "vino del servidor" se certifica con TODAS las lecturas, no solo con saldos:
     // cualquiera que salga de la cache (gastos, ingresos, personas...) deja el estado sin confirmar
     const desdeCache = [sDoc, mDoc, pDoc, perDoc, tDoc, trvDoc, hDoc, aDoc, mtDoc, cDoc, tkDoc, fDoc,
-      gSnap, iSnap, trSnap, opSnap, rendSnap, cxDoc].some(s => !!(s && s.metadata && s.metadata.fromCache));
+      gSnap, iSnap, trSnap, opSnap, rendSnap, cxDoc, mfDoc].some(s => !!(s && s.metadata && s.metadata.fromCache));
     cargaDesdeCache = desdeCache;
+    state.metasFondos = saneaMetasFondos(mfDoc && mfDoc.exists() ? mfDoc.data() : null);
     state.cuentasX = saneaCX(cxDoc.exists() ? cxDoc.data() : null);
     // el fondo se carga SIEMPRE, exista o no: sin el, inicio pintaria el dinero apartado como tuyo
     state.fondo = saneaFondo(fDoc.exists() ? fDoc.data() : null);
@@ -5272,8 +5285,34 @@ function listaFondos(conCerrados) {
 }
 const apartadoFondo = (fid, c) => apartadoFondoEn(state.fondo, fid, c);
 function totalFondo(fid) { return CTAS_FONDO.reduce((t, c) => t + apartadoFondo(fid, c), 0); }
-// el interes estimado sin registrar se reparte entre los fondos segun lo que cada uno tiene en esa cuenta (estimado)
-function generadoFondoEn(fid, c) { const A = apartadoDe(c); return A > 0 ? (fondoEnCuenta(c) - A) * apartadoFondo(fid, c) / A : 0; }
+// (28-oct-2026, QA de la grafica) el interes estimado sin registrar se reparte TRAMO POR TRAMO segun lo que cada fondo
+// tenia en esa cuenta en ese tramo: un fondo nuevo no se lleva interes de dias en que no existia (antes se repartia
+// con lo de hoy y se lo quitaba a la universidad). La universidad es el resto, como en apartadoFondoEn
+function tramosDeFondo(fid, c) {
+  const movs = ((state.fondo && state.fondo.movs) || []).map(m => ({id: fondoDeMov(m), d: deltaFondo(m, c), t: msFechaMov(m && (m.fecha || m.creado))}))
+    .filter(x => x.d !== 0 && x.t !== null);
+  const suyo = (id, dia) => movs.reduce((s, x) => x.id === id && diaLocal(x.t) <= dia ? s + x.d : s, 0);
+  // (code-reviewer) un fondo cerrado ya no se ve: lo que genero mientras existio pasa a la universidad (si no, ese
+  // interes desaparecia de las fichas sin volverse tuyo)
+  const cerrados = new Set(((state.fondo && state.fondo.fondos) || []).filter(x => x.cerrado).map(x => x.id));
+  if (cerrados.has(fid)) return tramosFondo(c).map(x => ({...x, diario: 0}));
+  const otros = [...new Set(movs.map(x => x.id).filter(id => id !== FONDO_U && !cerrados.has(id)))];
+  return tramosFondo(c).map(x => {
+    const deOtros = otros.reduce((s, id) => s + Math.max(0, suyo(id, x.desde)), 0);
+    const tiene = fid !== FONDO_U ? Math.max(0, suyo(fid, x.desde)) : Math.max(0, x.F - deOtros);
+    // (code-reviewer) entre max(F, suma): con datos de una version vieja los fondos no pasan del 100% del tramo
+    const base = Math.max(x.F, deOtros);
+    return {...x, diario: base > 0 ? x.diario * tiene / base : 0};
+  });
+}
+const pendTramos = (tr, hasta) => tr.reduce((s, x) => { const b = Math.min(x.hasta, hasta == null ? Infinity : hasta); return b > x.desde ? s + x.diario * (b - x.desde) : s; }, 0);
+function generadoFondoEn(fid, c) {
+  const A = apartadoDe(c); if (!(A > 0)) return 0;
+  const gen = fondoEnCuenta(c) - A, tot = Math.max(0, pendienteFondoEntre(c));
+  // sin tramos (cuenta sin interes o sin movimientos) se queda la reparticion de antes, por lo apartado hoy
+  if (!(tot > 0)) return gen * apartadoFondo(fid, c) / A;
+  return gen * Math.min(1, pendTramos(tramosDeFondo(fid, c)) / tot);
+}
 function generadoFondo(fid) { return CTAS_FONDO.reduce((t, c) => t + generadoFondoEn(fid, c), 0); }
 // (28-oct-2026) lo que ha generado un fondo: los abonos que registraste (tipo rendimiento) + el interes estimado que
 // todavia no registras. Solo se muestra en la pestaña fondo: el resumen y 'cuanto gano tu dinero' no lo cuentan
@@ -5282,19 +5321,36 @@ let modoFondoChart = 'valor';
 window.setModoFondoChart = m => { modoFondoChart = m === 'generado' ? 'generado' : 'valor'; renderChart('fondo-chart'); };
 // serie del fondo abierto en el tiempo, de sus movimientos (el de la universidad: los que no llevan etiqueta). El ultimo
 // punto es HOY con lo que tiene de verdad (incluye el interes estimado), aunque la historia vieja no tenga movimientos
+// (28-oct-2026, Beto: "que los pequeños cambios se vean") un punto por dia con el interes estimado sin registrar que
+// llevaba ese dia (los mismos tramos que fondoEnCuenta, repartidos como generadoFondoEn), y cada movimiento como
+// escalon (un punto justo antes y otro en el movimiento) para que un deposito no se dibuje como curva de varios dias.
+// pts.diario = lo que el fondo genera al dia HOY (estimado). El ultimo punto sigue siendo lo exacto de hoy
 function serieFondo(fid, modo) {
   const movs = ((state.fondo && state.fondo.movs) || []).filter(m => m && fondoDeMov(m) === fid)
     .map(m => ({m, t: msFechaMov(m.fecha || m.creado)})).filter(x => x.t !== null).sort((a, b) => a.t - b.t);
-  let v = 0; const pts = [];
+  const pasos = [];
   for (const {m, t} of movs) {
-    if (modo === 'generado') { if (m.tipo !== 'rendimiento') continue; v += nFin(m.monto); }
-    else v += CTAS_FONDO.reduce((s, c) => s + deltaFondo(m, c), 0);
-    pts.push({x: t, y: c2(v)});
+    const d = modo === 'generado' ? (m.tipo === 'rendimiento' ? nFin(m.monto) : 0) : CTAS_FONDO.reduce((s, c) => s + deltaFondo(m, c), 0);
+    if (d) pasos.push([t, d]);
   }
+  const acum = x => pasos.reduce((s, [t, d]) => t <= x ? s + d : s, 0);
+  // los tramos YA repartidos para este fondo (tramosDeFondo): lo mismo que suman las fichas con generadoFondoEn
+  const ctas = CTAS_FONDO.filter(c => apartadoFondo(fid, c) > 0), tr = Object.fromEntries(ctas.map(c => [c, tramosDeFondo(fid, c)]));
+  // (code-reviewer) y nunca antes de su primer movimiento
+  const d0 = movs.length ? diaLocal(movs[0].t) : Infinity;
+  const pend = dia => ctas.reduce((t, c) => t + pendTramos(tr[c].map(x => ({...x, desde: Math.max(x.desde, d0)})), dia), 0);
+  const msDia = k => { const u = k * 86400000; return u + new Date(u).getTimezoneOffset() * 60000; };   // inverso de diaLocal
+  const xs = [];
+  if (movs.length) xs.push(movs[0].t);
+  // en "valor" el primer movimiento no lleva escalon: la grafica empieza con lo que entro, no en cero
+  pasos.forEach(([t], i) => { if (i || modo === 'generado') xs.push(t - 1); xs.push(t); });
+  const ini = Math.min(...ctas.map(c => tr[c].length ? tr[c][tr[c].length - 1].desde : Infinity)), hoyD = diaLocal(Date.now());
+  if (Number.isFinite(ini) && Number.isFinite(d0)) for (let k = Math.max(ini, d0) + 1; k <= hoyD; k++) xs.push(msDia(k));
   const hoy = modo === 'generado' ? rendRegistradoFondo(fid) + generadoFondo(fid) : totalFondo(fid) + generadoFondo(fid);
-  if (modo === 'generado' && pts.length && movs.length) pts.unshift({x: movs[0].t, y: 0});
-  else if (modo === 'generado' && movs.length) pts.push({x: movs[0].t, y: 0});
+  // los puntos de hoy no pasan de lo de hoy: fondoEnCuenta topa el interes estimado al saldo del banco
+  const pts = xs.filter(x => x <= Date.now()).map(x => { const y = c2(acum(x) + pend(diaLocal(x))); return {x, y: diaLocal(x) >= hoyD ? Math.min(y, c2(hoy)) : y}; });
   pts.push({x: Date.now(), y: c2(hoy)});
+  pts.diario = ctas.reduce((t, c) => t + ((tr[c][0] && tr[c][0].diario) || 0), 0);
   return pts;
 }
 // (code-reviewer) si una version vieja saco dinero sin etiqueta, los fondos pueden sumar mas que lo apartado: se avisa
@@ -5323,8 +5379,8 @@ function tramosFondo(slot) {
   const gS = gana(S), diario = F => { const f = Math.min(Math.max(0, F), Math.max(0, S)); return f > 0 ? (gS - gana(S - f)) / 360 : 0; };
   const tramos = []; let F = apartadoDe(slot), fin = diaLocal(Date.now());
   const despues = movs.filter(x => x.t > ancla);
-  for (let i = despues.length - 1; i >= 0; i--) { const d0 = diaLocal(despues[i].t); tramos.push({desde: d0, hasta: Math.max(d0, fin), diario: diario(F)}); F -= despues[i].d; fin = d0; }
-  const d0 = diaLocal(ancla); tramos.push({desde: d0, hasta: Math.max(d0, fin), diario: diario(F)});
+  for (let i = despues.length - 1; i >= 0; i--) { const d0 = diaLocal(despues[i].t); tramos.push({desde: d0, hasta: Math.max(d0, fin), diario: diario(F), F}); F -= despues[i].d; fin = d0; }
+  const d0 = diaLocal(ancla); tramos.push({desde: d0, hasta: Math.max(d0, fin), diario: diario(F), F});
   return tramos;
 }
 // interes del fondo sin registrar en los dias [desde, hasta) (dias locales); sin limites = todo
@@ -7783,8 +7839,12 @@ function renderChart(chartId) {
     const fm=document.getElementById('fondo-modos');
     if(fm) fm.innerHTML='<div class="chart-modos" role="group" aria-label="Qué ver en la gráfica del fondo">'+[['valor','valor del fondo'],['generado','lo que ha generado']].map(([k,t])=>
       `<button type="button" class="chart-modo${modoFondoChart===k?' active':''}" aria-pressed="${modoFondoChart===k}" onclick="setModoFondoChart('${k}')"><span>${t}</span></button>`).join('')+'</div>';
-    el.innerHTML=chartBlock('fondo-chart',serieFondo(fondoActual,modoFondoChart),modoFondoChart==='generado'?'var(--accent)':'var(--d2)',modoFondoChart==='generado'?'generado':'cambio',{ancho:el.clientWidth})
-      +'<div class="chart-nota">'+(modoFondoChart==='generado'?'los abonos que registraste y, hoy, el interés estimado que falta registrar':'lo apartado en el fondo; hoy incluye el interés estimado')+' · aparte de tu resumen</div>';
+    const sf=serieFondo(fondoActual,modoFondoChart), gen=modoFondoChart==='generado';
+    const alDia=sf.diario>0.005?'≈+'+fmt(sf.diario)+' al día (estimado)':'';
+    // en "lo que ha generado" el % sobre cero no dice nada: la cifra util es cuanto subio en el periodo y cuanto genera al dia
+    const head=gen?(vis=>`<div class="chart-head chart-head-wrap"><div class="chart-val">${fmt(vis[vis.length-1].y)}</div><div class="chart-delta pos">${['+'+fmt(Math.max(0,vis[vis.length-1].y-vis[0].y))+' en este periodo',alDia].filter(Boolean).join(' · ')}</div></div>`):null;
+    el.innerHTML=chartBlock('fondo-chart',sf,gen?'var(--accent)':'var(--d2)',gen?'generado':'cambio',head?{ancho:el.clientWidth,head}:{ancho:el.clientWidth})
+      +'<div class="chart-nota">'+(!gen&&alDia?'genera '+alDia+' · ':'')+(gen?'los abonos que registraste y, día por día, el interés estimado que falta registrar':'lo apartado en el fondo; hoy incluye el interés estimado')+' · aparte de tu resumen</div>';
   }
   else
     document.getElementById('patrimonio-chart').innerHTML=chartBlock('patrimonio-chart',(state.snapshots||[]).map(s=>({x:parseFechaLocal(s.f).getTime(),y:s.total})),'var(--d2)','cambio');
@@ -8541,6 +8601,21 @@ function renderFondo() {
     kpi('ha generado', fmt(rendRegistradoFondo(FA) + G), 'en total: ' + fmt(rendRegistradoFondo(FA)) + ' de abonos registrados' + (G > 0.005 ? ' + ≈' + fmt(G) + ' estimado' : '') + ' · no entra a tu resumen', true) +
     kpi('ha entrado', fmt(suma(['entrada', 'apartar'])), 'lo que tú metiste: entradas y apartados') +
     kpi('se ha usado', fmt(suma(['salida', 'liberar'])), 'pagos y lo liberado a tu dinero');
+  const fmEl = document.getElementById('fondo-meta');
+  if (fmEl) {
+    const mt = metaFondo(FA), tiene = F + G, av = mt ? avanceMeta(tiene, mt) : null;
+    const form = '<div class="panel" id="fondo-meta-form" hidden style="margin-top:8px"><div class="row2" style="gap:8px">' +
+      '<div class="field"><label for="fondo-meta-monto">cuánto quieres juntar</label><input type="number" id="fondo-meta-monto" min="0" step="0.01" inputmode="decimal" placeholder="ej. 10000"></div>' +
+      '<div class="field"><label for="fondo-meta-fecha">para cuándo (opcional)</label><input type="text" id="fondo-meta-fecha" maxlength="7" inputmode="numeric" placeholder="AAAA-MM"></div></div>' +
+      '<div style="display:flex;gap:8px;flex-wrap:wrap"><button type="button" class="btn btn-purple" style="flex:1" onclick="guardarMetaDesdeForm(false)">guardar meta</button>' +
+      (mt ? '<button type="button" class="volver-btn" onclick="guardarMetaDesdeForm(true)">quitar meta</button>' : '') +
+      '<button type="button" class="volver-btn" onclick="document.getElementById(\'fondo-meta-form\').hidden=true">cancelar</button></div></div>';
+    fmEl.innerHTML = (mt
+      ? '<div class="panel" style="padding:12px 16px"><div class="bar-header"><span class="bar-label">meta del fondo</span><span class="bar-amt" style="color:var(--accent-dark)">' + fmt(tiene) + ' / ' + fmt(mt.objetivo) + '</span></div>' +
+        '<div class="bar-track" style="height:8px"><div class="bar-fill" style="width:' + Math.max(0, Math.min(100, av.pct)).toFixed(1) + '%"></div></div>' +
+        '<div class="bar-header" style="margin-top:4px"><span class="item-meta">' + escapeHtml(av.txt) + '</span><button type="button" class="del-btn" style="font-size:12px;color:var(--accent);padding:2px 0 2px 10px" onclick="editarMetaFondo()">cambiar meta</button></div></div>'
+      : '<button type="button" class="volver-btn" onclick="editarMetaFondo()">+ ponerle meta a este fondo</button>') + form;
+  }
   const cu = document.getElementById('fondo-cuentas');
   if (cu) {
     // (21-oct-2026, Roberto) una tarjetita por cuenta: lo del fondo, lo que hay en el banco y lo tuyo
@@ -8603,16 +8678,110 @@ async function cambiarListaFondos(cambio, ok) {
   refrescar(render, renderFondo, aplicarVisibilidadFondo);
   showToast(ok); return true;
 }
+const idFondoNuevo = () => 'f_' + (Date.now().toString(36) + Math.random().toString(36).slice(2, 6)).slice(0, 12);
+// el cambio de lista que da de alta un fondo (lo usan crear fondo y "pasar a fondo" desde metas)
+const altaEnLista = (id, nombre) => lista => {
+  if (lista.filter(x => x.id !== FONDO_U && !x.cerrado).length >= FONDOS_MAX) return 'máximo ' + FONDOS_MAX + ' fondos abiertos';
+  if (lista.some(x => !x.cerrado && x.nombre.toLowerCase() === nombre.toLowerCase()) || nombre.toLowerCase() === nombreFondo(FONDO_U).toLowerCase()) return 'ya tienes un fondo con ese nombre';
+  lista.push({id, nombre, cerrado:false, creado:new Date().toISOString()});
+};
 window.crearFondo = async function() {
   const el = document.getElementById('fondo-nuevo-nombre'), nombre = (el && el.value || '').trim().slice(0, 30);
   if (!nombre) { showToast('ponle nombre al fondo, por ejemplo "viaje"'); return; }
-  const id = 'f_' + (Date.now().toString(36) + Math.random().toString(36).slice(2, 6)).slice(0, 12);
-  const ok = await cambiarListaFondos(lista => {
-    if (lista.filter(x => x.id !== FONDO_U && !x.cerrado).length >= FONDOS_MAX) return 'máximo ' + FONDOS_MAX + ' fondos abiertos';
-    if (lista.some(x => !x.cerrado && x.nombre.toLowerCase() === nombre.toLowerCase()) || nombre.toLowerCase() === nombreFondo(FONDO_U).toLowerCase()) return 'ya tienes un fondo con ese nombre';
-    lista.push({id, nombre, cerrado:false, creado:new Date().toISOString()});
-  }, 'fondo creado: ' + nombre);
-  if (ok) { if (el) el.value = ''; fondoActual = id; const n = document.getElementById('fondo-nuevo'); if (n) n.hidden = true; refrescar(renderFondo, fondoTipoCambio); }
+  const em = document.getElementById('fondo-nuevo-meta'), ef = document.getElementById('fondo-nuevo-fecha');
+  const meta = leeMeta(em && em.value, ef && ef.value); if (meta.error) { showToast(meta.error); return; }
+  const id = idFondoNuevo();
+  const ok = await cambiarListaFondos(altaEnLista(id, nombre), 'fondo creado: ' + nombre);
+  if (!ok) return;
+  [el, em, ef].forEach(x => { if (x) x.value = ''; });
+  if (meta.objetivo > 0) { try { await guardarMetaFondo(id, meta); } catch (e) { showToast('el fondo se creó, pero su meta no se guardó: pónsela desde aquí'); } }
+  fondoActual = id; const n = document.getElementById('fondo-nuevo'); if (n) n.hidden = true; refrescar(renderFondo, fondoTipoCambio, renderApartados);
+};
+// ── METAS DE LOS FONDOS (28-oct-2026, Roberto: "mis apartados ya es un fondo") ──
+// un apartado de metas era solo un letrero (no separaba dinero); ahora la meta es de un fondo, que si lo separa
+function saneaMetasFondos(d) {
+  const out = {}, m = d && d.metas;
+  if (m && typeof m === 'object' && !Array.isArray(m))
+    Object.keys(m).forEach(fid => { const x = m[fid];
+      if (esIdFondo(fid) && x && typeof x === 'object' && Number.isFinite(x.objetivo) && x.objetivo > 0 && x.objetivo <= 1e10)
+        out[fid] = {objetivo: c2(x.objetivo), fecha: typeof x.fecha === 'string' && /^\d{4}-(0[1-9]|1[0-2])$/.test(x.fecha) ? x.fecha : ''}; });
+  return out;
+}
+const metaFondo = fid => (state.metasFondos && state.metasFondos[fid]) || null;
+// lo que capturo la persona: objetivo vacio = sin meta; fecha AAAA-MM opcional y no pasada
+function leeMeta(objRaw, fechaRaw) {
+  const o = String(objRaw == null ? '' : objRaw).trim(), f = String(fechaRaw == null ? '' : fechaRaw).trim();
+  if (!o) return f ? {error: 'ponle cuánto quieres juntar, o deja vacía la fecha'} : {objetivo: 0, fecha: ''};
+  const objetivo = Math.round(Number(o) * 100) / 100;
+  if (!Number.isFinite(objetivo) || objetivo <= 0 || objetivo > 1e10) return {error: 'la meta no es un monto válido'};
+  if (f) { const m = /^(\d{4})-(\d{2})$/.exec(f);
+    if (!m || +m[2] < 1 || +m[2] > 12) return {error: 'la fecha va como 2026-12 (año y mes)'};
+    if (f < hoyLocal().slice(0, 7)) return {error: 'esa fecha ya pasó'}; }
+  return {objetivo, fecha: f};
+}
+// el avance: lo mismo que decian los apartados (cuanto falta, % y cuanto guardar al mes)
+function avanceMeta(tiene, mt) {
+  const pct = tiene / mt.objetivo * 100, faltan = Math.max(0, mt.objetivo - tiene);
+  if (tiene >= mt.objetivo) return {pct, txt: 'meta completa · ' + pct.toFixed(0) + '%'};
+  let txt = 'te faltan ' + fmt(faltan) + ' · llevas ' + pct.toFixed(1) + '%';
+  if (mt.fecha) { const meses = mesesHasta(mt.fecha), fa = +mt.fecha.slice(0, 4), fm = +mt.fecha.slice(5, 7);
+    txt += meses > 0 ? ' · guarda unos ' + fmt(faltan / meses) + '/mes para llegar en ' + MESES[fm - 1] + (fa !== +hoyLocal().slice(0, 4) ? ' ' + fa : '') : ' · la fecha ya pasó'; }
+  return {pct, txt};
+}
+// meta null (u objetivo 0) = quitarla. Solo toca la entrada de ESE fondo (merge): no pisa la de otro aparato
+async function guardarMetaFondo(fid, meta) {
+  if (!datosCargados) throw new Error('datos no cargados');
+  // (code-reviewer) sin señal un setDoc no resuelve nunca y dejaria el boton muerto: falla al instante, como todo lo
+  // que no es gasto o ingreso, y con señal lenta se rinde a los 15 s
+  if (navigator.onLine === false || cargaDesdeCache) throw new Error('sin conexión');
+  const v = meta && meta.objetivo > 0 ? {objetivo: meta.objetivo, fecha: meta.fecha || ''} : {objetivo: 0, fecha: ''};
+  try {
+    await Promise.race([setDoc(doc(db, 'cartera', 'metasFondos'), {metas: {[fid]: v}}, {merge: true}),
+      new Promise((_, no) => setTimeout(() => no(new Error('tiempo agotado')), 15000))]);
+    setSyncDot('ok');
+  } catch (e) { setSyncDot('err'); throw e; }
+  const nuevo = {...state.metasFondos}; if (v.objetivo > 0) nuevo[fid] = v; else delete nuevo[fid];
+  state.metasFondos = nuevo;
+}
+let metaOcupado = false;
+window.editarMetaFondo = function() {
+  const f = document.getElementById('fondo-meta-form'); if (!f) return;
+  const mt = metaFondo(fondoActual);
+  document.getElementById('fondo-meta-monto').value = mt ? mt.objetivo : '';
+  document.getElementById('fondo-meta-fecha').value = mt ? mt.fecha : '';
+  f.hidden = false; document.getElementById('fondo-meta-monto').focus();
+};
+window.guardarMetaDesdeForm = async function(quitar) {
+  if (metaOcupado) return;
+  const fid = fondoActual;
+  const meta = quitar ? {objetivo: 0, fecha: ''} : leeMeta(document.getElementById('fondo-meta-monto').value, document.getElementById('fondo-meta-fecha').value);
+  if (meta.error) { showToast(meta.error); return; }
+  if (!quitar && !(meta.objetivo > 0)) { showToast('escribe cuánto quieres juntar'); return; }
+  metaOcupado = true;
+  try { await guardarMetaFondo(fid, meta); showToast(quitar ? 'meta quitada' : 'meta guardada: ' + fmt(meta.objetivo)); refrescar(renderFondo, renderApartados); }
+  catch (e) { console.error('metaFondo', e); showToast('ERROR: no se guardó, revisa tu conexión'); }
+  finally { metaOcupado = false; }
+};
+// desde metas: abrir el fondo (la pestaña puede estar apagada si no tiene dinero) y, si se pide, su forma de meta
+window.irAFondo = function(fid, conMeta) {
+  const t = document.getElementById('tab-fondo'); if (t) t.hidden = false;
+  showPage('fondo'); verFondo(fid); if (conMeta) editarMetaFondo();
+};
+// un apartado viejo se vuelve fondo con la misma meta; lo "ahorrado" no se mueve solo (nunca salio de ninguna cuenta)
+window.pasarAFondo = async function(aid) {
+  if (apartadoOcupado || metaOcupado) return;
+  const a = state.apartados.find(x => x.id === aid); if (!a) return;
+  const nombre = a.nombre.trim().slice(0, 30), id = idFondoNuevo();
+  apartadoOcupado = true;
+  try {
+    if (!(await cambiarListaFondos(altaEnLista(id, nombre), 'fondo creado: ' + nombre))) return;
+    try { await guardarMetaFondo(id, {objetivo: a.meta, fecha: a.fechaLimite || ''}); }
+    catch (e) { console.error('pasarAFondo meta', e); showToast('el fondo se creó, pero su meta no: pónsela desde el fondo'); }
+    const i = state.apartados.findIndex(x => x.id === aid);
+    if (i >= 0) { const prev = state.apartados.map(x => ({...x})); state.apartados.splice(i, 1);
+      try { await saveApartados(); } catch (e) { state.apartados = prev; console.error('pasarAFondo', e); showToast('el fondo se creó; el apartado viejo sigue ahí, bórralo con la ×'); } }
+    if (a.ahorrado > 0.005) showToast('listo: llevabas ' + fmt(a.ahorrado) + ' anotado; apártalo en el fondo con "apartar"');
+  } finally { apartadoOcupado = false; refrescar(renderApartados, renderFondo); }
 };
 window.renombrarFondo = async function(guardar) {
   const fid = fondoActual, actual = nombreFondo(fid), caja = document.getElementById('fondo-ren'), el = document.getElementById('fondo-renombrar');
@@ -8969,73 +9138,27 @@ function mesesHasta(fechaYM) { // meses INCLUSIVOS desde el mes actual hasta YYY
   const hoy=hoyLocal();
   return (+fechaYM.slice(0,4)-+hoy.slice(0,4))*12+(+fechaYM.slice(5,7)-+hoy.slice(5,7))+1;
 }
+// (28-oct-2026, Roberto: "mis apartados ya es un fondo") el lado derecho de metas muestra los FONDOS con su avance;
+// apartar y la meta se manejan en la pestaña fondo. Los apartados viejos (solo letrero) se ven aparte para pasarlos a fondo
 function renderApartados() {
   const el=document.getElementById('apartados-panel'); if(!el) return;
-  const anoActual=+hoyLocal().slice(0,4);
-  const filas=state.apartados.map(a=>{
-    const pct=a.meta>0?a.ahorrado/a.meta*100:0;
-    const faltan=Math.max(0,a.meta-a.ahorrado);
-    let sub;
-    if(a.ahorrado>=a.meta) sub='meta completa · '+pct.toFixed(0)+'%';
-    else {
-      sub='te faltan '+fmt(faltan)+' · llevas '+pct.toFixed(1)+'%';
-      if(a.fechaLimite){
-        const meses=mesesHasta(a.fechaLimite);
-        if(meses>0){
-          const fa=+a.fechaLimite.slice(0,4), fm=+a.fechaLimite.slice(5,7);
-          sub+=' · guarda unos '+fmt(faltan/meses)+'/mes para llegar en '+MESES[fm-1]+(fa!==anoActual?' '+fa:'');
-        } else sub+=' · la fecha límite ya pasó';
-      }
-    }
-    return `<div class="resumen-bar"><div class="bar-header"><span class="bar-label">${escapeHtml(a.nombre)}</span><span style="display:flex;align-items:center"><span class="bar-amt" style="color:var(--accent-dark)">${fmt(a.ahorrado)} / ${fmt(a.meta)}</span><button type="button" class="del-btn del-x" aria-label="borrar" onclick="eliminarApartado('${a.id}')">&times;</button></span></div>`+
-      `<div class="bar-track" style="height:6px"><div class="bar-fill" style="width:${Math.max(0,Math.min(100,pct)).toFixed(1)}%"></div></div>`+
-      `<div class="bar-header" style="margin-top:4px"><span class="item-meta">${sub}</span><button type="button" class="del-btn" style="font-size:12px;color:var(--accent);padding:2px 0 2px 10px" onclick="abonarApartado('${a.id}')">+ abonar / corregir</button></div></div>`;
+  const fondos=listaFondos().filter(x=>x.id!==FONDO_U||totalFondo(x.id)>0.005||metaFondo(x.id));
+  const filas=fondos.map(x=>{
+    const tiene=totalFondo(x.id)+generadoFondo(x.id), mt=metaFondo(x.id), av=mt?avanceMeta(tiene,mt):null;
+    return `<div class="resumen-bar" style="padding:10px 0;border-bottom:0.5px solid var(--border)"><div class="bar-header"><span class="bar-label">${escapeHtml(x.nombre)}</span><span class="bar-amt" style="color:var(--accent-dark)">${fmt(tiene)}${mt?' / '+fmt(mt.objetivo):''}</span></div>`+
+      (mt?`<div class="bar-track" style="height:6px"><div class="bar-fill" style="width:${Math.max(0,Math.min(100,av.pct)).toFixed(1)}%"></div></div>`:'')+
+      // en la copia local (sin confirmar con el servidor) las metas no estan cargadas: no se afirma "sin meta"
+      `<div class="bar-header" style="margin-top:4px"><span class="item-meta">${mt?escapeHtml(av.txt):datosCargados?'apartado, sin meta':''}</span>`+
+      `<button type="button" class="del-btn" style="font-size:12px;color:var(--accent);padding:2px 0 2px 10px" onclick="irAFondo('${x.id}',${mt||!datosCargados?'false':'true'})">${mt||!datosCargados?'ver fondo':'+ ponerle meta'}</button></div></div>`;
   }).join('');
-  el.innerHTML=(filas||'<div class="empty-state">sin apartados — crea tu primera meta</div>')+
-    `<button type="button" class="btn" style="margin-top:10px" onclick="nuevoApartado()">+ nueva meta de ahorro</button>`+
-    (state.apartados.length?`<div class="item-meta" style="text-align:center;margin-top:8px">registrado en metas: ${fmt(state.apartados.reduce((s,a)=>s+a.ahorrado,0))} · referencia visual, no se descuenta de tus cuentas</div>`:'');
+  const viejos=state.apartados.map(a=>
+    `<div class="resumen-bar"><div class="bar-header"><span class="bar-label">${escapeHtml(a.nombre)}</span><span style="display:flex;align-items:center"><span class="bar-amt">${fmt(a.ahorrado)} / ${fmt(a.meta)}</span><button type="button" class="del-btn del-x" aria-label="borrar" onclick="eliminarApartado('${a.id}')">&times;</button></span></div>`+
+    `<div class="bar-header" style="margin-top:4px"><span class="item-meta">no separa dinero: solo es un letrero</span><button type="button" class="del-btn" style="font-size:12px;color:var(--accent);padding:2px 0 2px 10px" onclick="pasarAFondo('${a.id}')">pasar a fondo</button></div></div>`).join('');
+  el.innerHTML=(filas||'<div class="empty-state">todavía no tienes fondos — crea uno para juntar para algo</div>')+
+    `<button type="button" class="btn" style="margin-top:10px" onclick="abrirFondoNuevo()">+ nuevo fondo</button>`+
+    `<div class="item-meta" style="text-align:center;margin-top:8px;line-height:1.45">un fondo separa el dinero dentro de tus cuentas: deja de contar como tuyo para gastar, y lo que genera es suyo</div>`+
+    (viejos?`<div class="section-title mt">apartados de antes</div>${viejos}`:'');
 }
-window.nuevoApartado = async function() {
-  if(apartadoOcupado) return;
-  const nombreRaw=prompt('¿Para qué estás ahorrando? (ej. Ropa, Viaje)'); if(nombreRaw===null) return;
-  const nombre=nombreRaw.trim().slice(0,30);
-  if(!nombre){ showToast('ponle un nombre a tu meta'); return; }
-  const montoRaw=prompt('¿Cuánto quieres juntar en total?'); if(montoRaw===null) return;
-  const meta=Math.round(Number(montoRaw.trim())*100)/100;
-  if(!Number.isFinite(meta)||meta<=0){ showToast('monto no válido'); return; }
-  const fRaw=prompt('¿Fecha límite? (formato 2026-12, o deja vacío si no hay)'); if(fRaw===null) return;
-  const fecha=fRaw.trim();
-  if(fecha){
-    const m=/^(\d{4})-(\d{2})$/.exec(fecha);
-    if(!m||+m[2]<1||+m[2]>12){ showToast('fecha no válida, usa el formato 2026-12'); return; }
-    if(fecha<hoyLocal().slice(0,7)){ showToast('esa fecha límite ya pasó'); return; }
-  }
-  const item={id:(crypto.randomUUID?crypto.randomUUID():String(Date.now())+Math.random().toString(36).slice(2)),
-    nombre,meta,ahorrado:0,fechaLimite:fecha,creado:new Date().toISOString()};
-  const prev=state.apartados.map(a=>({...a}));
-  state.apartados.push(item);
-  apartadoOcupado=true;
-  try{ await saveApartados(); renderApartados(); showToast('meta "'+nombre+'" creada'); }
-  catch(e){ state.apartados=prev; console.error('nuevoApartado',e); renderApartados(); showToast('ERROR: no se guardó, revisa tu conexión'); }
-  finally{ apartadoOcupado=false; }
-};
-window.abonarApartado = async function(id) {
-  if(apartadoOcupado) return;
-  const a=state.apartados.find(x=>x.id===id); if(!a) return;
-  const raw=prompt('¿Cuánto abonas a "'+a.nombre+'"? (negativo para corregir)'); if(raw===null) return;
-  const monto=Math.round(Number(raw.trim())*100)/100;
-  if(!Number.isFinite(monto)||monto===0){ showToast('monto no válido'); return; }
-  const prev=state.apartados.map(x=>({...x}));
-  const antes=a.ahorrado;
-  a.ahorrado=Math.max(0,Math.round((a.ahorrado+monto)*100)/100);
-  const cambio=a.ahorrado-antes; // si pidio -100 teniendo 50, la correccion efectiva fue -50
-  apartadoOcupado=true;
-  try{
-    await saveApartados(); renderApartados();
-    showToast(cambio>=0?('+'+fmt(cambio)+' a "'+a.nombre+'"'):('corrección de '+fmt(cambio)+' en "'+a.nombre+'"'));
-  }catch(e){ state.apartados=prev; console.error('abonarApartado',e); renderApartados(); showToast('ERROR: no se guardó, revisa tu conexión'); }
-  finally{ apartadoOcupado=false; }
-};
 window.eliminarApartado = async function(id) {
   if(apartadoOcupado) return;
   const idx=state.apartados.findIndex(x=>x.id===id); if(idx<0) return;

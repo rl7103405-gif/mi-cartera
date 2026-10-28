@@ -441,3 +441,11 @@ app NUNCA bloquea un gasto.
 - "Tu referencia personal" en el perfil, más ordenada (sin detalle todavía de cómo: preguntarle qué le estorba).
 - Buscar amigos por nombre de usuario: necesita el servidor del registro solo (Firebase nuevo, fin de semana).
 - Constancia de la calificación: hoy los 20 puntos son con 6 meses seguidos (3 meses = 10). Si Roberto quiere, bajar a 3 o 4.
+
+## Del 28-oct-2026 (tarde)
+- ✅ Hechos el mismo día: apartados → fondos con meta (`cartera/metasFondos`) y el reparto del interés entre fondos por tramos.
+- **Metas por tipo de perfil con recompensas de la app** (Roberto, 28-oct): metas sugeridas según el perfil (estudiante, primer
+  empleo, familia...) y al cumplirlas un premio de la propia app (ej. 10% de descuento en la suscripción). Depende de que
+  exista el cobro ($139/mes decidido el 14-oct, sin sistema de pagos todavía) y de los perfiles del registro solo (sesión 4).
+  Ojo: premiar "cumplir una meta" que la persona misma captura se puede inflar con datos falsos; el premio debe salir de
+  algo que la app no deje fingir (constancia de uso, meses seguidos registrando), como la constancia de la calificación.

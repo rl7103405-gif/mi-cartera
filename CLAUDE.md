@@ -158,3 +158,11 @@ Cualquier cambio a `index.html` (o `sw.js`) se sube directo al repo en GitHub y 
 - **Asistente** (`abrirAsistente`): preguntas fijas; al final una sola operación de txDinero (efectivo + cuentas agregadas) y los fondos. Se abre solo con una cartera vacía (`esCarteraNueva`: saldos en cero, sin movimientos).
 - **Pruebas nuevas**: `test-fondo-pendiente.mjs`, `test-dinero` secciones Y y VF; en `pruebas-sin-senal`: `e2e-cuentas-propias.mjs`, `e2e-fondos.mjs`, `e2e-asistente.mjs` (emulador 2).
 - **Antes de publicar**: actualizar la app en TODOS los aparatos (una versión vieja no conoce las cuentas en pesos, el tipo cajita ni la lista de fondos). Falta portar a Eli, Toño, Zoe y la casa (las copias no tienen registro de cuentas ni fondo).
+
+## Metas de fondo y gráfica del fondo (28-oct-2026, tarde)
+
+- **Apartados → fondos.** "Mis apartados" de Metas (`cartera/apartados`) era solo letrero; ahora Metas muestra "mis fondos" con su avance y los apartados viejos salen aparte con "pasar a fondo" (crea el fondo con la misma meta y quita el apartado). No hay migración automática.
+- **Meta de cada fondo** en un doc PROPIO `cartera/metasFondos` = `{metas:{<fid>:{objetivo, fecha:'AAAA-MM'|''}}}`, con `setDoc` merge (objetivo 0 = sin meta). Nunca dentro de `cartera/fondo`: txDinero lo reescribe entero y una versión vieja borraría la meta. `guardarMetaFondo` falla al instante sin señal (regla de "Sin señal").
+- **Reparto del interés estimado entre fondos por tramos** (`tramosDeFondo`): cada tramo según lo que cada fondo tenía en ese tramo; la universidad es el resto; un fondo cerrado no genera (pasa a la universidad); se divide entre `max(F, suma)`. `generadoFondoEn` y `serieFondo` usan lo mismo.
+- **Gráfica del fondo:** `chartBlock(..., {ancho})` ensancha el viewBox para quedar del alto del resumen; `serieFondo` da un punto por día y escalones en cada movimiento; `pts.diario` = lo que genera al día.
+- Prueba: `pruebas-sin-senal\e2e-metas-fondos.mjs` (emulador 2). Falta portar a las copias junto con varios fondos.
