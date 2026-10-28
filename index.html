@@ -498,6 +498,9 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
 #page-dashboard{max-width:1880px}
 #page-fondo{max-width:1180px}
 #page-fondo .dkpis{grid-template-columns:repeat(auto-fill,minmax(128px,1fr))}
+/* (28-oct-2026) 8 fichas, dos dobles = 10 espacios: a 5 columnas son dos renglones parejos, sin titulos cortados */
+@media(min-width:1000px){#page-fondo #fondo-kpis{grid-template-columns:repeat(5,minmax(0,1fr))}}
+#fondo-chart .chart-ranges{max-width:480px} /* el mismo ancho que en el resumen: a todo el ancho los botones se estiraban */
 #page-fondo .dgrid{grid-template-columns:repeat(auto-fill,minmax(min(100%,440px),1fr))}
 .dhead{display:flex;align-items:baseline;justify-content:space-between;flex-wrap:wrap;gap:4px 16px;margin:0 0 10px}
 .dhead h2{margin:0;font-size:20px;font-weight:700;color:var(--text);letter-spacing:-.01em}
@@ -7616,13 +7619,15 @@ function chartBlock(chartId,data,color,deltaLabel,opts) {
     delete CHART_DATA[chartId];
     return toolbar+'<div class="empty-state">'+((opts&&opts.vacio)||'aún no hay suficientes datos — se irá construyendo con el tiempo')+'</div>';
   }
-  const w=CHART_W,h=CHART_H;
+  // (28-oct-2026) opts.ancho: en un panel a todo el ancho el viewBox se ensancha para que la grafica quede del alto
+  // de las del resumen (~1.33 px por unidad) en vez de estirarse a 480 px con letras gigantes; en telefono no cambia
+  const w=Math.max(CHART_W,Math.round(((opts&&opts.ancho)||0)/1.33)),h=CHART_H;
   const ys=vis.map(p=>p.y);
   let minY=Math.min(...ys),maxY=Math.max(...ys);
   if(maxY===minY){minY-=1;maxY+=1;} // serie plana: centrar la linea en vez de pegarla al borde inferior
   const spanY=maxY-minY;
   const minX=vis[0].x,maxX=vis[vis.length-1].x,spanX=(maxX-minX)||1;
-  CHART_DATA[chartId]={data:vis,minX,maxX,minY,maxY,spanX,spanY};
+  CHART_DATA[chartId]={data:vis,minX,maxX,minY,maxY,spanX,spanY,w};
   const px=p=>CH_PL+(p.x-minX)/spanX*(w-CH_PL-CH_PR), py=p=>h-CH_PB-(p.y-minY)/spanY*(h-CH_PT-CH_PB);
   const P=vis.map(p=>({x:px(p),y:py(p)}));
   const linea=pathSuave(P);
@@ -7778,7 +7783,7 @@ function renderChart(chartId) {
     const fm=document.getElementById('fondo-modos');
     if(fm) fm.innerHTML='<div class="chart-modos" role="group" aria-label="Qué ver en la gráfica del fondo">'+[['valor','valor del fondo'],['generado','lo que ha generado']].map(([k,t])=>
       `<button type="button" class="chart-modo${modoFondoChart===k?' active':''}" aria-pressed="${modoFondoChart===k}" onclick="setModoFondoChart('${k}')"><span>${t}</span></button>`).join('')+'</div>';
-    el.innerHTML=chartBlock('fondo-chart',serieFondo(fondoActual,modoFondoChart),modoFondoChart==='generado'?'var(--accent)':'var(--d2)',modoFondoChart==='generado'?'generado':'cambio')
+    el.innerHTML=chartBlock('fondo-chart',serieFondo(fondoActual,modoFondoChart),modoFondoChart==='generado'?'var(--accent)':'var(--d2)',modoFondoChart==='generado'?'generado':'cambio',{ancho:el.clientWidth})
       +'<div class="chart-nota">'+(modoFondoChart==='generado'?'los abonos que registraste y, hoy, el interés estimado que falta registrar':'lo apartado en el fondo; hoy incluye el interés estimado')+' · aparte de tu resumen</div>';
   }
   else
@@ -7796,10 +7801,11 @@ function initChartInteraccion(contId) {
     const ctm=svg.getScreenCTM(); if(!ctm) return;
     const pt=svg.createSVGPoint(); pt.x=ev.clientX; pt.y=ev.clientY;
     const loc=pt.matrixTransform(ctm.inverse());
-    const dataX=entry.minX+(loc.x-CH_PL)/(CHART_W-CH_PL-CH_PR)*entry.spanX;
+    const W=entry.w||CHART_W;
+    const dataX=entry.minX+(loc.x-CH_PL)/(W-CH_PL-CH_PR)*entry.spanX;
     let best=entry.data[0],bd=Infinity;
     entry.data.forEach(p=>{const d=Math.abs(p.x-dataX);if(d<bd){bd=d;best=p;}});
-    const cx=CH_PL+(best.x-entry.minX)/entry.spanX*(CHART_W-CH_PL-CH_PR);
+    const cx=CH_PL+(best.x-entry.minX)/entry.spanX*(W-CH_PL-CH_PR);
     const cy=CHART_H-CH_PB-(best.y-entry.minY)/entry.spanY*(CHART_H-CH_PT-CH_PB);
     const line=svg.querySelector('.tip-line'),dot=svg.querySelector('.tip-dot');
     line.setAttribute('x1',cx);line.setAttribute('x2',cx);line.setAttribute('visibility','visible');
@@ -7808,7 +7814,7 @@ function initChartInteraccion(contId) {
     tip.innerHTML=new Date(best.x).toLocaleDateString('es-MX',{day:'numeric',month:'short',year:'numeric'})+'<div class="tip-val">'+(best.y<0?'−'+fmt(Math.abs(best.y)):fmt(best.y))+'</div>';
     tip.style.display='block';
     const rect=svg.getBoundingClientRect();
-    const lx=Math.max(0,Math.min(rect.width-tip.offsetWidth,cx/CHART_W*rect.width-tip.offsetWidth/2));
+    const lx=Math.max(0,Math.min(rect.width-tip.offsetWidth,cx/W*rect.width-tip.offsetWidth/2));
     tip.style.left=lx+'px';
   };
   const ocultar=()=>{
@@ -10669,6 +10675,9 @@ window.fetchAll = async function() {
 initChartInteraccion('gbm-chart');
 initChartInteraccion('patrimonio-chart');
 initChartInteraccion('fondo-chart');
+// la grafica del fondo toma su proporcion del ancho del panel: si la ventana cambia, se vuelve a dibujar
+{ let tRes=null; window.addEventListener('resize',()=>{ clearTimeout(tRes); tRes=setTimeout(()=>{
+  const pg=document.getElementById('page-fondo'); if(pg&&pg.classList.contains('active')) refrescar(()=>renderChart('fondo-chart')); },200); }); }
 initPieInteraccion('res-pie');
 initPieInteraccion('res-pie-ingresos');
 initPieInteraccion('dash-pie');
