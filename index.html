@@ -988,8 +988,17 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
       <div class="item-meta" style="line-height:1.5;margin-bottom:10px">Pon cuánto máximo quieres gastar al mes. En inicio verás cuánto llevas y, al registrar un gasto, te aviso cuando vayas en 50%, 75% y 90%, y si te pasas. Nunca te impide registrar nada.</div>
       <div class="field"><label for="limite-input">máximo al mes</label><input type="number" id="limite-input" min="0" step="0.01" inputmode="decimal" placeholder="ej. 10000"></div>
       <div class="item-meta" id="limite-ref" style="margin:-4px 0 10px"></div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap"><button type="button" class="btn btn-purple" style="flex:1" onclick="guardarLimite(false)">guardar límite</button>
+      <div style="display:flex;gap:8px;flex-wrap:wrap"><button type="button" class="btn btn-purple" id="limite-guardar" style="flex:1" onclick="guardarLimite(false)">guardar límite</button>
         <button type="button" class="volver-btn" id="limite-quitar" onclick="guardarLimite(true)">quitar límite</button></div>
+      <!-- (30-oct-2026) opcional: un limite por categoria (ej. salidas), aparte del general o sin el -->
+      <div class="section-title" style="margin-top:18px">límites por categoría (opcional)</div>
+      <div class="item-meta" style="line-height:1.5;margin-bottom:8px">Para ir más fino: por ejemplo, no más de $2,000 al mes en salidas. Te aviso igual que con el límite del mes.</div>
+      <div id="limite-cat-lista"></div>
+      <div class="row2" style="gap:8px;margin-top:8px">
+        <div class="field"><label for="limite-cat-sel">categoría</label><select id="limite-cat-sel"></select></div>
+        <div class="field"><label for="limite-cat-monto">máximo al mes</label><input type="number" id="limite-cat-monto" min="0" step="0.01" inputmode="decimal" placeholder="ej. 2000"></div>
+      </div>
+      <button type="button" class="volver-btn" id="limite-cat-btn" onclick="agregarLimiteCat()">+ agregar límite de categoría</button>
     </div>
   </details>
   <div class="inicio-grid">
@@ -2148,7 +2157,7 @@ let state = {
   // fondo de la universidad: dinero APARTADO dentro de las cuentas reales (ver saneaFondo)
   fondo:{saldosPorCuenta:{}, movs:[]},
   // perfil para el estandar personalizado (vacio = estandar generico, no bloquea nada)
-  perfil:{anoNac:null, vivienda:'', dependientes:0, ingresoBase:null, nombre:'', foto:'', notasInversion:'', fondoTab:false, limiteMes:null},
+  perfil:{anoNac:null, vivienda:'', dependientes:0, ingresoBase:null, nombre:'', foto:'', notasInversion:'', fondoTab:false, limiteMes:null, limitesCat:[]},
   personas:JSON.parse(JSON.stringify(PERSONAS_DEFAULT)),
   metas:{fecha:META_FECHA_DEF, items:[]},
   gastos:[], ingresos:[], transferencias:[], snapshots:[]
@@ -2470,6 +2479,8 @@ async function loadFromFirebase() {
         ingresoBase:(Number.isFinite(pf.ingresoBase)&&pf.ingresoBase>0)?pf.ingresoBase:null,
         // (30-oct-2026) limite de gasto del mes: solo un monto positivo; si no, sin limite
         limiteMes:(Number.isFinite(pf.limiteMes)&&pf.limiteMes>0&&pf.limiteMes<=1e9)?pf.limiteMes:null,
+        // por categoria: [{cat, monto}], sin repetidas, maximo 20
+        limitesCat:saneaLimitesCat(pf.limitesCat),
         nombre:(typeof pf.nombre==='string')?pf.nombre.slice(0,40):'',
         // solo se acepta un dataURL jpeg/png generado por la propia app
         // el tablero de inversiones: solo cuenta si esta guardado como true (lista blanca)
@@ -3757,7 +3768,7 @@ window.catAccion = async function(btn) {
     if (usados !== 0) { catOcupado = false; showToast(usados > 0 ? 'esa categoría ya tiene movimientos: júntala con otra' : 'no se pudo comprobar — revisa tu conexión'); renderCategorias(); return; }
     const r = await txCatalogo((g,i) => { const arr = tipo==='gasto'?g:i; const k = arr.findIndex(c => c===e.nombre); if (k>=0) arr.splice(k,1); return {gasto:g, ingreso:i}; });
     catOcupado = false;
-    if (r && r.error) showToast(r.error); else showToast('categoría quitada');
+    if (r && r.error) showToast(r.error); else { showToast('categoría quitada'); if (tipo === 'gasto') await moverLimiteCat(e.nombre, null); }
     renderCategorias(); return;
   }
   if (a === 'okRenombrar' || a === 'okJuntar') {
@@ -3793,6 +3804,7 @@ window.catAccion = async function(btn) {
     try { ok = await reclasificarCat(tipo, A, B); }
     catch(err2) { console.error('catAccion reclasificar', err2); showToast('no se pudo completar — revisa tu conexión'); }
     catOcupado = false; catEditando = null;
+    if (ok && tipo === 'gasto') await moverLimiteCat(A, B);   // el limite de la categoria la sigue
     rerenderTodo();
     if (movSubActual === 'cats') renderCategorias();
     return ok;
@@ -5830,7 +5842,7 @@ async function altaMovX(tipo, cat, montoOrig, nota, cuentaId, btn, fecha) {
   refrescar(render, renderMovimientos);
   const queda = res.cx && res.cx[cuentaId] ? res.cx[cuentaId].saldo : null;
   showToast((esGasto ? '-' : '+') + fmtX(mo, x.moneda) + (x.moneda === 'MXN' ? '' : ' (≈ ' + fmt(m) + ')') + ' registrado' + (queda !== null && queda < 0 ? ' · ojo: ' + x.nombre + ' quedó en rojo' : ''));
-  if (esGasto) { avisoCategoria(cat, mov.fecha); avisoLimite(m, mov.fecha); }
+  if (esGasto) { avisoCategoria(cat, mov.fecha); avisoLimite(m, mov.fecha, cat); }
   return true;
 }
 
@@ -6623,7 +6635,7 @@ async function altaGasto(cat,monto,nota,fuente,btn,fecha,extra) {
   refrescar(render,renderMovimientos);
   showToast(quedoNegativo?('-'+fmt(m)+' registrado · ojo: SALDO quedó negativo'):('-'+fmt(m)+' registrado'));
   avisoCategoria(cat,gasto.fecha); // aviso diferido si ese mes ya va muy arriba del promedio
-  avisoLimite(m,gasto.fecha);      // y el del limite del mes (gana si salen los dos)
+  avisoLimite(m,gasto.fecha,cat);  // y el del limite del mes y de su categoria (gana si salen los dos)
   return true;
 }
 window.registrarGasto = async function() {
@@ -8173,7 +8185,14 @@ function renderPerfil() {
     if(sub) sub.textContent=L>0?fmt(L)+' al mes':'sin límite';
     if(inp&&document.activeElement!==inp) inp.value=L>0?L:'';
     if(q) q.hidden=!(L>0);
-    if(ref) ref.textContent=prom>0?'de referencia: en los últimos meses gastaste unos '+fmt(prom)+' al mes':''; }
+    if(ref) ref.textContent=prom>0?'de referencia: en los últimos meses gastaste unos '+fmt(prom)+' al mes':'';
+    const lc=Array.isArray(p.limitesCat)?p.limitesCat:[], lst=document.getElementById('limite-cat-lista'), sel=document.getElementById('limite-cat-sel');
+    const nCat=lc.length+(lc.length===1?' categoría':' categorías');
+    if(sub&&lc.length) sub.textContent=L>0?fmt(L)+' al mes · '+nCat:nCat+' con límite';
+    // una categoria que ya no existe (quitada desde otro aparato o de antes): se marca para que la borres
+    if(lst) lst.innerHTML=lc.map((x,i)=>'<div class="item-row"><div>'+escapeHtml(x.cat)+((state.catsGasto||[]).includes(x.cat)?'':' <span class="item-meta">(esa categoría ya no existe)</span>')+'</div><div style="display:flex;align-items:center;gap:6px"><span>'+escapeHtml(fmt(x.monto))+' al mes</span>'+
+      '<button type="button" class="del-btn del-x" aria-label="quitar el límite de '+escapeHtml(x.cat)+'" onclick="quitarLimiteCat('+i+')">&times;</button></div></div>').join('');
+    if(sel){ const v=sel.value; sel.innerHTML=(state.catsGasto||[]).map(c=>'<option value="'+escapeHtml(c)+'">'+escapeHtml(c)+(lc.some(x=>x.cat===c)?' (cambiar)':'')+'</option>').join(''); if(v) sel.value=v; } }
   const qf=document.getElementById('quitar-foto-btn'); if(qf) qf.hidden=!p.foto;
   // encabezado: avatar (foto o inicial), nombre y subtitulo
   const nom=(p.nombre||'').trim();
@@ -9278,25 +9297,32 @@ let avisoCatTimer=null;
 // INFORMA, NUNCA BLOQUEA (regla de Beto del 19-oct). Cuenta lo gastado del mes en curso en pesos: la tarjeta el dia
 // del cargo (sus pagos no son gasto), lo de otra moneda ya convertido y lo del Atajo aunque falte aplicarlo a saldos
 const LIMITE_UMBRALES=[50,75,90];
-function gastoDelMes(){ const k=hoyLocal().slice(0,7); return c2(state.gastos.filter(g=>movValido(g)&&mesLocalDe(g.fecha)===k).reduce((s,g)=>s+nFin(g.monto),0)); }
-function estadoLimite(){
-  const L=state.perfil&&state.perfil.limiteMes; if(!(L>0)) return null;
-  const g=gastoDelMes(), hoy=new Date(), diasMes=new Date(hoy.getFullYear(),hoy.getMonth()+1,0).getDate(), dia=hoy.getDate();
+// (30-oct-2026, Beto: "o te pones un límite general o te metes más profundo, sobre categoría") el del mes Y, opcional,
+// uno por categoria (limitesCat = [{cat, monto}] en el perfil: lista, para que quitar una categoria la borre de verdad)
+function gastoDelMes(cat){ const k=hoyLocal().slice(0,7); return c2(state.gastos.filter(g=>movValido(g)&&mesLocalDe(g.fecha)===k&&(cat==null||g.cat===cat)).reduce((s,g)=>s+nFin(g.monto),0)); }
+const limitesCat=()=>{ const a=state.perfil&&state.perfil.limitesCat; return Array.isArray(a)?a:[]; };
+function medirLimite(L,g){
+  const hoy=new Date(), diasMes=new Date(hoy.getFullYear(),hoy.getMonth()+1,0).getDate(), dia=hoy.getDate();
   // ritmo: que parte del mes ya paso; ir 10 puntos arriba de eso es gastar mas rapido que el mes
   const pct=g/L*100, ritmo=dia/diasMes*100, quedan=diasMes-dia+1;
   return {L,g,pct,resta:c2(L-g),quedan,ritmo,mes:MESES[hoy.getMonth()],nivel:pct>=100?'rojo':pct>ritmo+10?'amarillo':'verde'};
 }
+function estadoLimite(){ const L=state.perfil&&state.perfil.limiteMes; return L>0?medirLimite(L,gastoDelMes()):null; }
+function estadoLimiteCat(cat){ const x=limitesCat().find(y=>y.cat===cat); return x?medirLimite(x.monto,gastoDelMes(cat)):null; }
 let avisoLimTimer=null;
-// al guardar un gasto del mes en curso: avisa SOLO al cruzar 50/75/90 (no en cada gasto) y, ya pasado, en cada uno
-function avisoLimite(monto,fechaMov){
-  if(fechaMov&&mesLocalDe(fechaMov)!==hoyLocal().slice(0,7)) return;
-  const e=estadoLimite(); if(!e) return;
+// el texto de un limite al guardar un gasto: SOLO al cruzar 50/75/90 (no en cada gasto) y, ya pasado, en cada uno
+function textoLimite(e,monto,nombre){
   const antes=(e.g-nFin(monto))/e.L*100, dias=e.quedan+(e.quedan===1?' día':' días');
-  let txt=null;
-  if(e.pct>=100) txt=antes<100?'llegaste a tu límite del mes ('+fmt(e.L)+')'+(e.resta<0?': te pasaste por '+fmt(-e.resta):'')
-    :'ya te pasaste de tu límite del mes por '+fmt(-e.resta)+' · quedan '+dias;
-  else { const u=[...LIMITE_UMBRALES].reverse().find(u=>antes<u&&e.pct>=u);
-    if(u) txt=(u>=90?'aguas: ':'')+'ya vas en '+u+'% de tu límite del mes · te quedan '+fmt(e.resta)+' para '+dias; }
+  if(e.pct>=100) return antes<100?'llegaste a tu límite '+nombre+' ('+fmt(e.L)+')'+(e.resta<0?': te pasaste por '+fmt(-e.resta):'')
+    :'ya te pasaste de tu límite '+nombre+' por '+fmt(-e.resta)+' · quedan '+dias;
+  const u=[...LIMITE_UMBRALES].reverse().find(u=>antes<u&&e.pct>=u);
+  return u?(u>=90?'aguas: ':'')+'ya vas en '+u+'% de tu límite '+nombre+' · te quedan '+fmt(e.resta)+' para '+dias:null;
+}
+// al guardar un gasto del mes en curso; si cruza el general y el de su categoria, un solo aviso con los dos
+function avisoLimite(monto,fechaMov,cat){
+  if(fechaMov&&mesLocalDe(fechaMov)!==hoyLocal().slice(0,7)) return;
+  const eG=estadoLimite(), eC=cat!=null?estadoLimiteCat(cat):null;
+  const txt=[eC&&textoLimite(eC,monto,'de '+cat), eG&&textoLimite(eG,monto,'del mes')].filter(Boolean).join(' · ');
   if(!txt) return;
   // el del limite gana al de categoria: dos avisos seguidos se pisarian
   if(avisoCatTimer){ clearTimeout(avisoCatTimer); avisoCatTimer=null; }
@@ -9305,27 +9331,84 @@ function avisoLimite(monto,fechaMov){
 }
 function renderLimite(){
   const el=document.getElementById('limite-panel'); if(!el) return;
-  const e=estadoLimite();
-  if(!e){ el.innerHTML='<button type="button" class="volver-btn" onclick="abrirLimite()">+ ponte un límite de gasto del mes</button>'; return; }
-  const col={verde:'var(--green)',amarillo:'var(--ambar,#b7832a)',rojo:'var(--red)'}[e.nivel];
-  const dias=e.quedan+(e.quedan===1?' día':' días');
-  const msg=e.nivel==='rojo'?(e.resta<0?'te pasaste por '+fmt(-e.resta):'llegaste a tu límite')+' · quedan '+dias+' del mes'
-    :'te quedan '+fmt(e.resta)+' para '+dias+' · unos '+fmt(e.resta/e.quedan)+' al día'+(e.nivel==='amarillo'?' · vas más rápido que el mes':'');
-  el.innerHTML='<div class="panel" style="padding:12px 16px;margin-bottom:12px"><div class="bar-header"><span class="bar-label">tu límite de '+escapeHtml(e.mes)+'</span>'+
-    '<span class="bar-amt">'+fmt(e.g)+' / '+fmt(e.L)+'</span></div>'+
-    // la rayita marca cuanto del mes ya paso: si la barra va por delante, vas gastando mas rapido
-    '<div class="bar-track" style="height:8px;position:relative"><div class="bar-fill" style="width:'+Math.min(100,e.pct).toFixed(1)+'%;background:'+col+'"></div>'+
-    '<div title="lo que va del mes" style="position:absolute;top:-3px;bottom:-3px;left:'+e.ritmo.toFixed(1)+'%;width:2px;background:var(--text);opacity:.45"></div></div>'+
-    '<div class="bar-header" style="margin-top:4px"><span class="item-meta">'+escapeHtml(msg)+'</span>'+
-    '<button type="button" class="del-btn" style="font-size:12px;color:var(--accent);padding:2px 0 2px 10px" onclick="abrirLimite()">cambiar</button></div></div>';
+  const e=estadoLimite(), cats=limitesCat().map(x=>({cat:x.cat,e:medirLimite(x.monto,gastoDelMes(x.cat))}));
+  if(!e&&!cats.length){ el.innerHTML='<button type="button" class="volver-btn" onclick="abrirLimite()">+ ponte un límite de gasto del mes</button>'; return; }
+  const col=x=>({verde:'var(--green)',amarillo:'var(--ambar,#b7832a)',rojo:'var(--red)'}[x.nivel]);
+  // la barra con la rayita que marca cuanto del mes ya paso: si la barra va por delante, vas gastando mas rapido
+  const barra=(x,alto)=>'<div class="bar-track" style="height:'+alto+'px;position:relative"><div class="bar-fill" style="width:'+Math.min(100,x.pct).toFixed(1)+'%;background:'+col(x)+'"></div>'+
+    '<div title="lo que va del mes" style="position:absolute;top:-3px;bottom:-3px;left:'+x.ritmo.toFixed(1)+'%;width:2px;background:var(--text);opacity:.45"></div></div>';
+  let html='';
+  if(e){ const dias=e.quedan+(e.quedan===1?' día':' días');
+    const msg=e.nivel==='rojo'?(e.resta<0?'te pasaste por '+fmt(-e.resta):'llegaste a tu límite')+' · quedan '+dias+' del mes'
+      :'te quedan '+fmt(e.resta)+' para '+dias+' · unos '+fmt(e.resta/e.quedan)+' al día'+(e.nivel==='amarillo'?' · vas más rápido que el mes':'');
+    html+='<div class="bar-header"><span class="bar-label">tu límite de '+escapeHtml(e.mes)+'</span><span class="bar-amt">'+fmt(e.g)+' / '+fmt(e.L)+'</span></div>'+barra(e,8)+
+      '<div class="item-meta" style="margin-top:4px">'+escapeHtml(msg)+'</div>'; }
+  // por categoria: renglones chicos, los que van peor primero
+  cats.sort((a,b)=>b.e.pct-a.e.pct).forEach(({cat,e:x})=>{
+    html+='<div style="margin-top:'+(html?'12':'0')+'px"><div class="bar-header"><span class="item-meta" style="color:var(--text)">'+escapeHtml(cat)+'</span>'+
+      '<span class="item-meta"'+(x.nivel==='rojo'?' style="color:var(--red);font-weight:600"':'')+'>'+fmt(x.g)+' / '+fmt(x.L)+(x.resta<0?' · te pasaste por '+fmt(-x.resta):'')+'</span></div>'+barra(x,5)+'</div>'; });
+  el.innerHTML='<div class="panel" style="padding:12px 16px;margin-bottom:12px">'+html+
+    '<div style="text-align:right;margin-top:6px"><button type="button" class="del-btn" style="font-size:12px;color:var(--accent);padding:2px 0 2px 10px" onclick="abrirLimite()">cambiar</button></div></div>';
+}
+function saneaLimitesCat(a){
+  return Array.isArray(a)?a.filter((x,i,arr)=>x&&typeof x.cat==='string'&&x.cat.trim()&&x.cat.length<=40&&Number.isFinite(x.monto)&&x.monto>0&&x.monto<=1e9
+    &&arr.findIndex(y=>y&&y.cat===x.cat)===i).slice(0,20).map(x=>({cat:x.cat,monto:x.monto})):[];
+}
+// (code-reviewer) la lista se cambia sobre la del SERVIDOR, en una transaccion: con la app abierta en dos aparatos,
+// agregar un limite en uno ya no borra el que se agrego en el otro. cambio(lista) devuelve la lista nueva o un texto de error
+async function cambiarLimitesCat(cambio,msgOk){
+  if(perfilGuardando){ showToast('espera: se está guardando tu perfil'); return false; }
+  if(!datosCargados||cargaDesdeCache||navigator.onLine===false){ showToast('necesitas señal para cambiar tus límites'); return false; }
+  perfilGuardando=true;
+  try{
+    const ref=doc(db,typeof NS==='string'?NS:'cartera','perfil');
+    const r=await runTransaction(db,async tx=>{ const sn=await tx.get(ref);
+      const nueva=cambio(saneaLimitesCat(sn.exists()?sn.data().limitesCat:[])); if(typeof nueva==='string') return {error:nueva};
+      tx.set(ref,{limitesCat:nueva},{merge:true}); return {lista:nueva}; });
+    if(r.error){ showToast(r.error); return false; }
+    state.perfil={...state.perfil,limitesCat:r.lista}; setSyncDot('ok');
+    renderPerfil(); render(); if(msgOk) showToast(msgOk); return true;
+  }catch(e){ setSyncDot('err'); console.error('limitesCat',e); showToast('ERROR: no se guardó, revisa tu conexión'); return false; }
+  finally{ perfilGuardando=false; }
+}
+// agregar (o cambiar el monto de una que ya tiene) y quitar, por NOMBRE (no por posicion: la lista pudo cambiar)
+window.agregarLimiteCat=async function(){
+  const cat=(document.getElementById('limite-cat-sel')||{}).value, raw=((document.getElementById('limite-cat-monto')||{}).value||'').trim();
+  const v=Math.round(Number(raw)*100)/100;
+  if(!cat||!state.catsGasto.includes(cat)){ showToast('elige una categoría'); return; }
+  if(!raw||!Number.isFinite(v)||v<=0||v>1e9){ showToast('escribe cuánto máximo en '+cat+' al mes'); return; }
+  const ok=await conBoton('limite-cat-btn',()=>cambiarLimitesCat(l=>{ const n=l.filter(x=>x.cat!==cat).concat([{cat,monto:v}]); return n.length>20?'máximo 20 categorías con límite':n; },'límite de '+cat+': '+fmt(v)+' al mes'));
+  if(ok) document.getElementById('limite-cat-monto').value='';
+};
+window.quitarLimiteCat=async function(i){
+  const x=limitesCat()[i]; if(!x) return;
+  await cambiarLimitesCat(l=>l.filter(y=>y.cat!==x.cat),'quitaste el límite de '+x.cat);
+};
+// (code-reviewer) al renombrar o juntar una categoria su limite la sigue (si el destino ya tenia, se queda el menor);
+// al quitarla, su limite se va. Sin esto el limite quedaba con el nombre viejo en "$0" y ya no protegia nada
+async function moverLimiteCat(de,a){
+  if(!limitesCat().some(x=>x.cat===de)) return;
+  await cambiarLimitesCat(l=>{ const x=l.find(y=>y.cat===de); if(!x) return l;
+    const resto=l.filter(y=>y.cat!==de); if(a==null) return resto;
+    const d=resto.find(y=>y.cat===a); if(d){ d.monto=Math.min(d.monto,x.monto); return resto; }
+    return resto.concat([{cat:a,monto:x.monto}]); }, a==null?null:'tu límite de '+de+' ahora es de '+a);
 }
 // el limite se edita en el perfil (regla de Beto: todo lo tuyo se cambia ahi)
 window.abrirLimite=function(){ showPage('perfil'); perfilSub('perfil'); const d=document.getElementById('limite-acc'); if(d){ d.open=true; d.scrollIntoView({block:'center'}); const i=document.getElementById('limite-input'); if(i) i.focus(); } };
+// (30-oct-2026, Beto: "se guarda, pero se queda como si no") el boton dice "guardando…" mientras espera al servidor,
+// y al terminar muestra la palomita y suelta el resaltado
+async function conBoton(id,trabajo){
+  const b=document.getElementById(id), txt=b&&b.textContent;
+  if(b){ b.disabled=true; b.textContent='guardando…'; }
+  let ok=false; try{ ok=await trabajo(); } finally{ if(b){ b.disabled=false; b.textContent=txt; } }
+  if(ok){ palomita(id); if(b) b.blur(); }
+  return ok;
+}
 window.guardarLimite=async function(quitar){
   let v=null;
   if(!quitar){ const raw=(document.getElementById('limite-input').value||'').trim(); v=Math.round(Number(raw)*100)/100;
     if(!raw||!Number.isFinite(v)||v<=0||v>1e9){ showToast('escribe cuánto máximo quieres gastar al mes'); return; } }
-  await guardarPerfil({limiteMes:v}, quitar?'límite quitado':'límite del mes: '+fmt(v));
+  await conBoton(quitar?'limite-quitar':'limite-guardar',()=>guardarPerfil({limiteMes:v}, quitar?'límite quitado':'límite del mes: '+fmt(v)));
 };
 function avisoCategoria(cat,fechaMov) {
   // solo tiene sentido para gastos del mes EN CURSO: un gasto retrofechado a otro mes
