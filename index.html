@@ -680,6 +680,8 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
   <div id="sus-avisos" hidden style="margin-bottom:14px"></div>
 
   <div class="section-title">cómo vas este mes</div>
+  <!-- (30-oct-2026) el limite de gasto del mes: barra con el ritmo del mes; se edita en el perfil -->
+  <div id="limite-panel" style="margin-bottom:4px"></div>
   <div class="panel" id="inicio-coach" style="margin-bottom:20px"><div class="item-meta">calculando...</div></div>
 
 
@@ -974,6 +976,20 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
         <button type="button" class="tema-chip" data-tema="fucsia" aria-label="fucsia" title="fucsia" style="background:linear-gradient(135deg,#d42d80,#fbe0ec)" onclick="setTema('fucsia')"></button>
       </div>
       <div class="item-meta" style="margin-top:10px">se guarda en este dispositivo</div>
+    </div>
+  </details>
+  <!-- (30-oct-2026) limite de gasto del mes: informa, nunca bloquea; la barra sale en inicio -->
+  <details class="acc" id="limite-acc" style="margin-bottom:20px">
+    <summary>
+      <div class="acc-icon chip-verde"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19h16"/><path d="M6 15l4-4 3 3 5-6"/></svg></div>
+      <div><div class="acc-tit">tu límite de gasto del mes</div><div class="acc-sub" id="limite-acc-sub">sin límite</div></div>
+    </summary>
+    <div class="acc-body">
+      <div class="item-meta" style="line-height:1.5;margin-bottom:10px">Pon cuánto máximo quieres gastar al mes. En inicio verás cuánto llevas y, al registrar un gasto, te aviso cuando vayas en 50%, 75% y 90%, y si te pasas. Nunca te impide registrar nada.</div>
+      <div class="field"><label for="limite-input">máximo al mes</label><input type="number" id="limite-input" min="0" step="0.01" inputmode="decimal" placeholder="ej. 10000"></div>
+      <div class="item-meta" id="limite-ref" style="margin:-4px 0 10px"></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap"><button type="button" class="btn btn-purple" style="flex:1" onclick="guardarLimite(false)">guardar límite</button>
+        <button type="button" class="volver-btn" id="limite-quitar" onclick="guardarLimite(true)">quitar límite</button></div>
     </div>
   </details>
   <div class="inicio-grid">
@@ -2132,7 +2148,7 @@ let state = {
   // fondo de la universidad: dinero APARTADO dentro de las cuentas reales (ver saneaFondo)
   fondo:{saldosPorCuenta:{}, movs:[]},
   // perfil para el estandar personalizado (vacio = estandar generico, no bloquea nada)
-  perfil:{anoNac:null, vivienda:'', dependientes:0, ingresoBase:null, nombre:'', foto:'', notasInversion:'', fondoTab:false},
+  perfil:{anoNac:null, vivienda:'', dependientes:0, ingresoBase:null, nombre:'', foto:'', notasInversion:'', fondoTab:false, limiteMes:null},
   personas:JSON.parse(JSON.stringify(PERSONAS_DEFAULT)),
   metas:{fecha:META_FECHA_DEF, items:[]},
   gastos:[], ingresos:[], transferencias:[], snapshots:[]
@@ -2452,6 +2468,8 @@ async function loadFromFirebase() {
         vivienda:['familia','renta','propia'].includes(pf.vivienda)?pf.vivienda:'',
         dependientes:(Number.isInteger(pf.dependientes)&&pf.dependientes>=0&&pf.dependientes<=20)?pf.dependientes:0,
         ingresoBase:(Number.isFinite(pf.ingresoBase)&&pf.ingresoBase>0)?pf.ingresoBase:null,
+        // (30-oct-2026) limite de gasto del mes: solo un monto positivo; si no, sin limite
+        limiteMes:(Number.isFinite(pf.limiteMes)&&pf.limiteMes>0&&pf.limiteMes<=1e9)?pf.limiteMes:null,
         nombre:(typeof pf.nombre==='string')?pf.nombre.slice(0,40):'',
         // solo se acepta un dataURL jpeg/png generado por la propia app
         // el tablero de inversiones: solo cuenta si esta guardado como true (lista blanca)
@@ -3975,7 +3993,7 @@ window.susRegistrar = async function(btn) {
   finally { susRegistrando = false; renderAvisosSus(); if (typeof movSubActual !== 'undefined' && movSubActual === 'sus') renderSuscripciones(); }
 };
 // no hay reloj que repinte a medianoche: basta con repintar cuando la pestaña vuelve a verse
-document.addEventListener('visibilitychange', () => { if (!document.hidden && datosCargados) { renderAvisosSus(); refrescarGananciaMes(); } });
+document.addEventListener('visibilitychange', () => { if (!document.hidden && datosCargados) { renderAvisosSus(); refrescarGananciaMes(); refrescar(renderLimite); } });   // el limite: si cambio el mes con la app abierta
 // "ya no la tengo": deja de recordarla sin tocar los pagos ya registrados. Se PAUSA en vez
 // de borrarla, para poder volver a encenderla si resulta que solo fue un mes
 window.susYaNo = async function(btn) {
@@ -4589,7 +4607,8 @@ function insertarPorFecha(arr, item) {
 }
 // mes 'YYYY-MM' y dia LOCALES de un timestamp de movimiento (mismo trato de legados UTC)
 function mesLocalDe(f) {
-  const m = /^(\d{4}-\d{2})-\d{2}T00:00:00(\.000)?Z$/.exec(f);
+  // (30-oct-2026) tambien 'AAAA-MM-DD' suelta: es un dia local (new Date la leia como UTC y el dia 1 caia en el mes anterior)
+  const m = /^(\d{4}-\d{2})-\d{2}(T00:00:00(\.000)?Z)?$/.exec(f);
   if (m) return m[1];
   const d = new Date(f);
   if (isNaN(d.getTime())) return '';
@@ -5022,6 +5041,7 @@ function render() {
   refrescar(renderCuentasX);
   renderMetas({stocks:nvdaVal, stocksPendiente:posAbiertas.length>0&&!stocksCompleto, patrimonio:total});
   renderApartados();
+  refrescar(renderLimite);
   renderStockDatalist();
   renderResumenCorto();
   renderScore(); renderPerfil(); renderDecisiones();
@@ -5810,7 +5830,7 @@ async function altaMovX(tipo, cat, montoOrig, nota, cuentaId, btn, fecha) {
   refrescar(render, renderMovimientos);
   const queda = res.cx && res.cx[cuentaId] ? res.cx[cuentaId].saldo : null;
   showToast((esGasto ? '-' : '+') + fmtX(mo, x.moneda) + (x.moneda === 'MXN' ? '' : ' (≈ ' + fmt(m) + ')') + ' registrado' + (queda !== null && queda < 0 ? ' · ojo: ' + x.nombre + ' quedó en rojo' : ''));
-  if (esGasto) avisoCategoria(cat, mov.fecha);
+  if (esGasto) { avisoCategoria(cat, mov.fecha); avisoLimite(m, mov.fecha); }
   return true;
 }
 
@@ -6603,6 +6623,7 @@ async function altaGasto(cat,monto,nota,fuente,btn,fecha,extra) {
   refrescar(render,renderMovimientos);
   showToast(quedoNegativo?('-'+fmt(m)+' registrado · ojo: SALDO quedó negativo'):('-'+fmt(m)+' registrado'));
   avisoCategoria(cat,gasto.fecha); // aviso diferido si ese mes ya va muy arriba del promedio
+  avisoLimite(m,gasto.fecha);      // y el del limite del mes (gana si salen los dos)
   return true;
 }
 window.registrarGasto = async function() {
@@ -8146,6 +8167,13 @@ function renderPerfil() {
       +fila('colchón de emergencia',est.emergenciaMeses+' meses de gasto');
   }
   const fu=document.getElementById('perfil-fuente'); if(fu) fu.textContent='de dónde sale: '+est.fuente;
+  // (30-oct-2026) el limite del mes: lo guardado y, de referencia, cuanto sueles gastar
+  { const L=p.limiteMes, sub=document.getElementById('limite-acc-sub'), inp=document.getElementById('limite-input'),
+      ref=document.getElementById('limite-ref'), q=document.getElementById('limite-quitar'), prom=promedioGastoMensual();
+    if(sub) sub.textContent=L>0?fmt(L)+' al mes':'sin límite';
+    if(inp&&document.activeElement!==inp) inp.value=L>0?L:'';
+    if(q) q.hidden=!(L>0);
+    if(ref) ref.textContent=prom>0?'de referencia: en los últimos meses gastaste unos '+fmt(prom)+' al mes':''; }
   const qf=document.getElementById('quitar-foto-btn'); if(qf) qf.hidden=!p.foto;
   // encabezado: avatar (foto o inicial), nombre y subtitulo
   const nom=(p.nombre||'').trim();
@@ -9246,6 +9274,59 @@ window.eliminarApartado = async function(id) {
 
 // aviso SIN tope: solo avisa si el mes actual ya supera claramente el promedio historico
 let avisoCatTimer=null;
+// ── LIMITE DE GASTO DEL MES (30-oct-2026, Beto: "este mes máximo voy a gastar 10,000, y que me vaya avisando") ──
+// INFORMA, NUNCA BLOQUEA (regla de Beto del 19-oct). Cuenta lo gastado del mes en curso en pesos: la tarjeta el dia
+// del cargo (sus pagos no son gasto), lo de otra moneda ya convertido y lo del Atajo aunque falte aplicarlo a saldos
+const LIMITE_UMBRALES=[50,75,90];
+function gastoDelMes(){ const k=hoyLocal().slice(0,7); return c2(state.gastos.filter(g=>movValido(g)&&mesLocalDe(g.fecha)===k).reduce((s,g)=>s+nFin(g.monto),0)); }
+function estadoLimite(){
+  const L=state.perfil&&state.perfil.limiteMes; if(!(L>0)) return null;
+  const g=gastoDelMes(), hoy=new Date(), diasMes=new Date(hoy.getFullYear(),hoy.getMonth()+1,0).getDate(), dia=hoy.getDate();
+  // ritmo: que parte del mes ya paso; ir 10 puntos arriba de eso es gastar mas rapido que el mes
+  const pct=g/L*100, ritmo=dia/diasMes*100, quedan=diasMes-dia+1;
+  return {L,g,pct,resta:c2(L-g),quedan,ritmo,mes:MESES[hoy.getMonth()],nivel:pct>=100?'rojo':pct>ritmo+10?'amarillo':'verde'};
+}
+let avisoLimTimer=null;
+// al guardar un gasto del mes en curso: avisa SOLO al cruzar 50/75/90 (no en cada gasto) y, ya pasado, en cada uno
+function avisoLimite(monto,fechaMov){
+  if(fechaMov&&mesLocalDe(fechaMov)!==hoyLocal().slice(0,7)) return;
+  const e=estadoLimite(); if(!e) return;
+  const antes=(e.g-nFin(monto))/e.L*100, dias=e.quedan+(e.quedan===1?' día':' días');
+  let txt=null;
+  if(e.pct>=100) txt=antes<100?'llegaste a tu límite del mes ('+fmt(e.L)+')'+(e.resta<0?': te pasaste por '+fmt(-e.resta):'')
+    :'ya te pasaste de tu límite del mes por '+fmt(-e.resta)+' · quedan '+dias;
+  else { const u=[...LIMITE_UMBRALES].reverse().find(u=>antes<u&&e.pct>=u);
+    if(u) txt=(u>=90?'aguas: ':'')+'ya vas en '+u+'% de tu límite del mes · te quedan '+fmt(e.resta)+' para '+dias; }
+  if(!txt) return;
+  // el del limite gana al de categoria: dos avisos seguidos se pisarian
+  if(avisoCatTimer){ clearTimeout(avisoCatTimer); avisoCatTimer=null; }
+  if(avisoLimTimer) clearTimeout(avisoLimTimer);
+  avisoLimTimer=setTimeout(()=>{ avisoLimTimer=null; showToast(txt); },2400);
+}
+function renderLimite(){
+  const el=document.getElementById('limite-panel'); if(!el) return;
+  const e=estadoLimite();
+  if(!e){ el.innerHTML='<button type="button" class="volver-btn" onclick="abrirLimite()">+ ponte un límite de gasto del mes</button>'; return; }
+  const col={verde:'var(--green)',amarillo:'var(--ambar,#b7832a)',rojo:'var(--red)'}[e.nivel];
+  const dias=e.quedan+(e.quedan===1?' día':' días');
+  const msg=e.nivel==='rojo'?(e.resta<0?'te pasaste por '+fmt(-e.resta):'llegaste a tu límite')+' · quedan '+dias+' del mes'
+    :'te quedan '+fmt(e.resta)+' para '+dias+' · unos '+fmt(e.resta/e.quedan)+' al día'+(e.nivel==='amarillo'?' · vas más rápido que el mes':'');
+  el.innerHTML='<div class="panel" style="padding:12px 16px;margin-bottom:12px"><div class="bar-header"><span class="bar-label">tu límite de '+escapeHtml(e.mes)+'</span>'+
+    '<span class="bar-amt">'+fmt(e.g)+' / '+fmt(e.L)+'</span></div>'+
+    // la rayita marca cuanto del mes ya paso: si la barra va por delante, vas gastando mas rapido
+    '<div class="bar-track" style="height:8px;position:relative"><div class="bar-fill" style="width:'+Math.min(100,e.pct).toFixed(1)+'%;background:'+col+'"></div>'+
+    '<div title="lo que va del mes" style="position:absolute;top:-3px;bottom:-3px;left:'+e.ritmo.toFixed(1)+'%;width:2px;background:var(--text);opacity:.45"></div></div>'+
+    '<div class="bar-header" style="margin-top:4px"><span class="item-meta">'+escapeHtml(msg)+'</span>'+
+    '<button type="button" class="del-btn" style="font-size:12px;color:var(--accent);padding:2px 0 2px 10px" onclick="abrirLimite()">cambiar</button></div></div>';
+}
+// el limite se edita en el perfil (regla de Beto: todo lo tuyo se cambia ahi)
+window.abrirLimite=function(){ showPage('perfil'); perfilSub('perfil'); const d=document.getElementById('limite-acc'); if(d){ d.open=true; d.scrollIntoView({block:'center'}); const i=document.getElementById('limite-input'); if(i) i.focus(); } };
+window.guardarLimite=async function(quitar){
+  let v=null;
+  if(!quitar){ const raw=(document.getElementById('limite-input').value||'').trim(); v=Math.round(Number(raw)*100)/100;
+    if(!raw||!Number.isFinite(v)||v<=0||v>1e9){ showToast('escribe cuánto máximo quieres gastar al mes'); return; } }
+  await guardarPerfil({limiteMes:v}, quitar?'límite quitado':'límite del mes: '+fmt(v));
+};
 function avisoCategoria(cat,fechaMov) {
   // solo tiene sentido para gastos del mes EN CURSO: un gasto retrofechado a otro mes
   // dispararia una alerta sobre un mes que ya paso

@@ -167,3 +167,11 @@ Cualquier cambio a `index.html` (o `sw.js`) se sube directo al repo en GitHub y 
 - **Gráfica del fondo:** `chartBlock(..., {ancho})` ensancha el viewBox para quedar del alto del resumen; `serieFondo` da un punto por día y escalones en cada movimiento; `pts.diario` = lo que genera al día.
 - Prueba: `pruebas-sin-senal\e2e-metas-fondos.mjs` (emulador 2). Falta portar a las copias junto con varios fondos.
 - **Metas (28-oct, tarde 2):** Metas muestra SOLO las metas de los fondos ("metas de tus fondos"); ahí no se crean fondos ni se pone meta (Roberto: que no se confunda). **Mis cuentas:** todo en cuadritos iguales (`caja`, `.mc-grid`): bancos, Efectivo, Fondos, Inversiones, cada uno con etiqueta de qué es y total; si una cuenta en otra moneda no tiene tipo de cambio, el cuadrito lo dice. **Excel de mis datos:** portada "Resumen" con ligas, encabezados verdes, total al pie con `SUBTOTAL(109)` (con su resultado guardado) separado del filtro por una fila vacía, hojas "Gastos/Ingresos por categoría" (12 meses seguidos). Las fechas 'AAAA-MM-DD' van por `parseFechaLocal` (antes salían un día antes). Prueba: `pruebas-sin-senal\e2e-cuentas-excel.mjs`.
+
+## Límite de gasto del mes (30-oct-2026, en Roberto, Eli, Toño y Zoe; ramas `limite-mes-2026-10-30`, SIN publicar)
+
+- `limiteMes` en `<NS>/perfil` (merge con `guardarPerfil`; null = sin límite). **Informa, nunca bloquea** (regla de Roberto del 19-oct). Se edita en el perfil (`details#limite-acc`); en Inicio, `#limite-panel` arriba de "cómo vas este mes" con barra, rayita del ritmo del mes y "te quedan $X para N días".
+- `gastoDelMes()` = gastos del mes en curso con `movValido` (la tarjeta el día del cargo, otra moneda ya en pesos, el Atajo pendiente cuenta). Lo de la bandeja sin señal NO cuenta hasta subir.
+- `avisoLimite(monto, fecha)` tras `altaGasto` y `altaMovX`: avisa al cruzar 50/75/90 y en cada gasto pasado el 100; gana sobre `avisoCategoria`. La casa no lo tiene (no tiene perfil personal).
+- `mesLocalDe` acepta 'AAAA-MM-DD' suelta como día local (antes el día 1 caía en el mes anterior).
+- Prueba: `pruebas-sin-senal\e2e-limite-mes.mjs [sitio ns pfx correo]` (21 casos). Plan del fin: `documentos\plan-de-codeo\plan-fin-de-semana-2026-10-31.md` (fuera del repo).
