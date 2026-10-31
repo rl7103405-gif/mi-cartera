@@ -176,3 +176,17 @@ Cualquier cambio a `index.html` (o `sw.js`) se sube directo al repo en GitHub y 
 - `mesLocalDe` acepta 'AAAA-MM-DD' suelta como día local (antes el día 1 caía en el mes anterior).
 - Prueba: `pruebas-sin-senal\e2e-limite-mes.mjs [sitio ns pfx correo]` (21 casos). Plan del fin: `documentos\plan-de-codeo\plan-fin-de-semana-2026-10-31.md` (fuera del repo).
 - **Límites por categoría (30-oct, tarde):** `limitesCat` = [{cat, monto}] en `<NS>/perfil`, opcional, aparte del general o sin él. Se cambia SIEMPRE con `cambiarLimitesCat` (transacción sobre la lista del servidor: dos aparatos no se pisan) y por nombre, nunca por posición. Al renombrar o juntar una categoría de gasto, `moverLimiteCat` lleva su límite (si el destino ya tenía, se queda el menor); al quitarla, se va. Un solo aviso junta el de la categoría y el del mes. Los botones del límite usan `conBoton` ("guardando…" y palomita). Prueba: `pruebas-sin-senal\e2e-limite-cat.mjs [sitio ns pfx correo]` (19 casos).
+
+## Bolsa por periodo y "pagar todo" (31-oct-2026)
+
+- **Tu bolsa por periodo** (tarjeta `#dash-periodo` arriba de la rejilla del tablero, pedido de Roberto con capturas de
+  Revolut): hoy/1 sem/1 mes/6 meses/1 año/todo; valor y ganancia del periodo, "ver lo que pusiste", rendimiento ponderado
+  por tiempo contra el S&P 500 (VOO × dólar, en pesos), realizada/sin vender y la lista por acción. La cuenta de costo
+  promedio es UNA: `libroBolsa()` (calcCartera la usa; `test-libro-bolsa.mjs` la compara contra 66a0995). `diarioBolsa()`
+  y `periodoBolsa()` (precio/dólar de más de 5 días = faltante; contribuciones que suman exacto el rendimiento).
+  Valúa al cierre histórico, no al precio en vivo, y sin dividendos: la tarjeta lo dice. 1D sin línea intradía (la app
+  solo baja cierres diarios). Pruebas: `test-bolsa-periodo.mjs` (44) y `pruebas-sin-senal\e2e-bolsa-periodo.mjs` (24).
+- **"Pagar todo lo que debes"** bajo el monto de cada tarjeta (`PAGO_TOTAL`, `pintarPagoTotal`, `pagarTotal`): solo LLENA
+  el monto con la deuda y lleva a elegir la cuenta; el pago lo sigue registrando "− pagué". En modo privado no llena
+  (el input enseñaría la deuda). Prueba: `pruebas-sin-senal\e2e-pagar-total.mjs` (26). Falta portarlo a Eli, Toño, Zoe
+  y la casa (mismos ids; la casa solo tiene la BBVA).

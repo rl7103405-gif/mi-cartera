@@ -224,6 +224,8 @@ html[data-tema='grafito'] .tabs{--sombra-scroll:rgba(255,255,255,.16)}
 .btn-purple{background:linear-gradient(115deg,var(--accent-dark),var(--accent));border:none;color:#fff;font-weight:600;box-shadow:var(--sombra-acc)}
 .btn-purple:active{opacity:0.9}
 .btn-green{background:rgba(29,125,85,0.08);border-color:var(--green);color:var(--green)}
+.btn-total{display:block;width:100%;margin-top:8px;min-height:44px;padding:10px 12px;background:transparent;border:0.5px dashed var(--green);border-radius:var(--rs);color:var(--green);font:inherit;font-size:14px;font-weight:500;text-align:left;cursor:pointer}
+.btn-total[hidden]{display:none}
 .btn-red{background:rgba(192,74,58,0.07);border-color:var(--red);color:var(--red)}
 .type-toggle{display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap}
 .type-opt{flex:1;min-width:calc(33% - 4px);min-height:44px;padding:8px 4px;background:var(--bg3);border:0.5px solid var(--border);border-radius:var(--rs);color:var(--muted);font-size:12px;cursor:pointer;text-align:center;font-family:inherit}
@@ -539,6 +541,33 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
     grid-template-areas:"wl costo crec" "sector pie merc" "proy proy notas" "datos datos datos"}
 }
 .dgrid .acc{grid-column:1/-1;margin-bottom:0}
+/* tu bolsa por periodo (30-oct-2026, como el Analytics de Revolut): arriba de la rejilla, a todo lo ancho */
+.dper{margin:0 0 10px}
+.dper-top{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px 12px;padding-right:12px}
+.dper-rangos,.dper-modos{display:flex;flex-wrap:wrap;gap:4px}
+.dper-rangos button,.dper-modos button{min-height:32px;padding:4px 10px;border-radius:999px;border:1px solid var(--border2);background:transparent;color:var(--muted);font:inherit;font-size:12px;font-weight:600;cursor:pointer}
+.dper-rangos button[aria-pressed=true],.dper-modos button[aria-pressed=true]{background:var(--text);border-color:var(--text);color:var(--bg2)}
+.dper-head{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 12px}
+.dper-valor{font-size:28px;font-weight:700;letter-spacing:-.01em}
+.dper-delta{font-size:14px;font-weight:600}
+.dper-delta.pos{color:var(--green)}.dper-delta.neg{color:var(--red)}
+.dper-nota{font-size:11.5px;color:var(--muted);margin-top:2px}
+.dper-ctl{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:6px 12px;margin:10px 0 4px}
+.dper-check{display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--muted);min-height:32px;cursor:pointer}
+.dper-graf svg{display:block;width:100%;height:auto}
+.dper-leyenda{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:12px;color:var(--muted);margin-top:4px}
+.dper-leyenda i{display:inline-block;width:14px;height:3px;border-radius:2px;vertical-align:middle;margin-right:5px}
+.dper-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px;margin-top:12px}
+.dper-kpis .dkpi{box-shadow:none}
+.dper-kpis .dkpi .l{white-space:normal}
+.dper-acc{margin-top:12px;font-size:13px}
+.dper-acc table{width:100%;border-collapse:collapse}
+.dper-acc th{font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;font-weight:600;text-align:right;padding:4px 6px}
+.dper-acc th:first-child,.dper-acc td:first-child{text-align:left}
+.dper-acc td{padding:6px;text-align:right;border-top:0.5px solid var(--border);font-variant-numeric:tabular-nums;white-space:nowrap}
+.dper-acc td.pos{color:var(--green)}.dper-acc td.neg{color:var(--red)}
+.dper-scroll{overflow-x:auto}
+@media(pointer:coarse){.dper-rangos button,.dper-modos button,.dper-check{min-height:44px}.dper-rangos,.dper-modos{gap:6px}.dper-check input{width:20px;height:20px}}
 /* registrar operacion de bolsa: vive en el tablero (30-sep) */
 .dop{margin:0 0 10px}
 .dop .acc{margin-bottom:0}
@@ -862,7 +891,8 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
   </summary>
   <div class="acc-body">
   <div class="panel">
-    <div class="field"><label>monto</label><input type="number" id="tarjeta-cargo-monto" placeholder="ej. 350" step="0.01" inputmode="decimal"></div>
+    <div class="field"><label>monto</label><input type="number" id="tarjeta-cargo-monto" placeholder="ej. 350" step="0.01" inputmode="decimal">
+      <button type="button" class="btn-total" id="tarjeta-total-btn" onclick="pagarTotal('nu')" hidden></button></div>
     <div class="field"><label>nota</label><input type="text" id="tarjeta-cargo-nota" placeholder="ej. spotify, gasolina..."></div>
     <div class="field"><label>fecha (YYYY-MM-DD, vacía = hoy)</label><input type="text" id="tarjeta-fecha" placeholder="hoy"></div>
     <div class="field"><label>si pagas, el dinero sale de</label>
@@ -882,7 +912,8 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
   </summary>
   <div class="acc-body">
   <div class="panel">
-    <div class="field"><label>monto</label><input type="number" id="tarjeta-rev-monto" placeholder="ej. 120" step="0.01" inputmode="decimal"></div>
+    <div class="field"><label>monto</label><input type="number" id="tarjeta-rev-monto" placeholder="ej. 120" step="0.01" inputmode="decimal">
+      <button type="button" class="btn-total" id="tarjeta-rev-total-btn" onclick="pagarTotal('rev')" hidden></button></div>
     <div class="field"><label>nota</label><input type="text" id="tarjeta-rev-nota" placeholder="ej. uber, súper..."></div>
     <div class="field"><label>fecha (YYYY-MM-DD, vacía = hoy)</label><input type="text" id="tarjeta-rev-fecha" placeholder="hoy"></div>
     <div class="field"><label>si pagas, el dinero sale de</label>
@@ -1241,6 +1272,13 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
   </div>
   </details>
   </div>
+  <section class="dcard dper" id="dash-periodo" aria-labelledby="dper-tit">
+    <div class="dper-top">
+      <div class="dcard-h" id="dper-tit">Tu bolsa por periodo</div>
+      <div class="dper-rangos" id="dper-rangos" role="group" aria-label="Periodo"></div>
+    </div>
+    <div class="dcard-b" id="dper-cuerpo"><div class="empty-state">calculando...</div></div>
+  </section>
   <div class="dgrid">
     <div class="dcard dg-wl"><div class="dcard-h">Lo que gana y lo que pierde</div><div class="dcard-b" id="dash-winloss"><div class="empty-state">calculando...</div></div></div>
     <div class="dcard dg-costo"><div class="dcard-h">Lo que pusiste y lo que vale</div><div class="dcard-b" id="dash-costo-valor"><div class="empty-state">calculando...</div></div></div>
@@ -4897,7 +4935,34 @@ function cicloTdcRev() {
 }
 
 // ── RENDER ────────────────────────────────────────────────────
+// "PAGAR TODO" (30-oct-2026, pedido de Roberto): un boton bajo el monto de cada tarjeta con lo que debes.
+// Solo LLENA el monto con la deuda y lleva a elegir de donde sale; el pago lo sigue registrando
+// "− pague" (registrarTarjeta / registrarTarjetaRev, con todas sus validaciones). Sin deuda, no aparece.
+const PAGO_TOTAL={
+  nu:{deuda:()=>state.tarjetaDeuda, monto:'tarjeta-cargo-monto', btn:'tarjeta-total-btn', fuente:'tarjeta-pago-fuente'},
+  rev:{deuda:()=>state.revTdcDeuda, monto:'tarjeta-rev-monto', btn:'tarjeta-rev-total-btn', fuente:'tarjeta-rev-pago-fuente'},
+};
+const deudaRedonda=k=>{ const d=Number(PAGO_TOTAL[k].deuda()); return Number.isFinite(d)?Math.round(d*100)/100:0; };
+function pintarPagoTotal() {
+  for(const k of Object.keys(PAGO_TOTAL)){
+    const b=document.getElementById(PAGO_TOTAL[k].btn); if(!b) continue;
+    const d=deudaRedonda(k);
+    b.hidden=!(d>0);
+    if(d>0) b.textContent='pagar todo lo que debes · '+fmt(d);
+  }
+}
+window.pagarTotal=k=>{
+  // en modo privado no se llena: el input ensenaria la deuda en claro (revision del 30-oct)
+  if(modoPrivado){ showToast('desactiva el modo privado para llenar el monto'); return; }
+  const c=PAGO_TOTAL[k]; if(!c) return;
+  const d=deudaRedonda(k); if(!(d>0)) return;
+  const i=document.getElementById(c.monto); if(!i) return;
+  i.value=d.toFixed(2);
+  i.dispatchEvent(new Event('input',{bubbles:true}));
+  const f=document.getElementById(c.fuente); if(f) f.focus();
+};
 function render() {
+  try { pintarPagoTotal(); } catch(e) { console.error('pagar todo',e); }
   // (21-oct-2026, Roberto) las tarjetas de inicio muestran solo lo TUYO: el fondo se ve en su pestaña
   // (28-oct-2026) y tampoco el interes que genero el fondo sin registrar (fondoEnCuenta)
   const tuyo=(c,s)=>apartadoDe(c)>0?Math.max(0,s-fondoEnCuenta(c)):s;
@@ -7837,6 +7902,243 @@ function serieGananciaPortafolio() {
   }
   return {serie};
 }
+// ── BOLSA POR PERIODO (30-oct-2026, pedido de Roberto con capturas de Revolut) ──────────────
+// diarioBolsa: un punto por dia de mercado desde la primera operacion, con el valor de las acciones de
+// ESE dia (titulos de ese dia × cierre × dolar del dia, en pesos), por accion, y el flujo del dia
+// (compras − ventas en pesos). Un dia sin precio de alguna accion o sin dolar no se dibuja (no se
+// inventa); su flujo pasa al siguiente dia que si se dibuja. Una operacion en fin de semana cae en el
+// siguiente dia de mercado. p = ese dia entro una operacion sin monto en pesos (no se sabe lo metido).
+// Un precio o un dolar de mas de BOLSA_RANCIO dias antes del dia pedido cuenta como faltante: un dato
+// que dejo de refrescarse no debe valuar como si fuera de hoy (revision del 30-oct).
+const BOLSA_RANGOS={'1d':{t:'hoy',d:null},'1s':{t:'1 sem',d:7},'1m':{t:'1 mes',d:30},'6m':{t:'6 meses',d:182},'1a':{t:'1 año',d:365},'todo':{t:'todo',d:null}};
+const BOLSA_RANCIO=5;
+// el MISMO criterio de "operacion valida" para todo lo de la bolsa por periodo
+function opBolsaValida(o) {
+  return !!o&&typeof o.simbolo==='string'&&Number.isFinite(o.acciones)&&o.acciones>0
+    &&(o.tipo==='compra'||o.tipo==='venta')&&fechaCalendarioValida(o.fecha);
+}
+// 'AAAA-MM-DD' menos n dias calendario, armada en local (sin depender de dias de 24 h)
+function fechaMenosDias(f, n) {
+  const d=parseFechaLocal(f); d.setDate(d.getDate()-n);
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
+// ultimo dato en o antes de t, solo si no es de mas de BOLSA_RANCIO dias antes
+function bolsaFfill(arr, t) {
+  let p=null; for(const x of arr){ if(x.t<=t) p=x; else break; }
+  return (p&&p.t>=fechaMenosDias(t,BOLSA_RANCIO))?p.c:null;
+}
+function diarioBolsa() {
+  const todas=(state.stocksOps||[]).filter(o=>o&&typeof o.simbolo==='string'&&Number.isFinite(o.acciones)&&o.acciones>0);
+  const ops=todas.filter(opBolsaValida).sort(ordenOps);
+  // una operacion que accionesEnFecha si cuenta pero aqui no (tipo o fecha raros) haria una ganancia
+  // fantasma: se avisa y la ganancia queda en null
+  const descartadas=todas.length-ops.length;
+  if(!ops.length) return {dias:[],motivo:'todavía no registras compras de acciones',descartadas};
+  const mkt=state.accionesMkt||{};
+  const limpia=arr=>(Array.isArray(arr)?arr:[]).filter(p=>p&&typeof p.t==='string'&&Number.isFinite(p.c)&&p.c>0).sort((a,b)=>a.t<b.t?-1:a.t>b.t?1:0);
+  const fx=limpia(state.usdMxnHistory);
+  const syms=[...new Set(ops.map(o=>o.simbolo))];
+  const hist={}; syms.forEach(s=>{ hist[s]=mkt[s]?limpia(mkt[s].hist):[]; });
+  const t0=ops[0].fecha;
+  const fechas=[...new Set(syms.flatMap(s=>hist[s].map(p=>p.t)))].filter(t=>t>=t0).sort();
+  const dias=[]; let k=0, flujo=0, flujoSym={}, pendDia=false, motivo=descartadas?'hay operaciones con tipo o fecha inválidos':'';
+  let aportAcum=0, saltadosIni=0;
+  for(const t of fechas){
+    // las operaciones hasta este dia (incluidas las del fin de semana anterior) entran como flujo
+    while(k<ops.length&&ops[k].fecha<=t){
+      const o=ops[k++], m=(Number.isFinite(o.montoMxn)&&o.montoMxn>0)?o.montoMxn:null;
+      if(m===null){ pendDia=true; continue; }
+      const s=(o.tipo==='venta'?-1:1)*m;
+      flujo+=s; aportAcum+=s; flujoSym[o.simbolo]=(flujoSym[o.simbolo]||0)+s;
+    }
+    const tms=parseFechaLocal(t).getTime();
+    const tc=bolsaFfill(fx,t); if(tc===null){ motivo=motivo||'falta el tipo de cambio de algunos días'; if(!dias.length) saltadosIni++; continue; }
+    let v=0, completo=true; const vi={};
+    for(const s of syms){
+      const a=accionesEnFecha(s,tms); if(!(a>0)) continue;
+      const mk=mkt[s];
+      if(mk&&mk.moneda&&mk.moneda!=='USD'){ completo=false; motivo=s+' no cotiza en dólares'; break; }
+      const c=bolsaFfill(hist[s],t); if(c===null){ completo=false; motivo=motivo||'falta el precio de '+s+' algunos días'; break; }
+      vi[s]=a*c*tc; v+=vi[s];
+    }
+    if(!completo){ if(!dias.length) saltadosIni++; continue; }
+    dias.push({t,tms,v,vi,f:flujo,fi:flujoSym,aport:aportAcum,tc,p:pendDia});
+    flujo=0; flujoSym={}; pendDia=false;
+  }
+  return {dias,motivo,descartadas,primera:t0,saltadosIni};
+}
+// periodoBolsa: lo que paso con la bolsa en un rango (BOLSA_RANGOS). Todo en pesos.
+//  ganancia = cambio de valor − lo que metiste en el periodo; realizada = ventas del periodo (libroBolsa);
+//  no realizada = el resto; rendimiento ponderado por tiempo (no se infla al meter dinero: el flujo
+//  entra al cierre del dia); S&P = VOO × dolar en las mismas fechas; contribucion de cada accion,
+//  ponderada por lo acumulado para que las contribuciones sumen EXACTO el rendimiento.
+//  Sin dia base real (historia mas corta que el rango, o 'todo') la cifra es "desde tu primera
+//  operacion": recortado=true y desde = esa fecha. twrParcial = el rendimiento no cubre el primer tramo.
+function periodoBolsa(rango) {
+  const R=BOLSA_RANGOS[rango]||BOLSA_RANGOS['1m'];
+  const {dias,motivo,descartadas,primera,saltadosIni}=diarioBolsa();
+  if(dias.length<1) return {vacio:motivo||'todavía no hay precios para tus acciones'};
+  if(rango==='1d'&&dias.length<2) return {vacio:'todavía no hay un día de mercado anterior para comparar'};
+  const fin=dias[dias.length-1];
+  let iBase;                                   // indice del dia base (−1 = antes de la primera compra, valor 0)
+  if(rango==='1d') iBase=dias.length-2;
+  else if(rango==='todo'||R.d===null) iBase=-1;
+  else { const corte=fechaMenosDias(fin.t,R.d); iBase=-1; for(let i=0;i<dias.length;i++){ if(dias[i].t<=corte) iBase=i; else break; } }
+  const base=iBase>=0?dias[iBase]:{t:null,tms:null,v:0,vi:{},tc:null};
+  const tramo=dias.slice(iBase+1);
+  const pendiente=descartadas>0||tramo.some(d=>d.p);
+  const metido=tramo.reduce((s,d)=>s+d.f,0);
+  const cambio=fin.v-base.v;
+  // con una operacion sin monto (o descartada), lo metido no se sabe: la ganancia queda pendiente
+  const ganancia=pendiente?null:cambio-metido;
+  // realizada: ventas con fecha despues del dia base y hasta el ultimo dia (una venta en fin de semana
+  // posterior al ultimo cierre todavia no entra, igual que su flujo)
+  const {ventas}=libroBolsa(state.stocksOps);
+  const enRango=ventas.filter(x=>(base.t===null||x.fecha>base.t)&&x.fecha<=fin.t);
+  const realizada=enRango.some(x=>x.realizado===null)?null:enRango.reduce((s,x)=>s+x.realizado,0);
+  const noRealizada=(ganancia===null||realizada===null)?null:ganancia-realizada;
+  // rendimiento ponderado por tiempo y contribucion por accion (telescopica: suman exacto)
+  let factor=1, cum=1, ant=base, roto=false; const contrib={}, rendDia=[];
+  for(const d of tramo){
+    if(ant.v>0){
+      if(!(d.v-d.f>0)){ roto=true; break; }   // dato corrupto: no se inventa un rendimiento
+      const syms=new Set([...Object.keys(d.vi),...Object.keys(ant.vi),...Object.keys(d.fi)]);
+      syms.forEach(s=>{ contrib[s]=(contrib[s]||0)+cum*((d.vi[s]||0)-(d.fi[s]||0)-(ant.vi[s]||0))/ant.v; });
+      const r=(d.v-d.f)/ant.v; factor*=r; cum*=r;
+    }
+    rendDia.push({t:d.t,x:d.tms,tu:factor-1,tc:d.tc});
+    ant=d;
+  }
+  const twr=(pendiente||roto)?null:factor-1;
+  // el rendimiento empieza a medir en el primer dia con valor: si hubo dinero antes (base cero y flujo
+  // en el primer dia dibujado), ese primer tramo no entra
+  const twrParcial=iBase<0&&tramo[0].f>0;
+  // S&P 500 (VOO) en pesos, del dia base (o el primer dia con valor) al ultimo
+  const voo=(state.accionesMkt||{})[REF_MERCADO];
+  const vh=voo&&Array.isArray(voo.hist)?voo.hist.filter(p=>p&&typeof p.t==='string'&&Number.isFinite(p.c)&&p.c>0).sort((a,b)=>a.t<b.t?-1:a.t>b.t?1:0):[];
+  const dIni=base.t?base:tramo[0];
+  const pI=bolsaFfill(vh,dIni.t), pF=bolsaFfill(vh,fin.t);
+  const sp=(pI&&pF&&dIni.tc&&fin.tc)?(pF*fin.tc)/(pI*dIni.tc)-1:null;
+  // dia por dia, para la grafica "tu contra el S&P" (los dos arrancan en 0 el dia de inicio)
+  const serieRend=(pI&&dIni.tc&&!(pendiente||roto))?[{x:dIni.tms,tu:0,sp:0}].concat(rendDia.filter(p=>p.x>dIni.tms).map(p=>{ const c=bolsaFfill(vh,p.t); return {x:p.x,tu:p.tu,sp:c?(c*p.tc)/(pI*dIni.tc)-1:null}; })):[];
+  // por accion: valor, metido, ganancia, realizada y contribucion
+  const syms=[...new Set([...Object.keys(fin.vi),...Object.keys(base.vi),...tramo.flatMap(d=>Object.keys(d.fi)),...enRango.map(x=>x.simbolo)])];
+  const porAccion=syms.map(s=>{
+    const met=tramo.reduce((a,d)=>a+(d.fi[s]||0),0), cam=(fin.vi[s]||0)-(base.vi[s]||0);
+    const rs=enRango.filter(x=>x.simbolo===s), real=rs.some(x=>x.realizado===null)?null:rs.reduce((a,x)=>a+x.realizado,0);
+    return {simbolo:s,valor:fin.vi[s]||0,metido:met,ganancia:pendiente?null:cam-met,realizada:real,
+      contribucion:(pendiente||roto)?null:(contrib[s]||0)};
+  }).sort((a,b)=>Math.abs(b.ganancia??0)-Math.abs(a.ganancia??0));
+  const recortado=iBase<0&&(rango!=='todo'||saltadosIni>0);
+  return {rango, desde:iBase>=0?base.t:primera, hasta:fin.t, valor:fin.v, cambio, metido, ganancia, realizada, noRealizada,
+    twr, twrParcial, sp, porAccion, recortado, pendiente, motivo, serieRend,
+    serie:(iBase>=0?[base]:[]).concat(tramo).map(d=>({x:d.tms,y:d.v,aport:d.aport}))};
+}
+// ── la tarjeta "tu bolsa por periodo" ─────────────────────────────────────────────
+let bolsaRango='1m', bolsaModo='valor', bolsaAport=false;
+try{ const g=JSON.parse(localStorage.getItem('bolsaPeriodo')||'{}');
+  if(Object.hasOwn(BOLSA_RANGOS,g.r||'')) bolsaRango=g.r; if(g.m==='rend') bolsaModo='rend'; bolsaAport=g.a===true; }catch(e){}
+const guardarBolsaSel=()=>{ try{ localStorage.setItem('bolsaPeriodo',JSON.stringify({r:bolsaRango,m:bolsaModo,a:bolsaAport})); }catch(e){} };
+window.setBolsaRango=r=>{ if(!Object.hasOwn(BOLSA_RANGOS,r)) return; bolsaRango=r; guardarBolsaSel(); refrescar(renderPeriodoBolsa); };
+window.setBolsaModo=m=>{ bolsaModo=m==='rend'?'rend':'valor'; guardarBolsaSel(); refrescar(renderPeriodoBolsa); };
+window.setBolsaAport=v=>{ bolsaAport=!!v; guardarBolsaSel(); refrescar(renderPeriodoBolsa); };
+// grafica de lineas para la tarjeta: lineas = [{pts:[{x,y}], color, escalon, punteada}]
+// se dibuja al ancho REAL de la tarjeta: con un viewBox fijo las letras salian enormes en escritorio y
+// diminutas en el telefono (capturas del 30-oct)
+function svgPeriodo(lineas, esPct, ancho) {
+  const W=Math.max(300,Math.min(1600,Math.round(ancho||640))), H=W<500?170:210, PL=esPct?44:58, PR=12, PT=10, PB=22;
+  const todos=lineas.flatMap(l=>l.pts).filter(p=>Number.isFinite(p.x)&&Number.isFinite(p.y));
+  if(todos.length<2) return '<div class="empty-state">todavía no hay suficientes días para dibujar este periodo</div>';
+  let y0=Math.min(...todos.map(p=>p.y)), y1=Math.max(...todos.map(p=>p.y));
+  if(esPct){ y0=Math.min(y0,0); y1=Math.max(y1,0); }
+  if(y1-y0<1e-9){ y1+=esPct?0.01:1; y0-=esPct?0.01:1; }
+  const pad=(y1-y0)*0.08; y0-=pad; y1+=pad;
+  const x0=Math.min(...todos.map(p=>p.x)), x1=Math.max(...todos.map(p=>p.x)), dx=Math.max(1,x1-x0);
+  const X=x=>PL+(x-x0)/dx*(W-PL-PR), Y=y=>PT+(1-(y-y0)/(y1-y0))*(H-PT-PB);
+  const etq=v=>esPct?((v>=0?'+':'−')+Math.abs(v*100).toFixed(1)+'%'):(modoPrivado?'':fmtCorto(v));
+  let s='<svg viewBox="0 0 '+W+' '+H+'" role="img" aria-label="gráfica del periodo">';
+  for(let i=0;i<=3;i++){ const v=y0+(y1-y0)*i/3, y=Y(v).toFixed(1);
+    s+='<line x1="'+PL+'" x2="'+(W-PR)+'" y1="'+y+'" y2="'+y+'" stroke="var(--border)" stroke-width="1"/>';
+    s+='<text x="'+(PL-6)+'" y="'+(+y+4)+'" text-anchor="end" font-size="11" fill="var(--muted)">'+escapeHtml(etq(v))+'</text>'; }
+  if(esPct&&y0<0&&y1>0) s+='<line x1="'+PL+'" x2="'+(W-PR)+'" y1="'+Y(0).toFixed(1)+'" y2="'+Y(0).toFixed(1)+'" stroke="var(--muted)" stroke-width="1" stroke-dasharray="3 3"/>';
+  const f1=new Date(x0), f2=new Date(x1), fd=d=>d.toLocaleDateString('es-MX',{day:'numeric',month:'short'});
+  s+='<text x="'+PL+'" y="'+(H-5)+'" font-size="11" fill="var(--muted)">'+escapeHtml(fd(f1))+'</text>';
+  s+='<text x="'+(W-PR)+'" y="'+(H-5)+'" text-anchor="end" font-size="11" fill="var(--muted)">'+escapeHtml(fd(f2))+'</text>';
+  for(const l of lineas){
+    const p=l.pts.filter(q=>Number.isFinite(q.x)&&Number.isFinite(q.y)); if(p.length<1) continue;
+    let d='M'+X(p[0].x).toFixed(1)+' '+Y(p[0].y).toFixed(1);
+    for(let i=1;i<p.length;i++){ if(l.escalon) d+=' H'+X(p[i].x).toFixed(1); d+=' L'+X(p[i].x).toFixed(1)+' '+Y(p[i].y).toFixed(1); }
+    s+='<path d="'+d+'" fill="none" stroke="'+l.color+'" stroke-width="'+(l.grueso?2.4:1.8)+'" stroke-linejoin="round"'+(l.punteada?' stroke-dasharray="5 4"':'')+'/>';
+  }
+  return s+'</svg>';
+}
+function renderPeriodoBolsa() {
+  const cuerpo=document.getElementById('dper-cuerpo'), rangos=document.getElementById('dper-rangos');
+  if(!cuerpo||!rangos) return;
+  const ancho=cuerpo.clientWidth||640;
+  // repintar con innerHTML destruye el control que tenia el foco: se recuerda y se le devuelve (revision 31-oct)
+  const act=document.activeElement, clave=act&&act.closest&&act.closest('#dash-periodo')?act.dataset.f:null;
+  const devolverFoco=()=>{ if(clave){ const n=document.querySelector('#dash-periodo [data-f="'+clave+'"]'); if(n) n.focus(); } };
+  rangos.innerHTML=Object.entries(BOLSA_RANGOS).map(([k,r])=>
+    '<button type="button" data-f="r'+k+'" aria-pressed="'+(k===bolsaRango)+'" onclick="setBolsaRango(\''+k+'\')">'+escapeHtml(r.t)+'</button>').join('');
+  const p=periodoBolsa(bolsaRango);
+  if(p.vacio){ cuerpo.innerHTML='<div class="empty-state">'+escapeHtml(p.vacio)+'</div>'; devolverFoco(); return; }
+  const sgn=v=>(v>=0?'+':'−')+fmt(Math.abs(v)), pct=v=>(v>=0?'+':'−')+Math.abs(v*100).toFixed(2)+'%';
+  const cls=v=>v===null?'':(v>=0?'pos':'neg');
+  const fdia=f=>parseFechaLocal(f).toLocaleDateString('es-MX',{weekday:'short',day:'numeric',month:'short'});
+  let cuando;
+  if(bolsaRango==='1d') cuando=p.hasta===hoyLocal()?'hoy':'último día de mercado, '+fdia(p.hasta);
+  else if(p.recortado||bolsaRango==='todo') cuando='desde tu primera compra ('+fdia(p.desde)+')';
+  else cuando={'1s':'en la última semana','1m':'en el último mes','6m':'en los últimos 6 meses','1a':'en el último año'}[bolsaRango];
+  const g=p.ganancia;
+  let h='<div class="dper-head"><span class="dper-valor">'+escapeHtml(fmt(p.valor))+'</span>';
+  h+=g===null?'<span class="dper-delta">ganancia pendiente</span>'
+    :'<span class="dper-delta '+cls(g)+'">'+(g>=0?'▲ ':'▼ ')+escapeHtml(fmt(Math.abs(g)))+(p.twr!==null?' ('+escapeHtml(pct(p.twr))+')':'')+' · '+escapeHtml(cuando)+'</span>';
+  h+='</div>';
+  const notas=[];
+  if(p.pendiente) notas.push('hay una operación sin el total en pesos: captúralo para ver la ganancia');
+  if(p.recortado&&bolsaRango!=='todo') notas.push('tu historia de precios es más corta que el periodo');
+  if(bolsaRango!=='1d') notas.push('valuado al cierre del '+fdia(p.hasta));
+  if(bolsaRango==='todo') notas.push('sin dividendos (esos van en tus ingresos)');
+  if(p.motivo&&!p.pendiente) notas.push(p.motivo);
+  if(notas.length) h+='<div class="dper-nota">'+escapeHtml(notas.join(' · '))+'</div>';
+  // controles de la grafica
+  h+='<div class="dper-ctl"><div class="dper-modos" role="group" aria-label="Qué ver en la gráfica">'
+    +[['valor','valor'],['rend','rendimiento vs S&P 500']].map(([k,tx])=>'<button type="button" data-f="m'+k+'" aria-pressed="'+(bolsaModo===k)+'" onclick="setBolsaModo(\''+k+'\')">'+escapeHtml(tx)+'</button>').join('')+'</div>';
+  if(bolsaModo==='valor') h+='<label class="dper-check"><input type="checkbox" data-f="a" '+(bolsaAport?'checked ':'')+'onchange="setBolsaAport(this.checked)"> ver lo que pusiste</label>';
+  h+='</div><div class="dper-graf">';
+  if(bolsaModo==='valor'){
+    const lineas=[{pts:p.serie.map(q=>({x:q.x,y:q.y})),color:'var(--d1)',grueso:true}];
+    if(bolsaAport) lineas.push({pts:p.serie.map(q=>({x:q.x,y:q.aport})),color:'var(--muted)',escalon:true,punteada:true});
+    h+=svgPeriodo(lineas,false,ancho)+'</div><div class="dper-leyenda"><span><i style="background:var(--d1)"></i>lo que vale</span>'
+      +(bolsaAport?'<span><i style="background:var(--muted)"></i>lo que pusiste (neto)</span>':'')+'</div>';
+  } else {
+    if(!p.serieRend.length) h+='<div class="empty-state">no hay datos del S&P 500 para este periodo</div></div>';
+    else h+=svgPeriodo([{pts:p.serieRend.map(q=>({x:q.x,y:q.tu})),color:'var(--d1)',grueso:true},{pts:p.serieRend.map(q=>({x:q.x,y:q.sp})),color:'var(--muted)',punteada:true}],true,ancho)
+      +'</div><div class="dper-leyenda"><span><i style="background:var(--d1)"></i>tú '+escapeHtml(p.twr===null?'—':pct(p.twr))+'</span><span><i style="background:var(--muted)"></i>S&amp;P 500 '+escapeHtml(p.sp===null?'—':pct(p.sp))+'</span><span>los dos en pesos; tu rendimiento no cuenta el dinero que metiste'+(p.twrParcial?', y empieza el primer día con precio':'')+'</span></div>';
+  }
+  // cifras del periodo
+  const k=(l,v,cl,s)=>'<div class="dkpi"><div class="l">'+escapeHtml(l)+'</div><div class="n '+cl+'">'+escapeHtml(v)+'</div>'+(s?'<div class="s">'+escapeHtml(s)+'</div>':'')+'</div>';
+  h+='<div class="dper-kpis">'
+    +k('ganancia del periodo',g===null?'pendiente':sgn(g),cls(g),'lo que cambió menos lo que metiste')
+    +k('ya realizada',p.realizada===null?'pendiente':sgn(p.realizada),cls(p.realizada),'lo que vendiste en el periodo')
+    +k('sin vender',p.noRealizada===null?'pendiente':sgn(p.noRealizada),cls(p.noRealizada),'lo que subió o bajó lo que tienes')
+    +k('lo que metiste',sgn(p.metido),'','compras menos ventas del periodo')
+    +k('S&P 500',p.sp===null?'—':pct(p.sp),cls(p.sp),'en pesos, mismo periodo')+'</div>';
+  // por accion
+  if(p.porAccion.length){
+    h+='<div class="dper-acc dper-scroll" tabindex="0" role="region" aria-label="Por acción"><table><thead><tr><th scope="col">acción</th><th scope="col">vale</th><th scope="col">ganancia</th><th scope="col">realizada</th><th scope="col">aporta</th></tr></thead><tbody>';
+    for(const a of p.porAccion){
+      h+='<tr><td>'+escapeHtml(a.simbolo)+'</td><td>'+escapeHtml(fmt(a.valor))+'</td>'
+        +'<td class="'+cls(a.ganancia)+'">'+escapeHtml(a.ganancia===null?'pendiente':sgn(a.ganancia))+'</td>'
+        +'<td>'+escapeHtml(a.realizada===null?'pendiente':(Math.abs(a.realizada)<0.005?'—':sgn(a.realizada)))+'</td>'
+        +'<td class="'+cls(a.contribucion)+'">'+escapeHtml(a.contribucion===null?'—':pct(a.contribucion))+'</td></tr>';
+    }
+    h+='</tbody></table></div>';
+  }
+  cuerpo.innerHTML=h;
+  devolverFoco();
+}
 function renderChart(chartId) {
   if(chartId==='gbm-chart'){
     const modos='<div class="chart-modos" role="group" aria-label="Qué ver en la gráfica">'+[['valor','con lo que metiste'],['ganancia','solo ganancia']].map(([k,t])=>
@@ -9461,14 +9763,19 @@ const SECTOR_CONOCIDO = {NVDA:'Tecnologia', MSFT:'Tecnologia', AAPL:'Tecnologia'
 // costo por accion, asi que ademas de ser el estandar contable es el que cuadra con el
 // fisco. Cada venta se lleva su parte proporcional del costo base; la diferencia contra
 // lo que se recibio es la ganancia REALIZADA.
-function calcCartera() {
-  const fx = state.usdMxn, fxOk = Number.isFinite(fx) && fx > 0;
+// LIBRO DE LA BOLSA (30-oct-2026): la UNICA cuenta de costo promedio. calcCartera (el tablero de
+// siempre) y la vista por periodo salen de aqui, para que el realizado no descuadre entre pantallas.
+// Ademas del total, devuelve cada venta con su fecha, simbolo y realizado (null = pendiente), que es
+// lo que hace falta para el realizado por periodo y por accion. La aritmetica va en el MISMO orden
+// que antes: el total realizado da identico hasta el ultimo decimal (test-libro-bolsa.mjs).
+function libroBolsa(opsCrudas) {
   // filtrar ANTES de ordenar: un registro corrupto (null, sin simbolo, sin acciones) haria
   // tronar la propia comparacion del sort y con ella el tablero entero
-  const ops = (state.stocksOps || [])
+  const ops = (opsCrudas || [])
     .filter(o => o && typeof o.simbolo === 'string' && Number.isFinite(o.acciones) && o.acciones > 0)
     .sort(ordenOps);
   const acc = {};                 // simbolo -> {acciones, costo, costoPendiente}
+  const ventas = [];              // {id, fecha, simbolo, acciones, monto, costoVendido, realizado|null}
   let realizado = 0, realizadoPendiente = false;
   ops.forEach(o => {
     const t = acc[o.simbolo] || (acc[o.simbolo] = {acciones: 0, costo: 0, costoPendiente: false});
@@ -9484,19 +9791,27 @@ function calcCartera() {
       const vendidas = Math.min(o.acciones, t.acciones);
       const prop = t.acciones > 0 ? vendidas / t.acciones : 0;
       const costoVendido = t.costo * prop;
-      if (monto === null || t.costoPendiente) realizadoPendiente = true;
-      else realizado += monto - costoVendido;
+      const pendiente = monto === null || t.costoPendiente;
+      let r = null;
+      if (pendiente) realizadoPendiente = true;
+      else { r = monto - costoVendido; realizado += monto - costoVendido; }
       const antes = t.acciones;
       t.costo = Math.max(0, t.costo - costoVendido);
       t.acciones = Math.max(0, t.acciones - vendidas);
       // cerrada, o solo queda polvo (ver esPolvo): el costo que quedaba es parte de lo vendido,
       // y una recompra empieza de cero, sin arrastrar el costo pendiente de la posicion vieja
       if (esPolvo(t.acciones, antes)) {
-        if (monto !== null && !t.costoPendiente) realizado -= t.costo;
+        if (monto !== null && !t.costoPendiente) { realizado -= t.costo; if (r !== null) r -= t.costo; }
         t.acciones = 0; t.costo = 0; t.costoPendiente = false;
       }
+      ventas.push({id: o.id || null, fecha: o.fecha, simbolo: o.simbolo, acciones: vendidas, monto, costoVendido, realizado: r});
     }
   });
+  return {acc, ventas, realizado, realizadoPendiente};
+}
+function calcCartera() {
+  const fx = state.usdMxn, fxOk = Number.isFinite(fx) && fx > 0;
+  const {acc, realizado, realizadoPendiente} = libroBolsa(state.stocksOps);
 
   const pos = [];
   let valor = 0, costo = 0, divAnual = 0;
@@ -9709,6 +10024,7 @@ function renderDashboard() {
 
   renderNotasDash();
   renderMercadoHoy();
+  refrescar(renderPeriodoBolsa);
   const efe = efectivoDisponible();
   set('dash-aviso', '');
 
