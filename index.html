@@ -21,6 +21,18 @@ window.CFG = Object.freeze({ns:'cartera', pfx:'', correo:'rl7103405@gmail.com',
   apagar:[], renombrar:{}, premium:145, metaAhorro:25000, metaBolsa:12000});
 </script>
 <script>
+// (1-nov-2026, Fundview) multi: cada cuenta vive en usuarios/<uid>; sin correo fijo ni espacio escrito en CFG.
+// El espacio se arma AQUI, antes del tema, las claves locales y la bandeja, con el uid de la ultima sesion de ESTE
+// aparato. Al entrar se compara contra el uid real (puedeEntrar): si no coincide se guarda el bueno y se vuelve a
+// abrir, asi nunca se lee ni se escribe con el espacio de otra persona. En las carteras de la familia no hace nada.
+(function(){var c=window.CFG,u=null;if(!c||!c.multi) return;
+  try{u=localStorage.getItem('fv:uid');}catch(e){}
+  if(!/^[A-Za-z0-9]{1,128}$/.test(u||'')) u=null;
+  var raiz='usuarios/'+(u||'sin-sesion')+'/';
+  window.CFG = Object.freeze(Object.assign({}, c, {uid:u, ns:raiz+'cartera', pfx:raiz}));
+})();
+</script>
+<script>
 // tema ANTES de pintar (evita el destello del tema anterior); allowlist estricta
 (function(){var t=null,ns=(window.CFG&&window.CFG.ns)||'cartera';try{t=localStorage.getItem(ns==='cartera'?'tema':ns+':tema');}catch(e){}
   // '' es una elección válida (verde salvia): solo null significa "nunca eligió"
@@ -1117,6 +1129,7 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
             <option value="USD">dólar estadounidense (US$)</option>
             <option value="EUR">euro (€)</option>
             <option value="CNY">yuan chino (¥)</option>
+            <option value="NZD">dólar neozelandés (NZ$)</option>
           </select></div>
       </div>
       <div class="row2">
@@ -1556,9 +1569,12 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
 <script type="module">
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
 import { getFirestore, initializeFirestore, persistentLocalCache, persistentMultipleTabManager, doc, getDoc, getDocFromCache, getDocsFromCache, setDoc, updateDoc, collection, getDocs, query, orderBy, where, writeBatch, runTransaction, getDocsFromServer, onSnapshot } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
-import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
+import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, getIdTokenResult } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
 
-const firebaseConfig = {
+// Fundview trae su propio proyecto en CFG.firebase; las carteras de la familia usan este
+// segunda barrera: Fundview (multi) sin su proyecto NUNCA cae al proyecto de la familia
+if (window.CFG && window.CFG.multi && !window.CFG.firebase) throw new Error('Fundview sin su proyecto de Firebase');
+const firebaseConfig = (window.CFG && window.CFG.firebase) || {
   apiKey: "AIzaSyAe5O2FiGD3dHK7F9fc485BjaaiN99Zzd4",
   authDomain: "mi-cartera-b43e0.firebaseapp.com",
   projectId: "mi-cartera-b43e0",
@@ -1617,7 +1633,8 @@ const CORTE_TJ = confCta('tarjeta').corte || 18, CORTE_TJREV = confCta('tarjetaR
 const tdcGarantizada = () => (confCta('tarjetaRev').modo || 'garantizada') === 'garantizada';
 // la instancia lleva el nombre del espacio: Auth guarda la sesion por (proyecto + instancia), asi dos
 // copias en el mismo dominio no se expulsan; la de Roberto sigue en la instancia por defecto (no pierde su sesion)
-const app = NS === 'cartera' ? initializeApp(firebaseConfig) : initializeApp(firebaseConfig, NS);
+// Fundview (multi) tiene su propio proyecto y su espacio cambia con el uid: instancia fija, si no la sesion se perderia al cambiar de espacio
+const app = (NS === 'cartera' || CFG.multi) ? initializeApp(firebaseConfig) : initializeApp(firebaseConfig, NS);
 // CACHE PERSISTENTE (IndexedDB): sin esto, cada apertura releia TODO de la red y en el
 // telefono con senal mala eso eran varios segundos de pantalla de carga. Con la cache,
 // si la red tarda o no hay, Firestore responde con lo ultimo guardado en el aparato.
@@ -2174,13 +2191,49 @@ window.doLogin = async function() {
   const errEl = document.getElementById('login-error');
   errEl.textContent = '';
   if (!email || !pass) { errEl.textContent = 'escribe tu correo y tu contraseña'; return; }
-  if (email !== ALLOWED_EMAIL) { errEl.textContent = 'acceso no autorizado'; return; }
+  if (!CFG.multi && email !== ALLOWED_EMAIL) { errEl.textContent = 'acceso no autorizado'; return; }
   try {
     await signInWithEmailAndPassword(auth, email, pass);
   } catch(e) {
-    errEl.textContent = 'correo o contraseña incorrectos';
+    errEl.textContent = e && e.code === 'auth/multi-factor-auth-required' ? AVISO_ENTRADA['sin-2fa'] : 'correo o contraseña incorrectos';
   }
 };
+// ── QUIEN ENTRA ── en las carteras de la familia, el correo de esa copia. En Fundview (CFG.multi), cualquier cuenta
+// con correo verificado, segundo factor (app autenticadora) y su invitacion canjeada (usuarios/<uid>), y siempre
+// en SU espacio. Las reglas de Firestore exigen lo mismo: esto solo evita pantallas de error y lecturas con otro uid.
+const FV_2FA = 'totp';
+const AVISO_ENTRADA = {
+  'sin-correo': 'tu correo todavía no está verificado: abre la liga que te mandamos',
+  'sin-2fa': 'falta tu código de la app autenticadora',
+  'sin-invitacion': 'esta cuenta todavía no tiene una invitación',
+  'sin-almacen': 'tu navegador no deja guardar datos de esta página (¿estás en modo privado?)'
+};
+let recargandoUid = false;   // puedeEntrar lo prende justo antes de location.reload(): el callback de auth sale callado
+let genAuth = 0;             // generacion del callback de auth: si llega otro mientras uno espera, el viejo se descarta
+const PLAZO_ENTRADA = 4000;  // sin señal getIdTokenResult/getDoc no contestan: a los 4 s se sigue y las reglas deciden
+const conPlazoEntrada = p => Promise.race([p, new Promise((_, no) => setTimeout(() => no(new Error('plazo de entrada agotado')), PLAZO_ENTRADA))]);
+async function puedeEntrar(user) {
+  if (!CFG.multi) return user.email === ALLOWED_EMAIL ? 'si' : 'no';
+  if (user.uid !== CFG.uid) {
+    // el espacio se armo al arrancar con otro uid (o ninguno): se guarda el bueno y se vuelve a abrir.
+    // Una sola vez por sesion de la pestaña: si el aparato no guarda, se avisa en vez de recargar sin fin
+    let guardo = false, yaRecargo = false;
+    try { yaRecargo = sessionStorage.getItem('fv:recarga') === user.uid; } catch (e) { return 'sin-almacen'; }
+    try { localStorage.setItem('fv:uid', user.uid); guardo = localStorage.getItem('fv:uid') === user.uid; } catch (e) {}
+    if (!guardo || yaRecargo) return 'sin-almacen';
+    try { sessionStorage.setItem('fv:recarga', user.uid); } catch (e) { return 'sin-almacen'; }
+    recargandoUid = true;
+    location.reload();
+    return 'recargando';
+  }
+  try { sessionStorage.removeItem('fv:recarga'); } catch (e) {}
+  if (!user.emailVerified) return 'sin-correo';
+  // sin red el token guardado no se puede renovar: se sigue y las reglas deciden (la copia local sigue sirviendo)
+  try { const t = await conPlazoEntrada(getIdTokenResult(user)); if (FV_2FA && t.signInSecondFactor !== FV_2FA) return 'sin-2fa'; } catch (e) {}
+  // solo un "no existe" que diga el SERVIDOR cierra la puerta; sin señal se sigue
+  try { const u = await conPlazoEntrada(getDoc(doc(db, 'usuarios', user.uid))); if (!u.exists() && !u.metadata.fromCache) return 'sin-invitacion'; } catch (e) {}
+  return 'si';
+}
 
 window.doLogout = async function() {
   // (15-oct-2026) con movimientos en la bandeja del telefono se avisa: NO se borran, se quedan
@@ -2224,9 +2277,17 @@ function textoEstadoPrecios() {
   return 'precios del ' + cierreDash(fechas[0]).txt + ' · pulsa actualizar';
 }
 onAuthStateChanged(auth, async user => {
-  if (user && user.email === ALLOWED_EMAIL) {
+  if (recargandoUid) return;   // la pagina ya se esta volviendo a abrir: ni signOut ni avisos
+  const gen = ++genAuth;
+  const acceso = user ? await puedeEntrar(user) : 'no';
+  if (gen !== genAuth || recargandoUid) return;   // llego otro cambio de sesion mientras esperaba: manda el nuevo
+  if (acceso === 'recargando') return;
+  if (acceso === 'si') {
     document.getElementById('login-screen').classList.add('hidden');
     document.getElementById('loading-overlay').classList.remove('hidden');
+    // un error de una carga anterior no se queda pegado en el overlay
+    document.querySelector('.loading-text').textContent = 'cargando tu cartera...';
+    const btnReIni = document.getElementById('reintentar-login'); if (btnReIni) btnReIni.style.display = 'none';
     // PRIMERO la copia local: si el aparato ya tiene los datos guardados, la pantalla
     // sale de una vez y no hay que esperar a la red. Es provisional y de solo lectura:
     // no habilita mover dinero (eso sigue esperando a datosCargados).
@@ -2242,6 +2303,7 @@ onAuthStateChanged(auth, async user => {
     }
     // y ahora la verdad del servidor, que reemplaza el estado completo
     const ok = await loadFromFirebase();
+    if (gen !== genAuth) return;   // llego otro cambio de sesion mientras cargaba: manda el nuevo, esta pantalla no se toca
     if (!ok && recargandoCfg) return; // se esta volviendo a abrir con la configuracion de cuentas: nada de avisos de sin conexion
     if (!ok) {
       if (hayCopiaLocal) {
@@ -2285,6 +2347,7 @@ onAuthStateChanged(auth, async user => {
   } else {
     document.getElementById('login-screen').classList.remove('hidden');
     document.getElementById('loading-overlay').classList.add('hidden');
+    if (user && AVISO_ENTRADA[acceso]) document.getElementById('login-error').textContent = AVISO_ENTRADA[acceso];
     if (user) signOut(auth);
   }
 });
@@ -2390,11 +2453,14 @@ async function pintarDesdeCache() {
   } catch(e) { return false; }
   // getDocFromCache/getDocsFromCache LANZAN si eso no esta guardado en el aparato:
   // si alguna falto, la copia local no alcanza para una pantalla coherente
-  if (r.some(x => x.status !== 'fulfilled')) return false;
+  // (1-nov-2026) una cuenta con la tarjeta apagada nunca crea <NS>/tarjeta: ese documento no se exige
+  // (igual que loadFromFirebase, que si no existe deja la tarjeta en sus valores de fabrica)
+  const sinTarjeta = ctaApagada('tarjeta');
+  if (r.some((x,i) => x.status !== 'fulfilled' && !(i === 1 && sinTarjeta))) return false;
   const [sD,tD,trvD,pD,cD,hD,mD,fD,gS,iS,trS,opS,rS,xD] = r.map(x => x.value);
   // sin saldos, personas o tarjeta no alcanza para una pantalla coherente: pintar
   // personas vacio enseñaria los PERSONAS_DEFAULT del codigo como si fueran deudas reales
-  if (!sD.exists() || !pD.exists() || !tD.exists()) return false;
+  if (!sD.exists() || !pD.exists() || (!sinTarjeta && !tD.exists())) return false;
   try {
     // conservador a proposito: solo se copian campos que existan Y sean del tipo que
     // el estado ya tiene. Un campo raro se ignora y queda el default hasta que llegue
@@ -2407,7 +2473,7 @@ async function pintarDesdeCache() {
       else if (typeof state[k] === 'string' && typeof v === 'string') state[k] = v;
       else if (Array.isArray(state[k]) && Array.isArray(v)) state[k] = v;
     });
-    if (tD.exists()) { const t = tD.data();
+    if (tD && tD.exists()) { const t = tD.data();
       if (Number.isFinite(t.deuda)) state.tarjetaDeuda = t.deuda;
       state.tarjetaMovimientos = Array.isArray(t.movimientos) ? t.movimientos : []; }
     if (trvD.exists()) { const t = trvD.data();
@@ -2964,7 +3030,7 @@ const cent = n => Math.round(n*100);                  // comparaciones exactas, 
 // (28-oct-2026) MXN: cuentas en PESOS que agrega la persona (sus bancos, su efectivo, sus cajitas). Tipo de cambio fijo
 // de 1 (local): nunca se pide a Frankfurter. Todo lo demas (gastos, transferencias, borrar, reglas) es igual que monedas
 const MONEDAS_X = {MXN:{sim:'$', nom:'peso mexicano', local:true}, AUD:{sim:'A$', nom:'dólar australiano'}, USD:{sim:'US$', nom:'dólar estadounidense'},
-                   EUR:{sim:'€', nom:'euro'}, CNY:{sim:'¥', nom:'yuan chino'}};
+                   EUR:{sim:'€', nom:'euro'}, CNY:{sim:'¥', nom:'yuan chino'}, NZD:{sim:'NZ$', nom:'dólar neozelandés'}};
 const MONEDAS_FX = Object.keys(MONEDAS_X).filter(m => !MONEDAS_X[m].local);   // las que si llevan tipo de cambio
 // cajita: cuenta con interes compuesto diario (base 360), como las cajitas de siempre: saldo + fecha base + tasa
 const TIPOS_CX = {efectivo:'efectivo', banco:'banco', cajita:'cajita o savings'};
@@ -5873,7 +5939,7 @@ function renderTransferencias() {
 // En fin de semana el BCE no publica: `fecha` es la del ultimo dia habil y `bajado` el dia local.
 // bandas plausibles en pesos por 1 unidad (CIFRAS ESTIMADAS al 20-oct-2026: revisarlas de vez en cuando).
 // Un tipo fuera de su banda se descarta, para que una respuesta danada no mueva el saldo en pesos
-const FX_BANDAS = {AUD:[6,25], USD:[10,35], EUR:[12,40], CNY:[1,6]};
+const FX_BANDAS = {AUD:[6,25], USD:[10,35], EUR:[12,40], CNY:[1,6], NZD:[5,22]};   // NZD (1-nov-2026): ~10.66 el 30-oct, banda estimada
 const fxEnBanda = (m, v) => Number.isFinite(v) && FX_BANDAS[m] && v >= FX_BANDAS[m][0] && v <= FX_BANDAS[m][1];
 function saneaFx(raw) {
   if (!raw || typeof raw !== 'object' || typeof raw.fecha !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(raw.fecha)) return null;
@@ -8675,9 +8741,13 @@ function renderPerfil() {
 // Firestore solo dejan escribir la propia y leer las de la familia. Nada de montos: porcentajes,
 // calificacion y racha no permiten deducir cuanto tiene nadie.
 const AMIGO_ID=NS;
+// (1-nov-2026) Fundview no tiene amigos: la coleccion es compartida entre las carteras de la familia, y alli nadie
+// conoce a nadie. Sin la subpestaña ni la ficha, nada en Fundview lee ni escribe amigos/.
+const CON_AMIGOS=!CFG.multi;
+if(!CON_AMIGOS) ['ptab-amigos','perfil-sub-amigos'].forEach(id=>{ const e=document.getElementById(id); if(e) e.remove(); });
 const AMIGO_NOMBRES={cartera:'Roberto',eli:'Eli',zoe:'Zoe',tono:'Toño'};
 // participar viene ENCENDIDO: solo se apaga si el usuario lo apago expresamente (perfil.amigos === false)
-function amigosVisible(){ return !(state.perfil&&state.perfil.amigos===false); }
+function amigosVisible(){ return CON_AMIGOS && !(state.perfil&&state.perfil.amigos===false); }
 let perfilSubActual='perfil';
 // ── ASISTENTE DE PRIMERA VEZ (28-oct-2026) ──────────────────────
 // No es inteligencia artificial: preguntas fijas, una por pantalla. Junta las respuestas y al final crea TODO en una
@@ -8859,7 +8929,7 @@ function renderMisCuentas() {
 }
 window.perfilSub=function(cual){
   // (28-oct-2026) tres subpestañas: tu perfil, mis cuentas y amigos
-  perfilSubActual=['amigos','cuentas'].includes(cual)?cual:'perfil';
+  perfilSubActual=(CON_AMIGOS?['amigos','cuentas']:['cuentas']).includes(cual)?cual:'perfil';
   ['perfil','cuentas','amigos'].forEach(k=>{
     const d=document.getElementById('perfil-sub-'+k), t=document.getElementById('ptab-'+k);
     if(d) d.style.display=perfilSubActual===k?'':'none';
@@ -11487,11 +11557,12 @@ async function fetchYahooSeries(symbol, rango) {
 // directo desde el navegador. La funcion 'precios' del mismo proyecto de Firebase le pide a
 // Yahoo por nosotros, solo con sesion iniciada. El ID token viaja SOLO a esta URL fija, nunca a
 // los publicos. La espera es de 15 s porque la funcion puede tardar en despertar.
-const URL_PRECIOS = 'https://us-central1-mi-cartera-b43e0.cloudfunctions.net/precios';
+// En Fundview (multi) el token NO sale hacia el proyecto de la familia: solo va a CFG.urlPrecios, si existe.
+const URL_PRECIOS = CFG.multi ? (CFG.urlPrecios || null) : 'https://us-central1-mi-cartera-b43e0.cloudfunctions.net/precios';
 const SIN_SIMBOLO = {sinSimbolo: true};   // la funcion dijo 404 "sin precio": no probar los publicos
 async function pedirPrecioPropio(symbol, largo, validar) {
   const u = auth.currentUser;
-  if (!u) return null;
+  if (!u || !URL_PRECIOS) return null;
   const url = URL_PRECIOS + '?s=' + encodeURIComponent(symbol) + '&r=' + (largo ? '1y' : '5d') + (largo ? '&div=1' : '');
   // UN solo plazo de 15 s para todo: token, renovacion, fetch y lectura del cuerpo
   const ctl = new AbortController();

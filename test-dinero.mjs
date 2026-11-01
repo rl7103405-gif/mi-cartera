@@ -129,7 +129,8 @@ function chk(nombre, cond, detalle = '') {
   if (cond) console.log('  PASA  ' + nombre);
   else { fallos++; console.log('  FALLA ' + nombre + (detalle ? '  -> ' + detalle : '')); }
 }
-const R = p => p.replace('cartera/', NS + '/').replace(/^(gastos|ingresos|transferencias)\//, (m,c)=>PFX+c+'/');
+// anclado al inicio: el espacio de Fundview (usuarios/<uid>/cartera) contiene 'cartera/' y R se aplica dos veces
+const R = p => p.replace(/^cartera\//, NS + '/').replace(/^(gastos|ingresos|transferencias)\//, (m,c)=>PFX+c+'/');
 const ef = () => SERVIDOR[R(R('cartera/saldos'))].efectivo;
 
 // ═══════════════ 1. EL CASO REAL DEL 27-AGO ═══════════════

@@ -102,9 +102,11 @@ const VALS = [db, doc, collection, query, orderBy, getDocFromCache, getDocsFromC
   NS, PFX+'gastos', PFX+'ingresos', PFX+'transferencias', PFX+'stocksOps', PFX+'rendimientos', lsKey,
   window, loadFromFirebase, showToast, renderCatSelect, refrescar,
   renderPersonaSelect, render, renderMovimientos, renderTransferencias, datosCargados];
-const { pintarDesdeCache, marcarCopiaLocal, marcarSincronizado } = new Function(
-  ...ARGS, papaSrc + fondoSrc + cxSrc + fuente + '\nreturn { pintarDesdeCache, marcarCopiaLocal, marcarSincronizado };'
+const { pintarDesdeCache, marcarCopiaLocal, marcarSincronizado, APAG } = new Function(
+  ...ARGS, papaSrc + fondoSrc + cxSrc + fuente + '\nreturn { pintarDesdeCache, marcarCopiaLocal, marcarSincronizado, APAG: (typeof APAGADAS !== "undefined" ? APAGADAS : new Set()) };'
 )(...VALS);
+// cuentas apagadas: es el Set real del registro de la app (ctaApagada = id => APAGADAS.has(id)); cada caso lo ajusta
+const apagar = (...ids) => { APAG.clear(); ids.forEach(i => APAG.add(i)); };
 
 // ── utilidades ──────────────────────────────────────────────
 let fallos = 0, pruebas = 0;
@@ -195,6 +197,28 @@ for (const vacio of ['saldos','personas','tarjeta']) {
   ok = await pintarDesdeCache();
   chk(vacio + ' inexistente -> false', ok === false, 'ok=' + ok);
 }
+
+// ═══ 2c. tarjeta apagada (Fundview, o una copia configurable con la tarjeta 1 apagada) ═══
+console.log('\n2c. Tarjeta apagada: su documento no se exige (nunca se crea); encendida, si');
+for (const [etiqueta, ponerCache] of [['cacheado como inexistente', c => { c[`${NS}/tarjeta`] = undefined; }],
+                                      ['ni siquiera en cache', c => { delete c[`${NS}/tarjeta`]; }]]) {
+  reset(); cacheCompleta(); ponerCache(CACHE); apagar('tarjeta');
+  ok = await pintarDesdeCache();
+  chk('apagada y sin doc tarjeta (' + etiqueta + ') -> hay copia local', ok === true, 'ok=' + ok);
+  chk('  y pinta el resto sin inventar la tarjeta', state.efectivo === 3000 && state.tarjetaDeuda === 0 && state.tarjetaMovimientos.length === 0,
+      'efectivo=' + state.efectivo + ' deuda=' + state.tarjetaDeuda);
+  apagar();
+  reset(); cacheCompleta(); ponerCache(CACHE);
+  ok = await pintarDesdeCache();
+  chk('encendida y sin doc tarjeta (' + etiqueta + ') -> NO hay copia local', ok === false && state.efectivo === 0, 'ok=' + ok);
+}
+reset(); cacheCompleta(); apagar('tarjeta');
+ok = await pintarDesdeCache();
+chk('apagada pero con doc tarjeta guardado -> lo carga como siempre', ok === true && state.tarjetaDeuda === 1500);
+reset(); cacheCompleta(); CACHE[`${NS}/saldos`] = undefined; apagar('tarjeta'); CACHE[`${NS}/tarjeta`] = undefined;
+ok = await pintarDesdeCache();
+chk('apagada pero sin saldos -> sigue sin haber copia local', ok === false);
+apagar();
 
 // ═══ 3. copia local vacia (primera vez en el aparato) ═══
 console.log('\n3. Aparato nuevo: no hay copia local');
