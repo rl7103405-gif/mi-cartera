@@ -350,7 +350,14 @@ html[data-tema='grafito'] .tabs{--sombra-scroll:rgba(255,255,255,.16)}
    visibility:hidden lo saca del foco y del lector igual que hidden */
 .desliza-si[hidden]{display:none!important}
 /* (31-oct-2026) piezas de cuentas apagadas en esta cartera (window.CFG.apagar) */
-[data-cuenta][hidden],[data-inicio][hidden]{display:none!important}
+[data-cuenta][hidden],[data-inicio][hidden],[data-cfg-cuentas][hidden],.detail-row[hidden]{display:none!important}
+/* (31-oct-2026) configurar las cuentas fijas (Eli, Toño) */
+.cta-cfg{border:1px solid var(--linea,rgba(0,0,0,0.08));border-radius:12px;padding:12px;margin-bottom:10px}
+.cta-cfg[data-off="1"]{opacity:0.55}
+.cta-cfg-top{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:8px}
+.cta-cfg-on{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600}
+.cta-cfg-on input{width:18px;height:18px;accent-color:var(--accent)}
+.cta-cfg .field{margin-bottom:0}
 /* (20-oct-2026) cuentas en otra moneda: .cards y .type-toggle definen display y le ganan a hidden */
 #cx-cards[hidden],#gasto-fuente-x[hidden],#ingreso-destino-x[hidden]{display:none!important}
 .desliza-pista{display:flex;align-items:center;justify-content:center;height:46px;margin-top:4px;font-size:13px;color:var(--muted);text-align:center}
@@ -730,7 +737,7 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
   <div class="cards" id="inicio-cuentas">
     <!-- TARJETA NU -->
     <div class="tarjeta-card" data-inicio="tarjeta" onclick="toggleDetail('tarjeta-detail')">
-      <div class="t-label" role="button" tabindex="0" aria-controls="tarjeta-detail" aria-expanded="false">tarjeta NU · deuda actual</div>
+      <div class="t-label" role="button" tabindex="0" aria-controls="tarjeta-detail" aria-expanded="false" data-nom="tarjeta" data-nom-suf=" · deuda actual">tarjeta NU · deuda actual</div>
       <div class="t-amount" id="tarjeta-display">$—</div>
       <div class="t-sub" id="tarjeta-corte-sub">corte el 18 de cada mes</div>
       <div class="corte-bar"><div class="corte-fill" id="corte-fill" style="width:0%"></div></div>
@@ -742,7 +749,7 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
 
     <!-- TDC REVOLUT (garantizada: limite = deposito 1:1) -->
     <div class="tarjeta-card" data-inicio="tarjetaRev" onclick="toggleDetail('tarjeta-rev-detail')">
-      <div class="t-label" role="button" tabindex="0" aria-controls="tarjeta-rev-detail" aria-expanded="false">TDC Revolut · deuda actual</div>
+      <div class="t-label" role="button" tabindex="0" aria-controls="tarjeta-rev-detail" aria-expanded="false" data-nom="tarjetaRev" data-nom-suf=" · deuda actual">TDC Revolut · deuda actual</div>
       <div class="t-amount" id="tarjeta-rev-display">$—</div>
       <div class="t-sub" id="tarjeta-rev-sub">límite $— · disponible $—</div>
       <div class="card-detail" id="tarjeta-rev-detail" style="border-top-color:rgba(255,255,255,0.1);margin-top:14px;padding-top:14px">
@@ -757,7 +764,7 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
     <div class="card card-ancha" data-inicio="stocks" onclick="toggleDetail('rev-stocks-detail')">
       <div class="card-header" role="button" tabindex="0" aria-controls="rev-stocks-detail" aria-expanded="false">
         <div class="card-left"><div class="card-icon icon-rev"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l6-6 4 4 8-8"/><path d="M15 7h6v6"/></svg></div>
-          <div><div class="card-name">Revolut Stocks</div><div class="card-sub" id="rev-stocks-sub">—</div></div>
+          <div><div class="card-name" data-nom="stocks">Revolut Stocks</div><div class="card-sub" id="rev-stocks-sub">—</div></div>
         </div>
         <div class="card-right"><div class="card-amount" id="rev-stocks-display">$—</div><div class="card-change neu" id="rev-stocks-var">—</div></div>
       </div>
@@ -898,7 +905,7 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
   <details class="acc">
   <summary>
     <div class="acc-icon chip-nu"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="5" width="19" height="14" rx="2.5"/><path d="M2.5 10h19"/></svg></div>
-    <div><div class="acc-tit">tarjeta NU</div><div class="acc-sub">cargos y pagos de tu crédito Nu</div></div>
+    <div><div class="acc-tit" data-nom="tarjeta">tarjeta NU</div><div class="acc-sub" data-sub-tj="tarjeta">cargos y pagos de tu crédito Nu</div></div>
   </summary>
   <div class="acc-body">
   <div class="panel">
@@ -919,7 +926,7 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
   <details class="acc" data-cuenta="tarjetaRev">
   <summary>
     <div class="acc-icon chip-rev"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="5" width="19" height="14" rx="2.5"/><path d="M2.5 10h19"/><path d="M6 15h4"/></svg></div>
-    <div><div class="acc-tit">TDC Revolut</div><div class="acc-sub">cargos, pagos y depósito de garantía</div></div>
+    <div><div class="acc-tit" data-nom="tarjetaRev">TDC Revolut</div><div class="acc-sub" data-sub-tj="tarjetaRev">cargos, pagos y depósito de garantía</div></div>
   </summary>
   <div class="acc-body">
   <div class="panel">
@@ -1080,6 +1087,16 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
   <div id="perfil-sub-cuentas" style="display:none">
     <div class="section-title">dónde está tu dinero</div>
     <div class="panel" id="mis-cuentas"><div class="empty-state">calculando...</div></div>
+    <!-- (31-oct-2026) cuentas fijas que la persona prende, apaga y nombra (solo en carteras con CFG.configurable) -->
+    <div data-cfg-cuentas hidden>
+      <div class="section-title mt">tus cuentas fijas</div>
+      <div class="panel">
+        <div class="item-meta" style="line-height:1.5;margin-bottom:10px">Enciende las que uses, ponles el nombre de tu
+          banco y ajusta tu fecha de corte. Al guardar, la app se vuelve a abrir con tus cuentas.</div>
+        <div id="cuentas-config"></div>
+        <button class="btn btn-purple" id="cuentas-btn" onclick="guardarCuentas()">guardar cuentas</button>
+      </div>
+    </div>
     <!-- (20-oct-2026) cuentas en otra moneda, como en Revolut: las agrega la persona sola -->
     <!-- (28-oct-2026) ya no solo otra moneda: tambien bancos, efectivo y cajitas en pesos -->
     <div class="section-title mt">cuentas que tú agregas</div>
@@ -1556,6 +1573,48 @@ const NS = CFG.ns, PFX = CFG.pfx;
 const C_GASTOS=PFX+'gastos', C_INGRESOS=PFX+'ingresos', C_TRANSF=PFX+'transferencias', C_OPS=PFX+'stocksOps';
 // localStorage es del dominio y las copias viven todas en github.io: sus claves llevan el espacio
 const lsKey = k => NS === 'cartera' ? k : NS + ':' + k;
+// ── CUENTAS QUE CONFIGURA LA PERSONA (31-oct-2026: Eli y Toño) ──
+// Con CFG.configurable cada quien prende, apaga y nombra sus cuentas desde el perfil (doc <NS>/cuentas =
+// {slots:{id:{on,nombre,corte,modo}}}). Se aplica AL ARRANCAR, antes de armar el registro: la ultima
+// configuracion vive en el aparato (lsKey('cuentasCfg')); si la del servidor cambia, se guarda y se recarga
+// (revisarCuentasCfg). Asi nada de la app tiene que recalcular sus listas en caliente.
+// Sin CFG.configurable (Roberto, Zoe) todo esto queda vacio y nada cambia.
+const SLOTS_CFG = {
+  efectivo:  {tipo:'efectivo', fijo:true,  nom:'efectivo'},
+  nu:        {tipo:'banco',    fijo:true,  nom:'banco 1'},
+  revolut:   {tipo:'banco',    fijo:false, nom:'banco 2'},
+  cajita1:   {tipo:'ahorro',   fijo:false, nom:'cajita 1'},
+  revSavings:{tipo:'ahorro',   fijo:false, nom:'cajita 2'},
+  tarjeta:   {tipo:'tarjeta',  fijo:false, nom:'tarjeta 1', corte:18},
+  tarjetaRev:{tipo:'tarjeta',  fijo:false, nom:'tarjeta 2', corte:30, garantizable:true},
+  stocks:    {tipo:'bolsa',    fijo:true,  nom:'bolsa'}
+};
+// valida lo que venga (servidor, aparato o CFG); lo corrupto conserva el valor de base
+function normalizaCuentasCfg(sl, base) {
+  const out = {};
+  const nomDe = x => (typeof x === 'string' && x.trim()) ? x.trim().slice(0, 24) : '';
+  const corteDe = x => (Number.isInteger(x) && x >= 1 && x <= 31) ? x : null;
+  Object.keys(SLOTS_CFG).forEach(k => {
+    const s = SLOTS_CFG[k], b = (base && base[k]) || {};
+    const c = (sl && typeof sl === 'object' && sl[k] && typeof sl[k] === 'object') ? sl[k] : {};
+    out[k] = {on: s.fijo ? true : (typeof c.on === 'boolean' ? c.on : b.on === true),
+      nombre: nomDe(c.nombre) || nomDe(b.nombre) || s.nom,
+      corte: corteDe(c.corte) ?? corteDe(b.corte) ?? (s.corte || 1)};
+    if (s.garantizable) out[k].modo = (c.modo === 'garantizada' || c.modo === 'normal') ? c.modo : (b.modo === 'garantizada' ? 'garantizada' : 'normal');
+  });
+  return out;
+}
+const leerLS = k => { try { return JSON.parse(localStorage.getItem(lsKey(k)) || 'null'); } catch (e) { return null; } };
+const CUENTAS_INI = CFG.configurable ? normalizaCuentasCfg(CFG.cuentasInicial, null) : null;
+const CUENTAS_CFG = CFG.configurable ? normalizaCuentasCfg(leerLS('cuentasCfg'), CUENTAS_INI) : null;
+// apagadas que todavia tienen dinero: se siguen viendo (si no, su dinero sumaria sin que se viera en ningun lado)
+const CTAS_FORZADAS = new Set(CFG.configurable ? [].concat(Array.isArray(leerLS('ctasForzadas')) ? leerLS('ctasForzadas') : []).filter(k => SLOTS_CFG[k] || k === 'revTdcDep') : []);
+// 5) sin almacenamiento en el aparato la configuracion de cuentas no se puede aplicar al arrancar: se avisa
+const LS_OK = (() => { try { localStorage.setItem(lsKey('lsPrueba'), '1'); localStorage.removeItem(lsKey('lsPrueba')); return true; } catch (e) { return false; } })();
+const confCta = k => (CUENTAS_CFG && CUENTAS_CFG[k]) || {};
+// tarjetas: dia de corte de cada una y si la 2 es garantizada (limite = deposito, como la TDC Revolut) o normal
+const CORTE_TJ = confCta('tarjeta').corte || 18, CORTE_TJREV = confCta('tarjetaRev').corte || 30;
+const tdcGarantizada = () => (confCta('tarjetaRev').modo || 'garantizada') === 'garantizada';
 // la instancia lleva el nombre del espacio: Auth guarda la sesion por (proyecto + instancia), asi dos
 // copias en el mismo dominio no se expulsan; la de Roberto sigue en la instancia por defecto (no pierde su sesion)
 const app = NS === 'cartera' ? initializeApp(firebaseConfig) : initializeApp(firebaseConfig, NS);
@@ -1671,6 +1730,14 @@ const REG_CUENTAS=[
 // Una apagada solo conserva el mapeo a sus campos (simple/comp), para leer y deshacer datos viejos;
 // sin grupo no suma al patrimonio y sin listas no sale en ninguna pantalla.
 const APAGADAS = new Set((typeof CFG === 'object' && CFG && CFG.apagar) || []);
+// cuentas que configura la persona (Eli, Toño): apagadas y nombres, encima de lo de CFG
+const CONF_REG = (typeof CUENTAS_CFG === 'object' && CUENTAS_CFG) || null;
+if (CONF_REG) {
+  const forz = (typeof CTAS_FORZADAS === 'object' && CTAS_FORZADAS) || new Set();
+  Object.keys(CONF_REG).forEach(k => { if (!CONF_REG[k].on && !forz.has(k)) APAGADAS.add(k); });
+  // el deposito solo existe en la tarjeta 2 garantizada y encendida
+  if ((APAGADAS.has('tarjetaRev') || CONF_REG.tarjetaRev.modo !== 'garantizada') && !forz.has('revTdcDep')) APAGADAS.add('revTdcDep');
+}
 const ctaApagada = id => APAGADAS.has(id);
 (() => {
   const rn = (typeof CFG === 'object' && CFG && CFG.renombrar) || {};
@@ -1683,9 +1750,25 @@ const ctaApagada = id => APAGADAS.has(id);
       // el modelo de interes por omision de ESTA persona (p. ej. una cajita sin banda), solo si no capturo uno
       if (r.def && c.comp) c.comp = {...c.comp, def: {...c.comp.def, ...r.def}};
     }
+    const cf = CONF_REG && CONF_REG[c.id];
+    if (cf) {
+      const n = cf.nombre;
+      c.nombre = n; if (c.banco) c.banco = n;
+      if (c.ui) c.ui = {...c.ui, etq: n, dist: n, corto: n, banco: n};
+      c.etq = {...(c.etq || {}), boton: n};
+      if (c.tarjeta) c.etq = {...c.etq, destino: n + ' (pago)', deuda: n + ' (crédito)'};
+    }
+    if (CONF_REG && c.id === 'revTdcDep') {
+      const n = CONF_REG.tarjetaRev.nombre;
+      c.nombre = 'depósito ' + n;
+      c.etq = {...(c.etq || {}), transfer: 'depósito ' + n + ' (solo retirable)', destino: 'depósito ' + n + ' (sube tu límite)'};
+      if (c.ui) c.ui = {...c.ui, etq: 'depósito de ' + n};
+    }
     if (APAGADAS.has(c.id)) {
       c.apagada = true; delete c.grupo;
-      c.en = Object.fromEntries(Object.entries(c.en).filter(([k]) => k === 'simple' || k === 'comp'));
+      c.en = Object.fromEntries(Object.entries(c.en).filter(([k]) => ['simple', 'comp', 'deuda', 'tarjetaDeuda', 'interes', ...(cf ? ['ahorro'] : [])].includes(k)));
+      // (las que apaga la persona conservan 'ahorro': el interes que ya ganaron sigue en el resumen; las que la copia
+      // nunca tuvo, como el ahorro BBVA de Zoe, no)
     }
   });
 })();
@@ -1705,7 +1788,7 @@ const ctasGrupo=g=>REG_CUENTAS.filter(c=>c.grupo===g).map(c=>c.id);
 // podria medir). 'patrimonio' es el total de todo.
 // (31-oct-2026) nombres del registro (ya renombrados por cartera); sin las cuentas apagadas
 const METAS_CUENTAS=Object.fromEntries(Object.entries({revSavings:'', mifel:'', stocks:'invertido en bolsa', efectivo:'',
-  nu:'', cajita1:'', revolut:'', patrimonio:'patrimonio total'}).filter(([k])=>!ctaApagada(k))
+  nu:'', cajita1:'', revolut:'', patrimonio:'patrimonio total'})
   .map(([k,v])=>[k, v || REG_CUENTAS.find(c=>c.id===k).nombre]));
 // de esas, las unicas cuyas APORTACIONES sabemos medir (aportacionesEnRango): solo estas
 // se pueden proyectar en "el camino"; el resto se muestra sin proyeccion
@@ -1791,8 +1874,16 @@ const idsFormComp=c=>{ const p='input-'+c.ui.inp;
     semilla:p+'-semilla', semillaFecha:p+'-semilla-fecha'}; };
 const ctaReg=id=>REG_CUENTAS.find(c=>c.id===id);
 // esconde (no borra: render les sigue escribiendo) las piezas fijas de las cuentas apagadas
-const esconderApagadas = () => document.querySelectorAll('[data-cuenta],[data-inicio]').forEach(el => {
-  if (ctaApagada(el.dataset.cuenta || el.dataset.inicio)) el.hidden = true; });
+const esconderApagadas = () => {
+  document.querySelectorAll('[data-cuenta],[data-inicio]').forEach(el => {
+    if (ctaApagada(el.dataset.cuenta || el.dataset.inicio)) el.hidden = true; });
+  document.querySelectorAll('[data-cfg-cuentas]').forEach(el => { el.hidden = !CUENTAS_CFG; });
+  if (!CUENTAS_CFG) return;
+  // textContent, NUNCA innerHTML: el nombre lo escribe la persona
+  document.querySelectorAll('[data-nom]').forEach(el => { const k = el.dataset.nom; if (CUENTAS[k]) el.textContent = CUENTAS[k] + (el.dataset.nomSuf || ''); });
+  document.querySelectorAll('[data-sub-tj]').forEach(el => {
+    el.textContent = el.dataset.subTj === 'tarjetaRev' && tdcGarantizada() ? 'cargos, pagos y depósito de garantía' : 'cargos y pagos'; });
+};
 const ctasInicio=()=>ctasEn('inicio').map(ctaReg).filter(c=>c.ui);        // las de tarjeta generica
 const ctasForm=()=>ctasEn('form').map(ctaReg);
 function pintarTarjetasInicio() {
@@ -2151,6 +2242,7 @@ onAuthStateChanged(auth, async user => {
     }
     // y ahora la verdad del servidor, que reemplaza el estado completo
     const ok = await loadFromFirebase();
+    if (!ok && recargandoCfg) return; // se esta volviendo a abrir con la configuracion de cuentas: nada de avisos de sin conexion
     if (!ok) {
       if (hayCopiaLocal) {
         // ya hay algo util en pantalla: no se bloquea la app, pero se deja MUY claro
@@ -2420,6 +2512,8 @@ function marcarSincronizado() {
 
 async function loadFromFirebase() {
   try {
+    // (31-oct-2026) cuentas configurables: si el servidor trae otra configuracion se aplica ANTES de escribir nada
+    if (await cfgDelServidorCambio()) return;
     // ARRANQUE EN PARALELO. Antes estas 14 lecturas iban una tras otra, cada una
     // esperando a que volviera la anterior: en el telefono, con la latencia de la red
     // celular, eran 14 viajes encadenados y la pantalla de carga se eternizaba. Ahora
@@ -2657,6 +2751,7 @@ async function loadFromFirebase() {
     // (15-oct-2026) desde la cache NO es estar al dia: el punto se queda rojo hasta que hable el servidor
     setSyncDot(desdeCache ? 'err' : 'ok');
     datosCargados = true;
+    revisarCuentasCfg();
     suscribirEnVivo(); // desde aqui la pantalla ya no se queda con saldos viejos
     if (resAtajo) {
       if (resAtajo.error) { setSyncDot('err'); showToast('movimientos del atajo sin aplicar — se reintentara'); }
@@ -2717,7 +2812,7 @@ async function procesarPendientesAtajo() {
           &&listas.includes(cta)&&Number.isFinite(Date.parse(d.fecha));
         // TDC Revolut: limite = deposito; aqui SI se valida contra los valores canonicos
         // (este es el unico flujo genuinamente concurrente); si excede, se rechaza
-        if(valido&&cta==='tarjetaRev'&&Math.round((Math.max(0,revTdcDeuda)+d.monto)*100)>Math.round(revTdcDeposito*100)) valido=false;
+        if(valido&&cta==='tarjetaRev'&&tdcGarantizada()&&Math.round((Math.max(0,revTdcDeuda)+d.monto)*100)>Math.round(revTdcDeposito*100)) valido=false;
         if(valido&&tipo==='gasto'){
           const campoAt=CAMPO_SIMPLE[cta];
           if(campoAt&&apAt[cta]&&Math.round((cuentas[campoAt]-d.monto)*100)<Math.round(apAt[cta]*100)) valido=false;
@@ -3416,7 +3511,7 @@ async function txDinero(plan) {
           ? c2(plan.tdcRevDeposito)                                        // captura manual
           : c2(depBase + (deltas.revTdcDep !== undefined ? deltas.revTdcDep : 0));
         // el limite es el deposito: un cargo no puede dejar la deuda por encima
-        if (cent(deuda) > cent(deposito))
+        if (tdcGarantizada() && cent(deuda) > cent(deposito))
           return {error:'excede el límite de la TDC Revolut'};
         if (deltas.revTdcDep !== undefined && deltas.revTdcDep < 0 && cent(deposito) < 0)
           return {error:'saldo insuficiente en el depósito de la TDC Revolut'};
@@ -4966,9 +5061,10 @@ window.guardarRendimientoHistorico = async function() {
   finally{ if(btn) btn.disabled=false; }
 };
 function diasParaCorte() {
-  const now=new Date();
-  let corte=new Date(now.getFullYear(),now.getMonth(),18);
-  if(now.getDate()>=18) corte=new Date(now.getFullYear(),now.getMonth()+1,18);
+  const now=new Date(), dia=(y,m)=>Math.min(CORTE_TJ,new Date(y,m+1,0).getDate()); // 31 en febrero = el ultimo dia
+  const y=now.getFullYear(), m=now.getMonth();
+  let corte=new Date(y,m,dia(y,m));
+  if(now.getDate()>=dia(y,m)) corte=new Date(y,m+1,dia(y,m+1));
   return Math.ceil((corte-now)/86400000);
 }
 // ciclo TDC Revolut: corte el dia 30 (clamp al ultimo dia del mes, p.ej. febrero);
@@ -4976,7 +5072,7 @@ function diasParaCorte() {
 // pagoLimite es del ULTIMO corte (la deuda ya cortada, que si es exigible), no del proximo
 function cicloTdcRev() {
   const now=new Date();
-  const diaC=(y,m)=>Math.min(30,new Date(y,m+1,0).getDate());
+  const diaC=(y,m)=>Math.min(CORTE_TJREV,new Date(y,m+1,0).getDate());
   const y=now.getFullYear(), m=now.getMonth();
   let prox, ultimo;
   if(now.getDate()>=diaC(y,m)){ prox=new Date(y,m+1,diaC(y,m+1)); ultimo=new Date(y,m,diaC(y,m)); }
@@ -5108,7 +5204,7 @@ function render() {
   document.getElementById('tarjeta-display').textContent=state.tarjetaDeuda<0?('−'+fmt(Math.abs(state.tarjetaDeuda))):fmt(state.tarjetaDeuda);
   const dias=diasParaCorte();
   document.getElementById('tarjeta-dias').textContent=dias+' días';
-  document.getElementById('tarjeta-corte-sub').textContent='corte el 18 · '+dias+' días restantes';
+  document.getElementById('tarjeta-corte-sub').textContent='corte el '+CORTE_TJ+' · '+dias+' días restantes';
   const pct=Math.max(0,Math.min(100,((30-dias)/30)*100));
   document.getElementById('corte-fill').style.width=pct.toFixed(1)+'%';
   if(state.tarjetaMovimientos.length>0) {
@@ -5123,7 +5219,11 @@ function render() {
   const tdcDisponible=Math.max(0,Math.min(tdcDep,tdcDep-tdcDeudaUsada));
   const tdcRetirable=Math.max(0,Math.min(tdcDep-250,tdcDep-tdcDeudaUsada));
   document.getElementById('tarjeta-rev-display').textContent=state.revTdcDeuda<0?('−'+fmt(Math.abs(state.revTdcDeuda))):fmt(state.revTdcDeuda);
-  document.getElementById('tarjeta-rev-sub').textContent='límite '+fmt(tdcDep)+' · disponible '+fmt(tdcDisponible)+' · corte el 30';
+  // solo la garantizada tiene deposito y limite; la normal se ve como cualquier tarjeta de credito
+  const garant=tdcGarantizada();
+  document.getElementById('tarjeta-rev-sub').textContent=garant
+    ?('límite '+fmt(tdcDep)+' · disponible '+fmt(tdcDisponible)+' · corte el '+CORTE_TJREV):('corte el '+CORTE_TJREV);
+  ['tarjeta-rev-dep','tarjeta-rev-retirable'].forEach(id=>{ const f=document.getElementById(id), row=f&&f.closest('.detail-row'); if(row) row.hidden=!garant&&!(tdcDep>0); }); // la normal con un deposito sin retirar lo sigue enseñando
   document.getElementById('tarjeta-rev-dep').textContent=fmt(tdcDep);
   document.getElementById('tarjeta-rev-retirable').textContent=fmt(tdcRetirable);
   const cicloTdc=cicloTdcRev();
@@ -5370,7 +5470,7 @@ window.registrarTarjetaRev = async function(tipo) {
   let fuente=null;
   // avisos tempranos con el estado en pantalla; txDinero revalida TODO contra la nube
   if(tipo==='cargo') {
-    if(Math.round((Math.max(0,state.revTdcDeuda)+monto)*100)>Math.round((state.revTdcDeposito||0)*100)){
+    if(tdcGarantizada()&&Math.round((Math.max(0,state.revTdcDeuda)+monto)*100)>Math.round((state.revTdcDeposito||0)*100)){
       showToast('el cargo excede el límite (depósito de garantía) — actualiza primero el depósito');return;
     }
   } else {
@@ -5598,7 +5698,7 @@ function sumaGrupo(g, sinFondo) { return ctasGrupo(g).reduce((s, c) => s + getSa
 // el deposito de la TDC Revolut (dinero propio, aunque congelado) y las cuentas en otra moneda en pesos (20-oct).
 // Inicio y el coach usan esta MISMA suma
 // el deposito de la TDC garantizada es tuyo (congelado); en una cartera sin esa tarjeta no existe
-const depositoTdc = () => !ctaApagada('tarjetaRev') && Number.isFinite(state.revTdcDeposito) ? state.revTdcDeposito : 0;
+const depositoTdc = () => !ctaApagada('revTdcDep') && Number.isFinite(state.revTdcDeposito) ? state.revTdcDeposito : 0;
 function patrimonioFisico(bolsa) { return sumaGrupo('ahorro')+sumaGrupo('disponible')+bolsa+depositoTdc()+totalCuentasX().mxn; }
 // totales que calcula render(): la pestaña del fondo los reusa en vez de repetir la formula
 let totalesInicio = {fisico:0, tuyo:0, neto:0, listo:false};
@@ -8710,6 +8810,7 @@ async function asisCrear() {
 // tarjetas, cuentas en otra moneda, fondos y bolsa. Montos sin el fondo (lo tuyo), como inicio. Solo lectura:
 // agregar y cambiar cuentas vive debajo, en cada seccion.
 function renderMisCuentas() {
+  renderConfigCuentas();
   const el = document.getElementById('mis-cuentas'); if (!el) return;
   const e = escapeHtml;
   // (28-oct-2026) una tarjeta por banco con lo que tienes ahi; el efectivo, los fondos y la bolsa aparte
@@ -8719,10 +8820,11 @@ function renderMisCuentas() {
   REG_CUENTAS.filter(c => c.banco && !c.legada && c.grupo).forEach(c => { const v = saldoTuyo(c.id);
     meter(c.banco, {prod: c.prod || c.nombre, sub: (c.comp ? descModelo(c.id) : '') + (apartadoDe(c.id) > 0 ? (c.comp ? ' · ' : '') + 'sin el fondo' : ''), monto: fmt(v), valor: v}); });
   // tarjetas: lo que debes (no suma al banco) y, en Revolut, el deposito de garantia (si es tuyo)
-  if (Number.isFinite(state.tarjetaDeuda)) meter('Nu', {prod: 'tarjeta de crédito', sub: 'lo que debes · corte el 18', monto: fmt(state.tarjetaDeuda), neg: true});
+  if (!ctaApagada('tarjeta') && Number.isFinite(state.tarjetaDeuda)) meter(ctaReg('tarjeta').banco || 'Nu', {prod: 'tarjeta de crédito', sub: 'lo que debes · corte el ' + CORTE_TJ, monto: fmt(state.tarjetaDeuda), neg: true});
+  if (!ctaApagada('tarjetaRev') && !tdcGarantizada()) meter(ctaReg('tarjetaRev').banco || CUENTAS.tarjetaRev, {prod: 'tarjeta de crédito', sub: 'lo que debes · corte el ' + CORTE_TJREV, monto: fmt(state.revTdcDeuda || 0), neg: true});
   if (depositoTdc() > 0) {
-    meter('Revolut', {prod: 'depósito de la tarjeta', sub: 'tu garantía: es tuyo, aunque congelado', monto: fmt(state.revTdcDeposito), valor: state.revTdcDeposito});
-    meter('Revolut', {prod: 'tarjeta de crédito', sub: 'lo que debes', monto: fmt(state.revTdcDeuda || 0), neg: true});
+    meter(ctaReg('tarjetaRev').banco || 'Revolut', {prod: 'depósito de la tarjeta', sub: 'tu garantía: es tuyo, aunque congelado', monto: fmt(state.revTdcDeposito), valor: state.revTdcDeposito});
+    meter(ctaReg('tarjetaRev').banco || 'Revolut', {prod: 'tarjeta de crédito', sub: 'lo que debes', monto: fmt(state.revTdcDeuda || 0), neg: true});
   }
   // las que agregaste: una cajita 'Klar cajita' va con su banco 'Klar'; las apagadas con saldo tambien (no se esconde dinero)
   const cxs = Object.entries(state.cuentasX || {}).filter(([, x]) => x.on || cent(saldoX(x)) !== 0)
@@ -9521,7 +9623,7 @@ async function guardarMetas(nuevo, mensaje) {
 window.nuevaMeta = async function() {
   const MT=state.metas||{fecha:META_FECHA_DEF,items:[]};
   const usadas=(MT.items||[]).map(m=>m.cuenta);
-  const libres=Object.keys(METAS_CUENTAS).filter(c=>!usadas.includes(c));
+  const libres=Object.keys(METAS_CUENTAS).filter(c=>!usadas.includes(c)&&!ctaApagada(c));
   if(!libres.length){ showToast('ya tienes una meta para cada cuenta'); return; }
   // se listan numeradas: en el celular escribir el numero es mas facil que el nombre
   const menu=libres.map((c,i)=>(i+1)+'. '+METAS_CUENTAS[c]).join('\n');
@@ -11210,6 +11312,135 @@ function renderRendimientos(start, end, balance) {
 
 // 'a, b y c'
 const listaY = a => a.length < 2 ? (a[0] || '') : a.slice(0, -1).join(', ') + ' y ' + a[a.length - 1];
+// ── CONFIGURAR LAS CUENTAS FIJAS (31-oct-2026, de las copias de Eli y Toño) ──
+const TIPO_TXT={efectivo:'efectivo en mano',banco:'cuenta de banco',ahorro:'cuenta de ahorro (genera rendimiento)',
+  tarjeta:'tarjeta de crédito',bolsa:'inversión en bolsa'};
+// dinero de una cuenta fija (una tarjeta cuenta su deuda; la 2 garantizada, tambien su deposito)
+function saldoSlotCfg(k) {
+  if (k === 'tarjeta') return nFin(state.tarjetaDeuda);
+  if (k === 'tarjetaRev') return Math.abs(nFin(state.revTdcDeuda)) + Math.abs(nFin(state.revTdcDeposito));
+  if (k === 'stocks') return 0;
+  return nFin(getSaldoCuenta(k));
+}
+function renderConfigCuentas() {
+  const cont = document.getElementById('cuentas-config');
+  if (!cont || !CUENTAS_CFG) return;
+  if (cont.contains(document.activeElement)) return; // no borrarle lo que esta escribiendo
+  const e = escapeHtml;
+  cont.innerHTML = Object.keys(SLOTS_CFG).map(k => {
+    const s = SLOTS_CFG[k], c = confCta(k), saldo = saldoSlotCfg(k);
+    const conDinero = !s.fijo && c.on && Math.abs(saldo) >= 0.005;
+    const aviso = s.fijo ? 'siempre activa' : (conDinero ? 'tiene ' + fmt(saldo) + ': vacíala antes de apagarla'
+      : (!c.on && CTAS_FORZADAS.has(k) ? 'apagada, pero tiene ' + fmt(saldo) + ': sigue a la vista hasta que la vacíes' : ''));
+    const corte = s.tipo === 'tarjeta' ? '<div class="row2" style="gap:8px;margin-top:8px"><div class="field"><label>día de corte</label>'
+      + '<input type="number" id="cfg-corte-' + k + '" min="1" max="31" step="1" value="' + c.corte + '" inputmode="numeric"></div>'
+      + (s.garantizable ? '<div class="field"><label>tipo</label><select id="cfg-modo-' + k + '"><option value="normal"' + (c.modo === 'normal' ? ' selected' : '')
+        + '>normal</option><option value="garantizada"' + (c.modo === 'garantizada' ? ' selected' : '') + '>garantizada (límite = depósito)</option></select></div>' : '<div></div>')
+      + '</div>' : '';
+    return '<div class="cta-cfg" data-off="' + (c.on ? '0' : '1') + '"><div class="cta-cfg-top"><label class="cta-cfg-on"><input type="checkbox" id="cfg-on-' + k + '"'
+      + (c.on ? ' checked' : '') + (s.fijo ? ' disabled' : '') + '><span>' + e(TIPO_TXT[s.tipo] || s.tipo) + '</span></label><span class="item-meta">' + e(aviso) + '</span></div>'
+      + '<div class="field"><label>cómo se llama</label><input type="text" id="cfg-nom-' + k + '" maxlength="24" value="' + e(c.nombre) + '" placeholder="' + e(s.nom) + '"></div>'
+      + corte + '</div>';
+  }).join('');
+}
+window.guardarCuentas = async function() {
+  if (!CUENTAS_CFG) return;
+  const btn = document.getElementById('cuentas-btn');
+  if (dineroOcupado) { showToast('espera, hay otra operación en curso'); return; }
+  const nuevo = {}, usados = new Set();
+  for (const k of Object.keys(SLOTS_CFG)) {
+    const s = SLOTS_CFG[k], antes = confCta(k);
+    const on = s.fijo ? true : document.getElementById('cfg-on-' + k).checked;
+    const nom = document.getElementById('cfg-nom-' + k).value.trim().slice(0, 24);
+    if (!nom) { showToast('ponle nombre a todas tus cuentas'); return; }
+    // dos cuentas con el mismo nombre vuelven ilegible el historial (tambien contra las apagadas)
+    if (usados.has(nom.toLowerCase())) { showToast('ya tienes otra cuenta llamada "' + nom + '"'); return; }
+    usados.add(nom.toLowerCase());
+    // apagar una cuenta con dinero la esconderia sin sacarla del patrimonio: primero se mueve el dinero
+    if (!on && antes.on && Math.abs(saldoSlotCfg(k)) >= 0.005) {
+      showToast('"' + antes.nombre + '" todavía tiene ' + fmt(saldoSlotCfg(k)) + ': muévelo a otra cuenta antes de apagarla'); return; }
+    const c = {on, nombre: nom};
+    if (s.tipo === 'tarjeta') {
+      const d = parseInt(document.getElementById('cfg-corte-' + k).value, 10);
+      if (!Number.isInteger(d) || d < 1 || d > 31) { showToast('el día de corte de "' + nom + '" debe estar entre 1 y 31'); return; }
+      c.corte = d;
+      if (s.garantizable) {
+        c.modo = document.getElementById('cfg-modo-' + k).value === 'garantizada' ? 'garantizada' : 'normal';
+        // el deposito solo existe en la garantizada: pasarla a normal con dinero dentro lo dejaria sin control
+        if (c.modo === 'normal' && antes.modo === 'garantizada' && Math.abs(nFin(state.revTdcDeposito)) >= 0.005) {
+          showToast('primero retira el depósito de ' + fmt(state.revTdcDeposito) + ' de "' + nom + '"'); return; }
+      }
+    }
+    nuevo[k] = c;
+  }
+  if (nuevo.tarjetaRev.on && nuevo.tarjetaRev.modo === 'garantizada' && !(state.revTdcDeposito > 0))
+    showToast('captura el depósito de "' + nuevo.tarjetaRev.nombre + '" en actualizar saldos');
+  if (cargaDesdeCache || (typeof navigator !== 'undefined' && navigator.onLine === false)) { showToast('para cambiar tus cuentas necesitas señal'); return; }
+  btn.disabled = true;
+  try {
+    if (!datosCargados) throw new Error('datos no cargados');
+    // si otro aparato las cambio mientras esta pantalla estaba abierta, no se pisa: se aplica lo del servidor
+    const s = await getDoc(doc(db, NS, 'cuentas'));
+    const srv = s.exists() ? normalizaCuentasCfg(s.data().slots, CUENTAS_CFG) : CUENTAS_CFG;
+    if (JSON.stringify(srv) !== JSON.stringify(CUENTAS_CFG)) {
+      try { localStorage.setItem(lsKey('cuentasCfg'), JSON.stringify(srv)); } catch (e) {}
+      showToast('tus cuentas cambiaron desde otro aparato: revisa y vuelve a guardar'); btn.disabled = false;
+      recargarCuandoSePueda(); return;
+    }
+    await setDoc(doc(db, NS, 'cuentas'), {slots: nuevo});
+    setSyncDot('ok');
+    try { localStorage.setItem(lsKey('cuentasCfg'), JSON.stringify(normalizaCuentasCfg(nuevo, CUENTAS_CFG))); }
+    catch (e) { showToast('se guardaron, pero tu navegador no deja aplicarlas aquí: ábrela en otro navegador o sin modo privado'); btn.disabled = false; return; }
+    showToast('cuentas guardadas: abriendo con tus cuentas…');
+    setTimeout(() => location.reload(), 700);
+  } catch (e) {
+    setSyncDot('err'); console.error('guardarCuentas', e); showToast('ERROR: no se guardó, revisa tu conexión'); btn.disabled = false;
+  }
+};
+// al cargar: si la configuracion del servidor (otro aparato) o las cuentas apagadas con dinero cambiaron,
+// se guardan en este aparato y se vuelve a abrir UNA vez (candado de un minuto contra bucles)
+// recarga para aplicar la configuracion guardada en el aparato. Candado contra bucles: nunca dos veces hacia el
+// MISMO destino (cuentasCfg + ctasForzadas) y no mas de 3 recargas por minuto; nunca a media operacion o con un dialogo abierto
+function recargarCuandoSePueda() {
+  let dest = '', reg = {t: 0, n: 0, d: ''};
+  try { dest = (localStorage.getItem(lsKey('cuentasCfg')) || '') + '|' + (localStorage.getItem(lsKey('ctasForzadas')) || ''); } catch (e) { return false; }
+  try { reg = JSON.parse(sessionStorage.getItem(lsKey('recargaCfg')) || 'null') || reg; } catch (e) {}
+  if (Date.now() - (reg.t || 0) > 60000) reg = {t: Date.now(), n: 0, d: ''};
+  if (reg.d === dest || reg.n >= 3) return false;
+  const intenta = () => {
+    if (dineroOcupado || document.querySelector('dialog[open]')) { setTimeout(intenta, 2000); return; }
+    try { sessionStorage.setItem(lsKey('recargaCfg'), JSON.stringify({t: reg.t, n: reg.n + 1, d: dest})); } catch (e) {}
+    showToast('aplicando la configuración de tus cuentas…');
+    setTimeout(() => location.reload(), 600);
+  };
+  intenta(); return true;
+}
+// ANTES de procesar el Atajo o escribir nada: si el servidor tiene otra configuracion, se guarda y se recarga.
+// Devuelve true si va a recargar (quien llama no debe seguir escribiendo).
+let recargandoCfg = false;
+async function cfgDelServidorCambio() {
+  if (!CUENTAS_CFG) return false;
+  if (!LS_OK) { showToast('tu navegador no deja guardar datos: tus cuentas se ven como al principio'); return false; }
+  let srv;
+  try { const s = await getDoc(doc(db, NS, 'cuentas')); if (s.metadata && s.metadata.fromCache) return false; srv = s.exists() ? s.data().slots : null; }
+  catch (e) { return false; }
+  const nuevo = srv ? normalizaCuentasCfg(srv, CUENTAS_CFG) : CUENTAS_CFG; // lo corrupto conserva lo ultimo bueno del aparato
+  if (JSON.stringify(nuevo) === JSON.stringify(CUENTAS_CFG)) return false;
+  try { localStorage.setItem(lsKey('cuentasCfg'), JSON.stringify(nuevo)); } catch (e) { return false; }
+  recargandoCfg = recargarCuandoSePueda();
+  return recargandoCfg;
+}
+// con los datos ya cargados: las apagadas que tienen dinero (y el deposito de una tarjeta 2 normal) se siguen viendo
+async function revisarCuentasCfg() {
+  if (!CUENTAS_CFG || cargaDesdeCache || !LS_OK) return;
+  const forz = Object.keys(SLOTS_CFG).filter(k => !CUENTAS_CFG[k].on && Math.abs(saldoSlotCfg(k)) >= 0.005);
+  const tr = CUENTAS_CFG.tarjetaRev;
+  if ((!tr.on || tr.modo !== 'garantizada') && Math.abs(nFin(state.revTdcDeposito)) >= 0.005) forz.push('revTdcDep');
+  forz.sort();
+  if (JSON.stringify(forz) === JSON.stringify([...CTAS_FORZADAS].sort())) return;
+  try { localStorage.setItem(lsKey('ctasForzadas'), JSON.stringify(forz)); } catch (e) { return; }
+  recargarCuandoSePueda();
+}
 function renderGBMResumen() {
   renderChart('gbm-chart');
   renderChart('patrimonio-chart');

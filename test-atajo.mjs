@@ -47,9 +47,9 @@ const fondoSrc = HTML.slice(HTML.indexOf('// ── fondo: saneo'), HTML.indexOf
 const DEPS = registro + '\n' + ['CUENTAS', 'FUENTES_GASTO', 'DESTINOS_INGRESO', 'CAMPO_SIMPLE'].map(lineaConst).join('\n') + '\n' +
   'const nFin = (v,d=0) => Number.isFinite(v) ? v : d;\n' + fondoSrc;
 function fabrica(m, state) {
-  return new Function('db', 'doc', 'runTransaction', 'state', 'console', 'NS', 'C_GASTOS', 'C_INGRESOS',
+  return new Function('db', 'doc', 'runTransaction', 'state', 'console', 'NS', 'C_GASTOS', 'C_INGRESOS', 'tdcGarantizada',
     DEPS + '\n' + fnDe('procesarPendientesAtajo') + '\n' + VIEJO +
-    '\nreturn {nueva: procesarPendientesAtajo, vieja: procesarPendientesAtajoViejo};')({}, m.doc, m.runTransaction, state, { error() {} }, process.env.NS || 'cartera', (process.env.PFX || '') + 'gastos', (process.env.PFX || '') + 'ingresos');
+    '\nreturn {nueva: procesarPendientesAtajo, vieja: procesarPendientesAtajoViejo};')({}, m.doc, m.runTransaction, state, { error() {} }, process.env.NS || 'cartera', (process.env.PFX || '') + 'gastos', (process.env.PFX || '') + 'ingresos', () => true);   // la TDC de la base es garantizada
 }
 
 // semilla fija (mulberry32): un caso que falle se puede repetir

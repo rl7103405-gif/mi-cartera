@@ -208,6 +208,12 @@ Cualquier cambio a `index.html` (o `sw.js`) se sube directo al repo en GitHub y 
   versión vieja con rutas de Roberto: con otra NS sale "distinto" por la ruta; correrlo con la copia y NS por omisión),
   la foto de Inicio de Roberto (`foto-inicio.mjs`, idéntica salvo el letrero) y `pruebas-sin-senal\e2e-zoe-base.mjs
   <index-viejo> <index-nuevo>` (17 casos: mismo patrimonio que su versión anterior, nada en el espacio de Roberto).
-- **Falta:** Eli y Toño (tienen un sistema propio de cuentas configurables, `CAPS`/`cfgCta`/`tdcGarantizada` con tarjeta
-  normal o garantizada, que hay que pasar a la base antes); la casa no entra (es otra app). Textos con "universidad" y
-  algunos de Revolut siguen escritos (no se ven en la de Zoe mientras no use fondos).
+- **Eli y Toño (31-oct, noche):** también corren la base, con `configurable:true`: configuran sus cuentas fijas desde el
+  perfil (`<NS>/cuentas` = {slots:{id:{on,nombre,corte,modo}}}). La configuración se aplica AL ARRANCAR (`CUENTAS_CFG` desde
+  `lsKey('cuentasCfg')`); `cfgDelServidorCambio()` al inicio de `loadFromFirebase` (antes del Atajo y de cualquier escritura)
+  y `revisarCuentasCfg()` al terminar (apagadas con dinero y el depósito de una tarjeta 2 normal: `CTAS_FORZADAS`) guardan y
+  recargan con `recargarCuandoSePueda()` (nunca dos veces al mismo destino, máx. 3/min, nunca a media operación).
+  `tdcGarantizada()`, `CORTE_TJ`/`CORTE_TJREV`. **Regla:** una cuenta apagada conserva sus listas de REVERSIÓN e historia
+  (`simple`, `comp`, `deuda`, `tarjetaDeuda`, `interes` y, si la apagó la persona, `ahorro`) y el catálogo de metas no
+  filtra (solo el menú): si no, borrar una deuda vieja o cargar una meta las pierde. e2e:
+  `pruebas-sin-senal\e2e-familiar-base.mjs <eli|tono> <viejo> <nuevo>`. La casa no entra (otra app).
