@@ -128,6 +128,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI',Ro
 .fv-logo{display:block;height:32px;width:auto;margin-bottom:28px;color:#0c100d}
 .fv-logo .fv-anillo{fill:#2f6f4f}.fv-logo .fv-noche{fill:currentColor}
 html[data-tema='grafito'] .fv-logo{color:#e8ebe3}html[data-tema='grafito'] .fv-logo .fv-anillo{fill:#a7d8b8}
+.fv-logo.fv-logo-nav{height:22px;margin:0}   /* el logo del encabezado en Fundview (lo pone armar.mjs) */
 .fv-paso h1{font-size:22px;font-weight:650;letter-spacing:-0.3px;line-height:1.25;margin:0 0 8px;text-wrap:balance}
 .fv-paso h1:focus{outline:none}
 .fv-paso h2{font-size:14px;font-weight:600;margin:22px 0 6px}
@@ -719,7 +720,7 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
 
     <section class="fv-paso" data-paso="crear" hidden aria-labelledby="fv-t-crear">
       <h1 id="fv-t-crear" tabindex="-1">Crea tu cuenta</h1>
-      <p>Necesitas el código de invitación que te mandaron. Tu cartera es solo tuya: nadie más la ve.</p>
+      <p>Necesitas el código de invitación que te mandaron. Tu cuenta queda aislada: ninguna otra persona puede ver tus datos.</p>
       <div class="login-field"><label class="fv-label" for="fv-cod">código de invitación</label><input type="text" id="fv-cod" placeholder="FV-XXXX-XXXX-XXXX-XXXX" autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="40"></div>
       <div class="login-field"><label class="fv-label" for="fv-correo">tu correo</label><input type="email" id="fv-correo" autocomplete="email" autocapitalize="off" spellcheck="false"></div>
       <div class="login-field"><label class="fv-label" for="fv-pass">una contraseña nueva</label><input type="password" id="fv-pass" autocomplete="new-password" aria-describedby="fv-pass-ayuda"><div class="fv-ayuda" id="fv-pass-ayuda">al menos 10 caracteres</div></div>
@@ -1783,6 +1784,8 @@ try {
 const auth = getAuth(app);
 
 const ALLOWED_EMAIL = CFG.correo;
+// nombre de la app en lo que se genera aqui (Excel, imagen para compartir): Fundview con CFG.multi, Mi Cartera en la familia
+const NOMBRE_APP = CFG.multi ? 'Fundview' : 'Mi Cartera';
 const TITULOS = 45;
 // metas de Roberto para el cierre de 2026 y cuota mensual del plan Premium de Revolut
 // Las metas YA NO se queman aqui: viven en el documento cartera/metas y se editan
@@ -8254,13 +8257,13 @@ window.excelDeuda=async function(key) {
     const saldoFinal=c2(nFin(p.saldo)-despues.reduce((t,m)=>t+signo(m),0));
     const saldoInicial=c2(saldoFinal-dentro.reduce((t,m)=>t+signo(m),0));
     const nombre=String(p.nombre||key);
-    const wb=new ExcelJS.Workbook(); wb.creator='Mi Cartera'; wb.created=new Date();
+    const wb=new ExcelJS.Workbook(); wb.creator=NOMBRE_APP; wb.created=new Date();
     const ws=wb.addWorksheet('Cuenta con '+nombre.slice(0,20),{views:[{showGridLines:false,state:'frozen',ySplit:8}]});
     const VERDE='FF1F5F45', VCLARO='FFE8F1EC', GRIS='FFF5F7F6', ROJO='FFB42318', MON='"$"#,##0.00;[Red]-"$"#,##0.00';
     const relleno=c=>({type:'pattern',pattern:'solid',fgColor:{argb:c}});
     ws.columns=[{width:12},{width:18},{width:36},{width:18},{width:22},{width:15}];
     ws.getCell('A1').value='Cuenta con '+nombre; ws.getCell('A1').font={bold:true,size:16,color:{argb:VERDE}};
-    ws.getCell('A2').value='Mi Cartera'; ws.getCell('A2').font={color:{argb:'FF6B7773'}};
+    ws.getCell('A2').value=NOMBRE_APP; ws.getCell('A2').font={color:{argb:'FF6B7773'}};
     ws.getCell('A4').value='Periodo'; ws.getCell('B4').value=r.etiq;
     ws.getCell('A5').value='Generado'; ws.getCell('B5').value=new Date(); ws.getCell('B5').numFmt='dd/mm/yyyy';
     ws.getCell('A6').value='Movimientos'; ws.getCell('B6').value=dentro.length;
@@ -10042,7 +10045,7 @@ window.exportarMisDatosExcel = async function() {
   showToast('armando tu Excel...');
   try {
     const ExcelJS = await cargarExcelJS(), wb = new ExcelJS.Workbook(), MON = '"$"#,##0.00';
-    wb.creator = 'Mi Cartera'; wb.created = new Date();
+    wb.creator = NOMBRE_APP; wb.created = new Date();
     // (28-oct-2026, Beto: "más bonito y más ordenado, y que puedas ir por las diferentes categorías") encabezado verde,
     // pestañas de color, filtro en cada columna y un total al pie que SOLO suma lo filtrado (SUBTOTAL 109): filtras
     // "Comida" y el total es el de comida. La fila en blanco antes del total lo deja fuera del rango del filtro
@@ -10119,7 +10122,7 @@ window.exportarMisDatosExcel = async function() {
     // (code-reviewer) antes de cargar del servidor los totales valen 0: se escribe "sin calcular", nunca un $0 falso
     const T = (totalesInicio && totalesInicio.listo && datosCargados && !cargaDesdeCache) ? totalesInicio : {}, fT = fondoTotal() + fondoGenerado();
     resumen.columns = [{width: 34}, {width: 22}, {width: 60}];
-    const t1 = resumen.addRow(['Mi Cartera · mis datos']); t1.font = {bold: true, size: 16, color: {argb: VERDE}}; t1.height = 26;
+    const t1 = resumen.addRow([NOMBRE_APP + ' · mis datos']); t1.font = {bold: true, size: 16, color: {argb: VERDE}}; t1.height = 26;
     resumen.addRow(['al ' + new Date().toLocaleDateString('es-MX', {day: 'numeric', month: 'long', year: 'numeric'})]).font = {color: {argb: 'FF6B7B72'}};
     resumen.addRow([]);
     encabezado(resumen.addRow(['hoy', 'monto', '']));
@@ -11661,7 +11664,7 @@ window.exportarCierre = function(ev) {
     y+=8;
   });
   ctx.fillStyle=C_MUT; ctx.font=F_PIE;
-  ctx.fillText('mi cartera · '+new Date().toLocaleDateString('es-MX',{day:'numeric',month:'short',year:'numeric'}),PADX,H-40);
+  ctx.fillText(NOMBRE_APP.toLowerCase()+' · '+new Date().toLocaleDateString('es-MX',{day:'numeric',month:'short',year:'numeric'}),PADX,H-40);
   cv.toBlob(async blob=>{
     try{
       if(!blob){ showToast('no se pudo generar la imagen'); return; }
