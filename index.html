@@ -122,6 +122,36 @@ body{font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI',Ro
 .login-btn{width:100%;padding:14px;background:var(--purple);border:none;border-radius:var(--rs);color:#fff;font-size:15px;font-weight:600;cursor:pointer;margin-top:8px}
 .login-btn:active{opacity:0.85}
 .login-error{font-size:13px;color:var(--red);margin-top:10px;text-align:center;min-height:20px}
+/* (1-nov-2026, Fundview sesion 2) pantallas de entrada: solo existen con CFG.multi (plantilla #fv-entrada) */
+.login-screen.fv{align-items:flex-start;overflow-y:auto;padding:max(20px,env(safe-area-inset-top)) 20px max(20px,env(safe-area-inset-bottom))}
+.login-screen.fv .login-box{margin:auto;max-width:360px}
+.fv-logo{display:block;height:32px;width:auto;margin-bottom:28px;color:#0c100d}
+.fv-logo .fv-anillo{fill:#2f6f4f}.fv-logo .fv-noche{fill:currentColor}
+html[data-tema='grafito'] .fv-logo{color:#e8ebe3}html[data-tema='grafito'] .fv-logo .fv-anillo{fill:#a7d8b8}
+.fv-paso h1{font-size:22px;font-weight:650;letter-spacing:-0.3px;line-height:1.25;margin:0 0 8px;text-wrap:balance}
+.fv-paso h1:focus{outline:none}
+.fv-paso h2{font-size:14px;font-weight:600;margin:22px 0 6px}
+.fv-paso p{font-size:14px;color:var(--muted);line-height:1.5;margin:0 0 20px}
+.fv-paso p b{color:var(--text);font-weight:600;overflow-wrap:anywhere}
+.fv-label{display:block;font-size:13px;font-weight:500;color:var(--text);margin:0 2px 6px}
+.fv-ayuda{font-size:12px;color:var(--muted);margin:6px 2px 0;line-height:1.45}
+.fv-nota{font-size:13px;color:var(--muted);line-height:1.5;margin-top:16px}
+.fv-ligas{display:flex;flex-direction:column;align-items:center;margin-top:14px}
+.fv-liga{background:none;border:none;color:var(--accent);font-size:14px;font-weight:500;padding:10px 8px;min-height:44px;cursor:pointer;text-decoration:underline;text-underline-offset:3px;text-decoration-thickness:1px}
+.fv-check{display:flex;gap:10px;align-items:flex-start;font-size:13px;color:var(--text);line-height:1.45;margin:6px 0 4px;cursor:pointer;min-height:44px;padding-top:2px}
+.fv-check input{width:20px;height:20px;margin:0;flex-shrink:0;accent-color:var(--accent)}
+.fv-clave{display:flex;align-items:center;gap:8px;background:var(--bg3);border:0.5px solid var(--border2);border-radius:var(--rs);padding:8px 8px 8px 14px;margin:0 0 4px}
+.fv-clave code{flex:1;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:14px;letter-spacing:0.5px;overflow-wrap:anywhere;color:var(--text);user-select:all}
+.fv-clave .btn{width:auto;margin:0;padding:8px 12px;font-size:13px;min-height:44px;flex-shrink:0}
+.fv-cod input{font-size:22px;letter-spacing:6px;text-align:center;font-variant-numeric:tabular-nums}
+.fv-paso .login-btn:disabled{opacity:0.6;cursor:default}
+.fv-paso a.login-btn{display:block;text-align:center;text-decoration:none;box-sizing:border-box}
+.fv-paso a.login-btn[aria-disabled='true']{opacity:0.5;pointer-events:none}
+.fv-paso .btn{margin-top:8px}
+.fv-msg{font-size:13px;color:var(--accent-dark);margin-top:10px;text-align:center;line-height:1.45}
+.fv-msg:empty{display:none}
+.login-screen.fv [hidden]{display:none!important}
+html[data-tema='grafito'] .fv-msg{color:var(--accent)}
 
 /* LOADING */
 .loading-overlay{position:fixed;inset:0;background:var(--bg);display:flex;align-items:center;justify-content:center;z-index:998;flex-direction:column;gap:12px}
@@ -669,6 +699,105 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
     <div class="login-error" id="login-error" role="alert"></div>
   </div>
 </div>
+
+<!-- ENTRADA DE FUNDVIEW (1-nov-2026, sesion 2): solo con CFG.multi. En las carteras de la familia esta plantilla no
+     se monta y el login de arriba sigue igual. Cada paso es una seccion; fvPaso() enseña una sola. -->
+<template id="fv-entrada">
+  <div class="login-box">
+    <svg xmlns="http://www.w3.org/2000/svg" class="fv-logo" role="img" aria-label="Fundview" viewBox="0 0 879.8 256.0"><g><path class="fv-anillo" fill-rule="evenodd" d="M219.994,123.978A92,92 0 0 1 165.952,208.807L153.581,174.816A56,56 0 0 0 183.959,127.131Z M152.797,213.595A92,92 0 1 1 167.804,42.057L149.718,73.383A56,56 0 1 0 140.425,179.604Z"/><path class="fv-noche" d="M179.929,49.057A92,92 0 0 1 218.774,110.032L182.739,113.184A56,56 0 0 0 161.843,80.383Z"/></g><path class="fv-noche" d="M306.6997680365297 164.82801611328125V91.62646177538171Q306.6997680365297 82.0608015014091 311.9778392694064 76.58440880734517Q317.2559105022831 71.10801611328125 328.4058922374429 71.10801611328125H342.193302283105V84.23381885300728H331.56810593607304Q327.47610593607305 84.23381885300728 325.5617844748858 86.34614031419449Q323.64746301369865 88.4584617753817 323.64746301369865 92.4843010447881V164.82801611328125ZM296.66905388127856 107.46710469775613V94.3413019580301H341.20346301369864V107.46710469775613Z M376.195935546875 166.41201611328125Q365.45111621093747 166.41201611328125 359.23391943359377 159.35001611328124Q353.01672265625 152.28801611328126 353.01672265625 139.7216064453125V94.33998388671874H369.9130771484375V135.57673876953126Q369.9130771484375 144.42065820312502 372.83023364257815 148.55221630859376Q375.74739013671876 152.6837744140625 381.845703125 152.6837744140625Q388.683212890625 152.6837744140625 392.48475488281247 148.12982275390624Q396.286296875 143.57587109375 396.286296875 134.89031298828124V94.33998388671874H413.1826513671875V164.82801611328125H397.6591484375L397.28952587890626 145.4766904296875L399.4807548828125 146.13667431640624Q397.7911806640625 156.08955810546874 391.8511806640625 161.25078710937498Q385.9111806640625 166.41201611328125 376.195935546875 166.41201611328125Z M428.91672265625004 164.82801611328125V94.33998388671874H444.2026352539063L444.86265136718754 114.113703125L442.80340625 113.29532568359375Q443.912193359375 105.92965478515625 447.1857917480469 101.42842578125Q450.45939013671875 96.92719677734375 455.25099658203123 94.84159033203125Q460.0426030273438 92.75598388671875 465.71861914062504 92.75598388671875Q473.5066030273438 92.75598388671875 478.8262094726563 96.16157421874999Q484.1458159179688 99.56716455078124 486.90462719726565 105.57316455078126Q489.66343847656253 111.57916455078126 489.66343847656253 119.49919677734374V164.82801611328125H472.767083984375V124.93773535156251Q472.767083984375 118.997767578125 471.61870654296877 114.8925869140625Q470.4703291015625 110.78740625 467.7775661621094 108.63581591796876Q465.08480322265626 106.48422558593751 460.54404833984376 106.48422558593751Q453.7593256835938 106.48422558593751 449.7862014160156 111.22300463867188Q445.8130771484375 115.96178369140625 445.8130771484375 124.93773535156251V164.82801611328125Z M530.4247387695312 166.41201611328125Q521.4223452148437 166.41201611328125 514.8619516601563 161.89761450195311Q508.30155810546876 157.383212890625 504.7639597167969 149.12000805664064Q501.226361328125 140.85680322265625 501.226361328125 129.584Q501.226361328125 118.31119677734375 504.790361328125 110.04799194335938Q508.35436132812504 101.784787109375 514.9411564941406 97.27038549804688Q521.5279516601563 92.75598388671875 530.4247387695312 92.75598388671875Q537.7903613281251 92.75598388671875 543.3871484375001 95.80518872070313Q548.983935546875 98.8543935546875 551.8351323242188 104.31919677734375V71.10801611328125H568.7314868164062V164.82801611328125H552.7327226562501L552.33672265625 154.37362255859375Q549.43272265625 160.04962255859374 543.6247307128906 163.2308193359375Q537.8167387695313 166.41201611328125 530.4247387695312 166.41201611328125ZM535.5201127929688 152.7366259765625Q540.7736547851563 152.7366259765625 544.4036145019531 150.04385498046875Q548.03357421875 147.351083984375 549.9343532714844 142.16352587890626Q551.8351323242188 136.9759677734375 551.8351323242188 129.584Q551.8351323242188 122.033638671875 549.9343532714844 116.88567895507812Q548.03357421875 111.73771923828124 544.4036145019531 109.08454663085936Q540.7736547851563 106.4313740234375 535.5201127929688 106.4313740234375Q527.81140625 106.4313740234375 523.2574626464843 112.62212890625Q518.7035190429688 118.8128837890625 518.7035190429688 129.584Q518.7035190429688 140.17031298828124 523.2838642578125 146.45346948242187Q527.8642094726563 152.7366259765625 535.5201127929688 152.7366259765625Z M603.6584096679687 164.82801611328125 577.9183935546876 94.33998388671874H595.7651416015625L613.7169965820312 147.77326806640625L631.6160483398437 94.33998388671874H649.4627963867188L623.6699770507812 164.82801611328125Z M658.59672265625 164.82801611328125V94.33998388671874H675.4930771484375V164.82801611328125ZM658.2799194335937 84.91527734374999V69.9727548828125H675.8098803710938V84.91527734374999Z M721.5873095703125 166.41201611328125Q711.0536708984375 166.41201611328125 703.3052370605469 161.871212890625Q695.5568032226563 157.33040966796875 691.3195822753906 149.0276064453125Q687.082361328125 140.72480322265625 687.082361328125 129.584Q687.082361328125 118.44319677734376 691.3195822753906 110.20639355468751Q695.5568032226563 101.96959033203125 703.2260402832031 97.362787109375Q710.89527734375 92.75598388671875 721.2705224609375 92.75598388671875Q731.32898046875 92.75598388671875 738.8794143066407 97.25719677734375Q746.4298481445312 101.75840966796875 750.5614626464844 110.20642578125Q754.6930771484375 118.65444189453125 754.6930771484375 130.50804833984375V134.28327734375H704.612322265625Q705.1139125976563 143.602361328125 709.6678642578125 148.24869848632812Q714.2218159179688 152.89503564453125 721.7985224609375 152.89503564453125Q727.4480483398438 152.89503564453125 731.1836064453125 150.37387915039062Q734.9191645507813 147.85272265625 736.4239516601563 143.206361328125L753.6898803710938 144.28877099609375Q750.8650771484375 154.50562255859376 742.3246271972657 160.4588193359375Q733.7841772460938 166.41201611328125 721.5873095703125 166.41201611328125ZM704.612322265625 122.93118066406251H737.1631484375Q736.6351645507813 114.35127734375 732.3188112792968 110.20651440429688Q728.0024580078125 106.06175146484375 721.2705224609375 106.06175146484375Q714.4857998046875 106.06175146484375 710.0638481445312 110.40451440429688Q705.641896484375 114.74727734375 704.612322265625 122.93118066406251Z M781.0399677734375 164.82801611328125 759.8143935546876 94.33998388671874H777.1331093750001L790.7553417968751 145.71395849609374L804.9583935546876 94.33998388671874H819.689767578125L833.9456225585939 145.71395849609374L847.6470517578126 94.33998388671874H864.9657675781251L843.7401933593751 164.82801611328125H826.2631806640626L812.3240805664063 117.5987802734375L798.4377836914064 164.82801611328125Z"/></svg>
+    <section class="fv-paso" data-paso="entrar" hidden aria-labelledby="fv-t-entrar">
+      <h1 id="fv-t-entrar" tabindex="-1">Entra a tu cartera</h1>
+      <div class="login-field"><label class="sr-only" for="login-email">correo</label><input type="email" id="login-email" placeholder="correo" autocomplete="username" autocapitalize="off" spellcheck="false"></div>
+      <div class="login-field"><label class="sr-only" for="login-pass">contraseña</label><input type="password" id="login-pass" placeholder="contraseña" autocomplete="current-password"></div>
+      <button type="button" class="login-btn" id="fv-btn-entrar" onclick="doLogin()">entrar</button>
+      <div class="login-error" id="login-error" role="alert"></div>
+      <div class="fv-ligas">
+        <button type="button" class="fv-liga" onclick="fvPaso('crear')">tengo una invitación: crear mi cuenta</button>
+        <button type="button" class="fv-liga" onclick="fvPaso('olvide')">olvidé mi contraseña</button>
+      </div>
+    </section>
+
+    <section class="fv-paso" data-paso="crear" hidden aria-labelledby="fv-t-crear">
+      <h1 id="fv-t-crear" tabindex="-1">Crea tu cuenta</h1>
+      <p>Necesitas el código de invitación que te mandaron. Tu cartera es solo tuya: nadie más la ve.</p>
+      <div class="login-field"><label class="fv-label" for="fv-cod">código de invitación</label><input type="text" id="fv-cod" placeholder="FV-XXXX-XXXX-XXXX-XXXX" autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="40"></div>
+      <div class="login-field"><label class="fv-label" for="fv-correo">tu correo</label><input type="email" id="fv-correo" autocomplete="email" autocapitalize="off" spellcheck="false"></div>
+      <div class="login-field"><label class="fv-label" for="fv-pass">una contraseña nueva</label><input type="password" id="fv-pass" autocomplete="new-password" aria-describedby="fv-pass-ayuda"><div class="fv-ayuda" id="fv-pass-ayuda">al menos 10 caracteres</div></div>
+      <label class="fv-check"><input type="checkbox" id="fv-terminos"><span>Acepto los términos y el aviso de privacidad de Fundview.</span></label>
+      <button type="button" class="login-btn" id="fv-btn-crear" onclick="fvCrear()">crear mi cuenta</button>
+      <div class="login-error" role="alert"></div>
+      <div class="fv-ligas"><button type="button" class="fv-liga" onclick="fvPaso('entrar')">ya tengo cuenta</button></div>
+    </section>
+
+    <section class="fv-paso" data-paso="correo" hidden aria-labelledby="fv-t-correo">
+      <h1 id="fv-t-correo" tabindex="-1">Revisa tu correo</h1>
+      <p>Te mandamos una liga a <b id="fv-correo-a"></b>. Ábrela para confirmar que el correo es tuyo y regresa aquí.</p>
+      <button type="button" class="login-btn" id="fv-btn-verifique" onclick="fvYaVerifique()">ya la abrí</button>
+      <button type="button" class="btn" id="fv-btn-reenviar" onclick="fvReenviar()">mandarla otra vez</button>
+      <div class="login-error" role="alert"></div>
+      <div class="fv-msg" role="status"></div>
+      <div class="fv-nota">Si no llega en unos minutos, búscala en spam o en promociones.</div>
+      <div class="fv-ligas"><button type="button" class="fv-liga" onclick="fvSalirEntrada()">usar otro correo</button></div>
+    </section>
+
+    <section class="fv-paso" data-paso="totp" hidden aria-labelledby="fv-t-totp">
+      <h1 id="fv-t-totp" tabindex="-1">Protege tu cuenta</h1>
+      <p>Cada vez que entres, Fundview te va a pedir un código de una app autenticadora, como Google Authenticator o Microsoft Authenticator. Si no tienes una, bájala antes de seguir.</p>
+      <h2>1. Da de alta Fundview en la app</h2>
+      <a class="login-btn" id="fv-otp-liga" aria-disabled="true">abrir la app autenticadora</a>
+      <div class="fv-ayuda" style="margin-bottom:10px">o, si estás en la computadora, escribe esta clave en la app:</div>
+      <div class="fv-clave"><code id="fv-clave">preparando…</code><button type="button" class="btn" id="fv-btn-copiar" onclick="fvCopiarClave()">copiar</button></div>
+      <div class="fv-ayuda">Guárdala en un lugar seguro: si cambias de teléfono, con ella vuelves a dar de alta la app.</div>
+      <h2>2. Escribe el código que te da</h2>
+      <div class="login-field fv-cod"><label class="sr-only" for="fv-totp-cod">código de 6 números</label><input type="text" id="fv-totp-cod" inputmode="numeric" autocomplete="one-time-code" maxlength="12" placeholder="000000"></div>
+      <button type="button" class="login-btn" id="fv-btn-activar" onclick="fvActivar2fa()">activar</button>
+      <div id="fv-reauth" hidden>
+        <div class="login-field" style="margin-top:16px"><label class="fv-label" for="fv-reauth-pass">por seguridad, tu contraseña otra vez</label><input type="password" id="fv-reauth-pass" autocomplete="current-password"></div>
+        <button type="button" class="btn" id="fv-btn-reauth" onclick="fvReautenticar()">seguir</button>
+      </div>
+      <div class="login-error" role="alert"></div>
+      <div class="fv-ligas">
+        <button type="button" class="fv-liga" id="fv-btn-otra-clave" onclick="fvOtraClave()" hidden>preparar otra clave</button>
+        <button type="button" class="fv-liga" onclick="fvSalirEntrada()">salir</button>
+      </div>
+    </section>
+
+    <section class="fv-paso" data-paso="codigo" hidden aria-labelledby="fv-t-codigo">
+      <h1 id="fv-t-codigo" tabindex="-1">Escribe tu código</h1>
+      <p>El de 6 números que te da tu app autenticadora para Fundview.</p>
+      <div class="login-field fv-cod"><label class="sr-only" for="fv-entrar-cod">código de 6 números</label><input type="text" id="fv-entrar-cod" inputmode="numeric" autocomplete="one-time-code" maxlength="12" placeholder="000000"></div>
+      <button type="button" class="login-btn" id="fv-btn-codigo" onclick="fvEntrarCodigo()">entrar</button>
+      <div class="login-error" role="alert"></div>
+      <div class="fv-ligas"><button type="button" class="fv-liga" onclick="fvCancelarCodigo()">cancelar</button></div>
+    </section>
+
+    <section class="fv-paso" data-paso="invitacion" hidden aria-labelledby="fv-t-invitacion">
+      <h1 id="fv-t-invitacion" tabindex="-1">Tu invitación</h1>
+      <p>Último paso: con tu código de invitación se abre tu cartera.</p>
+      <div class="login-field"><label class="fv-label" for="fv-inv-cod">código de invitación</label><input type="text" id="fv-inv-cod" placeholder="FV-XXXX-XXXX-XXXX-XXXX" autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="40"></div>
+      <label class="fv-check" id="fv-inv-terminos-fila"><input type="checkbox" id="fv-inv-terminos"><span>Acepto los términos y el aviso de privacidad de Fundview.</span></label>
+      <button type="button" class="login-btn" id="fv-btn-canjear" onclick="fvCanjear()">abrir mi cartera</button>
+      <div class="login-error" role="alert"></div>
+      <div class="fv-ligas"><button type="button" class="fv-liga" onclick="fvSalirEntrada()">salir</button></div>
+    </section>
+
+    <section class="fv-paso" data-paso="olvide" hidden aria-labelledby="fv-t-olvide">
+      <h1 id="fv-t-olvide" tabindex="-1">¿Olvidaste tu contraseña?</h1>
+      <p>Escribe tu correo y te mandamos una liga para poner una nueva. Tu app autenticadora no cambia.</p>
+      <div class="login-field"><label class="sr-only" for="fv-olv-correo">correo</label><input type="email" id="fv-olv-correo" placeholder="correo" autocomplete="username" autocapitalize="off" spellcheck="false"></div>
+      <button type="button" class="login-btn" id="fv-btn-olvide" onclick="fvOlvide()">mandar liga</button>
+      <div class="login-error" role="alert"></div>
+      <div class="fv-msg" role="status"></div>
+      <div class="fv-ligas"><button type="button" class="fv-liga" onclick="fvPaso('entrar')">volver</button></div>
+    </section>
+  </div>
+</template>
+<script>
+// Fundview: la plantilla reemplaza al login de la familia ANTES de que el modulo busque sus campos (#login-email…)
+(function(){if(!window.CFG||!window.CFG.multi) return;
+  var s=document.getElementById('login-screen'), t=document.getElementById('fv-entrada');
+  if(!s||!t) return; s.replaceChildren(t.content.cloneNode(true)); s.classList.add('fv');})();
+</script>
 
 <!-- LOADING -->
 <div class="loading-overlay" id="loading-overlay">
@@ -1568,8 +1697,8 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
 
 <script type="module">
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
-import { getFirestore, initializeFirestore, persistentLocalCache, persistentMultipleTabManager, doc, getDoc, getDocFromCache, getDocsFromCache, setDoc, updateDoc, collection, getDocs, query, orderBy, where, writeBatch, runTransaction, getDocsFromServer, onSnapshot } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
-import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, getIdTokenResult } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
+import { getFirestore, initializeFirestore, persistentLocalCache, persistentMultipleTabManager, doc, getDoc, getDocFromCache, getDocsFromCache, setDoc, updateDoc, collection, getDocs, query, orderBy, where, writeBatch, runTransaction, getDocsFromServer, onSnapshot, getDocFromServer, serverTimestamp, terminate, clearIndexedDbPersistence, waitForPendingWrites } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, getIdTokenResult, createUserWithEmailAndPassword, sendEmailVerification, sendPasswordResetEmail, reload, multiFactor, TotpMultiFactorGenerator, getMultiFactorResolver, reauthenticateWithCredential, EmailAuthProvider } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
 
 // Fundview trae su propio proyecto en CFG.firebase; las carteras de la familia usan este
 // segunda barrera: Fundview (multi) sin su proyecto NUNCA cae al proyecto de la familia
@@ -2192,6 +2321,14 @@ window.doLogin = async function() {
   errEl.textContent = '';
   if (!email || !pass) { errEl.textContent = 'escribe tu correo y tu contraseña'; return; }
   if (!CFG.multi && email !== ALLOWED_EMAIL) { errEl.textContent = 'acceso no autorizado'; return; }
+  if (CFG.multi) return fvOcupado('fv-btn-entrar', 'entrando…', async () => {
+    try { await FV_MFA.entrar(email, pass); }
+    catch (e) {
+      // con la app autenticadora dada de alta, la contraseña sola no basta: se pide el codigo
+      if (FV_MFA.pideCodigo(e)) { fvResolver = FV_MFA.resolver(e); fvPaso('codigo'); return; }
+      errEl.textContent = fvErrorAuth(e, 'correo o contraseña incorrectos');
+    }
+  });
   try {
     await signInWithEmailAndPassword(auth, email, pass);
   } catch(e) {
@@ -2208,6 +2345,8 @@ const AVISO_ENTRADA = {
   'sin-invitacion': 'esta cuenta todavía no tiene una invitación',
   'sin-almacen': 'tu navegador no deja guardar datos de esta página (¿estás en modo privado?)'
 };
+const FV_YA_ALTA = 'tu app autenticadora ya estaba dada de alta: entra con tu correo, tu contraseña y el código';
+const FV_SESION_MALA = 'tu sesión ya no es válida: vuelve a entrar';   // aparte de AVISO_ENTRADA: la familia lo lee y no debe cambiar
 let recargandoUid = false;   // puedeEntrar lo prende justo antes de location.reload(): el callback de auth sale callado
 let genAuth = 0;             // generacion del callback de auth: si llega otro mientras uno espera, el viejo se descarta
 const PLAZO_ENTRADA = 4000;  // sin señal getIdTokenResult/getDoc no contestan: a los 4 s se sigue y las reglas deciden
@@ -2229,30 +2368,435 @@ async function puedeEntrar(user) {
   try { sessionStorage.removeItem('fv:recarga'); } catch (e) {}
   if (!user.emailVerified) return 'sin-correo';
   // sin red el token guardado no se puede renovar: se sigue y las reglas deciden (la copia local sigue sirviendo)
-  try { const t = await conPlazoEntrada(getIdTokenResult(user)); if (FV_2FA && t.signInSecondFactor !== FV_2FA) return 'sin-2fa'; } catch (e) {}
+  // la cuenta desactivada, borrada o con el token revocado NO es "sin señal": ahi se cierra la puerta
+  try { const f = await conPlazoEntrada(FV_MFA.factor(user)); if (FV_2FA && f !== FV_2FA) return 'sin-2fa'; }
+  catch (e) { if (['auth/user-disabled', 'auth/user-token-expired', 'auth/user-not-found', 'auth/invalid-user-token'].includes(e && e.code)) return 'no'; }
   // solo un "no existe" que diga el SERVIDOR cierra la puerta; sin señal se sigue
   try { const u = await conPlazoEntrada(getDoc(doc(db, 'usuarios', user.uid))); if (!u.exists() && !u.metadata.fromCache) return 'sin-invitacion'; } catch (e) {}
   return 'si';
 }
 
+// ── ENTRADA DE FUNDVIEW (1-nov-2026, sesion 2 de plan-registro-v1) ── solo con CFG.multi. puedeEntrar dice QUE falta y
+// entradaFundview enseña la pantalla para resolverlo, sin cerrar la sesion: crear cuenta con invitacion → revisa tu
+// correo → app autenticadora → canje de la invitacion → la app. Las reglas de Firestore exigen lo mismo; esto es la
+// puerta amable. La invitacion del formulario se guarda en el aparato ('fv:alta') hasta canjearla, porque al crear la
+// cuenta la pagina se vuelve a abrir con el espacio del uid nuevo y lo que estaba en memoria se pierde.
+// <fv-mfa> la app autenticadora (TOTP) del SDK. pruebas-sin-senal\fundview\preparar-fv.mjs cambia ESTE bloque por uno
+// simulado (el emulador de Auth no hace TOTP): lo que quede entre las marcas debe ser UN objeto con estos nombres.
+const FV_MFA = {
+  entrar: (correo, pass) => signInWithEmailAndPassword(auth, correo, pass),
+  factor: async (user, forzar) => (await getIdTokenResult(user, !!forzar)).signInSecondFactor || null,
+  inscrito: user => multiFactor(user).enrolledFactors.some(f => f.factorId === TotpMultiFactorGenerator.FACTOR_ID),
+  async secreto(user) {
+    const s = await TotpMultiFactorGenerator.generateSecret(await multiFactor(user).getSession());
+    // el SDK no codifica la etiqueta de la liga: el correo va con encodeURIComponent (una @ o un + la romperian)
+    return {sdk: s, clave: s.secretKey, liga: s.generateQrCodeUrl(encodeURIComponent(user.email || 'cuenta'), 'Fundview'),
+      vence: (Date.parse(s.enrollmentCompletionDeadline) || Date.now() + 5 * 60000) - 30000};
+  },
+  inscribir: (user, sec, codigo) => multiFactor(user).enroll(TotpMultiFactorGenerator.assertionForEnrollment(sec.sdk, codigo), 'app autenticadora'),
+  pideCodigo: e => !!e && e.code === 'auth/multi-factor-auth-required',
+  resolver: e => getMultiFactorResolver(auth, e),
+  resolverEntrada(res, codigo) {
+    const h = res.hints.find(x => x.factorId === TotpMultiFactorGenerator.FACTOR_ID);
+    if (!h) return Promise.reject(Object.assign(new Error('la cuenta no tiene app autenticadora'), {code: 'fv/sin-totp'}));
+    return res.resolveSignIn(TotpMultiFactorGenerator.assertionForSignIn(h.uid, codigo));
+  }
+};
+// </fv-mfa>
+const FV_TERMINOS = '2026-11';       // version de terminos que se acepta al crear la cuenta (usuarios/<uid>.terminos)
+const FV_PASS_MIN = 10;
+const FV_REENVIO_MS = 60000;         // entre un correo de verificacion y el siguiente
+const FV_ABC = '23456789ABCDEFGHJKMNPQRSTUVWXYZ';   // el de invitar.mjs: sin 0/O ni 1/I/L
+const FV_COD_MAL = 'revisa el código: es FV- y 16 letras y números (sin 0, O, 1, I ni L)';
+const FV_TERM_FALTA = 'para seguir, acepta los términos y el aviso de privacidad';
+const FV_CORREO_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+let fvPasoActual = null, fvResolver = null, fvSecreto = null, fvPendienteReauth = null, fvCorreoRevisado = null, fvCanjeAuto = null;
+// mayusculas, sin espacios ni guiones, con o sin el FV- de adelante; igual que hashCodigo de invitar.mjs
+function fvNormCodigo(v) {
+  // guiones largos (–, —, −) que pone el autocorrector cuentan como el guion normal
+  let s = String(v || '').toUpperCase().replace(/[\s‐-―−-]/g, '');
+  if (s.length === 16) s = 'FV' + s;
+  return new RegExp('^FV[' + FV_ABC + ']{16}$').test(s) ? s : null;
+}
+const fvCodigoBonito = s => 'FV-' + s.slice(2).match(/.{4}/g).join('-');
+async function fvHash(c) {
+  const b = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(c));
+  return [...new Uint8Array(b)].map(x => x.toString(16).padStart(2, '0')).join('');
+}
+function fvAlta() { try { const a = JSON.parse(localStorage.getItem('fv:alta') || 'null'); return a && typeof a === 'object' ? a : null; } catch (e) { return null; } }
+const fvQuitarAlta = () => { try { localStorage.removeItem('fv:alta'); } catch (e) {} };
+const fvVal = id => (document.getElementById(id) || {}).value || '';
+const fvSeccion = p => document.querySelector('#login-screen .fv-paso[data-paso="' + p + '"]');
+function fvErr(p, txt) { const e = fvSeccion(p) && fvSeccion(p).querySelector('.login-error'); if (e) e.textContent = txt || ''; }
+function fvMsg(p, txt) { const e = fvSeccion(p) && fvSeccion(p).querySelector('.fv-msg'); if (e) e.textContent = txt || ''; }
+function fvErrorAuth(e, porOmision) {
+  const c = (e && e.code) || '';
+  if (c === 'auth/network-request-failed') return 'sin conexión: revisa tu internet y vuelve a intentar';
+  if (c === 'auth/too-many-requests') return 'demasiados intentos: espera unos minutos y vuelve a intentar';
+  if (c === 'auth/invalid-email') return 'ese correo no está bien escrito';
+  if (c === 'auth/user-disabled') return 'esta cuenta está desactivada';
+  return porOmision;
+}
+// el boton dice que esta trabajando y no se puede pulsar dos veces; si no hay boton, el trabajo corre igual
+async function fvOcupado(id, txt, trabajo) {
+  const b = document.getElementById(id);
+  if (b && b.disabled) return;
+  const antes = b && b.textContent;
+  if (b) { b.disabled = true; b.textContent = txt; }
+  try { return await trabajo(); } finally { if (b) { b.disabled = false; b.textContent = antes; } }
+}
+window.fvPaso = function(p, error) {
+  if (!CFG.multi || !fvSeccion(p)) return;
+  document.querySelectorAll('#login-screen .fv-paso').forEach(s => { s.hidden = s.dataset.paso !== p; });
+  document.querySelectorAll('#login-screen .fv-paso .login-error, #login-screen .fv-paso .fv-msg').forEach(e => { e.textContent = ''; });
+  fvPasoActual = p;
+  if (error) fvErr(p, error);
+  // el titulo recibe el foco (el lector de pantalla anuncia el paso) sin abrir el teclado; el codigo de entrada si
+  const sec = fvSeccion(p), cod = p === 'codigo' && document.getElementById('fv-entrar-cod');
+  setTimeout(() => { try { (cod || sec.querySelector('h1')).focus(); } catch (e) {} }, 0);
+};
+// vuelve a decidir con la sesion de ahora (despues de verificar el correo, dar de alta la app o canjear)
+const revisarEntrada = () => alCambiarSesion(auth.currentUser);
+async function entradaFundview(user, acceso) {
+  if (!user) {
+    // sin sesion: la primera vez, entrar (o crear, si llego con la liga #invitacion); si estaba creando cuenta,
+    // recuperando contraseña o escribiendo el codigo, se queda ahi. Desde un paso con sesion, a entrar.
+    if (!fvPasoActual) {
+      const conInv = location.hash === '#invitacion';
+      // la marca se usa una vez: si se queda en la direccion, al salir o recargar volveria a "crear cuenta"
+      if (conInv) try { history.replaceState(null, '', location.pathname + location.search); } catch (e) {}
+      // si al salir no se pudo borrar la copia local, se dice una vez en "entrar" (la marca vive en esta pestaña)
+      let aviso = '';
+      try { if (sessionStorage.getItem('fv:sin-borrar')) { aviso = FV_SIN_BORRAR; sessionStorage.removeItem('fv:sin-borrar'); } } catch (e) {}
+      if (aviso) fvPaso('entrar', aviso); else fvPaso(conInv ? 'crear' : 'entrar');
+    } else if (!['entrar', 'crear', 'olvide', 'codigo'].includes(fvPasoActual)) fvPaso('entrar');
+    return;
+  }
+  if (acceso === 'sin-correo') return pasoCorreo(user);
+  if (acceso === 'sin-2fa') {
+    // ya tiene la app, pero esta sesion no paso por el codigo (por ejemplo, una sesion de antes de darla de alta)
+    if (FV_MFA.inscrito(user)) return fvVolverAEntrar(user, 'entra otra vez con tu correo y tu contraseña: ahora te pide el código de tu app autenticadora');
+    return pasoTotp(user);
+  }
+  if (acceso === 'sin-invitacion') return pasoInvitacion(user);
+  fvPaso('entrar', AVISO_ENTRADA[acceso] || (acceso === 'no' ? FV_SESION_MALA : 'no se pudo entrar con esta cuenta'));
+  try { await signOut(auth); } catch (e) {}
+}
+// cierra la sesion dejando el paso de entrar con su aviso (el paso va primero: el callback de auth ya no lo mueve)
+async function fvVolverAEntrar(user, aviso) {
+  fvSecreto = null; fvResolver = null;
+  fvPaso('entrar', aviso);
+  const c = document.getElementById('login-email'); if (c && user && user.email) c.value = user.email;
+  try { await signOut(auth); } catch (e) {}
+}
+window.fvSalirEntrada = async function() {
+  const user = auth.currentUser;
+  fvQuitarAlta();
+  await fvVolverAEntrar(user, '');
+};
+window.fvCrear = () => fvOcupado('fv-btn-crear', 'creando…', async () => {
+  const codigo = fvNormCodigo(fvVal('fv-cod')), correo = fvVal('fv-correo').trim(), pass = fvVal('fv-pass');
+  if (!codigo) return fvErr('crear', FV_COD_MAL);
+  if (!FV_CORREO_RE.test(correo)) return fvErr('crear', 'escribe tu correo');
+  if (pass.length < FV_PASS_MIN) return fvErr('crear', 'tu contraseña necesita al menos ' + FV_PASS_MIN + ' caracteres');
+  if (!document.getElementById('fv-terminos').checked) return fvErr('crear', FV_TERM_FALTA);
+  fvErr('crear', '');
+  // se guarda ANTES de crear: al crear la cuenta, puedeEntrar vuelve a abrir la pagina con el espacio del uid nuevo.
+  // Va el hash, no el codigo: el codigo en claro no se deja en el aparato
+  const hash = await fvHash(codigo);
+  try { localStorage.setItem('fv:alta', JSON.stringify({hash, terminos: FV_TERMINOS, correo: correo.toLowerCase()})); }
+  catch (e) { return fvErr('crear', AVISO_ENTRADA['sin-almacen']); }
+  try { await createUserWithEmailAndPassword(auth, correo, pass); }
+  catch (e) {
+    fvQuitarAlta();
+    const c = e && e.code;
+    fvErr('crear', c === 'auth/email-already-in-use' ? 'ya hay una cuenta con ese correo: entra con él'
+      : c === 'auth/weak-password' || c === 'auth/password-does-not-meet-requirements' ? 'esa contraseña es muy débil: usa una más larga'
+      : fvErrorAuth(e, 'no se pudo crear la cuenta: vuelve a intentar'));
+  }
+});
+// ── revisa tu correo ──
+async function pasoCorreo(user) {
+  fvPaso('correo');
+  document.getElementById('fv-correo-a').textContent = user.email || '';
+  // si ya abrio la liga (en otra pestaña u otro dia), el usuario guardado no lo sabe hasta recargarlo: una vez por cuenta
+  if (fvCorreoRevisado !== user.uid) { fvCorreoRevisado = user.uid; if (await fvRevisarCorreo(user, true)) return; }
+  let ya = null; try { ya = localStorage.getItem('fv:verif:' + user.uid); } catch (e) {}
+  if (!ya && auth.currentUser === user) await fvMandarVerificacion(user, true);
+}
+async function fvRevisarCorreo(user, callado) {
+  const falla = t => { if (!callado) fvErr('correo', t); return false; };
+  try { await conPlazoEntrada(reload(user)); } catch (e) { return falla(fvErrorAuth(e, 'no pude revisar: vuelve a intentar')); }
+  if (auth.currentUser !== user) return false;   // salio o entro otra cuenta mientras
+  if (!user.emailVerified) return falla('todavía no aparece confirmado: abre la liga del correo más reciente que te mandamos');
+  // el token viejo sigue diciendo "sin verificar" (y eso leen las reglas): se pide uno nuevo
+  try { await user.getIdToken(true); } catch (e) { return falla(fvErrorAuth(e, 'no pude revisar: vuelve a intentar')); }
+  revisarEntrada();
+  return true;
+}
+async function fvMandarVerificacion(user, auto) {
+  const k = 'fv:verif:' + user.uid;
+  let ult = 0; try { ult = Number(localStorage.getItem(k)) || 0; } catch (e) {}
+  const falta = ult + FV_REENVIO_MS - Date.now();
+  if (!auto && falta > 0) { fvMsg('correo', 'acabamos de mandarla: puedes pedir otra en ' + Math.ceil(falta / 1000) + ' segundos'); return; }
+  try {
+    await sendEmailVerification(user);
+    try { localStorage.setItem(k, String(Date.now())); } catch (e) {}
+    fvErr('correo', ''); fvMsg('correo', auto ? '' : 'listo: te mandamos otra liga');
+  } catch (e) { fvErr('correo', fvErrorAuth(e, 'no pudimos mandar el correo: vuelve a intentar')); }
+}
+window.fvYaVerifique = () => fvOcupado('fv-btn-verifique', 'revisando…', () => auth.currentUser && fvRevisarCorreo(auth.currentUser, false));
+window.fvReenviar = () => fvOcupado('fv-btn-reenviar', 'mandando…', () => auth.currentUser && fvMandarVerificacion(auth.currentUser, false));
+// al regresar de abrir la liga (otra app, otra pestaña), se revisa solo
+document.addEventListener('visibilitychange', () => {
+  if (CFG.multi && document.visibilityState === 'visible' && fvPasoActual === 'correo' && auth.currentUser) fvRevisarCorreo(auth.currentUser, true);
+});
+// ── app autenticadora ──
+async function pasoTotp(user) {
+  fvPaso('totp');
+  if (fvSecreto && fvSecreto.uid === user.uid && fvSecreto.vence > Date.now()) return;   // la clave que ya se enseño sigue valiendo
+  // el alta pudo quedar hecha en el servidor con la respuesta perdida: enrolledFactors del aparato esta viejo y pediria
+  // la misma clave en bucle. Se refresca el usuario antes de generar otra
+  try { await conPlazoEntrada(reload(user)); } catch (e) {}
+  if (auth.currentUser !== user) return;
+  if (FV_MFA.inscrito(user)) return fvVolverAEntrar(user, FV_YA_ALTA);
+  const liga = document.getElementById('fv-otp-liga'), clave = document.getElementById('fv-clave');
+  fvSecreto = null;
+  liga.removeAttribute('href'); liga.setAttribute('aria-disabled', 'true');
+  clave.textContent = 'preparando…';
+  document.getElementById('fv-btn-otra-clave').hidden = true;
+  try {
+    const s = await FV_MFA.secreto(user);
+    if (auth.currentUser !== user || fvPasoActual !== 'totp') return;
+    fvSecreto = {...s, uid: user.uid};
+    liga.href = s.liga; liga.removeAttribute('aria-disabled');
+    clave.textContent = s.clave.replace(/(.{4})(?=.)/g, '$1 ');
+  } catch (e) {
+    clave.textContent = '—';
+    const c = e && e.code;
+    if (c === 'auth/requires-recent-login') return fvPideContrasena(() => pasoTotp(user));
+    if (c === 'auth/unverified-email') return pasoCorreo(user);
+    console.error('fundview: clave de la app autenticadora', e);
+    document.getElementById('fv-btn-otra-clave').hidden = false;
+    fvErr('totp', fvErrorAuth(e, 'no pude preparar tu clave: intenta otra vez en un momento'));
+  }
+}
+window.fvOtraClave = () => { fvSecreto = null; if (auth.currentUser) pasoTotp(auth.currentUser); };
+window.fvCopiarClave = async function() {
+  if (!fvSecreto) return;
+  try { await navigator.clipboard.writeText(fvSecreto.clave); fvErr('totp', ''); palomita('fv-btn-copiar'); }
+  catch (e) { fvErr('totp', 'no se pudo copiar: selecciona la clave y cópiala a mano'); }
+};
+window.fvActivar2fa = () => fvOcupado('fv-btn-activar', 'activando…', async () => {
+  const user = auth.currentUser;
+  if (!user) return;
+  if (!fvSecreto) return fvErr('totp', 'espera a que salga tu clave');
+  const cod = fvVal('fv-totp-cod').replace(/\D/g, '');
+  if (cod.length !== 6) return fvErr('totp', 'escribe los 6 números que te da la app');
+  if (fvSecreto.vence < Date.now()) {
+    await pasoTotp(user);
+    return fvErr('totp', 'tu clave se venció: te preparamos otra; dala de alta otra vez en la app');
+  }
+  try { await FV_MFA.inscribir(user, fvSecreto, cod); }
+  catch (e) {
+    const c = e && e.code;
+    if (c === 'auth/invalid-verification-code') return fvErr('totp', 'ese código no coincide: escribe el que se ve ahora en la app para Fundview');
+    if (c === 'auth/requires-recent-login') return fvPideContrasena(() => window.fvActivar2fa());
+    // la respuesta pudo perderse con el alta ya hecha en el servidor: se refresca y, si ya esta, se sigue por entrar
+    if (c === 'auth/second-factor-already-in-use') return fvVolverAEntrar(user, FV_YA_ALTA);
+    try { await conPlazoEntrada(reload(user)); } catch (e2) {}
+    if (auth.currentUser === user && FV_MFA.inscrito(user)) return fvVolverAEntrar(user, FV_YA_ALTA);
+    console.error('fundview: alta de la app autenticadora', e);
+    return fvErr('totp', fvErrorAuth(e, 'no se pudo activar: vuelve a intentar'));
+  }
+  fvSecreto = null;
+  document.getElementById('fv-totp-cod').value = '';
+  // enroll deja el token que devolvio el servidor: si ya trae la marca del segundo factor se sigue; si no, la app
+  // quedo dada de alta pero esta sesion no cuenta como verificada y hay que entrar con el codigo (sesion 2: se
+  // confirma con el telefono de Beto cual de los dos pasa en fundview-app)
+  let f = null; try { f = await FV_MFA.factor(user); } catch (e) {}
+  if (f === FV_2FA) return revisarEntrada();
+  await fvVolverAEntrar(user, 'listo, tu app autenticadora quedó dada de alta. Entra otra vez: después de tu contraseña te pide el código');
+});
+function fvPideContrasena(luego) {
+  fvPendienteReauth = luego;
+  document.getElementById('fv-reauth').hidden = false;
+  fvErr('totp', 'por seguridad, escribe otra vez tu contraseña');
+  setTimeout(() => { try { document.getElementById('fv-reauth-pass').focus(); } catch (e) {} }, 0);
+}
+window.fvReautenticar = () => fvOcupado('fv-btn-reauth', 'revisando…', async () => {
+  const user = auth.currentUser, pass = fvVal('fv-reauth-pass');
+  if (!user) return;
+  if (!pass) return fvErr('totp', 'escribe tu contraseña');
+  try { await reauthenticateWithCredential(user, EmailAuthProvider.credential(user.email, pass)); }
+  catch (e) {
+    const c = e && e.code;
+    return fvErr('totp', ['auth/wrong-password', 'auth/invalid-credential', 'auth/invalid-login-credentials'].includes(c) ? 'esa no es tu contraseña' : fvErrorAuth(e, 'no se pudo: vuelve a intentar'));
+  }
+  document.getElementById('fv-reauth-pass').value = '';
+  document.getElementById('fv-reauth').hidden = true;
+  fvErr('totp', '');
+  const luego = fvPendienteReauth; fvPendienteReauth = null;
+  if (luego) await luego();
+});
+// ── codigo al entrar ──
+window.fvEntrarCodigo = () => fvOcupado('fv-btn-codigo', 'entrando…', async () => {
+  if (!fvResolver) return fvPaso('entrar', 'vuelve a escribir tu correo y tu contraseña');
+  const cod = fvVal('fv-entrar-cod').replace(/\D/g, '');
+  if (cod.length !== 6) return fvErr('codigo', 'escribe los 6 números que te da la app');
+  try { await FV_MFA.resolverEntrada(fvResolver, cod); fvResolver = null; document.getElementById('fv-entrar-cod').value = ''; }
+  catch (e) {
+    const c = e && e.code;
+    if (c === 'auth/invalid-verification-code') return fvErr('codigo', 'ese código no coincide: escribe el que se ve ahora en la app para Fundview');
+    if (['auth/code-expired', 'auth/invalid-multi-factor-session', 'auth/missing-multi-factor-session', 'fv/sin-totp'].includes(c)) {
+      fvResolver = null; return fvPaso('entrar', 'se venció el intento: vuelve a escribir tu correo y tu contraseña');
+    }
+    fvErr('codigo', fvErrorAuth(e, 'no se pudo entrar: vuelve a intentar'));
+  }
+});
+window.fvCancelarCodigo = () => { fvResolver = null; document.getElementById('fv-entrar-cod').value = ''; fvPaso('entrar'); };
+// ── canje de la invitacion: el MISMO lote que prueba reglas-fundview.mjs (altaUsuario + marcaInv) ──
+function pasoInvitacion(user) {
+  fvPaso('invitacion');
+  const a = fvAlta(), mia = !!a && typeof a.hash === 'string' && /^[0-9a-f]{64}$/.test(a.hash) && a.correo === String(user.email || '').toLowerCase();
+  document.getElementById('fv-inv-terminos-fila').hidden = !!(mia && a.terminos === FV_TERMINOS);
+  // con el hash de lo que escribio al crear la cuenta se canjea solo, una vez; si falla, el campo queda vacio para escribir el codigo
+  if (mia && fvCanjeAuto !== user.uid) { fvCanjeAuto = user.uid; fvCanjearHash(a.hash); }
+}
+window.fvCanjear = async () => {
+  const codigo = fvNormCodigo(fvVal('fv-inv-cod'));
+  if (!codigo) return fvErr('invitacion', FV_COD_MAL);
+  return fvCanjearHash(await fvHash(codigo));
+};
+const fvCanjearHash = h => fvOcupado('fv-btn-canjear', 'abriendo…', async () => {
+  const user = auth.currentUser;
+  if (!user) return;
+  if (!document.getElementById('fv-inv-terminos-fila').hidden && !document.getElementById('fv-inv-terminos').checked) return fvErr('invitacion', FV_TERM_FALTA);
+  fvErr('invitacion', '');
+  // un lote no se puede volver a mandar: cada intento arma el suyo
+  const lanzar = () => {
+    const lote = writeBatch(db);
+    lote.set(doc(db, 'usuarios', user.uid), {creado: serverTimestamp(), terminos: FV_TERMINOS, invitacion: h, esquema: 1});
+    lote.update(doc(db, 'invitaciones', h), {usadaPor: user.uid, usadaEn: serverTimestamp()});
+    // sin señal commit no contesta nunca (se queda en la cola del aparato): a los 15 s se avisa
+    return Promise.race([lote.commit(), new Promise((_, no) => setTimeout(() => no(Object.assign(new Error('plazo'), {code: 'fv/plazo'})), 15000))]);
+  };
+  let ok = false, err = null;
+  try { await lanzar(); ok = true; }
+  catch (e) {
+    err = e;
+    // el token puede seguir diciendo "sin verificar" (o sin segundo factor): antes de culpar al codigo, uno nuevo y UN reintento
+    if (e && e.code === 'permission-denied') {
+      try { await user.getIdToken(true); await lanzar(); ok = true; err = null; } catch (e2) { err = e2; }
+    }
+  }
+  // la respuesta pudo perderse con el lote ya aplicado (o llegar un intento anterior que seguia en la cola): manda el servidor
+  if (!ok) { try { const u = await conPlazoEntrada(getDocFromServer(doc(db, 'usuarios', user.uid))); if (u.exists()) ok = true; } catch (e) {} }
+  if (auth.currentUser !== user) return;
+  if (!ok) {
+    const c = err && err.code;
+    console.error('fundview: canje de invitacion', err);
+    return fvErr('invitacion', c === 'permission-denied' || c === 'not-found' ? 'ese código no sirve: puede estar mal escrito o ya se usó. Revísalo o pide otro a quien te invitó'
+      : c === 'fv/plazo' || c === 'unavailable' ? 'sin conexión: vuelve a intentar cuando tengas señal' : 'no se pudo abrir tu cartera: vuelve a intentar');
+  }
+  fvQuitarAlta();
+  revisarEntrada();
+});
+// ── olvide mi contraseña: el mismo aviso exista o no la cuenta (no se descubre quien tiene cuenta) ──
+window.fvOlvide = () => fvOcupado('fv-btn-olvide', 'mandando…', async () => {
+  const correo = fvVal('fv-olv-correo').trim();
+  if (!FV_CORREO_RE.test(correo)) return fvErr('olvide', 'escribe tu correo');
+  fvErr('olvide', ''); fvMsg('olvide', '');
+  try { await sendPasswordResetEmail(auth, correo); }
+  catch (e) { if (!e || e.code !== 'auth/user-not-found') return fvErr('olvide', fvErrorAuth(e, 'no se pudo mandar: vuelve a intentar')); }
+  fvMsg('olvide', 'si hay una cuenta con ese correo, te llegó una liga para poner una contraseña nueva (búscala también en spam)');
+});
+// ── salir en Fundview: el aparato queda limpio (copia local de Firestore, claves de la cuenta y su bandeja) ──
+// devuelve false si la copia local de Firestore NO se pudo borrar
+async function limpiarAparatoFundview(uid) {
+  let borrada = true;
+  try { await terminate(db); } catch (e) { console.error('fundview: terminate', e); }
+  // falla si otra pestaña de la app sigue abierta con la misma base: se avisa en consola y se sigue
+  try { await clearIndexedDbPersistence(db); } catch (e) { borrada = false; console.error('fundview: no se pudo borrar la copia local (¿otra pestaña abierta?)', e); }
+  try {
+    const quitar = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (k === 'fv:uid' || k === 'fv:alta' || k.startsWith('fv:verif:') || (uid && k.startsWith('usuarios/' + uid + '/')) || k.startsWith('usuarios/sin-sesion/')) quitar.push(k);
+    }
+    quitar.forEach(k => localStorage.removeItem(k));
+  } catch (e) {}
+  try { sessionStorage.removeItem('fv:recarga'); } catch (e) {}
+  if (uid) try {
+    await bandejaTx([B_ALMACEN], 'readwrite', tx => {
+      const st = tx.objectStore(B_ALMACEN), pet = st.getAll();
+      pet.onsuccess = () => (pet.result || []).forEach(c => { if (c.uid === uid) st.delete(c.id); });
+    });
+  } catch (e) { console.error('fundview: bandeja', e); }
+  return borrada;
+}
+// Fundview con varias pestañas: la que sale avisa ANTES de cerrar sesion; las demas sueltan la base (terminate) y
+// esperan el "listo" para recargarse (si no llega, a los 3 s). Si una pestaña recargara antes, volveria a abrir la
+// copia local y clearIndexedDbPersistence fallaria. Sin esto otra pestaña se quedaba con los datos del usuario anterior.
+const fvCanal = (CFG.multi && typeof BroadcastChannel === 'function') ? new BroadcastChannel('fv-salida') : null;
+const fvAvisarSalida = m => { try { if (fvCanal) fvCanal.postMessage(m); } catch (e) {} };
+if (fvCanal) fvCanal.onmessage = async ev => {
+  if (ev.data === 'salgo') {
+    if (!auth.currentUser && !datosCargados) return;   // una pestaña sin sesion (pantalla de entrar) no tiene nada que soltar
+    recargandoUid = true; desuscribir();
+    try { await terminate(db); } catch (e) {}
+    setTimeout(() => location.reload(), 3000);
+  } else if (ev.data === 'listo' && recargandoUid) location.reload();
+};
+const FV_SIN_BORRAR = 'no pude borrar la copia de tus datos en este teléfono: cierra las otras pestañas de Fundview y vuelve a salir';
+
 window.doLogout = async function() {
   // (15-oct-2026) con movimientos en la bandeja del telefono se avisa: NO se borran, se quedan
   // en este aparato y suben cuando esta misma cuenta vuelva a entrar con senal
+  // (1-nov-2026) en Fundview salir LIMPIA el aparato: lo que no ha subido se pierde, y se dice antes
+  const uid = uidActual() || CFG.uid;
+  let n = 0, pend = false;
   try {
-    const uid = uidActual();
     // tope de 3 s: si IndexedDB se cuelga (iOS), cae al catch y la sesion se cierra igual
     const todos = await Promise.race([listarComandos(),
       new Promise((_, no) => setTimeout(() => no(new Error('la bandeja no contestó en 3 s')), 3000))]);
-    const n = todos.filter(c => c.uid === uid && c.estado !== B_EST.CONFIRMADO).length;
-    if (n && !(await confirmarDeslizando({titulo:'¿Salir con movimientos sin subir?',
+    n = todos.filter(c => c.uid === uid && c.estado !== B_EST.CONFIRMADO).length;
+  } catch(e) { console.error('logout: revisar bandeja', e); }
+  // Fundview: las escrituras de Firestore que esperan señal (fuera de la bandeja) tambien se pierden al limpiar el aparato
+  if (CFG.multi) {
+    try { await Promise.race([waitForPendingWrites(db),
+      new Promise((_, no) => setTimeout(() => no(new Error('hay escrituras sin confirmar')), 3000))]); }
+    catch (e) { pend = true; }
+  }
+  try {
+    if ((n || pend) && !(await confirmarDeslizando(CFG.multi ? {titulo:'¿Salir y borrar lo que no ha subido?',
+        texto: (n ? 'Tienes ' + n + ' movimiento(s) guardados en este teléfono' + (pend ? ' y otros cambios' : '') : 'Hay cambios')
+          + ' que todavía no llegan a tu cuenta. Al salir, Fundview borra tus datos de este teléfono y ' + (n && !pend ? 'esos movimientos se pierden.' : 'esos cambios se pierden.'),
+        verbo:'salir y borrarlos'} : {titulo:'¿Salir con movimientos sin subir?',
         texto:'Tienes ' + n + ' movimiento(s) guardados en este teléfono que todavía no llegan a tu cuenta. Se quedan aquí y suben cuando vuelvas a entrar con señal.',
         verbo:'salir'}))) return;
-  } catch(e) { console.error('logout: revisar bandeja', e); }
+  } catch(e) { console.error('logout: confirmar', e); }
   clearTimeout(bandejaTimer); bandejaTimer = null;
   clearTimeout(senalTimer); senalTimer = null;
   desuscribir(); // cortar los listeners ANTES de perder el token, si no tiran permission-denied
   datosCargados = false;
-  await signOut(auth);
+  if (!CFG.multi) { await signOut(auth); return; }
+  recargandoUid = true;   // la pagina se limpia y se vuelve a abrir: el callback de auth no pinta nada mientras
+  fvAvisarSalida('salgo');   // antes del signOut: las otras pestañas ignoran el cambio de sesion y sueltan la base
+  try { await signOut(auth); }
+  catch (e) {
+    // sigue la sesion: no se limpia ni se recarga
+    console.error('fundview: signOut', e);
+    showToast('no se pudo cerrar la sesión: vuelve a intentar');
+    recargandoUid = false;
+    fvAvisarSalida('listo');
+    return;
+  }
+  if (fvCanal) await new Promise(r => setTimeout(r, 400));   // que las otras pestañas alcancen a soltar la base
+  const borrada = await limpiarAparatoFundview(uid);
+  if (!borrada) try { sessionStorage.setItem('fv:sin-borrar', '1'); } catch (e) {}   // se dice en "entrar" tras la recarga
+  fvAvisarSalida('listo');
+  location.reload();
 };
 
 // recuperacion: si la sesion guardada quedo en mal estado (token viejo tras un cambio
@@ -2266,6 +2810,13 @@ window.reintentarLogin = async function() {
 
 // Enter key on login
 document.getElementById('login-pass').addEventListener('keydown', e => { if (e.key === 'Enter') window.doLogin(); });
+// Fundview: Enter en un campo de cualquier paso pulsa su boton principal
+if (CFG.multi) document.getElementById('login-screen').addEventListener('keydown', e => {
+  if (e.key !== 'Enter' || e.target.id === 'login-pass' || e.target.tagName !== 'INPUT' || e.target.type === 'checkbox') return;
+  const sec = e.target.closest('.fv-paso');
+  const b = e.target.id === 'fv-reauth-pass' ? document.getElementById('fv-btn-reauth') : sec && sec.querySelector('button.login-btn');
+  if (b && !b.disabled) { e.preventDefault(); b.click(); }
+});
 
 // Lo que dice #status-inicio al abrir: la verdad sobre los precios guardados (15-oct-2026)
 function textoEstadoPrecios() {
@@ -2276,13 +2827,16 @@ function textoEstadoPrecios() {
   if (fechas.length < syms.length) return 'faltan precios de algunas acciones · pulsa actualizar';
   return 'precios del ' + cierreDash(fechas[0]).txt + ' · pulsa actualizar';
 }
-onAuthStateChanged(auth, async user => {
+async function alCambiarSesion(user) {
   if (recargandoUid) return;   // la pagina ya se esta volviendo a abrir: ni signOut ni avisos
+  // Fundview: la sesion se cerro por otro lado (otra pestaña, o la cuenta) con los datos de la cuenta en pantalla: se vuelve a abrir limpia
+  if (CFG.multi && !user && datosCargados) { recargandoUid = true; location.reload(); return; }
   const gen = ++genAuth;
   const acceso = user ? await puedeEntrar(user) : 'no';
   if (gen !== genAuth || recargandoUid) return;   // llego otro cambio de sesion mientras esperaba: manda el nuevo
   if (acceso === 'recargando') return;
   if (acceso === 'si') {
+    if (CFG.multi) { fvPasoActual = null; fvResolver = null; }   // un cierre de sesion desde otra pestaña no debe dejar visible el paso del codigo
     document.getElementById('login-screen').classList.add('hidden');
     document.getElementById('loading-overlay').classList.remove('hidden');
     // un error de una carga anterior no se queda pegado en el overlay
@@ -2347,10 +2901,12 @@ onAuthStateChanged(auth, async user => {
   } else {
     document.getElementById('login-screen').classList.remove('hidden');
     document.getElementById('loading-overlay').classList.add('hidden');
+    if (CFG.multi) return entradaFundview(user, acceso);   // en Fundview cada cosa que falta tiene su pantalla
     if (user && AVISO_ENTRADA[acceso]) document.getElementById('login-error').textContent = AVISO_ENTRADA[acceso];
     if (user) signOut(auth);
   }
-});
+}
+onAuthStateChanged(auth, alCambiarSesion);
 
 // ── DEFAULT DATA ──────────────────────────────────────────────
 // Vacio a proposito: el repo es publico, asi que los saldos y movimientos reales de
