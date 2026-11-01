@@ -41,6 +41,8 @@ const getDoc = async () => { ESCRITURAS++; return snapDoc(undefined); };
 // ── stubs de la app ─────────────────────────────────────────
 const db = {};
 let datosCargados = false;
+// mismas claves que la app (una-base, 31-oct): las copias prefijan con su espacio
+const lsKey = k => NS === 'cartera' ? k : NS + ':' + k;
 const localStorage = { _d:{}, getItem(k){return this._d[k]??null;}, setItem(k,v){this._d[k]=v;} };
 const document = { getElementById: () => null };
 // la funcion nueva registra un listener de 'online' para reintentar sola
@@ -92,12 +94,12 @@ const papaSrc = HTML.includes('const conCatPapa')
   ? HTML.slice(HTML.indexOf('const CAT_PAPA ='), HTML.indexOf('\n', HTML.indexOf('const conCatPapa'))+1) : '';
 const ARGS = ['db','doc','collection','query','orderBy','getDocFromCache','getDocsFromCache',
   'state','derivarPosiciones','document','localStorage','console',
-  'NS','C_GASTOS','C_INGRESOS','C_TRANSF','C_OPS','C_REND',
+  'NS','C_GASTOS','C_INGRESOS','C_TRANSF','C_OPS','C_REND','lsKey',
   'window','loadFromFirebase','showToast','renderCatSelect','refrescar',
   'renderPersonaSelect','render','renderMovimientos','renderTransferencias','datosCargados'];
 const VALS = [db, doc, collection, query, orderBy, getDocFromCache, getDocsFromCache,
   state, derivarPosiciones, document, localStorage, console,
-  NS, PFX+'gastos', PFX+'ingresos', PFX+'transferencias', PFX+'stocksOps', PFX+'rendimientos',
+  NS, PFX+'gastos', PFX+'ingresos', PFX+'transferencias', PFX+'stocksOps', PFX+'rendimientos', lsKey,
   window, loadFromFirebase, showToast, renderCatSelect, refrescar,
   renderPersonaSelect, render, renderMovimientos, renderTransferencias, datosCargados];
 const { pintarDesdeCache, marcarCopiaLocal, marcarSincronizado } = new Function(
@@ -251,7 +253,7 @@ chk('y ofrece un boton para reintentar', hijos.length === 1 && hijos[0].textCont
     'hijos=' + hijos.length);
 ms();
 chk('al confirmar servidor se esconde', el.hidden === true);
-chk('y guarda la fecha de la ultima sincronizacion', !!localStorage.getItem('ultimaSync'));
+chk('y guarda la fecha de la ultima sincronizacion', !!localStorage.getItem(lsKey('ultimaSync')));
 mcl(true);
 chk('esa fecha se le muestra al usuario', /última vez al día/.test(el.textContent), el.textContent);
 

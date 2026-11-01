@@ -190,3 +190,24 @@ Cualquier cambio a `index.html` (o `sw.js`) se sube directo al repo en GitHub y 
   el monto con la deuda y lleva a elegir la cuenta; el pago lo sigue registrando "− pagué". En modo privado no llena
   (el input enseñaría la deuda). Prueba: `pruebas-sin-senal\e2e-pagar-total.mjs` (26). Falta portarlo a Eli, Toño, Zoe
   y la casa (mismos ids; la casa solo tiene la BBVA).
+
+## Una base para todas las carteras (31-oct-2026, rama `una-base-2026-10-31`)
+
+- **La de Zoe ya no es un archivo aparte:** es ESTE `index.html` con su bloque `window.CFG` (arriba del `<head>`), armado
+  con `Desktop\CARTERA\copias\armar.mjs zoe` (fuera del repo). Lo único que cambia por copia: `ns`/`pfx` (espacio de
+  datos), `correo`, `apagar` (cuentas que no tiene: no salen en ningún lado, sus datos no se tocan), `renombrar` (nombre,
+  banco, textos y `def` del modelo de interés sobre su entrada de `REG_CUENTAS`), `premium`, `metaAhorro`/`metaBolsa`,
+  `catsGasto`/`catsIngreso`. **Un cambio en Mi Cartera se lleva a Zoe volviendo a correr `armar.mjs`**, no a mano.
+- **Reglas que no se rompen:** toda ruta de Firestore va por `NS`/`C_GASTOS`/`C_INGRESOS`/`C_TRANSF`/`C_OPS`/`C_REND`
+  (nunca `'cartera'`, `'gastos'`… escritos, tampoco en un ternario: así se escaparon cinco); `amigos` es compartida a
+  propósito. Toda clave de `localStorage` va por `lsKey()`. Las piezas fijas de una cuenta (tarjeta de Inicio, panel,
+  gráfica) llevan `data-cuenta`/`data-inicio` para esconderse si está apagada; lo que cuente su dinero pregunta
+  `ctaApagada(id)` (ej. `depositoTdc()`). Los valores iniciales de bandas salen de `defBanda()`. `armar.mjs` falla si
+  queda una ruta fija o el correo de Roberto.
+- **Antes de publicar una copia:** `test-*.mjs` con `APP=<copia> NS=<ns> PFX=<pfx>` (test-atajo compara contra una
+  versión vieja con rutas de Roberto: con otra NS sale "distinto" por la ruta; correrlo con la copia y NS por omisión),
+  la foto de Inicio de Roberto (`foto-inicio.mjs`, idéntica salvo el letrero) y `pruebas-sin-senal\e2e-zoe-base.mjs
+  <index-viejo> <index-nuevo>` (17 casos: mismo patrimonio que su versión anterior, nada en el espacio de Roberto).
+- **Falta:** Eli y Toño (tienen un sistema propio de cuentas configurables, `CAPS`/`cfgCta`/`tdcGarantizada` con tarjeta
+  normal o garantizada, que hay que pasar a la base antes); la casa no entra (es otra app). Textos con "universidad" y
+  algunos de Revolut siguen escritos (no se ven en la de Zoe mientras no use fondos).

@@ -12,8 +12,17 @@
 <link rel="icon" href="icon-192.png">
 <title>Mi Cartera</title>
 <script>
+// ── CONFIGURACION DE ESTA CARTERA ── lo UNICO que cambia entre las copias (Zoe, Eli, Tono):
+// espacio de datos en Firestore (ns/pfx) y correo. Todo lo demas es el mismo archivo.
+// apagar: cuentas del registro que esta persona no tiene (no salen en ningun lado; sus datos no se tocan).
+// renombrar: {id:{nombre, banco, prod, etq:{...}, ui:{...}}} se mezcla sobre su entrada del registro.
+// premium: la suscripcion legada de Revolut Premium (solo Roberto). metaAhorro/metaBolsa: metas viejas por omision.
+window.CFG = Object.freeze({ns:'cartera', pfx:'', correo:'rl7103405@gmail.com',
+  apagar:[], renombrar:{}, premium:145, metaAhorro:25000, metaBolsa:12000});
+</script>
+<script>
 // tema ANTES de pintar (evita el destello del tema anterior); allowlist estricta
-(function(){var t=null;try{t=localStorage.getItem('tema');}catch(e){}
+(function(){var t=null,ns=(window.CFG&&window.CFG.ns)||'cartera';try{t=localStorage.getItem(ns==='cartera'?'tema':ns+':tema');}catch(e){}
   // '' es una elección válida (verde salvia): solo null significa "nunca eligió"
   try{if(t===null&&window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches) t='grafito';}catch(e){}
   try{
@@ -340,6 +349,8 @@ html[data-tema='grafito'] .tabs{--sombra-scroll:rgba(255,255,255,.16)}
 /* el botón de confirmar ocupa su lugar aunque esté oculto: la perilla no salta al aparecer.
    visibility:hidden lo saca del foco y del lector igual que hidden */
 .desliza-si[hidden]{display:none!important}
+/* (31-oct-2026) piezas de cuentas apagadas en esta cartera (window.CFG.apagar) */
+[data-cuenta][hidden],[data-inicio][hidden]{display:none!important}
 /* (20-oct-2026) cuentas en otra moneda: .cards y .type-toggle definen display y le ganan a hidden */
 #cx-cards[hidden],#gasto-fuente-x[hidden],#ingreso-destino-x[hidden]{display:none!important}
 .desliza-pista{display:flex;align-items:center;justify-content:center;height:46px;margin-top:4px;font-size:13px;color:var(--muted);text-align:center}
@@ -905,7 +916,7 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
   </div>
   </div>
   </details>
-  <details class="acc">
+  <details class="acc" data-cuenta="tarjetaRev">
   <summary>
     <div class="acc-icon chip-rev"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="5" width="19" height="14" rx="2.5"/><path d="M2.5 10h19"/><path d="M6 15h4"/></svg></div>
     <div><div class="acc-tit">TDC Revolut</div><div class="acc-sub">cargos, pagos y depósito de garantía</div></div>
@@ -1110,12 +1121,12 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
          lo hace una pestaña llena de graficas vacias solo le estorba -->
     <div class="section-title mt">qué pestañas ves</div>
     <div class="panel">
-      <div class="item-meta" style="line-height:1.5;margin-bottom:10px">
+      <div class="item-meta" data-cuenta="stocks" style="line-height:1.5;margin-bottom:10px">
         Enciéndelo si compras acciones y quieres una pestaña con el detalle: cuánto llevas
         invertido, cuánto vale hoy, cómo va cada posición y a qué le estás apostando.
         Si no inviertes, déjalo apagado y la pestaña ni aparece.
       </div>
-      <div class="type-toggle" id="dashboard-toggle">
+      <div class="type-toggle" id="dashboard-toggle" data-cuenta="stocks">
         <div class="type-opt" id="dash-off" onclick="setDashboard(false)">apagado</div>
         <div class="type-opt" id="dash-on" onclick="setDashboard(true)">encendido</div>
       </div>
@@ -1240,7 +1251,7 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
 <div class="page" id="page-dashboard">
   <div class="dhead"><h2>Tablero de inversiones</h2><div class="daviso" id="dash-aviso"></div></div>
   <div class="dkpis" id="dash-kpis"><div class="empty-state">calculando...</div></div>
-  <div class="dop">
+  <div class="dop" data-cuenta="stocks">
   <details class="acc" id="stock-acc">
   <summary>
     <div class="acc-icon chip-oro"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l6-6 4 4 8-8"/><path d="M15 7h6v6"/></svg></div>
@@ -1399,7 +1410,7 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
     <div class="section-title" id="cierre-title">cierre del mes</div>
     <div class="panel" id="res-cierre" style="margin-bottom:16px"></div>
     <div class="summary-grid">
-    <div class="sec">
+    <div class="sec" data-cuenta="stocks">
     <div class="section-title chart-titulo"><span>inversiones en bolsa · evolución</span><div id="gbm-modos"></div></div>
     <div class="panel" id="gbm-chart"></div>
     </div>
@@ -1538,7 +1549,16 @@ const firebaseConfig = {
   messagingSenderId: "31404911125",
   appId: "1:31404911125:web:7d01272350b6a2271bbc1c"
 };
-const app = initializeApp(firebaseConfig);
+// ESPACIO DE DATOS (de window.CFG): varias carteras comparten el proyecto de Firebase sin verse
+// los datos; las reglas amarran cada espacio a su correo. 'cartera' + '' = la de Roberto.
+const CFG = window.CFG || {ns:'cartera', pfx:'', correo:''};
+const NS = CFG.ns, PFX = CFG.pfx;
+const C_GASTOS=PFX+'gastos', C_INGRESOS=PFX+'ingresos', C_TRANSF=PFX+'transferencias', C_OPS=PFX+'stocksOps';
+// localStorage es del dominio y las copias viven todas en github.io: sus claves llevan el espacio
+const lsKey = k => NS === 'cartera' ? k : NS + ':' + k;
+// la instancia lleva el nombre del espacio: Auth guarda la sesion por (proyecto + instancia), asi dos
+// copias en el mismo dominio no se expulsan; la de Roberto sigue en la instancia por defecto (no pierde su sesion)
+const app = NS === 'cartera' ? initializeApp(firebaseConfig) : initializeApp(firebaseConfig, NS);
 // CACHE PERSISTENTE (IndexedDB): sin esto, cada apertura releia TODO de la red y en el
 // telefono con senal mala eso eran varios segundos de pantalla de carga. Con la cache,
 // si la red tarda o no hay, Firestore responde con lo ultimo guardado en el aparato.
@@ -1557,13 +1577,13 @@ try {
 }
 const auth = getAuth(app);
 
-const ALLOWED_EMAIL = 'rl7103405@gmail.com';
+const ALLOWED_EMAIL = CFG.correo;
 const TITULOS = 45;
 // metas de Roberto para el cierre de 2026 y cuota mensual del plan Premium de Revolut
 // Las metas YA NO se queman aqui: viven en el documento cartera/metas y se editan
 // desde la pestana metas (state.metas / editarMetas). Estos son solo los valores con
 // los que arranca la primera vez.
-const META_SAVINGS_DEF = 25000, META_STOCKS_DEF = 12000, META_FECHA_DEF = '2026-12-31', PREMIUM_MONTO = 145;
+const META_SAVINGS_DEF = CFG.metaAhorro ?? 25000, META_STOCKS_DEF = CFG.metaBolsa ?? 12000, META_FECHA_DEF = '2026-12-31', PREMIUM_MONTO = CFG.premium ?? 145;
 // ── REGISTRO DE CUENTAS ──
 // (27-oct-2026) UNA entrada por cuenta: de aqui salen CUENTAS, CAMPO_SIMPLE, CAMPO_COMP y todas
 // las listas de "en que participa" (gasto, ingreso, fondo, transferencias, deudas...). En `en`, el
@@ -1647,6 +1667,28 @@ const REG_CUENTAS=[
   {id:'stocks',     nombre:'Stocks (bolsa)',
    en:{proyectable:4, inicio:9}}
 ];
+// (31-oct-2026, una base) cada cartera apaga las cuentas que no tiene y renombra las suyas (window.CFG).
+// Una apagada solo conserva el mapeo a sus campos (simple/comp), para leer y deshacer datos viejos;
+// sin grupo no suma al patrimonio y sin listas no sale en ninguna pantalla.
+const APAGADAS = new Set((typeof CFG === 'object' && CFG && CFG.apagar) || []);
+const ctaApagada = id => APAGADAS.has(id);
+(() => {
+  const rn = (typeof CFG === 'object' && CFG && CFG.renombrar) || {};
+  REG_CUENTAS.forEach(c => {
+    const r = rn[c.id];
+    if (r) {
+      ['nombre', 'banco', 'prod'].forEach(k => { if (r[k] !== undefined) c[k] = r[k]; });
+      if (r.ui) c.ui = {...(c.ui || {}), ...r.ui};
+      if (r.etq) c.etq = {...(c.etq || {}), ...r.etq};
+      // el modelo de interes por omision de ESTA persona (p. ej. una cajita sin banda), solo si no capturo uno
+      if (r.def && c.comp) c.comp = {...c.comp, def: {...c.comp.def, ...r.def}};
+    }
+    if (APAGADAS.has(c.id)) {
+      c.apagada = true; delete c.grupo;
+      c.en = Object.fromEntries(Object.entries(c.en).filter(([k]) => k === 'simple' || k === 'comp'));
+    }
+  });
+})();
 // ids de las cuentas que participan en una lista, en su orden de pantalla
 const ctasEn=lista=>REG_CUENTAS.filter(c=>c.en[lista]).sort((a,b)=>a.en[lista]-b.en[lista]).map(c=>c.id);
 // campos de cartera/saldos de cada cuenta: numeros (saldo simple; base, tasa y bandas) y textos
@@ -1661,8 +1703,10 @@ const ctasGrupo=g=>REG_CUENTAS.filter(c=>c.grupo===g).map(c=>c.id);
 // Cuentas que una meta puede seguir. La meta se mide SOLA contra el saldo real de esa
 // cuenta; por eso el catalogo es cerrado (una meta a una cuenta que no existe no se
 // podria medir). 'patrimonio' es el total de todo.
-const METAS_CUENTAS={revSavings:'Revolut Savings', mifel:'Mifel', stocks:'invertido en bolsa', efectivo:'efectivo',
-  nu:'NU saldo', cajita1:'NU cajita 1', revolut:'Revolut MXN', patrimonio:'patrimonio total'};
+// (31-oct-2026) nombres del registro (ya renombrados por cartera); sin las cuentas apagadas
+const METAS_CUENTAS=Object.fromEntries(Object.entries({revSavings:'', mifel:'', stocks:'invertido en bolsa', efectivo:'',
+  nu:'', cajita1:'', revolut:'', patrimonio:'patrimonio total'}).filter(([k])=>!ctaApagada(k))
+  .map(([k,v])=>[k, v || REG_CUENTAS.find(c=>c.id===k).nombre]));
 // de esas, las unicas cuyas APORTACIONES sabemos medir (aportacionesEnRango): solo estas
 // se pueden proyectar en "el camino"; el resto se muestra sin proyeccion
 const METAS_PROYECTABLES=ctasEn('proyectable');
@@ -1746,6 +1790,9 @@ const idsFormComp=c=>{ const p='input-'+c.ui.inp;
     ret:c.ui.conRet?p+'-ret':null, vigencia:c.vigencia?p+'-vigencia':null,
     semilla:p+'-semilla', semillaFecha:p+'-semilla-fecha'}; };
 const ctaReg=id=>REG_CUENTAS.find(c=>c.id===id);
+// esconde (no borra: render les sigue escribiendo) las piezas fijas de las cuentas apagadas
+const esconderApagadas = () => document.querySelectorAll('[data-cuenta],[data-inicio]').forEach(el => {
+  if (ctaApagada(el.dataset.cuenta || el.dataset.inicio)) el.hidden = true; });
 const ctasInicio=()=>ctasEn('inicio').map(ctaReg).filter(c=>c.ui);        // las de tarjeta generica
 const ctasForm=()=>ctasEn('form').map(ctaReg);
 function pintarTarjetasInicio() {
@@ -1771,6 +1818,7 @@ function pintarTarjetasInicio() {
   });
   // todas (genericas y propias) en el orden de Inicio del registro
   ctasEn('inicio').forEach(id=>{ const el=cont.querySelector(`:scope>[data-inicio="${id}"]`); if(el) cont.appendChild(el); });
+  esconderApagadas();
 }
 function pintarFormSaldos() {
   const e=escapeHtml;
@@ -1795,13 +1843,14 @@ function pintarFormSaldos() {
 }
 pintarTarjetasInicio();
 pintarFormSaldos();
-const CATS_GASTO_DEFAULT = ['Comida','Transporte','Salidas','Zoe','Ropa','Salud','Suscripciones','Educacion','Casa','Entretenimiento','Viajes','Regalos','Otros'];
-const CATS_INGRESO_DEFAULT = ['Trabajo','Quini','Maicitos','Brownies','Regalos','Deudas cobradas','Inversiones','Otros'];
+// las de cada cartera vienen en window.CFG (solo se usan si su doc de categorias no existe)
+const CATS_GASTO_DEFAULT = CFG.catsGasto || ['Comida','Transporte','Salidas','Zoe','Ropa','Salud','Suscripciones','Educacion','Casa','Entretenimiento','Viajes','Regalos','Otros'];
+const CATS_INGRESO_DEFAULT = CFG.catsIngreso || ['Trabajo','Quini','Maicitos','Brownies','Regalos','Deudas cobradas','Inversiones','Otros'];
 const MESES = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
 
 // modo privado: oculta todos los montos (para ensenar la pantalla sin ensenar el dinero)
 let modoPrivado=false;
-try { modoPrivado = localStorage.getItem('modoPrivado')==='1'; } catch(e) {}
+try { modoPrivado = localStorage.getItem(lsKey('modoPrivado'))==='1'; } catch(e) {}
 function fmt(n) {
   if (modoPrivado) return '$ ····';
   if (n === null || n === undefined || isNaN(n)) return '$—';
@@ -2077,7 +2126,7 @@ document.getElementById('login-pass').addEventListener('keydown', e => { if (e.k
 // Lo que dice #status-inicio al abrir: la verdad sobre los precios guardados (15-oct-2026)
 function textoEstadoPrecios() {
   const syms = Object.keys(state.posiciones || {}).filter(k => state.posiciones[k].acciones > 0);
-  if (!syms.length) return 'pulsa actualizar para traer precios';
+  if (!syms.length) return ctaApagada('stocks') ? '' : 'pulsa actualizar para traer precios';   // sin bolsa en esta cartera, nada que traer
   const fechas = syms.map(s => ((state.accionesMkt || {})[s] || {}).fecha).filter(f => /^\d{4}-\d{2}-\d{2}$/.test(f || '')).sort();
   if (!fechas.length) return 'sin precios todavía · pulsa actualizar';
   if (fechas.length < syms.length) return 'faltan precios de algunas acciones · pulsa actualizar';
@@ -2155,14 +2204,17 @@ onAuthStateChanged(auth, async user => {
 // copia local o el servidor (ver pintarDesdeCache y loadFromFirebase, que lo reemplazan).
 const PERSONAS_DEFAULT = {};
 
+// valor inicial de un campo de banda, del modelo por omision del registro (ya con lo de esta cartera);
+// un tope null (sin banda) se guarda como 0, que modeloComp lee como "sin tope"
+const defBanda = (id, k) => { const v = REG_CUENTAS.find(c => c.id === id).comp.def[k]; return v == null ? 0 : v; };
 // ── STATE ─────────────────────────────────────────────────────
 let state = {
   nuCajita1Base:0, nuCajita1Fecha:hoyLocal(), nuCajita1Tasa:13,
   // bandas de saldo: tasa normal hasta el tope, tasaExc sobre el excedente; ret =
   // retencion ISR anual sobre capital (0 = el banco muestra el interes bruto).
   // tope 0 significa "sin tope" (ver modeloComp)
-  nuCajita1Tope:25000, nuCajita1TasaExc:6.5, nuCajita1Ret:0,
-  revSavingsTope:25000, revSavingsTasaExc:7.3, revSavingsRet:0.9,
+  nuCajita1Tope:defBanda('cajita1','tope'), nuCajita1TasaExc:defBanda('cajita1','tasaExc'), nuCajita1Ret:defBanda('cajita1','ret'),
+  revSavingsTope:defBanda('revSavings','tope'), revSavingsTasaExc:defBanda('revSavings','tasaExc'), revSavingsRet:defBanda('revSavings','ret'),
   // Mifel: vigencia = hasta cuando esta CONFIRMADA la tasa (la promocion vence el 31-oct); '' = sin fecha
   mifelBase:0, mifelFecha:'', mifelTasa:MIFEL_DEF.tasa, mifelTope:MIFEL_DEF.tope, mifelTasaExc:MIFEL_DEF.tasaExc,
   mifelRet:MIFEL_DEF.ret, mifelVigencia:'2026-10-31',
@@ -2226,19 +2278,19 @@ async function pintarDesdeCache() {
   let r;
   try {
     r = await Promise.allSettled([
-      getDocFromCache(doc(db,'cartera','saldos')),
-      getDocFromCache(doc(db,'cartera','tarjeta')),
-      getDocFromCache(doc(db,'cartera','tarjetaRev')),
-      getDocFromCache(doc(db,'cartera','personas')),
-      getDocFromCache(doc(db,'cartera','categorias')),
-      getDocFromCache(doc(db,'cartera','historial')),
-      getDocFromCache(doc(db,'cartera','mercado')),
+      getDocFromCache(doc(db,NS,'saldos')),
+      getDocFromCache(doc(db,NS,'tarjeta')),
+      getDocFromCache(doc(db,NS,'tarjetaRev')),
+      getDocFromCache(doc(db,NS,'personas')),
+      getDocFromCache(doc(db,NS,'categorias')),
+      getDocFromCache(doc(db,NS,'historial')),
+      getDocFromCache(doc(db,NS,'mercado')),
       // el fondo entra al TODO O NADA: sin el, la copia local pintaria lo apartado como tuyo
-      getDocFromCache(doc(db,'cartera','fondo')),
-      getDocsFromCache(query(collection(db,'gastos'), orderBy('fecha','desc'))),
-      getDocsFromCache(query(collection(db,'ingresos'), orderBy('fecha','desc'))),
-      getDocsFromCache(query(collection(db,'transferencias'), orderBy('fecha','desc'))),
-      getDocsFromCache(query(collection(db,'stocksOps'), orderBy('fecha','asc'))),
+      getDocFromCache(doc(db,NS,'fondo')),
+      getDocsFromCache(query(collection(db,C_GASTOS), orderBy('fecha','desc'))),
+      getDocsFromCache(query(collection(db,C_INGRESOS), orderBy('fecha','desc'))),
+      getDocsFromCache(query(collection(db,C_TRANSF), orderBy('fecha','desc'))),
+      getDocsFromCache(query(collection(db,C_OPS), orderBy('fecha','asc'))),
       getDocsFromCache(query(collection(db,C_REND), orderBy('fin','asc'))),
       // (20-oct-2026) las cuentas en otra moneda entran al TODO O NADA: sin ellas el total saldria bajo
       getDocFromCache(docCX()),
@@ -2322,7 +2374,7 @@ function marcarCopiaLocal(activo, falloSync) {
   if (!el) return;
   el.hidden = !activo;
   if (activo) {
-    const ult = (()=>{ try { return localStorage.getItem('ultimaSync'); } catch(e) { return null; } })();
+    const ult = (()=>{ try { return localStorage.getItem(lsKey('ultimaSync')); } catch(e) { return null; } })();
     const txt = (falloSync ? 'copia local SIN confirmar — no hay conexión' : 'mostrando tu copia local · sincronizando…')
       + (ult ? ' · última vez al día: ' + ult : '');
     el.textContent = txt;
@@ -2360,7 +2412,7 @@ window.reintentarSync = async function() {
   showToast('datos actualizados');
 };
 function marcarSincronizado() {
-  try { localStorage.setItem('ultimaSync', new Date().toLocaleString('es-MX',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})); } catch(e) {}
+  try { localStorage.setItem(lsKey('ultimaSync'), new Date().toLocaleString('es-MX',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})); } catch(e) {}
   marcarCopiaLocal(false);
   // ya hay servidor: se sube lo que se capturo sin senal (no se espera, corre en segundo plano)
   if (typeof window.sincronizarBandeja === 'function') window.sincronizarBandeja();
@@ -2378,27 +2430,27 @@ async function loadFromFirebase() {
       trvDoc, hDoc, aDoc, mtDoc, cDoc, tkDoc, fDoc,
       gSnap, iSnap, trSnap, opSnap
     , rendSnap, cxDoc, mfDoc] = await Promise.all([
-      getDoc(doc(db,'cartera','saldos')),
-      getDoc(doc(db,'cartera','mercado')),
-      getDoc(doc(db,'cartera','personas')),
-      getDoc(doc(db,'cartera','perfil')),
-      getDoc(doc(db,'cartera','tarjeta')),
-      getDoc(doc(db,'cartera','tarjetaRev')),
-      getDoc(doc(db,'cartera','historial')),
-      getDoc(doc(db,'cartera','apartados')),
-      getDoc(doc(db,'cartera','metas')),
-      getDoc(doc(db,'cartera','categorias')),
-      getDoc(doc(db,'cartera','tickers')),
-      getDoc(doc(db,'cartera','fondo')),
-      getDocs(query(collection(db,'gastos'), orderBy('fecha','desc'))),
-      getDocs(query(collection(db,'ingresos'), orderBy('fecha','desc'))),
-      getDocs(query(collection(db,'transferencias'), orderBy('fecha','desc'))),
-      getDocs(query(collection(db,'stocksOps'), orderBy('fecha','asc'))),
+      getDoc(doc(db,NS,'saldos')),
+      getDoc(doc(db,NS,'mercado')),
+      getDoc(doc(db,NS,'personas')),
+      getDoc(doc(db,NS,'perfil')),
+      getDoc(doc(db,NS,'tarjeta')),
+      getDoc(doc(db,NS,'tarjetaRev')),
+      getDoc(doc(db,NS,'historial')),
+      getDoc(doc(db,NS,'apartados')),
+      getDoc(doc(db,NS,'metas')),
+      getDoc(doc(db,NS,'categorias')),
+      getDoc(doc(db,NS,'tickers')),
+      getDoc(doc(db,NS,'fondo')),
+      getDocs(query(collection(db,C_GASTOS), orderBy('fecha','desc'))),
+      getDocs(query(collection(db,C_INGRESOS), orderBy('fecha','desc'))),
+      getDocs(query(collection(db,C_TRANSF), orderBy('fecha','desc'))),
+      getDocs(query(collection(db,C_OPS), orderBy('fecha','asc'))),
       getDocs(query(collection(db,C_REND), orderBy('fin','asc'))),
       // (20-oct-2026) cuentas en otra moneda: si no existe, no hay ninguna (nunca se siembra al cargar)
       getDoc(docCX()),
       // la meta es de pantalla: si esta lectura falla (doc nunca cacheado y sin señal) no tumba toda la carga
-      getDoc(doc(db,'cartera','metasFondos')).catch(()=>null),
+      getDoc(doc(db,NS,'metasFondos')).catch(()=>null),
     ]);
     // si los datos vinieron de la cache local (red caida o lentisima) NO se corren
     // las siembras/migraciones: decidirian sobre un estado viejo y podrian reaplicar
@@ -2477,7 +2529,7 @@ async function loadFromFirebase() {
       // (la proxima escritura de saldos ya no las incluye y se perderian si Yahoo falla).
       // Con datos de cache no se escribe: 'mercado' podria existir en el servidor y solo
       // faltar en la copia local, y esto lo pisaria con cotizaciones viejas.
-      try { if (!desdeCache) await setDoc(doc(db,'cartera','mercado'), {ivvPrecio:state.ivvPrecio, ivvVar:state.ivvVar, ivvHistory:state.ivvHistory}, {merge:true}); }
+      try { if (!desdeCache) await setDoc(doc(db,NS,'mercado'), {ivvPrecio:state.ivvPrecio, ivvVar:state.ivvVar, ivvHistory:state.ivvHistory}, {merge:true}); }
       catch(e) { console.error('migracion mercado',e); }
     }
     // (2-oct-2026) Aqui vivian las siembras unicas de jul-2026 (reparacion v3, 28-jul y
@@ -2505,7 +2557,7 @@ async function loadFromFirebase() {
     }
     // sin red confirmada NO se siembra: un exists()==false que venga de la cache local
     // pisaria con los defaults el historial de deudas real que si esta en el servidor
-    else if (!desdeCache) await setDoc(doc(db,'cartera','personas'), {data:state.personas});
+    else if (!desdeCache) await setDoc(doc(db,NS,'personas'), {data:state.personas});
     // perfil: campos corruptos caen al default sin bloquear la carga
     if (perDoc.exists()) {
       const pf=perDoc.data()||{};
@@ -2599,7 +2651,7 @@ async function loadFromFirebase() {
     derivarPosiciones();
     // doc canonico de posiciones: lo valida y actualiza la transaccion de compra/venta
     const posMap={}; Object.entries(state.posiciones).forEach(([k,p])=>{ posMap[k]=p.acciones; });
-    setDoc(doc(db,'cartera','posiciones'), posMap).catch(()=>{});
+    setDoc(doc(db,NS,'posiciones'), posMap).catch(()=>{});
     // movimientos capturados por el Atajo de iOS (pendiente:true): se aplican a saldos aqui
     const resAtajo = await procesarPendientesAtajo();
     // (15-oct-2026) desde la cache NO es estar al dia: el punto se queda rojo hasta que hable el servidor
@@ -2627,13 +2679,13 @@ async function procesarPendientesAtajo() {
   const candG=state.gastos.filter(g=>g.pendiente===true).sort(porFecha).slice(0,100);
   const candI=state.ingresos.filter(g=>g.pendiente===true).sort(porFecha).slice(0,100);
   if(!candG.length&&!candI.length) return null;
-  const saldosRef=doc(db,'cartera','saldos'), tarjetaRef=doc(db,'cartera','tarjeta'), tarjetaRevRef=doc(db,'cartera','tarjetaRev');
+  const saldosRef=doc(db,NS,'saldos'), tarjetaRef=doc(db,NS,'tarjeta'), tarjetaRevRef=doc(db,NS,'tarjetaRev');
   const resumen={aplicados:0,rechazados:0,error:false};
   try{
     const resultado=await runTransaction(db, async tx=>{
       const sSnap=await tx.get(saldosRef), tSnap=await tx.get(tarjetaRef), trvSnap=await tx.get(tarjetaRevRef);
       // lo apartado del fondo: un gasto del Atajo que lo tomaria se rechaza como los invalidos
-      const fSnapAt=await tx.get(doc(db,'cartera','fondo'));
+      const fSnapAt=await tx.get(doc(db,NS,'fondo'));
       const apAt=saneaFondo(fSnapAt.exists()?fSnapAt.data():null).saldosPorCuenta;
       const s=sSnap.exists()?sSnap.data():{};
       // (27-oct-2026) un saldo por cada cuenta simple del registro (efectivo, NU, Revolut y GBM legada)
@@ -2646,7 +2698,7 @@ async function procesarPendientesAtajo() {
       // fase de LECTURA (en paralelo, todas ANTES de cualquier escritura, como exige la transaccion):
       // solo lee y devuelve el dato crudo, sin validar ni acumular todavia
       const lee=async (c,tipo)=>{
-        const ref=doc(db,tipo==='gasto'?'gastos':'ingresos',c.id);
+        const ref=doc(db,tipo==='gasto'?C_GASTOS:C_INGRESOS,c.id);
         const snap=await tx.get(ref);
         if(!snap.exists()||snap.data().pendiente!==true) return null; // otro dispositivo ya lo proceso
         return {ref,id:c.id,tipo,d:snap.data()};
@@ -2748,11 +2800,11 @@ function aplicarPersonasRemotas(d) {
 function suscribirEnVivo() {
   desuscribir();
   const pares=[
-    [doc(db,'cartera','saldos'),     aplicarSaldosRemotos,     ()=>refrescar(render)],
-    [doc(db,'cartera','tarjeta'),    aplicarTarjetaRemota,     ()=>refrescar(render,renderMovimientos)],
-    [doc(db,'cartera','tarjetaRev'), aplicarTarjetaRevRemota,  ()=>refrescar(render,renderMovimientos)],
-    [doc(db,'cartera','personas'),   aplicarPersonasRemotas,   ()=>refrescar(render,renderDeudas,renderPersonaSelect)],
-    [doc(db,'cartera','fondo'),      d=>{ state.fondo=saneaFondo(d); }, ()=>refrescar(render,renderFondo)],
+    [doc(db,NS,'saldos'),     aplicarSaldosRemotos,     ()=>refrescar(render)],
+    [doc(db,NS,'tarjeta'),    aplicarTarjetaRemota,     ()=>refrescar(render,renderMovimientos)],
+    [doc(db,NS,'tarjetaRev'), aplicarTarjetaRevRemota,  ()=>refrescar(render,renderMovimientos)],
+    [doc(db,NS,'personas'),   aplicarPersonasRemotas,   ()=>refrescar(render,renderDeudas,renderPersonaSelect)],
+    [doc(db,NS,'fondo'),      d=>{ state.fondo=saneaFondo(d); }, ()=>refrescar(render,renderFondo)],
     // (20-oct-2026) un gasto en otra moneda desde otro aparato mueve esta cuenta: se ve sin recargar
     [docCX(),                        d=>{ state.cuentasX=saneaCX(d); }, ()=>refrescar(render,renderCuentasX,pintarFuentesX)]
   ];
@@ -2794,7 +2846,7 @@ function desuscribir() { unsubs.forEach(u=>{ try{ u(); }catch(e){} }); unsubs=[]
 
 // ── DINERO TRANSACCIONAL ──────────────────────────────────────
 // TODO movimiento de dinero pasa por txDinero(). Antes cada flujo guardaba con
-//     batch.set(doc(db,'cartera','saldos'), saldosPayload())
+//     batch.set(doc(db,NS,'saldos'), saldosPayload())
 // que es un overwrite COMPLETO del documento con lo que esta pantalla tenia en
 // memoria. Eso destruia cualquier cambio hecho desde otro dispositivo, otra
 // pestana o por el Atajo de iOS; y como esos batch.set NO exigian datosCargados,
@@ -2824,7 +2876,7 @@ const TIPOS_CX = {efectivo:'efectivo', banco:'banco', cajita:'cajita o savings'}
 const CX_MAX = 20;  // cuentas que agrega la persona (pesos y otra moneda) por cartera
 const esIdX = k => typeof k === 'string' && /^x_[a-z0-9]{6,16}$/.test(k);
 const esMovX = m => !!m && (esIdX(m.fuente) || esIdX(m.destino) || esIdX(m.origen));
-const docCX = () => doc(db, (typeof NS === 'string' ? NS : 'cartera'), 'cuentasX');
+const docCX = () => doc(db, NS, 'cuentasX');
 // lo que llegue raro se descarta (nunca se inventa una cuenta ni una moneda)
 function saneaCX(raw) {
   const out = {}, c = raw && raw.cuentas;
@@ -2871,7 +2923,7 @@ function reversaX(d) {
   return r;
 }
 // coleccion de tramos de rendimiento: un documento por tramo CERRADO de una cuenta de interes
-const C_REND = (typeof PFX === 'string' ? PFX : '') + 'rendimientos';
+const C_REND = PFX + 'rendimientos';
 // fecha REAL, no solo con forma de fecha: '2026-02-30' se normaliza a marzo y '2026-13-01' no existe
 const esFechaReal = f => { if (typeof f !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(f)) return false;
   const [y, m, d] = f.split('-').map(Number); const t = parseFechaLocal(f);
@@ -3041,12 +3093,12 @@ async function txDinero(plan) {
       // bug que este refactor vino a matar, reencarnado. No mutar NADA de fuera aqui.
       const deltas = {...deltasPlan};
       // ── FASE 1: TODAS las lecturas (Firestore exige leer antes de escribir) ──
-      const sSnap  = usaSaldos || usaDep || mb || me ? await tx.get(doc(db,'cartera','saldos')) : null;
-      const tSnap  = usaTarjeta          ? await tx.get(doc(db,'cartera','tarjeta'))  : null;
-      const rSnap  = usaTdcRev           ? await tx.get(doc(db,'cartera','tarjetaRev')): null;
-      const pSnap  = usaPersona          ? await tx.get(doc(db,'cartera','personas')) : null;
+      const sSnap  = usaSaldos || usaDep || mb || me ? await tx.get(doc(db,NS,'saldos')) : null;
+      const tSnap  = usaTarjeta          ? await tx.get(doc(db,NS,'tarjeta'))  : null;
+      const rSnap  = usaTdcRev           ? await tx.get(doc(db,NS,'tarjetaRev')): null;
+      const pSnap  = usaPersona          ? await tx.get(doc(db,NS,'personas')) : null;
       // el fondo se lee en TODA operacion que toque saldos: es lo que protege el dinero apartado
-      const fSnap  = (usaSaldos || usaDep || mb || me) ? await tx.get(doc(db,'cartera','fondo')) : null;
+      const fSnap  = (usaSaldos || usaDep || mb || me) ? await tx.get(doc(db,NS,'fondo')) : null;
       const req = [];
       for (const r of (plan.requerirDocs||[])) req.push(await tx.get(r));
       // requerirAusentes: aborta si alguno YA existe. Es lo que impide registrar dos veces
@@ -3408,15 +3460,15 @@ async function txDinero(plan) {
         }
       }
       // ── FASE 3: escrituras, SOLO los campos afectados ──
-      if (Object.keys(campos).length) tx.set(doc(db,'cartera','saldos'), campos, {merge:true});
+      if (Object.keys(campos).length) tx.set(doc(db,NS,'saldos'), campos, {merge:true});
       if (mb) tx.delete(mb.ref);
       if (me) tx.set(me.ref, me.datos, {merge:true});
-      if (usaTarjeta) tx.set(doc(db,'cartera','tarjeta'), tarjeta, {merge:true});
-      if (usaTdcRev)  tx.set(doc(db,'cartera','tarjetaRev'), tdcRev, {merge:true});
+      if (usaTarjeta) tx.set(doc(db,NS,'tarjeta'), tarjeta, {merge:true});
+      if (usaTdcRev)  tx.set(doc(db,NS,'tarjetaRev'), tdcRev, {merge:true});
       // merge profundo de mapas: toca UNICAMENTE a esa persona, las otras quedan intactas
-      if (usaPersona) tx.set(doc(db,'cartera','personas'), {data:{[plan.persona.key]:persona}}, {merge:true});
+      if (usaPersona) tx.set(doc(db,NS,'personas'), {data:{[plan.persona.key]:persona}}, {merge:true});
       // set COMPLETO (sin merge): una cuenta que queda en cero debe desaparecer del mapa
-      if (fondo) tx.set(doc(db,'cartera','fondo'), fondo);
+      if (fondo) tx.set(doc(db,NS,'fondo'), fondo);
       // merge profundo: toca UNICAMENTE las cuentas en otra moneda que cambiaron
       if (Object.keys(cxCambios).length) tx.set(docCX(), {cuentas:cxCambios}, {merge:true});
       for (const c of (plan.crear||[])) tx.set(c.ref, c.data);
@@ -3484,7 +3536,7 @@ function tarjetaRevPayload() {
 }
 async function saveApartados() {
   if (!datosCargados) throw new Error('datos no cargados');
-  try { await setDoc(doc(db,'cartera','apartados'),{items:state.apartados}); setSyncDot('ok'); } catch(e) { setSyncDot('err'); throw e; }
+  try { await setDoc(doc(db,NS,'apartados'),{items:state.apartados}); setSyncDot('ok'); } catch(e) { setSyncDot('err'); throw e; }
 }
 
 // ── CATEGORIAS PERSONALIZADAS ─────────────────────────────────
@@ -3530,9 +3582,9 @@ window.handleCatChange = async function(tipo, sel) {
 // el documento vigente. El orden es: asegurar el destino, mover, y solo al final retirar
 // el origen; si se corta a la mitad quedan las dos con sus movimientos y esta misma
 // pantalla lo enseña, o sea que la recuperacion es volver a apretar el boton.
-const CAT_COL = t => t==='gasto' ? (typeof C_GASTOS==='string'?C_GASTOS:'gastos')
-                                 : (typeof C_INGRESOS==='string'?C_INGRESOS:'ingresos');
-const CAT_DOC = () => doc(db, (typeof NS==='string'?NS:'cartera'), 'categorias');
+const CAT_COL = t => t==='gasto' ? C_GASTOS
+                                 : C_INGRESOS;
+const CAT_DOC = () => doc(db, NS, 'categorias');
 const catArr = t => t==='gasto' ? state.catsGasto : state.catsIngreso;
 // normalizar sirve SOLO para detectar repetidas y comparar; el nombre exacto se respeta
 const normCat = s => String(s||'').normalize('NFD').replace(/[̀-ͯ]/g,'')
@@ -3865,7 +3917,7 @@ function catNombreInvalido(nombre) {
 // El mismo bloque vive en las cinco carteras (incluida la de la casa, para pagos fijos
 // como el de la señora que ayuda), por eso no depende de nada que no tengan todas.
 const SUS_MAX = 40;
-const SUS_DOC = () => doc(db, (typeof NS === 'string' ? NS : 'cartera'), 'suscripciones');
+const SUS_DOC = () => doc(db, NS, 'suscripciones');
 const susNorm = x => String(x || '').normalize('NFD').replace(/[̀-ͯ]/g, '')
                       .toLowerCase().replace(/\s+/g, ' ').trim();
 // dia del mes de un movimiento, en hora LOCAL (una fecha ISO en UTC puede caer en otro dia)
@@ -3929,7 +3981,7 @@ function susPagadaEn(s, mesKey) {
   });
 }
 // "luego": se guarda por aparato y por mes (es un recordatorio, no un dato financiero)
-const susLuegoKey = () => (typeof NS === 'string' ? NS : 'cartera') + ':susLuego';
+const susLuegoKey = () => NS + ':susLuego';
 function susLuegoMap() { try { return JSON.parse(localStorage.getItem(susLuegoKey()) || '{}') || {}; } catch (e) { return {}; } }
 let susLuegoMem = {};
 function susPendientes() {
@@ -4035,7 +4087,7 @@ window.susRegistrar = async function(btn) {
     // la app no escucha gastos en vivo). Se pregunta al servidor y, si existe, se deja de avisar.
     if (!ok) {
       try {
-        const col = (typeof C_GASTOS === 'string') ? C_GASTOS : 'gastos';
+        const col = C_GASTOS;
         if ((await getDoc(doc(db, col, idFijo))).exists()) susLuegoMem[s.id] = mesKey;
       } catch (e) {}
     }
@@ -4073,7 +4125,7 @@ window.susLuego = function(btn) {
 // Una suscripcion se cobra UNA vez al mes, por un monto parecido, cerca del mismo dia y
 // con la misma cuenta. La regla de UNA vez al mes es la que separa al gimnasio del
 // supermercado: el super tambien es mensual, pero son varias compras.
-const SUS_NO_KEY = () => (typeof NS === 'string' ? NS : 'cartera') + ':susNoEs';
+const SUS_NO_KEY = () => NS + ':susNoEs';
 function susNoEsMap() { try { return JSON.parse(localStorage.getItem(SUS_NO_KEY()) || '{}') || {}; } catch (e) { return {}; } }
 const susFirma = x => susNorm(x.cat) + '|' + x.fuente + '|' + Math.round(x.monto);
 // ya cubierta si se LLAMA igual, o si es el mismo gasto (categoria, cuenta y monto a +-15%).
@@ -4134,7 +4186,7 @@ function susDetectar() {
   const sug = [];
   // el aviso fijo de Revolut Premium se retiro: en la cartera de Roberto se ofrece como la
   // primera sugerencia para que lo confirme con su monto de hoy, sin sembrar nada en la base
-  if (typeof NS !== 'string' && !lista.some(s => /premium/.test(susNorm(s.nombre)))) {
+  if (NS === 'cartera' && !lista.some(s => /premium/.test(susNorm(s.nombre)))) {
     const ult = [...(state.gastos || [])].filter(g => g && /premium/.test(susNorm(g.nota))).sort((a, b) => String(b.fecha).localeCompare(String(a.fecha)))[0];
     const leg = {nombre: 'Revolut Premium', monto: ult ? ult.monto : (typeof PREMIUM_MONTO === 'number' ? PREMIUM_MONTO : 0),
                  dia: 22, fuente: 'revolut', cat: 'Suscripciones', meses: 0, legado: true};
@@ -4310,7 +4362,7 @@ window.verGananciaMes = function() {
 };
 window.togglePrivado = function() {
   modoPrivado=!modoPrivado;
-  try{ localStorage.setItem('modoPrivado',modoPrivado?'1':'0'); }catch(e){}
+  try{ localStorage.setItem(lsKey('modoPrivado'),modoPrivado?'1':'0'); }catch(e){}
   actualizarOjo();
   if(datosCargados) rerenderTodo();
 };
@@ -4337,13 +4389,13 @@ function saneaNoticias(arr) {
   }
   return out;
 }
-try{ const c=JSON.parse(localStorage.getItem('noticias')||'null');
+try{ const c=JSON.parse(localStorage.getItem(lsKey('noticias'))||'null');
   if(c&&Array.isArray(c.items)){
     noticias=saneaNoticias(c.items);
     noticiasFecha=Number.isFinite(+c.fecha)&&+c.fecha<=Date.now()?+c.fecha:0;
   } }catch(e){}
 let watchlist=[];
-try{ const w=JSON.parse(localStorage.getItem('watchlist')||'[]');
+try{ const w=JSON.parse(localStorage.getItem(lsKey('watchlist'))||'[]');
   if(Array.isArray(w)) watchlist=w.filter(s=>typeof s==='string'&&/^[A-Z][A-Z0-9.\-]{0,9}$/.test(s)).slice(0,NOTI_MAX_WATCH); }catch(e){}
 
 // descarga texto crudo por los proxies (allorigins envuelve en JSON; corsproxy no)
@@ -4450,7 +4502,7 @@ window.cargarNoticias = async function(forzar) {
       if(vistos.has(k)) return; vistos.add(k); limpio.push(n);
     });
     noticias=saneaNoticias(limpio.slice(0,NOTI_TOTAL)); noticiasFecha=Date.now();
-    try{ localStorage.setItem('noticias',JSON.stringify({items:noticias,fecha:noticiasFecha})); }catch(e){}
+    try{ localStorage.setItem(lsKey('noticias'),JSON.stringify({items:noticias,fecha:noticiasFecha})); }catch(e){}
     renderNoticias();
   } finally {
     noticiasCargando=false; if(btn) btn.textContent='actualizar';
@@ -4504,7 +4556,7 @@ window.editarWatchlist = function() {
   if(raw===null) return;
   const nueva=[...new Set(raw.toUpperCase().split(/[,\s]+/).map(s=>s.trim()).filter(s=>/^[A-Z][A-Z0-9.\-]{0,9}$/.test(s)))].slice(0,NOTI_MAX_WATCH);
   watchlist=nueva;
-  try{ localStorage.setItem('watchlist',JSON.stringify(watchlist)); }catch(e){}
+  try{ localStorage.setItem(lsKey('watchlist'),JSON.stringify(watchlist)); }catch(e){}
   renderNoticias();
   showToast(watchlist.length?('siguiendo '+watchlist.length+' acción(es)'):'lista de interés vacía');
   window.cargarNoticias(true);
@@ -4517,7 +4569,7 @@ window.setTema = t => {
   if(!TEMAS_OK.includes(t)) t='';
   if(t) document.documentElement.setAttribute('data-tema',t);
   else document.documentElement.removeAttribute('data-tema');
-  try{ localStorage.setItem('tema',t); }catch(e){}
+  try{ localStorage.setItem(lsKey('tema'),t); }catch(e){}
   const meta=document.querySelector('meta[name="theme-color"]');
   if(meta) meta.setAttribute('content',TEMA_META[t]||TEMA_META['']);
   marcarTemaActivo();
@@ -5066,7 +5118,7 @@ function render() {
   }
 
   // TDC Revolut: limite = deposito 1:1; deudaUsada defensiva (un borrado puede dejar saldo a favor)
-  const tdcDep=Number.isFinite(state.revTdcDeposito)?state.revTdcDeposito:0;
+  const tdcDep=depositoTdc();
   const tdcDeudaUsada=Math.max(0,state.revTdcDeuda||0);
   const tdcDisponible=Math.max(0,Math.min(tdcDep,tdcDep-tdcDeudaUsada));
   const tdcRetirable=Math.max(0,Math.min(tdcDep-250,tdcDep-tdcDeudaUsada));
@@ -5146,7 +5198,7 @@ function maybeSnapshot(total,gbm) {
   state.snapshots.sort((a,b)=>a.f.localeCompare(b.f));
   if(state.snapshots.length>730) state.snapshots=state.snapshots.slice(-730);
   snapshotEnVuelo=true;
-  setDoc(doc(db,'cartera','historial'),{snapshots:state.snapshots}).then(()=>{
+  setDoc(doc(db,NS,'historial'),{snapshots:state.snapshots}).then(()=>{
     snapshotEnVuelo=false;
   }).catch(()=>{
     state.snapshots=state.snapshots.filter(s=>s.f!==hoy);
@@ -5287,7 +5339,7 @@ window.registrarTarjeta = async function(tipo) {
     if(fuente!=='externo'){
       plan.deltas={[fuente]:-m};   // sin permitirNegativo: un pago sin fondos se rechaza
       tr={origen:fuente,destino:'tarjeta',monto:m,nota:nota||'pago tarjeta NU',fecha:fechaMov,creado:ahora};
-      ref=doc(collection(db,'transferencias'));
+      ref=doc(collection(db,C_TRANSF));
       plan.crear=[{ref,data:tr}];
     }
   }
@@ -5338,7 +5390,7 @@ window.registrarTarjetaRev = async function(tipo) {
     if(fuente!=='externo'){
       plan.deltas={[fuente]:-m};           // sin permitirNegativo: un pago sin fondos se rechaza
       tr={origen:fuente,destino:'tarjetaRev',monto:m,nota:nota||'pago TDC Revolut',fecha:fechaMov,creado:ahora};
-      ref=doc(collection(db,'transferencias'));
+      ref=doc(collection(db,C_TRANSF));
       plan.crear=[{ref,data:tr}];
     }
   }
@@ -5545,7 +5597,9 @@ function sumaGrupo(g, sinFondo) { return ctasGrupo(g).reduce((s, c) => s + getSa
 // todo lo que suma al patrimonio (fondo incluido): las cuentas de los dos grupos, la bolsa a precio de hoy,
 // el deposito de la TDC Revolut (dinero propio, aunque congelado) y las cuentas en otra moneda en pesos (20-oct).
 // Inicio y el coach usan esta MISMA suma
-function patrimonioFisico(bolsa) { return sumaGrupo('ahorro')+sumaGrupo('disponible')+bolsa+(Number.isFinite(state.revTdcDeposito)?state.revTdcDeposito:0)+totalCuentasX().mxn; }
+// el deposito de la TDC garantizada es tuyo (congelado); en una cartera sin esa tarjeta no existe
+const depositoTdc = () => !ctaApagada('tarjetaRev') && Number.isFinite(state.revTdcDeposito) ? state.revTdcDeposito : 0;
+function patrimonioFisico(bolsa) { return sumaGrupo('ahorro')+sumaGrupo('disponible')+bolsa+depositoTdc()+totalCuentasX().mxn; }
 // totales que calcula render(): la pestaña del fondo los reusa en vez de repetir la formula
 let totalesInicio = {fisico:0, tuyo:0, neto:0, listo:false};
 // lo que se concilio al fondo como rendimiento en un periodo: no es rendimiento TUYO
@@ -5606,7 +5660,7 @@ window.registrarTransferencia = async function() {
   }
   const m=c2(monto), ahora=new Date().toISOString();
   const tr={origen,destino,monto:m,nota,fecha:fechaTr,creado:ahora};
-  const ref=doc(collection(db,'transferencias'));
+  const ref=doc(collection(db,C_TRANSF));
   const plan={deltas:{[origen]:-m}, crear:[{ref,data:tr}]};
   // (16-oct-2026, code-reviewer) el doc de la transferencia NO debe existir desde el primer intento: si el
   // commit llega y se pierde la respuesta, el SDK reintenta y movia el dinero otra vez. 'ya-existe' = exito
@@ -5684,7 +5738,7 @@ window.eliminarTransferencia = async function(id) {
   if(dineroOcupado){showToast('espera, hay otra operación en curso');return;} // el confirm bloquea: revalidar al volver
   if(Math.round(getSaldoCuenta(t.destino)*100)<Math.round(t.monto*100)){showToast('no se puede deshacer: ya no hay saldo suficiente en la cuenta destino');return;}
   const m=c2(nFin(t.monto));
-  const ref=doc(db,'transferencias',id);
+  const ref=doc(db,C_TRANSF,id);
   // requerirDocs: si otro dispositivo ya la deshizo, aborta en vez de mover el dinero
   // dos veces. Sin permitirNegativo: sacar del destino se rechaza si ya no alcanza.
   const plan={requerirDocs:[ref], borrar:[ref], deltas:{[t.destino]:-m, [t.origen]:m}};
@@ -5780,7 +5834,7 @@ async function asegurarTipoCambio(forzar) {
       if (!nuevo) throw new Error('respuesta sin tipos de cambio');
       state.fx = nuevo;
       // el tipo COMPLETO, sin merge profundo de mxnPor: una moneda que ya no sirve no sobrevive en el servidor
-      await setDoc(doc(db, (typeof NS === 'string' ? NS : 'cartera'), 'mercado'), {fx:nuevo}, {mergeFields:['fx']});
+      await setDoc(doc(db, NS, 'mercado'), {fx:nuevo}, {mergeFields:['fx']});
     } catch(e) { console.error('tipo de cambio', e); }
     finally { fxEnVuelo = null; }
     return state.fx;
@@ -5880,7 +5934,7 @@ async function altaMovX(tipo, cat, montoOrig, nota, cuentaId, btn, fecha) {
   if (!(mo > 0) || !(m > 0)) { showToast('ingresa un monto válido'); return false; }
   const uidCaptura = uidActual();
   const creado = new Date().toISOString();
-  const ref = doc(collection(db, esGasto ? 'gastos' : 'ingresos'));
+  const ref = doc(collection(db, esGasto ? C_GASTOS : C_INGRESOS));
   // monto = PESOS al tipo de hoy (lo que suman resumen y promedios); montoOrig = lo que mueve la cuenta
   const mov = {cat, monto:m, nota, [esGasto ? 'fuente' : 'destino']:cuentaId, fecha:fecha || creado, creado,
                montoOrig:mo, moneda:x.moneda, tc, tcFecha:x.moneda === 'MXN' ? hoyLocal() : state.fx.fecha};   // en pesos puede no haber state.fx
@@ -5943,7 +5997,7 @@ async function registrarTransferenciaX(origen, destino) {
   const mPesos = esIdX(origen) ? llega : sale, mX = esIdX(origen) ? sale : llega;
   const tr = {origen, destino, monto:mPesos, nota, fecha:fechaTr, creado:new Date().toISOString(),
               montoOrigen:sale, monedaOrigen:mo, montoDestino:llega, monedaDestino:md, tc:+(mPesos / mX).toFixed(6)};
-  const ref = doc(collection(db, 'transferencias'));
+  const ref = doc(collection(db,C_TRANSF));
   const plan = {crear:[{ref, data:tr}], requerirAusentes:[ref],
                 deltas:{[lado]: esIdX(origen) ? mPesos : -mPesos},
                 fx:{deltas:{[esIdX(origen) ? origen : destino]: esIdX(origen) ? -mX : mX}}};
@@ -5978,7 +6032,7 @@ async function transferirEntreX(origen, destino, moneda) {
   // monto en PESOS (al tipo de hoy) para el historial; montoOrigen = montoDestino porque es la misma moneda
   const tr = {origen, destino, monto:c2(sale * tc), nota, fecha:fechaTr, creado:new Date().toISOString(),
               montoOrigen:sale, monedaOrigen:moneda, montoDestino:sale, monedaDestino:moneda, tc};
-  const ref = doc(collection(db, 'transferencias'));
+  const ref = doc(collection(db,C_TRANSF));
   const plan = {crear:[{ref, data:tr}], requerirAusentes:[ref], fx:{deltas:{[origen]:-sale, [destino]:sale}}};
   let res = null, err = null;
   btn.disabled = true; dineroOcupado = true;
@@ -6008,7 +6062,7 @@ async function eliminarTransferenciaX(t) {
   if (!(await confirmarDeslizando({titulo:'¿Deshacer la transferencia?', texto:'¿Deshacer ' + textoMontoTransfer(t) + ' (' + nombreCuenta(t.origen) + ' → ' + nombreCuenta(t.destino) + ')? El dinero regresa a su cuenta original, en su moneda.', verbo:'deshacer'}))) return;
   if (!sigueIgual(visto, state.transferencias.find(z => z.id === t.id), ['monto','origen','destino','montoOrigen','montoDestino'])) return;
   if (dineroOcupado) { showToast('espera, hay otra operación en curso'); return; }
-  const ref = doc(db, 'transferencias', t.id), m = c2(nFin(t.monto));
+  const ref = doc(db,C_TRANSF, t.id), m = c2(nFin(t.monto));
   // el lado en pesos va por movBorrar (borra el documento y aborta si otro aparato ya lo hizo); el lado
   // en otra moneda lo calcula txDinero desde el documento del SERVIDOR (reversaX). Sin permitirNegativo:
   // sacar de la cuenta destino se rechaza si ya no alcanza.
@@ -6435,7 +6489,7 @@ async function subirComando(c) {
   if (c.cat.length > B_TOPE_CAT) return {negocio:'la categoría es demasiado larga'};
   if (c.nota != null && (typeof c.nota !== 'string' || c.nota.length > B_TOPE_NOTA)) return {negocio:'la nota es demasiado larga'};
   if (typeof c.fecha !== 'string' || !Number.isFinite(Date.parse(c.fecha))) return {negocio:'fecha no válida'};
-  const ref = doc(db, esGasto ? 'gastos' : 'ingresos', c.id);
+  const ref = doc(db, esGasto ? C_GASTOS : C_INGRESOS, c.id);
   const mov = esGasto ? {cat:c.cat, monto:c2(c.monto), nota:c.nota || '', fuente:c.cuenta, fecha:c.fecha, creado:c.creado}
                       : {cat:c.cat, monto:c2(c.monto), nota:c.nota || '', destino:c.cuenta, fecha:c.fecha, creado:c.creado};
   if (fx) Object.assign(mov, {montoOrig:c2(fx.montoOrig), moneda:fx.moneda, tc:fx.tc, tcFecha:fx.tcFecha});
@@ -6657,7 +6711,7 @@ async function altaGasto(cat,monto,nota,fuente,btn,fecha,extra) {
   // un pago de suscripcion lleva id FIJO por mes (ver requerirAusentes en txDinero): asi
   // dos registros del mismo aviso no pueden ser dos gastos
   const idFijo=(extra&&typeof extra.idFijo==='string'&&/^sus_[a-z0-9]{6,24}_\d{4}-\d{2}$/.test(extra.idFijo))?extra.idFijo:null;
-  const ref=idFijo?doc(db,'gastos',idFijo):doc(collection(db,'gastos'));
+  const ref=idFijo?doc(db,C_GASTOS,idFijo):doc(collection(db,C_GASTOS));
   // fecha = cuando OCURRIO (puede ser retro); creado = cuando se registro. El saldo
   // se afecta hoy en ambos casos (ver fechaMovOpcional)
   const creado=new Date().toISOString();
@@ -6730,7 +6784,7 @@ window.eliminarGasto = async function(id) {
   if(!sigueIgual(visto,state.gastos.find(x=>x.id===id),['monto','fuente','cat']))return;
   if(dineroOcupado){showToast('espera, hay otra operación en curso');return;} // el confirm bloquea: revalidar al volver
   const m=c2(nFin(g.monto));
-  const ref=doc(db,'gastos',id);
+  const ref=doc(db,C_GASTOS,id);
   // movBorrar aborta si otro dispositivo ya lo borro (no se devuelve el dinero dos veces)
   // y decide si revertir releyendo las banderas CANONICAS del documento, no la copia de
   // esta pantalla. permitirDeudaNegativa: quitar un cargo puede dejar la tarjeta con
@@ -7054,7 +7108,7 @@ window.guardarEdicionMov = async function() {
     if(cambiaCat){ campos.cat=cat; previos.cat=visto.cat; }
     if(cambiaNota){ campos.nota=nota; previos.nota=visto.nota; }
     if(cambiaFecha){ campos.fecha=fecha; previos.fecha=visto.fecha; }
-    const refL=doc(db, tipo==='gasto'?'gastos':'ingresos', id);
+    const refL=doc(db, tipo==='gasto'?C_GASTOS:C_INGRESOS, id);
     let r=null, errL=null;
     editandoMov=true; btn.disabled=true;
     try{
@@ -7106,7 +7160,7 @@ window.guardarEdicionMov = async function() {
   if(!(await confirmarDeslizando({titulo:'¿Guardar los cambios?', texto, verbo:'guardar', tono:'ok'}))) return;
   if(!sigueIgual(antesConfirmar, lista().find(x=>x.id===id), ['monto',campo,'cat','nota','fecha','pendiente','aplicadoSaldo'])) return;
   if(dineroOcupado){ showToast('espera, hay otra operación en curso'); return; }
-  const ref=doc(db, tipo==='gasto'?'gastos':'ingresos', id);
+  const ref=doc(db, tipo==='gasto'?C_GASTOS:C_INGRESOS, id);
   // SOLO lo que el usuario cambio (nunca undefined: tx.set truena con valores undefined)
   const datos={monto:m2, editado:new Date().toISOString()};
   if(cuenta) datos[campo]=cuenta; // pendiente del Atajo sin cuenta: solo monto (nunca undefined)
@@ -7165,7 +7219,7 @@ async function altaIngreso(cat,monto,nota,destino,btn,fecha) {
   if(!DESTINOS_INGRESO.includes(destino)){showToast('destino no válido');return false;}
   if(dineroOcupado){showToast('espera, hay otra operación en curso');return false;}
   const m=c2(monto);
-  const ref=doc(collection(db,'ingresos'));
+  const ref=doc(collection(db,C_INGRESOS));
   const creado=new Date().toISOString();
   const ingreso={cat,monto:m,nota,destino,fecha:fecha||creado,creado};
   const uidCaptura=uidActual(); // ver altaGasto
@@ -7219,7 +7273,7 @@ window.eliminarIngreso = async function(id) {
   if(!sigueIgual(visto,state.ingresos.find(x=>x.id===id),['monto','destino','cat']))return;
   if(dineroOcupado){showToast('espera, hay otra operación en curso');return;} // el confirm bloquea: revalidar al volver
   const m=c2(nFin(g.monto));
-  const ref=doc(db,'ingresos',id);
+  const ref=doc(db,C_INGRESOS,id);
   // permitirNegativo: quitar un ingreso YA GASTADO puede dejar la cuenta en rojo; se
   // avisa, no se bloquea. movBorrar aborta si otro dispositivo ya lo borro (no se resta
   // dos veces) y decide si revertir releyendo las banderas del propio documento: la copia
@@ -7638,9 +7692,9 @@ async function operarStock(tipo) {
     let res;
     try{
       res=await runTransaction(db, async tx=>{
-        const sSnap=await tx.get(doc(db,'cartera','saldos'));
-        const pSnap=await tx.get(doc(db,'cartera','posiciones'));
-        const fSnapOp=await tx.get(doc(db,'cartera','fondo'));
+        const sSnap=await tx.get(doc(db,NS,'saldos'));
+        const pSnap=await tx.get(doc(db,NS,'posiciones'));
+        const fSnapOp=await tx.get(doc(db,NS,'fondo'));
         const saldoActual=(campo&&sSnap.exists()&&Number.isFinite(sSnap.data()[campo]))?sSnap.data()[campo]:0;
         if(tipo==='compra'&&campo&&Math.round(d.monto*100)>Math.round(saldoActual*100)) return {error:'saldo insuficiente en '+(CUENTAS[d.cuenta]||d.cuenta)};
         // lo apartado del fondo de la universidad no se puede invertir desde aqui
@@ -7656,17 +7710,17 @@ async function operarStock(tipo) {
         const nuevoUnits=(tipo==='venta'&&esPolvo(restaUnits/1e8,actUnits/1e8))?0:restaUnits;
         const nuevoSaldo=campo?Math.round((saldoActual+(tipo==='compra'?-d.monto:d.monto))*100)/100:null;
         const op={tipo,simbolo:d.simbolo,acciones:d.acciones,montoMxn:d.monto,montoUsd:d.montoUsd,cuenta:d.cuenta,fecha:d.fecha,creado:new Date().toISOString()};
-        const opRef=doc(collection(db,'stocksOps'));
+        const opRef=doc(collection(db,C_OPS));
         const trFecha=d.fecha===hoyLocal()?new Date().toISOString():d.fecha+'T00:00:00Z';
         // con 'externo' no hay transferencia: el dinero nunca estuvo en una cuenta de la app
         const tr=!campo?null:(tipo==='compra'
           ?{origen:d.cuenta,destino:'stocks',monto:d.monto,nota:'compra '+d.acciones+' '+d.simbolo,fecha:trFecha,opId:opRef.id}
           :{origen:'stocks',destino:d.cuenta,monto:d.monto,nota:'venta '+d.acciones+' '+d.simbolo,fecha:trFecha,opId:opRef.id});
-        const trRef=tr?doc(collection(db,'transferencias')):null;
+        const trRef=tr?doc(collection(db,C_TRANSF)):null;
         tx.set(opRef,op);
         if(tr) tx.set(trRef,tr);
-        if(campo) tx.update(doc(db,'cartera','saldos'), {[campo]:nuevoSaldo});
-        tx.set(doc(db,'cartera','posiciones'), {[d.simbolo]:nuevoUnits/1e8}, {merge:true});
+        if(campo) tx.update(doc(db,NS,'saldos'), {[campo]:nuevoSaldo});
+        tx.set(doc(db,NS,'posiciones'), {[d.simbolo]:nuevoUnits/1e8}, {merge:true});
         return {op:{id:opRef.id,...op}, tr:tr?{id:trRef.id,...tr}:null, nuevoSaldo};
       });
     }catch(e){
@@ -7855,8 +7909,8 @@ function seriePortafolio() {
 // 'ganancia' = solo el crecimiento: valor de tus acciones - lo que metiste (neto de lo que vendiste).
 // Sin dividendos (se registran como ingreso) y sin GBM, del que no esta registrado lo que se le metio.
 let modoPortafolio='valor';
-try{ if(localStorage.getItem('modoPortafolio')==='ganancia') modoPortafolio='ganancia'; }catch(e){}
-window.setModoPortafolio=m=>{ modoPortafolio=m==='ganancia'?'ganancia':'valor'; try{ localStorage.setItem('modoPortafolio',modoPortafolio); }catch(e){} renderChart('gbm-chart'); };
+try{ if(localStorage.getItem(lsKey('modoPortafolio'))==='ganancia') modoPortafolio='ganancia'; }catch(e){}
+window.setModoPortafolio=m=>{ modoPortafolio=m==='ganancia'?'ganancia':'valor'; try{ localStorage.setItem(lsKey('modoPortafolio'),modoPortafolio); }catch(e){} renderChart('gbm-chart'); };
 function serieGananciaPortafolio() {
   const ops=(state.stocksOps||[]).slice().sort(ordenOps);
   if(!ops.length) return {serie:[],motivo:'todavía no registras compras de acciones'};
@@ -8036,9 +8090,9 @@ function periodoBolsa(rango) {
 }
 // ── la tarjeta "tu bolsa por periodo" ─────────────────────────────────────────────
 let bolsaRango='1m', bolsaModo='valor', bolsaAport=false;
-try{ const g=JSON.parse(localStorage.getItem('bolsaPeriodo')||'{}');
+try{ const g=JSON.parse(localStorage.getItem(lsKey('bolsaPeriodo'))||'{}');
   if(Object.hasOwn(BOLSA_RANGOS,g.r||'')) bolsaRango=g.r; if(g.m==='rend') bolsaModo='rend'; bolsaAport=g.a===true; }catch(e){}
-const guardarBolsaSel=()=>{ try{ localStorage.setItem('bolsaPeriodo',JSON.stringify({r:bolsaRango,m:bolsaModo,a:bolsaAport})); }catch(e){} };
+const guardarBolsaSel=()=>{ try{ localStorage.setItem(lsKey('bolsaPeriodo'),JSON.stringify({r:bolsaRango,m:bolsaModo,a:bolsaAport})); }catch(e){} };
 window.setBolsaRango=r=>{ if(!Object.hasOwn(BOLSA_RANGOS,r)) return; bolsaRango=r; guardarBolsaSel(); refrescar(renderPeriodoBolsa); };
 window.setBolsaModo=m=>{ bolsaModo=m==='rend'?'rend':'valor'; guardarBolsaSel(); refrescar(renderPeriodoBolsa); };
 window.setBolsaAport=v=>{ bolsaAport=!!v; guardarBolsaSel(); refrescar(renderPeriodoBolsa); };
@@ -8248,8 +8302,8 @@ function renderDistribucion(ahorro, inversiones, disponible, garantia, nvdaPendi
     {nombre:'Ahorro con rendimiento',sub:subGrupo('ahorro'),monto:g1,color:'var(--d1)',txt:'var(--d1t)'},
     {nombre:'Inversiones',sub:'acciones (Revolut)'+(nvdaPendiente?' · precio pendiente':''),monto:g2,color:'var(--d2)',txt:'var(--d2t)'},
     {nombre:'Disponible',sub:subGrupo('disponible'),monto:g3,color:'var(--d3)',txt:'var(--d3t)'},
-    {nombre:'Garantía congelada',sub:'depósito TDC Revolut',monto:g4,color:'var(--d4)',txt:'var(--d4t)'}
-  ];
+    {nombre:'Garantía congelada',sub:'depósito '+CUENTAS.tarjetaRev,monto:g4,color:'var(--d4)',txt:'var(--d4t)'}
+  ].filter(g=>g.monto>0); // solo grupos con dinero: el donut ya omitia los de $0 y la lista no cuadraba
   const R=62,SW=16,rm=R-SW/2,C=2*Math.PI*rm;
   let off=0,circ='';
   grupos.forEach(g=>{
@@ -8520,7 +8574,7 @@ function renderPerfil() {
 // completo (los mismos que ya calcula el perfil), y lee las fichas de las demas. Las reglas de
 // Firestore solo dejan escribir la propia y leer las de la familia. Nada de montos: porcentajes,
 // calificacion y racha no permiten deducir cuanto tiene nadie.
-const AMIGO_ID=(typeof NS==='string')?NS:'cartera';
+const AMIGO_ID=NS;
 const AMIGO_NOMBRES={cartera:'Roberto',eli:'Eli',zoe:'Zoe',tono:'Toño'};
 // participar viene ENCENDIDO: solo se apaga si el usuario lo apago expresamente (perfil.amigos === false)
 function amigosVisible(){ return !(state.perfil&&state.perfil.amigos===false); }
@@ -8666,7 +8720,7 @@ function renderMisCuentas() {
     meter(c.banco, {prod: c.prod || c.nombre, sub: (c.comp ? descModelo(c.id) : '') + (apartadoDe(c.id) > 0 ? (c.comp ? ' · ' : '') + 'sin el fondo' : ''), monto: fmt(v), valor: v}); });
   // tarjetas: lo que debes (no suma al banco) y, en Revolut, el deposito de garantia (si es tuyo)
   if (Number.isFinite(state.tarjetaDeuda)) meter('Nu', {prod: 'tarjeta de crédito', sub: 'lo que debes · corte el 18', monto: fmt(state.tarjetaDeuda), neg: true});
-  if (Number.isFinite(state.revTdcDeposito) && state.revTdcDeposito > 0) {
+  if (depositoTdc() > 0) {
     meter('Revolut', {prod: 'depósito de la tarjeta', sub: 'tu garantía: es tuyo, aunque congelado', monto: fmt(state.revTdcDeposito), valor: state.revTdcDeposito});
     meter('Revolut', {prod: 'tarjeta de crédito', sub: 'lo que debes', monto: fmt(state.revTdcDeuda || 0), neg: true});
   }
@@ -8826,7 +8880,7 @@ async function renderAmigos(){
     +(faltan.length?`<div class="item-meta" style="padding-top:10px">todavía no aparecen: ${escapeHtml(faltan.join(', '))} — su ficha se publica en cuanto abran su app</div>`:'')
     +`<div class="item-meta" style="padding-top:6px">la calificación es la de ${escapeHtml(mesTxt(mia.mes))}, el último mes completo, la misma que ves en tu perfil: aportación (40) + control de gasto (30) + constancia (20) + colchón (10), cada quien contra su propia referencia. Es una competencia de confianza: cada app reporta lo que su dueño registra.</div>`;
 }
-function dashboardEncendido() { return !!(state.perfil && state.perfil.dashboard); }
+function dashboardEncendido() { return !ctaApagada('stocks') && !!(state.perfil && state.perfil.dashboard); }
 function aplicarVisibilidadDashboard() {
   aplicarVisibilidadAmigos();
   const on = dashboardEncendido();
@@ -9022,7 +9076,7 @@ async function cambiarListaFondos(cambio, ok) {
   let res = null;
   try {
     res = await runTransaction(db, async tx => {
-      const ref = doc(db, 'cartera', 'fondo'), sn = await tx.get(ref);
+      const ref = doc(db,NS, 'fondo'), sn = await tx.get(ref);
       const fd = saneaFondo(sn.exists() ? sn.data() : null), lista = (fd.fondos || []).map(x => ({...x}));
       const err = cambio(lista, fd); if (err) return {error: err};
       tx.set(ref, {fondos: lista}, {mergeFields: ['fondos']});
@@ -9093,7 +9147,7 @@ async function guardarMetaFondo(fid, meta) {
   if (navigator.onLine === false || cargaDesdeCache) throw new Error('sin conexión');
   const v = meta && meta.objetivo > 0 ? {objetivo: meta.objetivo, fecha: meta.fecha || ''} : {objetivo: 0, fecha: ''};
   try {
-    await Promise.race([setDoc(doc(db, 'cartera', 'metasFondos'), {metas: {[fid]: v}}, {merge: true}),
+    await Promise.race([setDoc(doc(db,NS, 'metasFondos'), {metas: {[fid]: v}}, {merge: true}),
       new Promise((_, no) => setTimeout(() => no(new Error('tiempo agotado')), 15000))]);
     setSyncDot('ok');
   } catch (e) { setSyncDot('err'); throw e; }
@@ -9242,7 +9296,7 @@ async function guardarPerfil(cambios,msgOk) {
   perfilGuardando=true;
   try{
     if(!datosCargados) throw new Error('datos no cargados');
-    await setDoc(doc(db,'cartera','perfil'),cambios,{merge:true});
+    await setDoc(doc(db,NS,'perfil'),cambios,{merge:true});
     state.perfil={...state.perfil,...cambios}; // solo tras confirmar la escritura
     setSyncDot('ok');
     renderPerfil(); renderScore(); render();
@@ -9454,7 +9508,7 @@ async function guardarMetas(nuevo, mensaje) {
   try{
     if(!datosCargados) throw new Error('datos no cargados');
     // items:[] explicito para que Firestore borre el formato viejo {savings,stocks}
-    await setDoc(doc(db,'cartera','metas'),{fecha:nuevo.fecha,items:nuevo.items});
+    await setDoc(doc(db,NS,'metas'),{fecha:nuevo.fecha,items:nuevo.items});
     state.metas=nuevo; // solo tras confirmar la escritura
     setSyncDot('ok'); render(); showToast(mensaje);
     return true;
@@ -9663,7 +9717,7 @@ async function cambiarLimitesCat(cambio,msgOk){
   if(!datosCargados||cargaDesdeCache||navigator.onLine===false){ showToast('necesitas señal para cambiar tus límites'); return false; }
   perfilGuardando=true;
   try{
-    const ref=doc(db,typeof NS==='string'?NS:'cartera','perfil');
+    const ref=doc(db,NS,'perfil');
     const r=await runTransaction(db,async tx=>{ const sn=await tx.get(ref);
       const nueva=cambio(saneaLimitesCat(sn.exists()?sn.data().limitesCat:[])); if(typeof nueva==='string') return {error:nueva};
       tx.set(ref,{limitesCat:nueva},{merge:true}); return {lista:nueva}; });
@@ -10365,7 +10419,7 @@ window.guardarTicker = async function() {
   const prev = state.tickers[sym];
   try {
     // se escribe SOLO ese ticker: dos aparatos capturando distintas acciones no se pisan
-    await setDoc(doc(db,'cartera','tickers'), {[sym]: dato}, {merge: true});
+    await setDoc(doc(db,NS,'tickers'), {[sym]: dato}, {merge: true});
     state.tickers = saneaTickers({...state.tickers, [sym]: dato});   // en memoria, ya limpio de nulls
     setSyncDot('ok');
     refrescar(renderDashboard);
@@ -11064,7 +11118,7 @@ function renderUtilidades(start,end) {
   const filas=[];
   const fila=(ico,tit,meta,val)=>filas.push(`<div class="item-row"><div><div class="item-cat">${ico} ${escapeHtml(tit)}</div><div class="item-meta">${escapeHtml(meta)}</div></div><div style="font-size:14px;font-weight:600">${escapeHtml(val)}</div></div>`);
   fila('🏦','intereses de tus cuentas',
-    'cajita NU, Revolut Savings y Mifel (estimado) · descontando lo conciliado al fondo'+(avisoTasaMifel()?' · tasa de Mifel por confirmar':'')+(parcialInt?' · parcial: '+(hueco?'hay días sin historia en este periodo':'sin historia antes del '+hDentro):''),(intereses>=0?'+':'−')+fmt(Math.abs(intereses)));
+    listaY(CTAS_AHORRO.map(k=>k==='cajita1'?'cajita NU':ctaReg(k).nombre+(ctaReg(k).ui&&ctaReg(k).ui.estimado?' (estimado)':'')))+' · descontando lo conciliado al fondo'+(avisoTasaMifel()?' · tasa de Mifel por confirmar':'')+(parcialInt?' · parcial: '+(hueco?'hay días sin historia en este periodo':'sin historia antes del '+hDentro):''),(intereses>=0?'+':'−')+fmt(Math.abs(intereses)));
   if(plus===null) fila('📈','plusvalía de tus acciones',motivo,'—');
   else fila('📈','plusvalía de tus acciones','cambio de valor sin contar lo que aportaste'+(vFin.fecha?(' · al cierre del '+vFin.fecha):''),(plus>=0?'+':'−')+fmt(Math.abs(plus)));
   fila('💵','dividendos cobrados',divs>0.005?'lo que te pagaron tus acciones, registrado como ingreso':'registra lo que te paguen como ingreso "Dividendos"','+'+fmt(divs));
@@ -11141,7 +11195,7 @@ function renderRendimientos(start, end, balance) {
   const rowC1=sinDatosC1
     ?`<div class="item-row"><div><div class="item-cat">NU cajita 1</div><div class="item-meta">sin historia en este periodo</div></div><span class="item-meta">—</span></div>`
     :`<div class="item-row"><div><div class="item-cat">NU cajita 1</div><div class="item-meta">${descModelo('cajita1')}${parcialC1?' · desde el '+fd(parseFechaLocal(h1))+' (parcial)':''}</div></div>${sgn(rend1)}</div>`;
-  const rowRS=sinDatosRS
+  const rowRS=ctaApagada('revSavings')?'':sinDatosRS
     ?`<div class="item-row"><div><div class="item-cat">Revolut Savings</div><div class="item-meta">sin historia en este periodo</div></div><span class="item-meta">—</span></div>`
     :`<div class="item-row"><div><div class="item-cat">Revolut Savings</div><div class="item-meta">${descModelo('revSavings')}${parcialRS?' · desde el '+fd(parseFechaLocal(h2))+' (parcial)':''}</div></div>${sgn(rendRS)}</div>`;
   const rowMF=!h3?'':sinDatosMF
@@ -11154,6 +11208,8 @@ function renderRendimientos(start, end, balance) {
     `<div class="item-row"><div><div class="item-cat" style="font-weight:600">balance real del periodo</div><div class="item-meta">ingresos − gastos + rendimientos</div></div>${sgn(real,1)}</div>`;
 }
 
+// 'a, b y c'
+const listaY = a => a.length < 2 ? (a[0] || '') : a.slice(0, -1).join(', ') + ' y ' + a[a.length - 1];
 function renderGBMResumen() {
   renderChart('gbm-chart');
   renderChart('patrimonio-chart');
@@ -11303,7 +11359,7 @@ async function fetchStocks() {
   state.accionesMkt=nuevoMkt;
   cambios.accionesMkt=nuevoMkt;
   try{
-    await setDoc(doc(db,'cartera','mercado'), cambios, {merge:true});
+    await setDoc(doc(db,NS,'mercado'), cambios, {merge:true});
   }catch(e){
     console.error('fetchStocks save',e);
     state.accionesMkt=prev.accionesMkt;
