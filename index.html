@@ -2699,7 +2699,8 @@ const fvCanjearHash = h => fvOcupado('fv-btn-canjear', 'abriendo…', async () =
   if (!ok) {
     const c = err && err.code;
     console.error('fundview: canje de invitacion', err);
-    return fvErr('invitacion', c === 'permission-denied' || c === 'not-found' ? 'ese código no sirve: puede estar mal escrito o ya se usó. Revísalo o pide otro a quien te invitó'
+    // nadie puede leer invitaciones: la app no sabe si el codigo esta mal escrito, es de otro correo o ya se uso, y el texto no los distingue
+    return fvErr('invitacion', c === 'permission-denied' || c === 'not-found' ? 'ese código no es válido para este correo o ya se usó. Revisa que esté bien escrito y que sea el correo al que te invitaron (si es otro, sal y crea tu cuenta con ese); si no, pide otro código a quien te invitó'
       : c === 'fv/plazo' || c === 'unavailable' ? 'sin conexión: vuelve a intentar cuando tengas señal' : 'no se pudo abrir tu cartera: vuelve a intentar');
   }
   fvQuitarAlta();
