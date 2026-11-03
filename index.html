@@ -720,7 +720,7 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
 
     <section class="fv-paso" data-paso="crear" hidden aria-labelledby="fv-t-crear">
       <h1 id="fv-t-crear" tabindex="-1">Crea tu cuenta</h1>
-      <p>Necesitas el código de invitación que te mandaron. Tu cuenta queda aislada: ninguna otra persona puede ver tus datos.</p>
+      <p>Necesitas el código de invitación que te mandaron. Usa el mismo correo al que te invitaron: el código solo sirve con ese. Tu cuenta queda aislada: ninguna otra persona puede ver tus datos.</p>
       <div class="login-field"><label class="fv-label" for="fv-cod">código de invitación</label><input type="text" id="fv-cod" placeholder="FV-XXXX-XXXX-XXXX-XXXX" autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="40"></div>
       <div class="login-field"><label class="fv-label" for="fv-correo">tu correo</label><input type="email" id="fv-correo" autocomplete="email" autocapitalize="off" spellcheck="false"></div>
       <div class="login-field"><label class="fv-label" for="fv-pass">una contraseña nueva</label><input type="password" id="fv-pass" autocomplete="new-password" aria-describedby="fv-pass-ayuda"><div class="fv-ayuda" id="fv-pass-ayuda">al menos 10 caracteres</div></div>
@@ -2513,7 +2513,7 @@ window.fvCrear = () => fvOcupado('fv-btn-crear', 'creando…', async () => {
   catch (e) {
     fvQuitarAlta();
     const c = e && e.code;
-    fvErr('crear', c === 'auth/email-already-in-use' ? 'ya hay una cuenta con ese correo: entra con él'
+    fvErr('crear', c === 'auth/email-already-in-use' ? 'ya hay una cuenta con ese correo: entra con él o usa «olvidé mi contraseña»'
       : c === 'auth/weak-password' || c === 'auth/password-does-not-meet-requirements' ? 'esa contraseña es muy débil: usa una más larga'
       : fvErrorAuth(e, 'no se pudo crear la cuenta: vuelve a intentar'));
   }
@@ -12136,7 +12136,7 @@ async function pedirPrecioPropio(symbol, largo, validar) {
       if (r.status === 401 && intento === 0) continue;  // token vencido: se renueva una vez
       // 404 con el texto de la funcion = simbolo inexistente (un 404 de Google por funcion no desplegada no lo trae)
       if (r.status === 404 && (await r.text()) === 'sin precio') return SIN_SIMBOLO;
-      if (!r.ok) return null;
+      if (!r.ok) { console.warn('precios propio ' + symbol, r.status); return null; }
       const v = validar(await r.text());
       return (v === null || v === undefined || v === false) ? null : v;
     }
