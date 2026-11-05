@@ -370,7 +370,7 @@ copias, y en Zoe con sus cuentas (Nu, BBVA, cajita Nu, BBVA ahorro).
 El plan completo, con competencia y reels, está fuera del repo (es público):
 `Desktop\CARTERA\documentos\estrategia-2026-10-15\plan-mi-cartera.md`.
 
-- **"Tu suscripción" en perfil** (siguiente, si alguien paga el domingo): plan, pagado hasta, datos de
+- **✅ (4-nov, rama `fundview-abrir-2026-11-03`, apagado con `CFG.cobro`, sin publicar) "Tu suscripción" en perfil** (siguiente, si alguien paga el domingo): plan, pagado hasta, datos de
   transferencia con referencia por persona y botón de copiar; documento `suscripcion` que Roberto marca a mano;
   aviso 7 días antes. Los datos de pago NO van en la landing pública. Prepara la etapa de liga de pago y la de
   cobro de Apple (RevenueCat): solo cambia de dónde sale "pagado hasta".
@@ -449,3 +449,106 @@ app NUNCA bloquea un gasto.
   exista el cobro ($139/mes decidido el 14-oct, sin sistema de pagos todavía) y de los perfiles del registro solo (sesión 4).
   Ojo: premiar "cumplir una meta" que la persona misma captura se puede inflar con datos falsos; el premio debe salir de
   algo que la app no deje fingir (constancia de uso, meses seguidos registrando), como la constancia de la calificación.
+
+## Calendario de gastos (Beto, 3-nov-2026; para cuando la gente ya entre sola, no antes)
+
+**Estado (5-nov-2026): construido en la rama `calendario-2026-11-04`, SIN publicar y sin fundir.** Falta que Beto lo vea. Sigue pendiente, de esta idea: **suscripciones anuales** (el modelo de hoy solo conoce mensuales, `susSanea` tira cualquier otro campo, y una anual sale cada mes; es otra feature: campo nuevo, forma, avisos de Inicio y versiones viejas que reescriben la lista sin el campo) y una respuesta en la ayuda de Fundview que explique el calendario.
+
+Aunque ya existan las suscripciones, la quiere como calendario: "la gente es más visual... estaría fenomenal".
+Lo vio en dos apps que le salen en anuncios y le gustaron los dos: Trykelo enseña lo que viene ("Mira cada cobro antes de que
+llegue") y Finno lo que ya pasó (cada día con su gasto, el de mayor gasto marcado; arriba gastos, ingresos, ahorro, balance y promedio
+diario). Quiere una combinación, o un filtro de "gastos que vienen" y "gastos que ya fueron". Primera propuesta: un solo calendario,
+días pasados con lo gastado y días por venir con lo que toca (suscripciones y cortes de tarjeta, que ya existen). Sin registrar nada
+solo y sin logos de marcas. Capturas en `Desktop\CARTERA\documentos\plan-de-codeo\referencias-competencia-2026-11-03\`.
+
+## Foto o captura de un ticket que se registra sola (Beto, 3-nov-2026, "una muy buena idea"; para cuando la gente ya entre sola)
+
+Se junta con la idea del 20-oct de los tickets del súper (plan-limites, sesión 9+). Finno ya lo anuncia ("Regístralo como quieras":
+escribir, dictar, foto del ticket, estado de cuenta en PDF). Decidir: leer en el teléfono (gratis, la imagen no sale, menos acierto) o
+con un modelo en el servidor (mejor acierto, costo por ticket, cambia el aviso). La foto llena la forma y la persona confirma: un monto
+mal leído no se guarda solo. Plan: `Desktop\CARTERA\documentos\version-clientes\plan-abrir-a-todos.md`, sección 10.
+
+## ✅ (4-nov, rama `fundview-abrir-2026-11-03`, sin publicar) Detalle de cajita con fondo (decidido por Beto, 3-nov-2026; tanda aparte)
+
+Con un apartado posterior a la fecha base, la tarjeta dice "ganado en total +$74.56" y "de eso, desde la última fecha base +$0.00".
+Debe decir lo que genera la cajita sin el fondo, y lo que gana el fondo se queda en el fondo de esa cajita. Causa: `baseTuya` en
+`render()`. Se parece a lo que ya hace el resumen con `pendienteFondoEnRango`; comprobar con casos. Va a todas las carteras con fondo.
+
+## ✅ (4-nov, misma rama, sin publicar; los textos de afuera siguen sin cambiar) Retención de ISR en todas las cajitas de Fundview (2-nov-2026, salió al revisar que los posts dijeran la verdad)
+
+Hoy, con `CFG.multi`, las cajitas que agrega la persona llevan `ret:0` fijo (`modeloX`), `cajita1` no tiene campo y solo `revSavings` lo tiene, apagada y en 0. La landing y los posts prometían descontarla "en cada cajita", y es justo lo que distingue a la app. Idea: un campo opcional de retención por cajita, con la tasa del año como sugerencia (0.90% en 2026, 0.68% aprobada para 2027) y el aviso de que no toda cuenta retiene. Al tenerlo, los textos pueden volver a prometerlo. Una sesión; va después de abrirle a los primeros.
+
+## Encontrado al construir la ayuda de Fundview (3-nov-2026)
+
+Nada de esto se arregló en esa tanda. Lo vio el agente de la ayuda; solo el primero lo comprobé leyendo el código.
+
+- **Tarjeta apagada:** con las dos tarjetas apagadas, el botón "tarjeta" de movimientos sigue saliendo y un "+ cargo" se guarda donde casi no se ve (solo en "ver desglose" y en "pagar todo lo que debes"). `CLAUDE.md` dice que el botón desaparece, y no es cierto: nada lo esconde (`index.html:1173`) y la primera tarjeta no lleva `data-cuenta` (`:1209`).
+- ✅ (3-nov, rama `fundview-abrir-2026-11-03`) **Sin señal:** una cuenta que solo tiene cuentas agregadas y nunca guardó "actualizar saldos" se queda en "error al cargar tus datos". También pasa en 3d287bc.
+- ✅ (3-nov, misma rama) **Bolsa sin precio:** después de "compré", el total de Inicio baja mientras el precio sale como "pendiente".
+- ✅ (3-nov, misma rama) **Restos de Mi Cartera visibles en Fundview:** "Fondo de la universidad" de fábrica, "Mi meta · fin de 2026", "El tablero del video…", emojis en resumen, "tus cajitas" vacío y, en grafito, botones con texto blanco sobre verde claro.
+- **Aviso de privacidad, propuesta sin aplicar (`plan-asistente-ayuda-2026-11-03.md` §5):** dos párrafos, "Si nos escribes" y "La ayuda de la app", y definir cuánto se guardan los correos. Va con la revisión legal pagada, antes de invitar a desconocidos.
+
+## Visto al quitar los restos de Fundview (3-nov-2026) y no tocado
+
+- **Contraste en otros temas:** blanco sobre el acento da menos de 4.5:1 en arena (#a97c2f, estimado 3.6:1), rosa (#bf5388, 4.3:1) y fucsia (#d42d80, 4.4:1). Solo se arregló grafito, que era lo pedido.
+- **Cajita apagada "sin historia" en la familia:** Eli y Toño la pueden ver igual; quedó solo en Fundview para no cambiarles nada. Si se quiere, se quita la condición de `rowC1`.
+- ✅ (4-nov, rama `fundview-abrir-2026-11-03`) **Bolsa sin precio, lo que faltaba:** la pestaña fondo y la portada del Excel ya llevan el letrero ("falta el precio de parte de tu bolsa" si solo falta una parte). Sigue pendiente la idea de que la tarjeta de bolsa diga "pusiste $X".
+- **Acentos en el selector de sector** (Tecnologia, Energia, Consumo basico, Servicios publicos): el texto es el valor guardado, hay que separarlos.
+- **Disponible** suma las cuentas agregadas sin decirlo en su renglón (ya anotado en monedas); con una cuenta nueva se nota más: "Efectivo + Mi banco" con los dos en $0.
+
+## La foto del dia y las posiciones escriben con datos de la copia local (4-nov-2026; arreglado en Fundview, NO en la familia)
+
+Causa: `maybeSnapshot` solo revisaba `datosCargados`, y `loadFromFirebase` pone `datosCargados = true` tambien cuando sus lecturas salen de la cache
+(o cuando la app ya habia cargado en linea y despues se fue la señal). El `setDoc(historial, {snapshots})` se encola con un total viejo y, al volver la
+señal, pisa la foto de hoy que otro aparato ya escribio. Lo mismo el `setDoc(posiciones)` de `loadFromFirebase` cuando `desdeCache`.
+Reproducido el 4-nov con el SDK real (`pruebas-sin-senal/fundview/e2e-restos.mjs` escenario J): sin red, `navigator.onLine` falso, un `render()` con un total
+distinto al de la foto deja una escritura en cola. Arreglo en Fundview: `if(CFG.multi&&(cargaDesdeCache||navigator.onLine===false)) return` al inicio de
+`maybeSnapshot` y la misma guardia en `posiciones`. Para la familia, la misma condicion sin `CFG.multi`; no se toco esa noche porque no era lo pedido y
+cambia lo que hoy hacen Mi Cartera, Eli, Toño y Zoe. Revisadas las demas escrituras disparadas desde un render o desde la carga: `mercado` (precio de la
+bolsa e ivv) y `personas` ya van con `!desdeCache`; `fx` (`asegurarTipoCambio`) solo escribe tras bajar el tipo de cambio de la red; `publicarFicha`
+(amigos) pide `datosCargados` y no existe en Fundview; el resto son acciones de la persona. Queda por decidir si `publicarFicha` debe pedir tambien `!cargaDesdeCache`.
+
+## Encontrado al revisar la tanda de restos (4-nov-2026) y no tocado
+
+- **Los scripts del resumen usaban `setResPeriodo('anio')`**, que no existe (el año es `'ano'`): cae en la vista de mes. `inventario-mayus.mjs` y `e2e-restos.mjs` ya usan `'ano'`; `rangoPeriodo` podría avisar con `console.warn` ante un periodo desconocido.
+- **`reclasificarCat` y las consultas por nombre** dependen de que 'Educación' se junte al leer (solo Fundview). Si en algún momento se quiere que la familia haga lo mismo, hay que llevar `whereCat` y `gastosFV` sin la condición de `CFG.multi`.
+- **`publicarFicha` (amigos, solo familia)** pide `datosCargados` pero no `!cargaDesdeCache`: mismo patrón que la foto del día. Ver la nota de arriba.
+- **Inventario de mayúsculas con más estados:** al sembrar interés, bolsa sin precio, límites, tarjeta con deuda y una cuenta en otra moneda aparecieron 19 textos más en minúscula (todos arreglados en el armado). Quedan sin sembrar: bandeja con comandos pendientes, suscripciones con aviso, meta de fondo con fecha, el Atajo y los avisos (`showToast`) de cada acción; los avisos salen y se van, el recolector no los alcanza.
+
+## Visto al arreglar la cajita con fondo (4-nov-2026) y no tocado
+
+- ✅ **4-nov, decidido por Beto y hecho en rama:** el resumen se topa, el interés del fondo va a horizonte de un día y las cajitas agregadas de la familia entran a "cuánto ganó". Lo de abajo queda como historia. Sigue pendiente, con el cifrado: cajita agregada con tramos. Lo que deja el horizonte de un día: dentro de un tramo el estimado no compone, así que con todo el saldo apartado la tarjeta enseña unos centavos como tuyos hasta registrar el abono real (10,000 a 13%, 30 días: unos $0.50, estimado).
+- **El resumen con todo el saldo apartado:** `pendienteFondoEnRango` resta el interés estimado del fondo sin el tope al saldo que sí usa `fondoEnCuenta`. Ejemplo comprobado en `test-fondo-pendiente.mjs`, con 10,000 a 36%, todo apartado, 30 días: la tarjeta dice $0.00 y el resumen −$56.50 en ese periodo. A 13% serían unos −$6.77 (estimado). La tarea era solo de la tarjeta. Arreglo probable: topar el pendiente de cada cuenta, repartido por rango. Se le pregunta a Beto.
+- **El estimado del fondo sale alto:** `diario` en `tramosFondo` divide entre 360 lo que el dinero genera en un año compuesto. A 13% son cerca de 6.8% más que el interés día a día (estimado); ese exceso sale de "lo que genera sin el fondo" hasta que se registre el abono real. Cambiarlo mueve cifras de la pestaña fondo y del resumen.
+- **"Retención" en la ayuda:** escribir "retención" o "ISR" sigue yendo a "los impuestos dependen de tu caso" (corre antes de buscar). La explicación del campo está en la respuesta de cajitas. Si alguien pregunta dónde se escribe, hay que abrirle un camino en `AYUDA_ESCALAR`.
+- **Enero de 2027:** cambiar `NOTA_RET` a la tasa de 2027 cuando esté publicada, con su fuente.
+- **De la prueba de usuario del 4-nov (`usuario-real`), para después y sin tocar:** (1) en Mis cuentas salen dos listas (la de cuentas fijas y la de las que agregó la persona) y se ve como dos veces lo mismo; (2) Bolsa muestra $0 aunque la persona no haya encendido inversiones; (3) quedan bloques vacíos en pantallas de cuenta nueva (títulos sin contenido).
+- **Cajitas agregadas en las carteras de la familia:** el hueco de "cuánto ganó tu dinero" (la cajita `x_` no entraba) se corrigió solo con `CFG.multi` (`interesCajitasX`). Si Roberto, Eli, Toño o Zoe tienen cajitas agregadas, su Resumen sigue sin contarlas: se decide con Beto porque cambia cifras que ya ven.
+- **"Actualizar saldos" de las cuentas fijas** (`guardarManuales`) dice "guardado y sincronizado" sin la diferencia con lo calculado; solo `guardarSaldoX` (cuentas agregadas, Fundview) la dice.
+- **Interés de una cajita agregada que se reancla (4-nov, de la revisión):** `txDinero` reancla la cajita (`saldo` y `fecha` nuevos) en cada movimiento y no guarda tramos, así que el interés de antes de la fecha base no se puede reconstruir: un periodo ya cerrado, o el mes en que se movió dinero, sale con "sin historia" y parcial (`interesCajitasX`, fila "—" desde el 4-nov; antes se omitía en silencio). Arreglarlo de verdad es guardar tramos cerrados en `C_REND` (como las cuentas fijas): cambia el esquema y las reglas de `fundview-app`, y decide Beto. Mientras tanto el Resumen lo dice y no inventa un monto.
+- **Metas en vivo (4-nov):** `metas` se guarda en transacción en Fundview (relee el servidor y aplica solo lo que hizo la persona), pero sigue sin escucharse en vivo: dos aparatos abiertos no ven la meta del otro hasta recargar. Escucharlo (`suscribirEnVivo`) lo resolvería; la familia sigue con `setDoc` completo.
+
+## Lo que pidio la primera persona de fuera (audio del 4-nov-2026; Beto: buenas, pero ahorita no)
+
+- **QR para dar de alta la app del codigo.** Hoy solo se ofrece la clave, y copiarla desde la computadora "esta bastante complejo". `FV_MFA` ya genera la liga con `generateQrCodeUrl`: el QR se dibujaria en la app, nunca con un servicio ajeno, porque lleva la clave. Claude recomienda hacerlo antes de invitar a cinco conocidos si el SMS sigue apagado.
+- **Entrar con Google.** Sugerencia para quien prefiere no tener otra contrasena. Choca con la invitacion atada a un correo y con `antesDeCrearUsuario`, que hoy solo acepta correo y contrasena. Despues de los cinco conocidos.
+- **Tarjetas de Inicio:** al abrir una, la anterior sigue abierta. Una sola opinion y "detalle muy menor" segun el mismo. Ver si alguien mas lo dice.
+
+
+## Extensión de Fundview para familias (4-nov-2026, Beto)
+
+Un proyecto aparte, como extensión de Fundview, donde una familia entra y ve sus cosas de otra manera. La cartera de la casa se queda como está mientras tanto. Sin construir: al ser una app nueva lleva antes sus seis documentos.
+
+## Calendario: lo que dejó la prueba de usuario del 5-nov-2026 (Beto: va a ideas, no hoy)
+
+Cortar "lo que toca" por quincena: cada quien cobra en días distintos, así que antes hay que saber cuándo cobra cada persona.
+Fecha límite de pago de cada tarjeta: hoy solo la Tarjeta 2 la tiene (`pagoLimite`); el calendario enseña el corte, no cuándo se paga.
+Subpestaña propia para el calendario, junto a Registrar, Categorías, Suscripciones y Deudas: hoy se llega por Movimientos y el selector, y la pantalla baja sola.
+
+Sin decidir: una palabra junto al ojo del modo privado, porque en un teléfono no se adivina qué hace y el `title` no se ve.
+Sugerencias del revisor sin aplicar: `#cal-det` con `aria-live` se reescribe en cada render y puede re-anunciarse; el botón del mes siguiente se deshabilita con el foco puesto; la etiqueta del lector de pantalla no sigue el filtro "ya fueron / vienen"; "no pude cargar tus suscripciones" a veces es "todavía no"; en un día sin nota el renglón empieza con un punto suelto.
+
+## Pedidos de Beto al cerrar el 5-nov-2026 (tarde)
+
+- **Su cartera en un dominio propio**, en vez de `rl7103405-gif.github.io/mi-cartera` (dijo "mi cartera MX"; falta decidir cuál, por ejemplo un subdominio de fundview.mx). Ojo: cambiar de dirección es cambiar de origen. La copia local, la bandeja sin señal, el tema y la sesión no pasan solos: hay que vaciar la bandeja antes, volver a entrar y reinstalar el ícono. Las otras carteras igual.
+- **La tarjeta de bolsa "se sigue viendo muy larga y le pierde chiste".** Él la vio en su cartera publicada, que todavía NO tiene la gráfica nueva (solo se le subió el nombre). Primero enseñarle la nueva en su aparato y después recortar: menos cifras a la vista, la tabla por acción plegada o fuera de la tarjeta.

@@ -13,6 +13,7 @@ const codigo = [
   "const REF_MERCADO='VOO';",
   // hasta antes de la tarjeta (su codigo usa window y el DOM)
   tramo('const BOLSA_RANGOS=', '\n// ── la tarjeta "tu bolsa por periodo"'),
+  tramo('function granoBolsa(serie) {', '\nfunction cuentaBarras'),
 ].join('\n');
 const ctx = { state: {} };
 vm.createContext(ctx);
@@ -167,6 +168,36 @@ poner([compra('a', '2026-10-01', 1, 2000), compra('b', '2026-10-02', 0.5, 99999)
 { const p = ctx.periodoBolsa('1d');
   const pt = ctx.periodoBolsa('todo');
   caso('rendimiento null en vez de un numero absurdo', pt.twr === null, pt.twr); }
+
+// (5-nov-2026) los barras: de que tamano es cada uno y a cual cae cada dia. Fechas locales, a mano
+{ const dia = (a, m, d) => new Date(a, m - 1, d).getTime();
+  const grano = (a, b) => ctx.granoBolsa([{ x: a }, { x: b }]);
+  caso('hasta 45 dias: un barra por dia', grano(dia(2026, 10, 1), dia(2026, 11, 15)) === 'dia');
+  caso('46 dias: por semana', grano(dia(2026, 10, 1), dia(2026, 11, 16)) === 'semana');
+  caso('200 dias: por semana', grano(dia(2026, 1, 1), dia(2026, 7, 20)) === 'semana');
+  caso('201 dias: por mes', grano(dia(2026, 1, 1), dia(2026, 7, 21)) === 'mes');
+  const g = (ms, gr) => ctx.grupoBolsa(ms, gr);
+  // 2-nov-2026 es lunes y 8-nov es domingo: los dos, misma semana; el 9 ya es la siguiente
+  caso('lunes y domingo caen en la misma semana', g(dia(2026, 11, 2), 'semana').k === g(dia(2026, 11, 8), 'semana').k);
+  caso('el lunes siguiente es otra semana', g(dia(2026, 11, 9), 'semana').k !== g(dia(2026, 11, 8), 'semana').k);
+  caso('una semana que cruza de mes es una sola', g(dia(2026, 9, 30), 'semana').k === g(dia(2026, 10, 2), 'semana').k);
+  caso('una semana que cruza de año es una sola', g(dia(2026, 12, 31), 'semana').k === g(dia(2027, 1, 2), 'semana').k);
+  caso('la etiqueta de la semana dice su lunes', /28/.test(g(dia(2026, 12, 31), 'semana').lbl), g(dia(2026, 12, 31), 'semana').lbl);
+  caso('1 y 31 del mes, mismo barra', g(dia(2026, 1, 1), 'mes').k === g(dia(2026, 1, 31), 'mes').k);
+  caso('diciembre y enero son distintos', g(dia(2026, 12, 31), 'mes').k !== g(dia(2027, 1, 1), 'mes').k);
+  caso('un año entero, misma barra', g(dia(2026, 1, 1), 'ano').k === g(dia(2026, 12, 31), 'ano').k);
+  caso('31-dic y 1-ene, años distintos', g(dia(2026, 12, 31), 'ano').k !== g(dia(2027, 1, 1), 'ano').k);
+  caso('enero de dos años no se junta', g(dia(2026, 1, 15), 'mes').k !== g(dia(2027, 1, 15), 'mes').k);
+  // lo que suma cada dia es la ganancia del periodo, con compra y venta a media serie
+  const fechas = ['2026-10-01', '2026-10-02', '2026-10-05', '2026-10-06'];
+  poner([{ tipo: 'compra', simbolo: 'QQQ', acciones: 2, montoMxn: 2000, fecha: fechas[0], creado: fechas[0] + 'T10:00:00Z' },
+    { tipo: 'compra', simbolo: 'QQQ', acciones: 1, montoMxn: 1100, fecha: fechas[2], creado: fechas[2] + 'T10:00:00Z' },
+    { tipo: 'venta', simbolo: 'QQQ', acciones: 1, montoMxn: 1200, fecha: fechas[3], creado: fechas[3] + 'T10:00:00Z' }],
+    fechas.map((f, i) => [f, 100 + i * 5]), fechas.map(f => [f, 500]), fechas.map(f => [f, 10]));
+  const p = ctx.periodoBolsa('todo');
+  caso('hay un dato por dia', p.serieGan && p.serieGan.length === p.serie.length, p.serieGan);
+  caso('los dias suman exacto la ganancia del periodo', p.ganancia !== null && cerca(p.serieGan.reduce((s, d) => s + d.y, 0), p.ganancia), [p.serieGan, p.ganancia]);
+}
 
 console.log(`\n${ok} bien, ${mal} mal`);
 process.exit(mal ? 1 : 0);

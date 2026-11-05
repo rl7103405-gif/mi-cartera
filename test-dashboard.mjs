@@ -407,7 +407,8 @@ console.log('\n19. utilidadPeriodo: la cifra del mes (Inicio) y la utilidad del 
   const srcFechas = extrae('function parseFechaLocal(', '\n') + '\n'
     + extrae('function msFechaMov(', 'function diaLocalDe(')
     + extrae('function movValido(', '\n') + '\n';
-  const mk = (st, ov = {}) => new Function('state', 'ov', 'const CTAS_AHORRO=ov.CTAS||[];'
+  // (4-nov-2026) interesCajitasX (cajitas agregadas, solo Fundview) se prueba aparte en test-fondo-pendiente; aqui, como la familia: no suma nada
+  const mk = (st, ov = {}) => new Function('state', 'ov', 'const CTAS_AHORRO=ov.CTAS||[]; const interesCajitasX=()=>({lista:[],total:0,parcial:false});'
     + 'const interesEnRango=ov.interesEnRango||(()=>0), rendFondoEnRango=ov.rendFondoEnRango||(()=>0), pendienteFondoEnRango=ov.pendienteFondoEnRango||(()=>0),'
     + 'inicioHistoria=ov.inicioHistoria||(()=>null), saldoCuentaEn=ov.saldoCuentaEn||(()=>null),'
     + 'valorBolsaEn=ov.valorBolsaEn||(()=>null);\n' + srcFechas + srcUP + '\nreturn utilidadPeriodo;')(st, ov);

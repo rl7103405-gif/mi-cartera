@@ -182,9 +182,11 @@ console.log('\nSelects y botones de cuentas: iguales al HTML de antes (valor, te
     Object.defineProperty(e, 'textContent', { get() { return this._t; }, set(v) { this._t = v; if (v === '') this.hijos = []; } });
     return e; };
   const document = { getElementById: id => (cajas[id] = cajas[id] || elem()), createElement: () => elem() };
-  const pinta = new Function('document', 'window', registro + '\n' +
+  const pinta = new Function('document', 'window', 'CFG', 'esIdX', registro + '\n' +
     ['FUENTES_GASTO', 'DESTINOS_INGRESO', 'CTA_EXTERNO'].map(decl).join('\n') + '\n' +
-    fnDe('pintarListasCuentas') + '\nreturn pintarListasCuentas;')(document, {});
+    // (4-nov-2026) en Fundview una cuenta fija sin uso no se ofrece (sinUsoFV, vacio aqui = la familia): ctasVis es el filtro de pintarListasCuentas
+    // (4-nov-2026, revision) botones() mira CFG.multi y esIdX para no marcar un boton fijo cuando se eligio una cuenta agregada: la familia no tiene ninguna de las dos
+    'let sinUsoFV = new Set(); const ctasVis = lista => ctasEn(lista).filter(id => !sinUsoFV.has(id));\n' + fnDe('pintarListasCuentas') + '\nreturn pintarListasCuentas;')(document, {}, {multi: false}, k => false);
   pinta();
   for (const id of Object.keys(ESPERADO)) {
     const sale = (cajas[id] ? cajas[id].hijos : []).map(o => (o.value || o.dataset.cuenta) + '|' + o.textContent + (o.dataset.soloSale ? '|soloSale' : ''));

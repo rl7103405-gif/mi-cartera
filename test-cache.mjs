@@ -92,18 +92,22 @@ const fondoSrc = HAY_FONDO ? registroSrc + extrae('// ── fondo: saneo', '// 
 // la casa (30-sep): la carga normaliza las categorías de ingreso con conCatPapa ("Mes papá" primero)
 const papaSrc = HTML.includes('const conCatPapa')
   ? HTML.slice(HTML.indexOf('const CAT_PAPA ='), HTML.indexOf('\n', HTML.indexOf('const conCatPapa'))+1) : '';
-const ARGS = ['db','doc','collection','query','orderBy','getDocFromCache','getDocsFromCache',
+// (4-nov-2026) 'Educacion' -> 'Educación' en Fundview: los ayudantes viven antes de CATS_GASTO_DEFAULT
+const HAY_EDU = HTML.includes('const CAT_EDU_VIEJA');
+const eduSrc = HAY_EDU ? extrae('const CAT_EDU_VIEJA', 'const CATS_GASTO_DEFAULT') : '';
+const CFG_PRUEBA = {};   // window.CFG de la copia: cada caso le pone multi (Fundview)
+const ARGS = ['CFG','db','doc','collection','query','orderBy','getDocFromCache','getDocsFromCache',
   'state','derivarPosiciones','document','localStorage','console',
   'NS','C_GASTOS','C_INGRESOS','C_TRANSF','C_OPS','C_REND','lsKey',
   'window','loadFromFirebase','showToast','renderCatSelect','refrescar',
   'renderPersonaSelect','render','renderMovimientos','renderTransferencias','datosCargados'];
-const VALS = [db, doc, collection, query, orderBy, getDocFromCache, getDocsFromCache,
+const VALS = [CFG_PRUEBA,db, doc, collection, query, orderBy, getDocFromCache, getDocsFromCache,
   state, derivarPosiciones, document, localStorage, console,
   NS, PFX+'gastos', PFX+'ingresos', PFX+'transferencias', PFX+'stocksOps', PFX+'rendimientos', lsKey,
   window, loadFromFirebase, showToast, renderCatSelect, refrescar,
   renderPersonaSelect, render, renderMovimientos, renderTransferencias, datosCargados];
 const { pintarDesdeCache, marcarCopiaLocal, marcarSincronizado, APAG } = new Function(
-  ...ARGS, papaSrc + fondoSrc + cxSrc + fuente + '\nreturn { pintarDesdeCache, marcarCopiaLocal, marcarSincronizado, APAG: (typeof APAGADAS !== "undefined" ? APAGADAS : new Set()) };'
+  ...ARGS, papaSrc + fondoSrc + cxSrc + eduSrc + fuente + '\nreturn { pintarDesdeCache, marcarCopiaLocal, marcarSincronizado, APAG: (typeof APAGADAS !== "undefined" ? APAGADAS : new Set()) };'
 )(...VALS);
 // cuentas apagadas: es el Set real del registro de la app (ctaApagada = id => APAGADAS.has(id)); cada caso lo ajusta
 const apagar = (...ids) => { APAG.clear(); ids.forEach(i => APAG.add(i)); };
@@ -220,6 +224,24 @@ ok = await pintarDesdeCache();
 chk('apagada pero sin saldos -> sigue sin haber copia local', ok === false);
 apagar();
 
+// ═══ 2d. Fundview: cuenta nueva, con solo cuentas agregadas (3-nov-2026) ═══
+console.log('\n2d. Cuenta nueva con solo cuentas agregadas (saldos y personas: la cache SABE que no existen)');
+for (const multi of [true, false]) {
+  CFG_PRUEBA.multi = multi;
+  reset(); cacheCompleta();
+  CACHE[`${NS}/saldos`] = undefined; CACHE[`${NS}/personas`] = undefined; CACHE[`${NS}/tarjeta`] = undefined;
+  const r2d = await pintarDesdeCache();
+  if (multi) {
+    chk('Fundview: alcanza para abrir con la copia local', r2d === true);
+    chk('Fundview: sus cuentas agregadas si se pintan', !HAY_CX || Object.keys(state.cuentasX).length === 1);
+    chk('Fundview: no escribe nada', ESCRITURAS === 0);
+    // nunca leida (la cache no sabe nada): sigue siendo todo o nada
+    reset(); cacheCompleta(); delete CACHE[`${NS}/saldos`];
+    chk('Fundview: un documento que la cache nunca vio sigue tumbando la copia local', await pintarDesdeCache() === false);
+  } else chk('la familia: sin saldos no pinta, como siempre', r2d === false);
+}
+delete CFG_PRUEBA.multi;
+
 // ═══ 3. copia local vacia (primera vez en el aparato) ═══
 console.log('\n3. Aparato nuevo: no hay copia local');
 reset(); CACHE = {}; COLS = {};
@@ -267,7 +289,7 @@ const doc2 = { getElementById: id => (id === 'banda-cache' ? el : null),
 // se sustituye 'document' (posicion 9 de ARGS) por uno falso que SI tiene la banda
 const VALS2 = VALS.slice(); VALS2[ARGS.indexOf('document')] = doc2;
 const { marcarCopiaLocal: mcl, marcarSincronizado: ms } = new Function(
-  ...ARGS, papaSrc + fondoSrc + fuente + '\nreturn { marcarCopiaLocal, marcarSincronizado };'
+  ...ARGS, papaSrc + fondoSrc + eduSrc + fuente + '\nreturn { marcarCopiaLocal, marcarSincronizado };'
 )(...VALS2);
 mcl(true);
 chk('al sincronizar se ve y lo dice', el.hidden === false && /copia local/.test(el.textContent), el.textContent);
@@ -280,6 +302,76 @@ chk('al confirmar servidor se esconde', el.hidden === true);
 chk('y guarda la fecha de la ultima sincronizacion', !!localStorage.getItem(lsKey('ultimaSync')));
 mcl(true);
 chk('esa fecha se le muestra al usuario', /última vez al día/.test(el.textContent), el.textContent);
+
+// ═══ 8. la foto del dia (maybeSnapshot) no escribe sin señal (4-nov-2026, Fundview) ═══
+console.log('\n8. maybeSnapshot: en Fundview, con la copia local o sin red, no encola la foto del dia');
+{
+  let escrituras = 0, enLinea = true, desdeCacheFlag = false;
+  const estado = { snapshots: [{ f: '2026-11-03', total: 100, gbm: 0 }] };
+  const cfg = {};
+  const auth = { currentUser: { uid: 'u' } };
+  const setDocC = () => { escrituras++; return Promise.resolve(); };
+  const navigator = { get onLine() { return enLinea; } };
+  const correr = (multi, cache, linea, total) => {
+    escrituras = 0; cfg.multi = multi; enLinea = linea; estado.snapshots = [{ f: '2026-11-03', total: 100, gbm: 0 }];
+    const f2 = new Function('CFG', 'datosCargados', 'cargaDesdeCache', 'auth', 'state', 'hoyLocal', 'setDoc', 'doc', 'db', 'NS', 'navigator',
+      'let snapshotEnVuelo = false;\n' + extraeFn('maybeSnapshot') + '\nreturn maybeSnapshot;')(cfg, true, cache, auth, estado, () => '2026-11-04', setDocC, () => ({}), {}, 'ns', navigator);
+    f2(total, 0);
+    return escrituras;
+  };
+  chk('Fundview en línea y de la nube: escribe la foto de hoy (el caso normal)', correr(true, false, true, 5000) === 1);
+  chk('Fundview con la carga venida de la copia local: no escribe', correr(true, true, true, 5000) === 0);
+  chk('Fundview sin red (navigator.onLine falso): no escribe, aunque datosCargados siga verdadero', correr(true, false, false, 5000) === 0);
+  chk('Fundview sin red: tampoco toca la memoria (la foto de hoy no se inventa)', (correr(true, false, false, 5000), estado.snapshots.length === 1));
+  chk('la familia: sin cambio (escribe como siempre, ver IDEAS.md)', correr(false, true, true, 5000) === 1 && correr(false, false, false, 5000) === 1);
+}
+chk('las posiciones: en Fundview no se escriben desde la copia local ni sin red (la línea tiene su guardia)',
+  /if\(!\(CFG\.multi&&\(desdeCache\|\|\(typeof navigator!=='undefined'&&navigator\.onLine===false\)\)\)\) setDoc\(doc\(db,NS,'posiciones'\), posMap\)/.test(HTML) || !HTML.includes("'posiciones'"));
+
+// ═══ 9. 'Educacion' y 'Educación' son la misma categoria en Fundview (4-nov-2026), sin reescribir nada ═══
+console.log('\n9. Categoria Educacion/Educación: se junta al leer, solo en Fundview, y no se escribe nada');
+if (HAY_EDU) {
+  for (const multi of [true, false]) {
+    CFG_PRUEBA.multi = multi;
+    reset(); cacheCompleta();
+    CACHE[NS + '/categorias'] = { catsGasto: ['Comida', 'Educacion', 'Casa', 'Educación'], catsIngreso: ['Trabajo'] };
+    COLS[PFX + 'gastos'] = [{ id: 'g1', monto: 100, cat: 'Educacion', fecha: '2026-09-02T00:00:00Z' }, { id: 'g2', monto: 50, cat: 'Educación', fecha: '2026-09-03T00:00:00Z' }, { id: 'g3', monto: 5, cat: 'Comida', fecha: '2026-09-04T00:00:00Z' }];
+    await pintarDesdeCache();
+    const cats = state.catsGasto.join(','), conTilde = state.gastos.filter(g => g.cat === 'Educación').length, sinTilde = state.gastos.filter(g => g.cat === 'Educacion').length;
+    if (multi) {
+      chk('Fundview: la lista de categorías junta las dos en una (sin repetir)', cats === 'Comida,Educación,Casa', cats);
+      chk('Fundview: los gastos viejos se ven como "Educación" (resumen y límites no la parten en dos)', conTilde === 2 && sinTilde === 0, conTilde + '/' + sinTilde);
+    } else chk('la familia: nada cambia (cada texto es su categoría)', cats === 'Comida,Educacion,Casa,Educación' && sinTilde === 1, cats + ' ' + sinTilde);
+    chk('  y no escribió nada (se junta en memoria, el documento no se reescribe)', ESCRITURAS === 0);
+  }
+  delete CFG_PRUEBA.multi;
+  // los límites por categoría
+  const lim = multi => new Function('CFG', 'catFV', extraeFn('saneaLimitesCat') + '; return saneaLimitesCat;')({ multi }, c => (multi && c === 'Educacion') ? 'Educación' : c);
+  const entrada = [{ cat: 'Educacion', monto: 900 }, { cat: 'Comida', monto: 3000 }, { cat: 'Educación', monto: 500 }];
+  chk('límites en Fundview: Educacion y Educación se juntan y se queda el menor', JSON.stringify(lim(true)(entrada)) === JSON.stringify([{ cat: 'Educación', monto: 500 }, { cat: 'Comida', monto: 3000 }]), JSON.stringify(lim(true)(entrada)));
+  chk('límites en Fundview: un límite viejo solo se ve como Educación', JSON.stringify(lim(true)([{ cat: 'Educacion', monto: 900 }])) === JSON.stringify([{ cat: 'Educación', monto: 900 }]));
+  chk('límites en la familia: igual que siempre', JSON.stringify(lim(false)(entrada)) === JSON.stringify([{ cat: 'Educacion', monto: 900 }, { cat: 'Comida', monto: 3000 }, { cat: 'Educación', monto: 500 }]));
+  // las consultas por nombre al servidor buscan los dos textos (juntar o quitar la categoría no deja gastos viejos atrás)
+  const llamadas = [];
+  const W = new Function('CFG', 'where', eduSrc + '; return whereCat;');
+  const wf = multi => W({ multi }, (...a) => { llamadas.push(a); return a; });
+  llamadas.length = 0; wf(true)('gasto', 'Educación'); chk('whereCat Fundview: Educación busca los dos textos', JSON.stringify(llamadas[0]) === JSON.stringify(['cat', 'in', ['Educación', 'Educacion']]), JSON.stringify(llamadas[0]));
+  llamadas.length = 0; wf(true)('gasto', 'Comida'); chk('whereCat Fundview: otra categoría, igualdad de siempre', JSON.stringify(llamadas[0]) === JSON.stringify(['cat', '==', 'Comida']));
+  llamadas.length = 0; wf(true)('ingreso', 'Educación'); chk('whereCat Fundview: una categoría de ingreso con ese nombre no se toca', JSON.stringify(llamadas[0]) === JSON.stringify(['cat', '==', 'Educación']));
+  llamadas.length = 0; wf(false)('gasto', 'Educación'); chk('whereCat familia: igualdad de siempre', JSON.stringify(llamadas[0]) === JSON.stringify(['cat', '==', 'Educación']));
+} else console.log('  (esta copia no tiene el cambio de Educación: se salta)');
+
+// ═══ 10. el nombre del fondo de fabrica (4-nov-2026) ═══
+console.log('\n10. nombreFondoU: lo que la persona escribió se respeta');
+if (HTML.includes('const nombreFondoU')) {
+  const nf = multi => new Function('CFG', extrae('const FONDO_U_FV', 'const nombreFondoF') + '; return nombreFondoU;')({ multi });
+  const fv = nf(true), fam = nf(false);
+  chk('Fundview: sin entrada o vacía -> "Mi fondo"', fv(undefined) === 'Mi fondo' && fv('') === 'Mi fondo' && fv(null) === 'Mi fondo');
+  chk('Fundview: el "universidad" en minúscula que dejaba la app por omisión -> "Mi fondo"', fv('universidad') === 'Mi fondo');
+  chk('Fundview: "Universidad" escrito a propósito se respeta', fv('Universidad') === 'Universidad');
+  chk('Fundview: cualquier otro nombre se respeta', fv('Mi universidad') === 'Mi universidad' && fv('Viaje') === 'Viaje' && fv('UNIVERSIDAD') === 'UNIVERSIDAD');
+  chk('la familia: igual que siempre', fam(undefined) === 'universidad' && fam('Universidad') === 'Universidad' && fam('Beca') === 'Beca');
+}
 
 console.log('\n' + '='.repeat(58));
 console.log(fallos === 0 ? `TODO PASA — ${pruebas}/${pruebas}` : `${fallos} FALLAS de ${pruebas}`);

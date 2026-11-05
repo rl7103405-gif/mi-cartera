@@ -971,6 +971,62 @@ if (HTML.includes('const docCX')) {
     SERVIDOR[CX].cuentas.x_caj001 = { ...SERVIDOR[CX].cuentas.x_caj001, saldo: -100, fecha: '2026-07-28' };
     r = await txDinero({ permitirNegativo: true, fx: { deltas: { x_caj001: -1 } } });
     chk('Y8 una cajita en rojo no genera interes: -100 - 1 = -101', r.ok && sx('x_caj001').saldo === -101, JSON.stringify(sx('x_caj001')));
+
+    // ── (4-nov-2026) retencion opcional por cajita. Cifras calculadas aparte (decimal de 40 digitos, sin la app), con reloj fijo el 27-ago:
+    // 36% entre 360 = 0.1% diario; 3.65% entre 365 = 0.01% diario; neto 0.09% diario. 10,000 x 1.0009^30 = 10,273.55; 10,000 x 1.001^30 = 10,304.39
+    console.log('\nR. Retencion opcional en cajitas agregadas y fijas');
+    const relojReal = Date.now; Date.now = () => parseFechaLocal('2026-08-27').getTime() + 12 * 3600e3;
+    const hace10 = '2026-08-17';                 // txDinero reancla a hoyLocal (27-ago): para "10 dias despues" se recorre la fecha base
+    const caj = (id, o) => txDinero({ fx: { crear: { [id]: { nombre: id, moneda: 'MXN', tipo: 'cajita', on: true, saldo: 10000, creada: '2026-07-28', tasa: 36, tope: 0, tasaExc: 0, fecha: '2026-07-28', ...o } } } });
+    const atras = id => { SERVIDOR[CX].cuentas[id].fecha = hace10; };
+    SERVIDOR = { [S]: { efectivo: 1000 } };
+    r = await caj('x_ret001', { ret: 3.65 });
+    chk('R1 una cajita guarda la retencion que escribio la persona', r.ok && sx('x_ret001').ret === 3.65, JSON.stringify(sx('x_ret001')));
+    r = await caj('x_ret002', {});
+    chk('R1 sin retencion el documento no lleva el campo: nada sale solo', r.ok && !('ret' in sx('x_ret002')), JSON.stringify(sx('x_ret002')));
+    for (const [id, malo] of [['x_ret091', 11], ['x_ret092', -1], ['x_ret093', 'x'], ['x_ret094', 0]]) { await caj(id, { ret: malo }); chk('R1 una retencion de ' + malo + ' no se guarda', !('ret' in sx(id)), JSON.stringify(sx(id))); }
+    r = await txDinero({ fx: { editar: { x_ret001: { ret: 0 } } } });
+    chk('R2 quitarla cristaliza lo ganado CON retencion: 10,273.55, fecha hoy, retencion 0 en el documento (se guarda con merge)', r.ok && sx('x_ret001').saldo === 10273.55 && sx('x_ret001').fecha === hoyLocal() && sx('x_ret001').ret === 0, JSON.stringify(sx('x_ret001')));
+    atras('x_ret001'); r = await txDinero({ fx: { deltas: { x_ret001: 100 } } });
+    chk('R2 y 10 dias despues crece sin retencion: 10,376.75 + 100', r.ok && sx('x_ret001').saldo === 10476.75, JSON.stringify(sx('x_ret001')));
+    r = await txDinero({ fx: { editar: { x_ret002: { ret: 3.65 } } } });
+    chk('R3 ponerla no recalcula lo ya ganado: 10,304.39 (sin retencion), y queda 3.65', r.ok && sx('x_ret002').saldo === 10304.39 && sx('x_ret002').ret === 3.65 && sx('x_ret002').tasa === 36, JSON.stringify(sx('x_ret002')));
+    atras('x_ret002'); r = await txDinero({ fx: { deltas: { x_ret002: 100 } } });
+    chk('R3 y 10 dias despues crece con retencion: 10,397.51 + 100, y un movimiento la conserva', r.ok && sx('x_ret002').saldo === 10497.51 && sx('x_ret002').ret === 3.65, JSON.stringify(sx('x_ret002')));
+    await caj('x_ret003', { ret: 3.65 }); r = await txDinero({ fx: { deltas: { x_ret003: 100 } } });
+    chk('R4 un deposito parte del saldo neto: 10,273.55 + 100', r.ok && sx('x_ret003').saldo === 10373.55 && sx('x_ret003').ret === 3.65, JSON.stringify(sx('x_ret003')));
+    atras('x_ret003'); r = await txDinero({ fx: { deltas: { x_ret003: 1 } } });
+    chk('R4 y sigue neto 10 dias: 10,467.29 + 1', r.ok && sx('x_ret003').saldo === 10468.29, JSON.stringify(sx('x_ret003')));
+    await caj('x_ret004', { ret: 3.65, tope: 5000, tasaExc: 0 }); r = await txDinero({ fx: { deltas: { x_ret004: 1 } } });
+    chk('R5 con tope y 0% arriba la retencion no resta en esa banda: 10,135.00 + 1', r.ok && sx('x_ret004').saldo === 10136, JSON.stringify(sx('x_ret004')));
+    await caj('x_ret005', { ret: 0.9, tasa: 0.5 }); r = await txDinero({ fx: { deltas: { x_ret005: 1 } } });
+    chk('R5 una retencion mayor que el interes deja el saldo igual, no lo baja: 10,000 + 1', r.ok && sx('x_ret005').saldo === 10001, JSON.stringify(sx('x_ret005')));
+    await caj('x_ret006', { ret: 0.9, tasa: 10 }); r = await txDinero({ fx: { deltas: { x_ret006: 1 } } });
+    chk('R5 10% con 0.90%: 10,076.22 + 1 (sin retencion serian 10,083.67)', r.ok && sx('x_ret006').saldo === 10077.22, JSON.stringify(sx('x_ret006')));
+    const antesMal = JSON.stringify(sx('x_ret002'));
+    for (const malo of [11, -1, NaN, 'x']) { r = await txDinero({ fx: { editar: { x_ret002: { ret: malo } } } }); chk('R6 cambiarla a ' + malo + ' se rechaza y no toca nada', !!r.error && JSON.stringify(sx('x_ret002')) === antesMal, JSON.stringify(r)); }
+    r = await txDinero({ fx: { crear: { x_ban001: { nombre: 'b', moneda: 'MXN', tipo: 'banco', on: true, saldo: 5, creada: '2026-08-27' } } } });
+    r = await txDinero({ fx: { editar: { x_ban001: { ret: 0.9 } } } });
+    chk('R6 una cuenta sin interes no lleva retencion', !!r.error && !('ret' in sx('x_ban001')), JSON.stringify(r));
+    r = await txDinero({ fx: { editar: { x_ret003: { tasa: 12 } } } });
+    chk('R6 cambiar la tasa conserva la retencion', r.ok && sx('x_ret003').tasa === 12 && sx('x_ret003').ret === 3.65, JSON.stringify(sx('x_ret003')));
+    chk('R7 todo por plan.fx: una cuenta x_ en plan.deltas sigue tronando', await txDinero({ deltas: { x_ret003: 1 } }).then(() => false, () => true));
+    // las cuentas fijas: el campo ya existia; cambiarlo cierra un tramo con el modelo de antes (retDias:365), nada se recalcula
+    if (CAMPO_COMP.revSavings) {
+      SERVIDOR = { [S]: { efectivo: 0, revSavingsBase: 10000, revSavingsFecha: '2026-07-28', revSavingsTasa: 36, revSavingsTope: 0, revSavingsTasaExc: 0, revSavingsRet: 0 } };
+      const tramosFijos = () => Object.keys(SERVIDOR).filter(k => k.startsWith(PFX + 'rendimientos/')).map(k => SERVIDOR[k]);
+      r = await txDinero({ cristalizar: ['revSavings'], absolutos: { revSavingsRet: 3.65 } });
+      const t1 = tramosFijos();
+      chk('R8 cuenta fija: poner la retencion cierra UN tramo sin retencion: base 10,000, interes 304.39', r.ok && t1.length === 1 && t1[0].base === 10000 && t1[0].monto === 304.39 && t1[0].modelo.ret === 0 && t1[0].modelo.retDias === 365, JSON.stringify(t1));
+      chk('R8 y la base nueva es lo ya ganado: 10,304.39 desde hoy', SERVIDOR[S].revSavingsBase === 10304.39 && SERVIDOR[S].revSavingsFecha === hoyLocal() && SERVIDOR[S].revSavingsRet === 3.65, JSON.stringify(SERVIDOR[S]));
+      SERVIDOR[S].revSavingsFecha = hace10;
+      r = await txDinero({ deltas: { revSavings: 100 } });
+      const t2 = tramosFijos().find(t => t.base === 10304.39);
+      chk('R9 diez dias con retencion: 10,397.51 + 100, y su tramo recuerda el 3.65', r.ok && SERVIDOR[S].revSavingsBase === 10497.51 && t2 && t2.modelo.ret === 3.65 && t2.monto === 93.12, JSON.stringify(SERVIDOR[S]) + JSON.stringify(t2));
+      const tram1 = tramosFijos().find(t => t.base === 10000);
+      chk('R9 el primer tramo sigue diciendo 304.39: cambiar la retencion no recalculo lo ganado', tram1 && tram1.monto === 304.39 && tram1.modelo.ret === 0, JSON.stringify(tram1));
+    }
+    Date.now = relojReal;
   }
 }
 
