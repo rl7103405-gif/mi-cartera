@@ -1,6 +1,6 @@
 {
-  "name": "Mi Cartera",
-  "short_name": "Cartera",
+  "name": "Fundview",
+  "short_name": "Fundview",
   "description": "Control de finanzas personales",
   "start_url": "./",
   "display": "standalone",
