@@ -530,7 +530,7 @@ bolsa e ivv) y `personas` ya van con `!desdeCache`; `fx` (`asegurarTipoCambio`) 
 
 ## Lo que pidio la primera persona de fuera (audio del 4-nov-2026; Beto: buenas, pero ahorita no)
 
-- **QR para dar de alta la app del codigo.** Hoy solo se ofrece la clave, y copiarla desde la computadora "esta bastante complejo". `FV_MFA` ya genera la liga con `generateQrCodeUrl`: el QR se dibujaria en la app, nunca con un servicio ajeno, porque lleva la clave. Claude recomienda hacerlo antes de invitar a cinco conocidos si el SMS sigue apagado.
+- **QR para dar de alta la app del codigo. HECHO en rama (`qr-totp-2026-11-04`, 4-nov, sin publicar; falta escanearlo con un telefono real).** Antes solo se ofrecia la clave, y copiarla desde la computadora "esta bastante complejo". `FV_MFA` ya genera la liga con `generateQrCodeUrl`: el QR se dibujaria en la app, nunca con un servicio ajeno, porque lleva la clave. Claude recomienda hacerlo antes de invitar a cinco conocidos si el SMS sigue apagado.
 - **Entrar con Google.** Sugerencia para quien prefiere no tener otra contrasena. Choca con la invitacion atada a un correo y con `antesDeCrearUsuario`, que hoy solo acepta correo y contrasena. Despues de los cinco conocidos.
 - **Tarjetas de Inicio:** al abrir una, la anterior sigue abierta. Una sola opinion y "detalle muy menor" segun el mismo. Ver si alguien mas lo dice.
 
@@ -543,7 +543,7 @@ Un proyecto aparte, como extensión de Fundview, donde una familia entra y ve su
 
 Cortar "lo que toca" por quincena: cada quien cobra en días distintos, así que antes hay que saber cuándo cobra cada persona.
 Fecha límite de pago de cada tarjeta: hoy solo la Tarjeta 2 la tiene (`pagoLimite`); el calendario enseña el corte, no cuándo se paga.
-Subpestaña propia para el calendario, junto a Registrar, Categorías, Suscripciones y Deudas: hoy se llega por Movimientos y el selector, y la pantalla baja sola.
+[HECHO 7-nov, sin publicar, como pestaña propia y no subpestaña: ver abajo] Subpestaña propia para el calendario, junto a Registrar, Categorías, Suscripciones y Deudas: hoy se llega por Movimientos y el selector, y la pantalla baja sola.
 
 Sin decidir: una palabra junto al ojo del modo privado, porque en un teléfono no se adivina qué hace y el `title` no se ve.
 Sugerencias del revisor sin aplicar: `#cal-det` con `aria-live` se reescribe en cada render y puede re-anunciarse; el botón del mes siguiente se deshabilita con el foco puesto; la etiqueta del lector de pantalla no sigue el filtro "ya fueron / vienen"; "no pude cargar tus suscripciones" a veces es "todavía no"; en un día sin nota el renglón empieza con un punto suelto.
@@ -551,4 +551,34 @@ Sugerencias del revisor sin aplicar: `#cal-det` con `aria-live` se reescribe en 
 ## Pedidos de Beto al cerrar el 5-nov-2026 (tarde)
 
 - **Su cartera en un dominio propio**, en vez de `rl7103405-gif.github.io/mi-cartera` (dijo "mi cartera MX"; falta decidir cuál, por ejemplo un subdominio de fundview.mx). Ojo: cambiar de dirección es cambiar de origen. La copia local, la bandeja sin señal, el tema y la sesión no pasan solos: hay que vaciar la bandeja antes, volver a entrar y reinstalar el ícono. Las otras carteras igual.
-- **La tarjeta de bolsa "se sigue viendo muy larga y le pierde chiste".** Él la vio en su cartera publicada, que todavía NO tiene la gráfica nueva (solo se le subió el nombre). Primero enseñarle la nueva en su aparato y después recortar: menos cifras a la vista, la tabla por acción plegada o fuera de la tarjeta.
+- **[HECHO 5-nov, publicado]** **La tarjeta de bolsa "se sigue viendo muy larga y le pierde chiste".** Él la vio en su cartera publicada, que todavía NO tiene la gráfica nueva (solo se le subió el nombre). Primero enseñarle la nueva en su aparato y después recortar: menos cifras a la vista, la tabla por acción plegada o fuera de la tarjeta.
+
+## Pedidos de Beto del 5-nov-2026, al probar el SMS (siguiente feature, en este orden)
+
+- **Pedir el nombre al crear la cuenta en Fundview y saludar con él** ("Hola, André"), en la app y en los correos. Beto: "es muy importante". Va en `<NS>/perfil.nombre` (ya existe en la base) y en `displayName` de Auth (`updateProfile`), que es lo que usan las plantillas de correo de Firebase. Ojo: es un dato personal nuevo. Hay que agregarlo al aviso de privacidad (`copias\fundview-legal.html`), subir `FV_TERMINOS` y avisar a cada persona antes de publicar (hoy, Pico y la cuenta de prueba). Quien ya tiene cuenta lo da en su perfil, o se le pide una vez. Revisar si `usuarios/<uid>` lo necesita (tiene lista cerrada de campos en las reglas): mejor no.
+- **El correo con la cara de Fundview:** hoy sale de `noreply@fundview-app.firebaseapp.com` y Gmail no deja ponerle foto. Corto plazo: nombre del remitente "Fundview" y texto propio en las plantillas (comprobar en la documentación de Firebase qué se puede editar). De fondo: mandar desde `@fundview.mx` (pendiente desde antes) y, para el logo en Gmail, BIMI con certificado (cientos de USD al año, estimado, sin cotizar).
+
+## Lo que vio Beto en la prueba real del SMS (5-nov-2026, tarde)
+
+- **"Ya hay cuenta con ese correo" deja atrapado en crear cuenta:** falta un botón claro para ir a "entrar" desde ahí.
+- **Cambiar la contraseña abre la página de Firebase** (`fundview-app.firebaseapp.com/__/auth/action`): "no me encanta". Que pase dentro de Fundview, con un manejador propio de la acción (`handleCodeInApp`, o la URL de acción del proyecto apuntando a `app.fundview.mx`).
+- **"Ya te mandamos un código, pero esta pantalla no lo recuerda":** al salir y volver a entrar, el código que ya había llegado no se puede usar, porque el `verificationId` solo vive en la memoria. Se siente como error. Pensar si guardarlo en `sessionStorage`, con su riesgo, o decirlo más claro.
+
+## Calendario en su propia pestaña (6-nov-2026, Beto)
+
+- **[HECHO 7-nov-2026, rama `calendario-pestana-2026-11-07`, SIN publicar]** Hoy el calendario vive dentro de Movimientos (selector "lista · calendario") y se ve chico. Beto quiere una pestaña propia para verlo en grande.
+
+## El tablero del negocio de Fundview (6-nov-2026, Beto; solo idea, plan en preparación)
+
+- **Qué quiere:** llevar el control real de Fundview como negocio: cuánto entra, cuánto cuesta (servidor, dominio, SMS), cuánta ganancia queda y poder "pasársela" aunque todo viva en Revolut; cuántos suscriptores, cuándo pagan, quién no ha pagado y desde cuándo, y un pronóstico. Solo para él. No dentro de las pantallas de siempre de su cartera ("se amontonaría todo").
+- **Dos piezas separadas, sin conexión entre ellas:** (1) **el dinero**, en su cartera, como un fondo "Fundview" en su Revolut (los fondos ya existen): ingresos de clientes entran al fondo, gastos del negocio salen de él, sacar la ganancia = sacarla del fondo. Falta solo una vista que filtre lo del negocio. (2) **los clientes**, en un script local de solo lectura en `fundview-app\mantenimiento\` (gemelo de `marcar-pago.mjs`): quién está al día, quién vence, días sin pagar, ingreso del mes y pronóstico (estimado). Nunca en una página web.
+- **Regla dura (aceptada por Beto):** el tablero de clientes lee SOLO `usuarios/<uid>/suscripcion/estado` y la lista de cuentas; nunca la cartera de nadie. Ninguna llave de `fundview-app` va a la cartera de Beto ni a un navegador.
+- **Inversión inicial:** el dominio y Firebase los pagó Beto de su bolsa (desde Revolut). El tablero debe decir "invertido $X, recuperado $Y", no solo la ganancia del mes.
+- **Impuestos:** hoy no factura ni tiene contador (es poco dinero). Cuando sea en serio: residencia fiscal entre México, Australia y China, pregunta para un profesional, en su compartimento (finanzas). Desde ya, guardar fecha, monto y de quién vino cada pago.
+- **Cuándo:** el fondo lo puede armar Beto sin código desde hoy (primer pago: Pico, 3-dic). Script y vista, cuando haya unos cinco pagando (umbral de Claude, no regla). Se nombró una vez "infraestructura antes que validación"; Beto lo quiere como plan, no para construir ya.
+- **Respuestas del 6-nov y plan:** `documentos\plan-de-codeo\plan-tablero-negocio-2026-11-06.md` (piezas A a F, reglas, orden y preguntas abiertas).
+
+## Tarjetas que nadie encuentra (6-nov-2026, audio de Pico y Beto)
+
+- **Pico preguntó si se pueden poner tarjetas de crédito con su corte**, y Beto tampoco encontró dónde. Existen (Tarjeta 1 y Tarjeta 2, apagadas por omisión) en Perfil › Mis cuentas › "Tus cuentas fijas", pero la gente busca en "agregar una cuenta", que solo ofrece banco, efectivo y cajita. Dos personas no las encontraron. Ideas sin decidir: que "agregar una cuenta" ofrezca "tarjeta de crédito" y lleve a encenderla; que el asistente pregunte "¿tienes tarjeta de crédito?"; que la ayuda con "tarjeta" lleve ahí.
+- **Lo que pide de fondo:** que lo que debes a la tarjeta se vea restando, en rojo, en la pantalla principal ("veo que tengo mucho dinero, pero en realidad no"). Hoy el número grande es "tu dinero" sin restar tarjetas; el neto con la tarjeta en negativo está en "ver desglose". Cambiar el número grande o ponerle la deuda debajo es decisión de Beto (mueve metas, foto del día y lo que la gente ya conoce).

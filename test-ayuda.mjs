@@ -54,6 +54,9 @@ const CONTESTA = {
   'saldo': ['¿Cómo actualizo un saldo?', 'actualizar saldos', 'cambiar el saldo de mi banco', 'como pongo mi saldo', 'como corrijo mi saldo'],
   'agregar': ['como agrego otra cuenta', 'agregar un banco', 'tengo otro banco', 'cuenta en dolares', 'como agrego una cuenta en euros', 'nueva cuenta', 'cuenta en otra moneda', 'tengo dolares', 'efectivo en otra cuenta'],
   'cajita': ['como uso las cajitas', 'como agrego una cajita', 'cuenta con intereses', 'como pongo la tasa de mi cajita', 'savings', 'cajita', 'cuenta de ahorro con interes', 'rendimiento de mi cajita'],
+  // (7-nov-2026) Pico y Beto buscaron la tarjeta en "agregar una cuenta"
+  'calendario': ['¿Dónde veo mis gastos en un calendario?', 'donde esta el calendario', 'quiero ver el calendario', 'calendario de gastos', 'ver mis cobros que vienen', 'que cobros vienen este mes'],
+  'poner-tarjeta': ['¿Cómo pongo mi tarjeta de crédito?', 'como pongo mi tarjeta de credito', 'como agrego mi tarjeta de credito', 'agregar una tarjeta de credito', 'donde pongo mi tarjeta', 'no encuentro donde poner mi tarjeta', 'como doy de alta mi tarjeta', 'quiero agregar mi tdc', 'añadir tarjeta de crédito', 'nueva tarjeta de credito'],
   'fijas': ['como apago una cuenta', 'como enciendo mi tarjeta', 'cambiar el nombre de mi cuenta', 'renombrar una cuenta', 'apagar una cuenta', 'como prendo una cuenta', 'como cambio el dia de corte'],
   'fondo': ['como aparto dinero', 'crear un fondo', 'fondo para un viaje', 'apartar para emergencias', 'fondos', 'separar dinero para un coche'],
   'bolsa': ['como anoto mis acciones', 'como registro lo que invertí', 'donde veo mis inversiones', 'tablero de inversiones', 'compré acciones como lo registro', 'como anoto una venta de acciones que vendi', 'acciones', 'bolsa'],
@@ -77,9 +80,14 @@ const CONTESTA = {
   'cuadra': ['mi cajita no cuadra con mi banco', 'mi saldo no cuadra', 'no me cuadra', 'no me cuadra con mi banco', 'no me coincide con el banco', 'el interes de mi cajita no es el del banco', 'mi banco dice otra cantidad', 'no es igual a mi banco', 'hay una diferencia con el banco', 'sale diferente que en mi banco', 'no me sale igual', 'mi cajita dice otra cosa que mi banco', 'la cajita no coincide'],
   'real': ['es real este numero', 'es real lo que dice mi cajita', 'este numero es real', 'es exacto lo que dice', 'los intereses son reales', 'es correcto mi total'],
   'gasto-fecha': ['registrar un gasto con otra fecha', 'cambiar la fecha de un gasto', 'como registro un gasto de ayer', 'como pongo la fecha a un gasto', 'cambiar la fecha de un movimiento', 'un gasto con fecha anterior', 'como cambio la fecha de un ingreso'],
+  // (7-nov-2026, prueba de usuario-real de la persona nueva) frases que no encontraban nada o caian en "cuanto cuesta Fundview"
+  'ganancia': ['cuanto gané', 'cuánto gané este mes', 'cuánto me pagó la cajita', 'cuanto gane en intereses', 'cuanto me dio la cajita', 'cuanto ha ganado mi dinero'],
+  'calendario#': ['pagos que vienen este mes', 'qué me cobran este mes', 'que cobros me tocan este mes', 'cuales son mis pagos del mes', 'que cargos vienen'],
+  'deuda-tarjeta': ['cómo pongo lo que debo de mi tarjeta', 'saldo de la tarjeta', 'donde anoto lo que ya debo de mi tarjeta', 'como pongo lo que debo en mi tarjeta de credito', 'saldo de mi tarjeta de credito'],
   'cuesta': ['cuanto me cobran', 'me cobran algo por usar fundview', 'cuanto cuesta', 'es gratis', 'cuánto cuesta fundview', 'precio', 'cobran algo'],
 };
-for (const [id, qs] of Object.entries(CONTESTA)) for (const q of qs) {
+for (const [id0, qs] of Object.entries(CONTESTA)) for (const q of qs) {
+  const id = id0.replace('#', '');   // 'calendario#': la segunda lista de la misma respuesta (una clave repetida pisaria la primera)
   const r = A.buscarAyuda(q);
   ok(r.tipo === 'respuesta' && r.ids[0] === id, 'CONTESTA ' + id + ': ' + q, JSON.stringify(r).slice(0, 110));
 }

@@ -1030,6 +1030,53 @@ if (HTML.includes('const docCX')) {
   }
 }
 
+// ═══════════════ XT. PAGAR UNA TARJETA DESDE UNA CUENTA AGREGADA (7-nov-2026) ═══════════════
+// Una persona nueva solo tiene cuentas agregadas (x_): pagoTarjetaX arma UN plan con plan.fx (baja el saldo de la cuenta) + la deuda de la tarjeta + el pago en la
+// tarjeta + la transferencia. Esta seccion prueba que txDinero sostiene esa combinacion: todo o nada, y un reintento (respuesta perdida) no cobra dos veces.
+if (HTML.includes('const docCX') && HTML.includes('async function pagoTarjetaX')) {
+  console.log('\nXT. Pago de tarjeta desde una cuenta agregada: una sola transaccion, todo o nada');
+  const S = R('cartera/saldos'), CX = R('cartera/cuentasX'), T = R('cartera/tarjeta'), TR = id => PFX + 'transferencias/' + id;
+  const sx = id => (SERVIDOR[CX] && SERVIDOR[CX].cuentas && SERVIDOR[CX].cuentas[id]) || {};
+  const base = (extra = {}) => ({ [S]: { efectivo: 1000 }, [T]: { deuda: 1000, movimientos: [{ id: 'cargo0', tipo: 'cargo', monto: 1000 }] },
+    [CX]: { cuentas: { x_bbv001: { nombre: 'BBVA', moneda: 'MXN', tipo: 'banco', on: true, saldo: 3000, creada: '2026-11-01' }, ...extra } } });
+  const plan = (m, id = 'tp1', pagoId = 'pg1', cuenta = 'x_bbv001') => ({ crear: [{ ref: { path: TR(id) }, data: { origen: cuenta, destino: 'tarjeta', monto: m, montoOrigen: m, monedaOrigen: 'MXN', montoDestino: m, monedaDestino: 'MXN', tc: 1 } }],
+    requerirAusentes: [{ path: TR(id) }], fx: { deltas: { [cuenta]: -m } }, tarjetaDelta: -m, tarjetaMovAdd: { id: pagoId, tipo: 'pago', monto: m, fuente: cuenta } });
+  const estado = () => JSON.stringify([sx('x_bbv001').saldo, SERVIDOR[T].deuda, SERVIDOR[T].movimientos.length, Object.keys(SERVIDOR).filter(k => k.startsWith(PFX + 'transferencias/')).length]);
+  let r;
+  SERVIDOR = base();
+  r = await txDinero(plan(400));
+  chk('XT1 el pago baja la cuenta (3,000 → 2,600) y la deuda (1,000 → 600), deja UN pago y UNA transferencia', r.ok && estado() === JSON.stringify([2600, 600, 2, 1]), estado());
+  chk('XT1 el resultado trae la cuenta y la tarjeta para la pantalla (res.cx y res.tarjeta)', r.cx && r.cx.x_bbv001.saldo === 2600 && r.tarjeta && r.tarjeta.deuda === 600);
+  chk('XT1 el efectivo no se tocó (una cuenta x_ nunca va en deltas)', SERVIDOR[S].efectivo === 1000);
+  r = await txDinero(plan(400));
+  chk('XT2 el MISMO pago otra vez (respuesta perdida): ya-existe y NO cobra dos veces', r.codigo === 'ya-existe' && estado() === JSON.stringify([2600, 600, 2, 1]), JSON.stringify(r) + estado());
+  // el reintento del SDK sin requerirAusentes (otra transferencia, el MISMO id de pago en la tarjeta): tambien ya-existe
+  r = await txDinero({ ...plan(400, 'tp2'), requerirAusentes: [] });
+  chk('XT2 solo con el id del pago en la tarjeta: ya-existe y no baja nada', r.codigo === 'ya-existe' && estado() === JSON.stringify([2600, 600, 2, 1]), JSON.stringify(r) + estado());
+  // todo o nada
+  SERVIDOR = base();
+  r = await txDinero(plan(3500, 'tp3', 'pg3'));
+  chk('XT3 sin saldo en la cuenta: se rechaza y no cambia NADA (ni la deuda, ni una transferencia)', !!r.error && /saldo insuficiente en BBVA/.test(r.error) && estado() === JSON.stringify([3000, 1000, 1, 0]), JSON.stringify(r) + estado());
+  SERVIDOR = base(); SERVIDOR[T].deuda = 300;
+  r = await txDinero(plan(400, 'tp4', 'pg4'));
+  chk('XT4 un pago mayor a la deuda se rechaza y la cuenta NO baja', !!r.error && /excede la deuda/.test(r.error) && sx('x_bbv001').saldo === 3000 && SERVIDOR[T].deuda === 300 && !SERVIDOR[TR('tp4')], JSON.stringify(r) + estado());
+  SERVIDOR = base({ x_off001: { nombre: 'Vieja', moneda: 'MXN', tipo: 'banco', on: false, saldo: 500, creada: '2026-11-01' } });
+  r = await txDinero(plan(100, 'tp5', 'pg5', 'x_off001'));
+  chk('XT5 desde una cuenta apagada se rechaza y no cambia nada', !!r.error && estado() === JSON.stringify([3000, 1000, 1, 0]), JSON.stringify(r) + estado());
+  r = await txDinero(plan(100, 'tp6', 'pg6', 'x_fantasma1'));
+  chk('XT5 desde una cuenta que no existe se rechaza y no cambia nada', !!r.error && estado() === JSON.stringify([3000, 1000, 1, 0]), JSON.stringify(r) + estado());
+  // la tarjeta 2: lo mismo por tdcRevDelta
+  SERVIDOR = base(); SERVIDOR[R('cartera/tarjetaRev')] = { deuda: 300, deposito: 0, movimientos: [] };
+  const prevModo = MODO_TDC; MODO_TDC = 'normal';
+  r = await txDinero({ crear: [{ ref: { path: TR('tr1') }, data: { origen: 'x_bbv001', destino: 'tarjetaRev', monto: 100, montoOrigen: 100, monedaOrigen: 'MXN', montoDestino: 100, monedaDestino: 'MXN', tc: 1 } }], requerirAusentes: [{ path: TR('tr1') }],
+    fx: { deltas: { x_bbv001: -100 } }, tdcRevDelta: -100, tdcRevMovAdd: { id: 'pgr1', tipo: 'pago', monto: 100, fuente: 'x_bbv001' } });
+  chk('XT6 la tarjeta 2: baja la cuenta (2,900) y su deuda (200) en una sola transaccion', r.ok && sx('x_bbv001').saldo === 2900 && SERVIDOR[R('cartera/tarjetaRev')].deuda === 200 && SERVIDOR[T].deuda === 1000, JSON.stringify(r));
+  MODO_TDC = prevModo;
+  // una cuenta x_ en plan.deltas sigue tronando (regla dura): el pago NUNCA va por ahi
+  SERVIDOR = base();
+  chk('XT7 una cuenta x_ en plan.deltas sigue tronando (va en plan.fx)', await txDinero({ deltas: { x_bbv001: -10 }, tarjetaDelta: -10 }).then(() => false, () => true) && estado() === JSON.stringify([3000, 1000, 1, 0]));
+}
+
 console.log('\n' + '='.repeat(58));
 console.log(fallos === 0 ? `TODO PASA — ${pruebas}/${pruebas}` : `${fallos} FALLAS de ${pruebas}`);
 process.exit(fallos === 0 ? 0 : 1);

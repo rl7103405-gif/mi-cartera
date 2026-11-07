@@ -50,6 +50,9 @@ igual(A.fvErrorSms(E('auth/internal-error', BLOQ('fv-sms-pais'))), A.FV_SMS_PAIS
 igual(A.fvErrorSms(E('auth/internal-error', BLOQ('fv-sms-intenta-despues'))), A.FV_SMS_DESPUES, 'intenta despues');
 igual(A.fvErrorSms(E('auth/internal-error', BLOQ('fv-sms-tipo'))), A.FV_SMS_DESPUES, 'tipo (un fv- que no conoce): el generico');
 igual(A.fvErrorSms(E('auth/internal-error', 'Firebase: Error (auth/internal-error).')), A.FV_SMS_DESPUES, 'internal sin fv-');
+// (5-nov-2026, mejora 4) el tope con el codigo de antes de la funcion (resource-exhausted) tambien se reconoce, por si llega asi en el texto
+igual(A.fvErrorSms(E('auth/internal-error', 'Firebase: HTTP Cloud Function returned an error: RESOURCE_EXHAUSTED (auth/internal-error).')), A.FV_SMS_TOPE, 'RESOURCE_EXHAUSTED en el texto: tope');
+igual(A.fvErrorSms(E('auth/internal-error', 'resource-exhausted')), A.FV_SMS_TOPE, 'resource-exhausted en el texto: tope');
 igual(A.fvErrorSms(E('auth/quota-exceeded')), A.FV_SMS_TOPE, 'cuota de Firebase');
 igual(A.fvErrorSms(E('auth/invalid-phone-number')), 'ese número no está bien escrito: revísalo y vuelve a intentar', 'numero invalido');
 igual(A.fvErrorSms(E('auth/network-request-failed')), A.FV_SIN_RED, 'sin red');
