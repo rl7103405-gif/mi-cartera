@@ -8,7 +8,7 @@ const APP = process.env.APP || path.join(path.dirname(fileURLToPath(import.meta.
 const HTML = fs.readFileSync(APP, 'utf8').replace(/\r\n/g, '\n');
 const ini = HTML.indexOf('// <ticket-puras>'), fin = HTML.indexOf('// </ticket-puras>');
 if (ini < 0 || fin < ini || HTML.indexOf('// <ticket-puras>', ini + 1) >= 0) { console.log('FALLA: no hay UN bloque <ticket-puras> en ' + APP); process.exit(1); }
-const T = new Function(HTML.slice(ini, fin) + '\nreturn {ticketLeer, ticketElegir, ticketMontos, ticketFecha, ticketComercio};')();
+const T = new Function(HTML.slice(ini, fin) + '\nreturn {ticketLeer, ticketElegir, ticketMontos, ticketFecha, ticketComercio, ticketCadena, ticketCompleto};')();
 const HOY = '2026-11-07';
 let pasan = 0, fallas = 0;
 const ok = (c, t, d = '') => { if (c) pasan++; else { fallas++; console.log('  FALLA', t, d); } };
@@ -109,6 +109,34 @@ ok(E('OXXO\nTOTAL $5150.00', 'OXXO\nTOTAL $150.00').monto === null && E('OXXO\nT
 ok(E('OXXO\nTOTAL $75.00', 'basura ilegible').monto === 75, 'elegir: si la otra pasada no ve nada, se queda la que si (no la contradice)');
 ok(E('TOTAL $75.00', 'OXXO\nFECHA 02/11/2026\nTOTAL $75.00').comercio === 'Oxxo' && E('TOTAL $75.00', 'OXXO\nFECHA 02/11/2026\nTOTAL $75.00').fecha === '2026-11-02', 'elegir: fecha y comercio de la otra pasada si la primera no los vio');
 ok(T.ticketElegir([], HOY).monto === null, 'elegir: sin pasadas, nada');
+// (8-nov) dos pasadas confirmadas con montos distintos: el orden no decide, no se llena
+const A100 = 'OXXO\nTOTAL $100.00\nEFECTIVO 100.00', A40 = 'OXXO\nTOTAL $40.00\nEFECTIVO 40.00';
+ok(E(A100, A40).monto === null && E(A40, A100).monto === null && E(A100, A40).motivo === 'pasadas-distintas' && E(A40, A100).confianza === 'baja', 'elegir: dos confirmadas distintas (100 y 40), en cualquier orden, no llenan');
+ok(E(A40, A40).monto === 40, 'elegir: dos confirmadas iguales si llenan');
+// (8-nov) foto REAL de Chedraui (test-ticket-reales.json): la pasada en grises lee el total pero no el encabezado ni la fecha; la de zonas, al reves
+const REAL = JSON.parse(fs.readFileSync(path.join(path.dirname(fileURLToPath(import.meta.url)), 'test-ticket-reales.json'), 'utf8'));
+const g1 = T.ticketLeer(REAL.chedraui_gris, HOY), ch = T.ticketElegir([REAL.chedraui_gris, REAL.chedraui_zonas], HOY);
+ok(g1.monto === 403.29 && g1.fecha === null && g1.comercio === null, 'real Chedraui, solo grises: monto si; fecha y nota vacias (antes la nota salia con basura)', JSON.stringify(g1));
+ok(ch.monto === 403.29 && ch.fecha === '2026-11-01' && ch.comercio === 'Chedraui' && ch.confianza === 'alta', 'real Chedraui, dos pasadas: 403.29, 1-nov y Chedraui', JSON.stringify(ch));
+ok(!T.ticketCompleto([REAL.chedraui_gris], HOY) && T.ticketCompleto([REAL.chedraui_gris, REAL.chedraui_zonas], HOY), 'real Chedraui: con una pasada no basta (falta fecha y nota); con dos, si');
+ok(T.ticketElegir([REAL.chedraui_zonas, REAL.chedraui_gris], HOY).monto === 403.29, 'real Chedraui: el orden de las pasadas no cambia el monto');
+// cadenas con una letra mal leida, y lo que NO debe parecerse
+// (CHEDAAUT ya no pasa a proposito: cambia la ultima letra y la regla de 8+ letras exige misma primera y ultima; en la foto real la cadena sale de otra palabra, ver el caso real)
+ok(['CHEORAUI', 'CHENRAUI', 'TIENDAS CHEDRAU1'].every(x => T.ticketCadena([x]) === 'Chedraui'), 'cadena: Chedraui con letras mal leidas');
+ok(T.ticketCadena(['WALMAPT']) === 'Walmart' && T.ticketCadena(['SORIANO']) === null && T.ticketCadena(['TALLER SORIANO']) === null, 'cadena: 7 letras con una mal si; SORIANO (apellido) no es Soriana');
+ok(T.ticketCadena(['SANBORN']) === null && T.ticketCadena(['SUPERMAN']) === null, 'cadena: SANBORN y SUPERMAN no son Sanborns ni Superama');
+ok(T.ticketCadena(['MERCADO']) === null && T.ticketCadena(['SUPERMERCADO LUPITA']) === null && T.ticketCadena(['LIBERTAD']) === null, 'cadena: palabras comunes no se vuelven cadena');
+// el respaldo no toma letras sueltas ni departamentos
+ok(T.ticketComercio(['O Ny E', 'TOTAL 50.00']) === null && T.ticketComercio(['erduras PE se']) === null && T.ticketComercio(['os refrigerados']) === null, 'respaldo: letras sueltas o un departamento no son nombre');
+ok(T.ticketComercio(['PANADERIA LA FLOR', 'TOTAL 50.00']) === 'Panaderia La Flor' && T.ticketComercio(['ABARROTES DON JUAN']) === 'Abarrotes Don Juan', 'respaldo: un departamento en el primer renglon si es la tienda');
+ok(T.ticketComercio(['0', '1', 'PANADERIA LA FLOR']) === null && T.ticketComercio(['***', '---', 'ABARROTES DON JUAN']) === null, 'respaldo: el mismo nombre en el tercer renglon o mas abajo es un departamento');
+ok(T.ticketComercio(['TAQUERIA EL FOGON']) === 'Taqueria El Fogon' && T.ticketComercio(['LA ESQUINA DE LUPE']) === 'La Esquina de Lupe', 'respaldo: una palabra corta (El, La) si se acepta');
+// mezcla de pasadas: dos fechas o dos cadenas distintas, ninguna
+const M = (...xs) => T.ticketElegir(xs, HOY);
+ok(M('OXXO\nTOTAL $56.50\nEFECTIVO 56.50\n01/11/2026', 'FECHA 02/11/2026').fecha === null, 'mezcla: dos fechas distintas sin mayoria, ninguna');
+ok(M('TOTAL $56.50\nEFECTIVO 56.50\n02/11/2026', '02/11/2026', '01/11/2026').fecha === '2026-11-02', 'mezcla: gana la fecha que mas pasadas dan');
+ok(M('OXXO\nTOTAL $56.50\nEFECTIVO 56.50', 'SORIANA').comercio === null, 'mezcla: dos cadenas distintas, nota vacia');
+ok(M('FONDA LUPE\nTOTAL $56.50\nEFECTIVO 56.50', 'OXXO').comercio === 'Oxxo', 'mezcla: una cadena conocida gana al nombre de respaldo');
 const montosBien = CASOS.filter(c => T.ticketLeer(c.t, HOY).monto === c.esp.monto).length;
 const llenoMal = CASOS.filter(c => { const r = T.ticketLeer(c.t, HOY); return r.monto !== null && r.monto !== c.esp.monto; }).length;
 console.log(`tickets: ${CASOS.length} · monto correcto (o correctamente vacio) en ${montosBien} · montos llenados MAL: ${llenoMal} · campos bien ${aciertosCampo}/${camposTotales}`);

@@ -448,6 +448,9 @@ html[data-tema='grafito'] .tabs{--sombra-scroll:rgba(255,255,255,.16)}
 .total-label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:6px}
 .total-amount{font-size:clamp(42px,11vw,58px);font-weight:780;letter-spacing:-0.045em;line-height:1;color:var(--accent-dark);padding-bottom:2px}
 .total-sub{font-size:12px;color:var(--muted);margin-top:6px}
+.inicio-acciones{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:14px}
+.inicio-agregar{display:block;width:100%;margin-top:12px;min-height:48px;padding:12px 14px;background:transparent;border:1px dashed var(--green);border-radius:var(--rs);color:var(--accent-dark);font:inherit;font-size:14px;font-weight:500;text-align:left;cursor:pointer}
+.inicio-accion{margin-top:0;min-height:44px;padding:10px 8px;font-size:14px;line-height:1.25}
 /* (7-nov-2026) lo que debes en tarjetas bajo el total. --red da 3.85 a 4.5:1 sobre el fondo de los temas claros; --red-txt (#a8392b) da 5.0:1 o mas, y en grafito es --red (5.0:1 o mas) */
 .total-deuda{font-size:13px;font-weight:600;color:var(--red-txt);margin-top:6px;line-height:1.4}
 
@@ -1422,6 +1425,12 @@ html[data-tema='grafito'] .cal-d.hoy .cal-n{color:#14171a}
     <button type="button" class="desglose-btn" id="desglose-btn" aria-expanded="false" aria-controls="neto-display" onclick="toggleDesglose()">ver desglose</button>
     <div class="desglose" id="neto-display" hidden></div>
     <div class="total-sub" id="last-update">—</div>
+    <!-- (8-nov-2026, revision de producto) las dos acciones de una app sin banco, a un toque desde Inicio: antes anotar vivia en
+         otra pestaña y "actualizar saldos" cerrado debajo de todas las tarjetas. Solo llevan al lugar de siempre; no escriben nada -->
+    <div class="inicio-acciones">
+      <button type="button" class="btn inicio-accion" id="inicio-anotar">anotar un gasto</button>
+      <button type="button" class="btn inicio-accion" id="inicio-saldos">poner al día mis saldos</button>
+    </div>
   </div>
 
   <!-- DONDE ESTA MI DINERO -->
@@ -1493,6 +1502,8 @@ html[data-tema='grafito'] .cal-d.hoy .cal-n{color:#14171a}
   </div>
   <!-- (20-oct-2026) cuentas en otra moneda: una tarjeta por cuenta (renderCuentasX). Se agregan en perfil -->
   <div class="cards" id="cx-cards" hidden style="margin-top:12px"></div>
+  <!-- (8-nov-2026, revision de producto, arreglo 2) dar de alta una cuenta vivia solo en Perfil › Mis cuentas: el camino, desde Inicio -->
+  <button type="button" class="inicio-agregar" id="inicio-agregar">+ agregar un banco, cajita o tarjeta</button>
 
   <div class="inicio-grid">
   <div class="sec">
@@ -1888,7 +1899,7 @@ html[data-tema='grafito'] .cal-d.hoy .cal-n{color:#14171a}
       </div>
       <div class="row2">
         <div class="field"><label for="cx-nuevo-tipo">tipo</label>
-          <select id="cx-nuevo-tipo" onchange="document.getElementById('cx-nuevo-cajita').hidden=this.value!=='cajita'"><option value="banco">banco</option><option value="cajita">cajita o savings (con interés)</option><option value="efectivo">efectivo</option><option value="tarjeta" data-solo-cfg>tarjeta de crédito</option></select></div>
+          <select id="cx-nuevo-tipo" onchange="document.getElementById('cx-nuevo-cajita').hidden=this.value!=='cajita'"><option value="banco">banco</option><option value="cajita">cajita o savings (con interés)</option><option value="tarjeta" data-solo-cfg>tarjeta de crédito</option><option value="efectivo">efectivo</option><option value="bolsa">inversiones en bolsa</option></select></div>
         <div class="field"><label for="cx-nuevo-saldo">saldo de hoy, en esa moneda</label><input type="number" id="cx-nuevo-saldo" step="0.01" inputmode="decimal" placeholder="ej. 500"></div>
       </div>
       <div id="cx-nuevo-cajita" hidden>
@@ -1899,6 +1910,11 @@ html[data-tema='grafito'] .cal-d.hoy .cal-n{color:#14171a}
         <div class="field"><label for="cx-nuevo-tasa-exc">tasa % arriba del tope (si tiene)</label><input type="number" id="cx-nuevo-tasa-exc" step="0.01" inputmode="decimal" placeholder="ej. 6.5"></div>
       </div>
       <!-- (7-nov-2026) una tarjeta de credito no es una cuenta agregada: vive en "tus cuentas fijas". Solo con cuentas configurables -->
+      <!-- (8-nov-2026) la bolsa tampoco es una cuenta agregada: es la pestaña Inversiones. Se ofrece encenderla o ir a ella -->
+      <div id="cx-nuevo-bolsa" hidden>
+        <div class="item-meta" id="cx-nuevo-bolsa-nota" style="line-height:1.5" role="status"></div>
+        <button type="button" class="btn btn-purple" id="cx-nuevo-bolsa-btn">encender inversiones</button>
+      </div>
       <div id="cx-nuevo-tdc" hidden>
         <div class="item-meta" id="cx-nuevo-tdc-nota" style="line-height:1.5" role="status"></div>
         <button type="button" class="btn btn-purple" id="cx-nuevo-tdc-btn">ir a mi tarjeta</button>
@@ -2776,15 +2792,60 @@ function pintarTarjetasInicio() {
 const tdcLibre = () => ['tarjeta', 'tarjetaRev'].find(k => SLOTS_CFG[k] && !confCta(k).on) || null;
 function prepararTdcAgregar() {
   const sel = document.getElementById('cx-nuevo-tipo'); if (!sel) return;
-  if (!CUENTAS_CFG) { sel.querySelectorAll('option[data-solo-cfg]').forEach(o => o.remove()); return; }
+  if (!CUENTAS_CFG) sel.querySelectorAll('option[data-solo-cfg]').forEach(o => o.remove());
+  // (8-nov-2026) "inversiones en bolsa": solo donde la bolsa existe (una copia que la apaga no la ofrece)
+  if (ctaApagada('stocks')) sel.querySelectorAll('option[value="bolsa"]').forEach(o => o.remove());
   sel.addEventListener('change', cxTipoTdc);
-  const b = document.getElementById('cx-nuevo-tdc-btn'); if (b) b.addEventListener('click', irATarjetaFija);
+  const b = document.getElementById('cx-nuevo-tdc-btn'); if (b && CUENTAS_CFG) b.addEventListener('click', irATarjetaFija);
+  const bb = document.getElementById('cx-nuevo-bolsa-btn'); if (bb) bb.addEventListener('click', irABolsa);
+  // el boton de Inicio: sin cuentas configurables no hay tarjeta que agregar, y no se promete
+  const ian = document.getElementById('inicio-anotar'); if (ian) ian.addEventListener('click', inicioAnotar);
+  const isa = document.getElementById('inicio-saldos'); if (isa) isa.addEventListener('click', inicioSaldos);
+  const ia = document.getElementById('inicio-agregar');
+  if (ia) { if (!CUENTAS_CFG) ia.textContent = '+ agregar un banco o una cajita'; ia.addEventListener('click', irAAgregarCuenta); }
+}
+// (8-nov-2026) de Inicio a "agregar una cuenta" de Mis cuentas, con el cursor en el nombre. Solo navega
+function irAAgregarCuenta() {
+  showPage('perfil'); perfilSub('cuentas');
+  const n = document.getElementById('cx-nuevo-nombre'); if (!n) return;
+  { const t = document.getElementById('cx-nuevo-tipo'); if (t && (t.value === 'bolsa' || t.value === 'tarjeta')) { t.value = 'banco'; t.dispatchEvent(new Event('change')); } }
+  (n.closest('.panel') || n).scrollIntoView({block: 'start'});
+  window.scrollBy(0, -110); // debajo de nav y de las pestañas, que van fijas arriba
+  n.focus({preventScroll: true});
+}
+// (8-nov-2026) "inversiones en bolsa" en agregar una cuenta: enciende la pestaña (lo mismo que el interruptor del perfil) o lleva a ella
+async function irABolsa() {
+  const btn = document.getElementById('cx-nuevo-bolsa-btn');
+  if (btn && btn.disabled) return;
+  // encender escribe el perfil (setDoc): sin senal no resuelve y dejaria el candado de guardarPerfil puesto
+  // (sinSenal() de arriba vive dentro de otra funcion: aqui se usa la misma pregunta que el limite de gasto)
+  if (!dashboardEncendido() && (navigator.onLine === false || cargaDesdeCache)) { showToast('para encender inversiones necesitas señal'); return; }
+  if (btn) btn.disabled = true;
+  try {
+    if (!dashboardEncendido()) { await window.setDashboard(true); if (!dashboardEncendido()) return; }
+    // si mientras guardaba la persona se fue a otra pestana, no se la arrastra
+    const pp = document.getElementById('page-perfil');
+    if (pp && !pp.classList.contains('active')) return;
+    showPage('dashboard', true);
+  } finally { if (btn) btn.disabled = false; }
 }
 function cxTipoTdc() {
-  const sel = document.getElementById('cx-nuevo-tipo'), es = !!sel && sel.value === 'tarjeta';
-  ['cx-nuevo-moneda', 'cx-nuevo-saldo'].forEach(id => { const f = document.getElementById(id), c = f && f.closest('.field'); if (c) c.hidden = es; });
-  const ag = document.getElementById('cx-nuevo-btn'); if (ag) ag.hidden = es;
-  const caja = document.getElementById('cx-nuevo-tdc'); if (!caja) return;
+  const sel = document.getElementById('cx-nuevo-tipo'), v = sel ? sel.value : '', es = v === 'tarjeta', bolsa = v === 'bolsa';
+  ['cx-nuevo-moneda', 'cx-nuevo-saldo'].forEach(id => { const f = document.getElementById(id), c = f && f.closest('.field'); if (c) c.hidden = es || bolsa; });
+  { const f = document.getElementById('cx-nuevo-nombre'), c = f && f.closest('.field'); if (c) c.hidden = bolsa; }
+  const ag = document.getElementById('cx-nuevo-btn'); if (ag) ag.hidden = es || bolsa;
+  const cb = document.getElementById('cx-nuevo-bolsa');
+  if (cb) {
+    cb.hidden = !bolsa;
+    if (bolsa) {
+      const on = dashboardEncendido();
+      document.getElementById('cx-nuevo-bolsa-nota').textContent = on
+        ? 'Tus acciones no se agregan aquí: van en la pestaña Inversiones, que ya tienes encendida. Ahí anotas lo que compras y vendes.'
+        : 'Tus acciones no se agregan aquí: van en la pestaña Inversiones. Al encenderla aparece en la barra de arriba, y ahí anotas lo que compras y vendes. La apagas cuando quieras en "qué pestañas ves".';
+      document.getElementById('cx-nuevo-bolsa-btn').textContent = on ? 'ir a inversiones' : 'encender inversiones';
+    }
+  }
+  const caja = document.getElementById('cx-nuevo-tdc'); if (!caja || !CUENTAS_CFG) return;
   caja.hidden = !es; if (!es) return;
   const k = tdcLibre();
   document.getElementById('cx-nuevo-tdc-nota').textContent = k
@@ -7537,6 +7598,24 @@ window.toggleDesglose = function() {
   const d=document.getElementById('neto-display'), b=document.getElementById('desglose-btn'); if(!d||!b) return;
   d.hidden=!d.hidden; d.classList.toggle('open',!d.hidden); /* el listener global de aria-expanded lee .open */ b.setAttribute('aria-expanded', d.hidden?'false':'true'); b.textContent=d.hidden?'ver desglose':'ocultar desglose';
 };
+// (8-nov-2026) los dos botones bajo el total: llevan a la forma de gasto y a "actualizar saldos", con el cursor listo. No escriben nada
+// (se enganchan con addEventListener en prepararTdcAgregar; sin globales ni onclick inline)
+function inicioAnotar() {
+  showPage('movimientos', true); movSub('registrar'); setMovTipo('gasto');
+  const w = document.getElementById('form-gasto-wrap'), m = document.getElementById('gasto-monto');
+  if (w) w.scrollIntoView({block: 'center'});
+  if (m) m.focus({preventScroll: true});
+}
+function inicioSaldos() {
+  const b = document.getElementById('manuales-btn'), d = b && b.closest('details');
+  if (!d) return;
+  if (d.offsetParent === null) { showToast('no hay cuentas que poner al día aquí'); return; }
+  d.open = true;
+  d.scrollIntoView({block: 'start'});
+  window.scrollBy(0, -110); // debajo de nav (54) y de las pestañas, que van fijas arriba
+  const i = d.querySelector('.saldos-form input:not([type=hidden]):not([disabled])');
+  if (i && i.offsetParent !== null) i.focus({preventScroll: true});
+}
 // de la cifra del mes de Inicio al detalle: Resumen en el mes en curso, con 'cuanto gano tu dinero' abierto
 window.verGananciaMes = function() {
   setResPeriodo('mes');
@@ -10254,15 +10333,52 @@ function ticketFecha(texto, hoy) {
   if (fl >= 0) { const c = cands.filter(c => c.idx >= fl && c.idx - fl < 40).sort((a, b) => a.idx - b.idx)[0]; if (c) return c.f; }
   return cands.sort((a, b) => a.idx - b.idx)[0].f;
 }
-const TICKET_NO_NOMBRE = /R\s?\.?\s?F\s?\.?\s?C|TICKET|FOLIO|FECHA|HORA|CAJA|CAJERO|\bTEL\b|TELEFONO|SUCURSAL|TIENDA\s+\d|CALLE|\bAV\b|AVENIDA|\bCOL\b|COLONIA|C\s?\.?\s?P\b|\bMEXICO\b|CDMX|ESTADO\s+DE|MUNICIPIO|BIENVENID|GRACIAS|FACTUR|REGIMEN|S\.?\s?A\.?\s+DE\s+C|\bNO\.|CLIENTE|\bMESA\b|MESERO|ORDEN|COMPROBANTE|DIRECCION|DOMICILIO|\bTOTAL\b|ARTICULO|VENTA|\bCP\b|\bRFC\b|COPIA|ORIGINAL|ESTACION|SERVICIO\s+\d|IMPORTE|DESCRIPCION|\bCANT\b|PRECIO|SUBTOTAL|\bIVA\b/;
-// nombre de quien vende: una cadena conocida en cualquier parte, o el primer renglon de arriba que parezca un nombre
-function ticketComercio(lineas) {
+// (8-nov) los departamentos y renglones de pago tampoco son nombres: con el encabezado perdido, "frutas y verduras" salia como la tienda
+const TICKET_NO_NOMBRE = /R\s?\.?\s?F\s?\.?\s?C|TICKET|FOLIO|FECHA|HORA|CAJA|CAJERO|\bTEL\b|TELEFONO|SUCURSAL|TIENDA\s+\d|CALLE|\bAV\b|AVENIDA|\bCOL\b|COLONIA|C\s?\.?\s?P\b|\bMEXICO\b|CDMX|ESTADO\s+DE|MUNICIPIO|BIENVENID|GRACIAS|FACTUR|REGIMEN|S\.?\s?A\.?\s+DE\s+C|\bNO\.|CLIENTE|\bMESA\b|MESERO|ORDEN|COMPROBANTE|DIRECCION|DOMICILIO|\bTOTAL\b|ARTICULO|VENTA|\bCP\b|\bRFC\b|COPIA|ORIGINAL|ESTACION|SERVICIO\s+\d|IMPORTE|DESCRIPCION|\bCANT\b|PRECIO|SUBTOTAL|\bIVA\b|CAMBIO|EFECTIVO|DEBITO|CREDITO|TARJETA|DESCUENTO|AHORR|PROMOCION|FARMACIA\s*$|DEPARTAMENTO|OPERADOR|ATENDIO|ENCUESTA|AVISO|PRIVACIDAD/;
+// nombres de departamento: bloquean solo si NO estan en los dos primeros renglones ("Panaderia La Flor" arriba si es la tienda; "frutas y verduras" en medio no)
+const TICKET_DEPTOS = /FRUTAS|VERDURAS|LACTEOS|REFRI|ALIMENTOS|ABARROTES|HIGIENE|PERFUMERIA|CARNES|SALCHICHONERIA|PANADERIA|TORTILLERIA|CONGELADO|BEBIDAS|LIMPIEZA|MASCOTAS/;
+// (8-nov) cadenas que se reconocen aunque el lector cambie una letra (CHEORAUI, CHENRAUI, CHEDAAUT en una foto real de Chedraui).
+// Solo palabras largas y con candados: 7 letras, una sola letra distinta; 8 o mas, hasta dos; siempre misma primera y ultima letra (SORIANO, SUPERMAN, SANBORN no son Soriana, Superama ni Sanborns)
+const TICKET_CADENAS_PARECIDAS = [['CHEDRAUI', 'Chedraui'], ['SUPERAMA', 'Superama'], ['LIVERPOOL', 'Liverpool'], ['SANBORNS', 'Sanborns'], ['STARBUCKS', 'Starbucks'],
+  ['WALMART', 'Walmart'], ['SORIANA', 'Soriana'], ['CALIMAX', 'Calimax'], ['ALSUPER', 'Alsuper']];
+function ticketDistancia(a, b) {
+  let prev = Array.from({length: b.length + 1}, (_, j) => j);
+  for (let i = 1; i <= a.length; i++) {
+    const cur = [i];
+    for (let j = 1; j <= b.length; j++) cur[j] = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+    prev = cur;
+  }
+  return prev[b.length];
+}
+function ticketCadena(lineas) {
   const todo = lineas.map(ticketNorm).join('\n');
   for (const [re, nombre] of TICKET_CADENAS) if (re.test(todo)) return nombre;
-  for (const l0 of lineas.slice(0, 6)) {
-    const l = String(l0 || '').trim(), n = ticketNorm(l);
+  const palabras = todo.replace(/0/g, 'O').replace(/1/g, 'I').split(/[^A-Z]+/).filter(w => w.length >= 6);
+  for (const [clave, nombre] of TICKET_CADENAS_PARECIDAS) {
+    const tope = clave.length >= 8 ? 2 : 1;
+    for (const w of palabras) {
+      if (Math.abs(w.length - clave.length) > tope || w[0] !== clave[0]) continue;
+      if (w[w.length - 1] !== clave[clave.length - 1]) continue;
+      if (ticketDistancia(w, clave) <= tope) return nombre;
+    }
+  }
+  return null;
+}
+const TICKET_CONECTORES = new Set(['EL', 'LA', 'DE', 'Y', 'E', 'AL', 'EN', 'LO', 'MI', 'TU', 'O']);
+const TICKET_NOMBRES_CADENA = new Set([...TICKET_CADENAS.map(c => c[1]), ...TICKET_CADENAS_PARECIDAS.map(c => c[1])]);
+// nombre de quien vende: una cadena conocida en cualquier parte, o el primer renglon de arriba que parezca un nombre
+function ticketComercio(lineas) {
+  const cadena = ticketCadena(lineas);
+  if (cadena) return cadena;
+  const arriba = lineas.slice(0, 6);
+  for (let i = 0; i < arriba.length; i++) {
+    const l = String(arriba[i] || '').trim(), n = ticketNorm(l);
     const letras = (n.match(/[A-Z]/g) || []).length, cifras = (n.match(/\d/g) || []).length;
-    if (letras < 4 || cifras > 2 || letras / n.replace(/\s/g, '').length < 0.75 || TICKET_NO_NOMBRE.test(n)) continue;
+    if (letras < 4 || cifras > 2 || letras / n.replace(/\s/g, '').length < 0.75 || TICKET_NO_NOMBRE.test(n) || (i >= 2 && TICKET_DEPTOS.test(n))) continue;
+    // (8-nov) letras sueltas del lector ("O Ny E", "erduras PE se"): en un nombre, una palabra de una o dos letras solo puede ser un conector
+    // (El, La, De, Y...), y alguna lleva cuatro o mas. Ante la duda, nota vacia: una nota con basura es peor que ninguna
+    const pals = n.split(/[^A-Z]+/).filter(Boolean);
+    if (pals.some(w => w.length <= 2 && !TICKET_CONECTORES.has(w)) || !pals.some(w => w.length >= 4)) continue;
     const limpio = l.replace(/\bS\.?\s?A\.?\s+DE\s+C\.?\s?V\.?/i, '').replace(/[^\p{L}\p{N}'&.\- ]/gu, ' ').replace(/\s+/g, ' ').trim();
     if (limpio.length < 3) continue;
     const chicas = new Set(['de', 'del', 'y']);
@@ -10272,15 +10388,32 @@ function ticketComercio(lineas) {
   return null;
 }
 // varias pasadas del lector: una con total confirmado gana; si no, todas las que dieron monto deben dar EL MISMO, o no se llena
+// (8-nov) la fecha y el comercio salen de TODAS las pasadas: en una foto real de Chedraui la pasada que leyo el total no vio el encabezado ni
+// la fecha, y la binarizada si. Fecha: la que mas pasadas dan; empate entre distintas, ninguna. Comercio: una cadena conocida gana a un nombre
+// de respaldo; dos cadenas distintas, ninguna; si no hay cadena, el respaldo de la pasada del monto (o el primero)
+function ticketMezclar(base, rs) {
+  const cuenta = {};
+  for (const r of rs) if (r.fecha) cuenta[r.fecha] = (cuenta[r.fecha] || 0) + 1;
+  const orden = Object.entries(cuenta).sort((a, b) => b[1] - a[1]);
+  const fecha = !orden.length ? null : (orden.length > 1 && orden[0][1] === orden[1][1]) ? null : orden[0][0];
+  const cadenas = [...new Set(rs.map(r => r.comercio).filter(c => c && TICKET_NOMBRES_CADENA.has(c)))];
+  const comercio = cadenas.length === 1 ? cadenas[0] : cadenas.length > 1 ? null : (base.comercio || (rs.find(r => r.comercio) || {}).comercio || null);
+  return {...base, fecha, comercio};
+}
 function ticketElegir(textos, hoy) {
   const rs = (textos || []).map(t => ticketLeer(t, hoy));
   const alta = rs.find(r => r.monto !== null && r.confianza === 'alta');
-  if (alta) return alta;
+  // (8-nov) si otra pasada leyo un monto distinto al confirmado, no se sabe cual es: no se llena (el orden de las pasadas no decide)
+  if (alta && rs.some(r => r.monto !== null && Math.abs(r.monto - alta.monto) > 0.02)) return ticketMezclar({...alta, monto: null, confianza: 'baja', motivo: 'pasadas-distintas'}, rs);
+  if (alta) return ticketMezclar(alta, rs);
   const con = rs.filter(r => r.monto !== null);
-  if (!con.length) return rs[0] || ticketLeer('', hoy);
-  if (con.some(r => r.monto !== con[0].monto)) return {...con[0], monto: null, confianza: 'baja', motivo: 'pasadas-distintas'};
-  return {...con[0], fecha: con[0].fecha || (rs.find(r => r.fecha) || {}).fecha || null, comercio: con[0].comercio || (rs.find(r => r.comercio) || {}).comercio || null};
+  if (!con.length) return rs.length ? ticketMezclar(rs[0], rs) : ticketLeer('', hoy);
+  if (con.some(r => r.monto !== con[0].monto)) return ticketMezclar({...con[0], monto: null, confianza: 'baja', motivo: 'pasadas-distintas'}, rs);
+  return ticketMezclar(con[0], rs);
 }
+// (8-nov) basta con estas pasadas si ya hay total confirmado, fecha y comercio; si no, se lee otra vez de otra forma
+// (8-nov) sin comercio solo basta si ya hay dos pasadas: no se corre la tercera solo por falta de nota, pero la segunda si (lee el encabezado)
+function ticketCompleto(textos, hoy) { const r = ticketElegir(textos, hoy); return r.monto !== null && r.confianza === 'alta' && !!r.fecha && (!!r.comercio || textos.length >= 2); }
 // todo junto: hoy es 'AAAA-MM-DD' local
 function ticketLeer(texto, hoy) {
   const lineas = String(texto || '').split(/\r?\n/).map(l => l.trim()).filter(l => l);
@@ -10380,9 +10513,28 @@ async function ticketImagen(file) {
     const k = hi - lo > 20 ? 255 / (hi - lo) : 1;
     for (let i = 0; i < d.length; i += 4) { const g = Math.max(0, Math.min(255, Math.round((d[i] - (k === 1 ? 0 : lo)) * k))); d[i] = d[i + 1] = d[i + 2] = g; d[i + 3] = 255; }
     cx.putImageData(im, 0, 0);
-    const blob = await new Promise(r => cv.toBlob(r, 'image/png'));
-    if (!blob) throw ticketError('ticket/no-imagen');
-    return new Uint8Array(await blob.arrayBuffer());
+    const png = async () => { const blob = await new Promise(r => cv.toBlob(r, 'image/png')); if (!blob) throw ticketError('ticket/no-imagen'); return new Uint8Array(await blob.arrayBuffer()); };
+    const gris = await png();
+    // (8-nov) otra version, en blanco y negro por zonas (Bradley): cada pixel contra el promedio de su vecindario, no contra la foto entera.
+    // Con fondo oscuro, sombra de la mano y letra delgada (foto real de Chedraui), los grises perdian el encabezado y la fecha; esta los lee.
+    // A cambio pierde a veces el total, por eso se leen las dos. Ventana de 1/40 del lado largo y 15% (probado con esa foto)
+    const W = cv.width, H = cv.height;
+    let g = new Uint8Array(W * H), I = new Uint32Array((W + 1) * (H + 1));
+    for (let i = 0; i < W * H; i++) g[i] = d[i * 4];
+    for (let y = 0; y < H; y++) { let s = 0; for (let x = 0; x < W; x++) { s += g[y * W + x]; I[(y + 1) * (W + 1) + x + 1] = I[y * (W + 1) + x + 1] + s; } }
+    const rad = Math.max(4, Math.round(Math.max(W, H) / 40)), T = 0.15;
+    for (let y = 0; y < H; y++) {
+      const y0 = Math.max(0, y - rad), y1 = Math.min(H - 1, y + rad);
+      for (let x = 0; x < W; x++) {
+        const x0 = Math.max(0, x - rad), x1 = Math.min(W - 1, x + rad), n = (x1 - x0 + 1) * (y1 - y0 + 1);
+        const suma = I[(y1 + 1) * (W + 1) + x1 + 1] - I[y0 * (W + 1) + x1 + 1] - I[(y1 + 1) * (W + 1) + x0] + I[y0 * (W + 1) + x0];
+        const k = (y * W + x) * 4; d[k] = d[k + 1] = d[k + 2] = g[y * W + x] * n < suma * (1 - T) ? 0 : 255;
+      }
+    }
+    cx.putImageData(im, 0, 0);
+    g = null; I = null;   // ya no hacen falta: que no esten vivos mientras se codifica el segundo PNG
+    const zonas = await png();
+    return {gris, zonas};
   } finally {
     URL.revokeObjectURL(url);
     if (cv) { cv.width = 0; cv.height = 0; }
@@ -10412,11 +10564,12 @@ function ticketTrabajador(partes) {
   });
   return {pedir, cerrar: () => { soltar(ticketError('ticket/cerrado')); try { w.terminate(); } catch (e) {} URL.revokeObjectURL(url); }};
 }
-// como se acomoda el texto: 6 (un bloque) primero; si con eso no sale el total, 4 (una columna). Probado con tickets dibujados: con 4 una foto girada
-// perdia la columna de cifras; con 6 no. Cada pasada extra tarda lo mismo que la primera
-const TICKET_PASADAS = ['6', '4'];
-// todo el camino: bajar o sacar de la copia el lector, preparar la foto, leer. Devuelve los textos de las pasadas hechas: se para en la
-// primera con la que basta(texto) === true (un total confirmado); si no, hace todas para que ticketElegir compare. Nunca toca la forma
+// como se acomoda el texto (psm) y que version de la foto: 6 (un bloque) en grises primero; luego 6 en blanco y negro por zonas (8-nov: encabezado
+// y fecha de una foto real que los grises perdian); al final 4 (una columna) en grises. Probado con tickets dibujados: con 4 una foto girada
+// perdia la columna de cifras; con 6 no. Cada pasada extra tarda lo mismo que la primera: se para en cuanto basta
+const TICKET_PASADAS = [{psm: '6', img: 'gris'}, {psm: '6', img: 'zonas'}, {psm: '4', img: 'gris'}];
+// todo el camino: bajar o sacar de la copia el lector, preparar la foto, leer. Devuelve los textos de las pasadas hechas: se para en cuanto
+// basta(textos) === true (total confirmado, fecha y comercio); si no, hace todas para que ticketElegir compare. Nunca toca la forma
 async function ticketTexto(file, avisar, basta) {
   const simd = ticketConSimd();
   const piezas = [TICKET_LECTOR.worker, simd ? TICKET_LECTOR.nucleoSimd : TICKET_LECTOR.nucleo, TICKET_LECTOR.espanol];
@@ -10430,29 +10583,32 @@ async function ticketTexto(file, avisar, basta) {
   }
   const [worker, nucleo, espanol] = res;
   avisar('preparando la foto…');
-  const imagen = await ticketImagen(file);
+  const imagenes = await ticketImagen(file);
   const t = ticketTrabajador({worker, nucleo});
   let reloj;
+  // (8-nov) los textos viven fuera de la tarea: si una pasada extra falla o vence el plazo, el texto de la primera no se pierde
+  const textos = [];
   try {
-    const plazo = new Promise((_, no) => { reloj = setTimeout(() => no(ticketError('ticket/plazo')), TICKET_PLAZO); });
+    const plazo = new Promise((ok, no) => { reloj = setTimeout(() => textos.length ? ok({textos: textos.slice(), bajados}) : no(ticketError('ticket/plazo')), TICKET_PLAZO); });
     const trabajo = (async () => {
       avisar('leyendo el ticket…');
       await t.pedir('load', {options: {lstmOnly: true, corePath: '', logging: false}});
       await t.pedir('loadLanguage', {langs: [{code: 'spa', data: new Uint8Array(espanol)}], options: {cacheMethod: 'none', gzip: true, lstmOnly: true}});
       await t.pedir('initialize', {langs: 'spa', oem: 1, config: {}});
-      const textos = [];
       for (let k = 0; k < TICKET_PASADAS.length; k++) {
-        await t.pedir('setParameters', {params: {tessedit_pageseg_mode: TICKET_PASADAS[k], preserve_interword_spaces: '1', user_defined_dpi: '300'}});
-        const ultima = k === TICKET_PASADAS.length - 1;
-        // la imagen se copia al lector; en la ultima pasada se le entrega (transfer) y aqui ya no queda
-        const r = await t.pedir('recognize', {image: imagen, options: {rotateAuto: true}, output: {text: true}},
-          a => { if (a && a.status === 'recognizing text' && Number.isFinite(a.progress)) avisar('leyendo el ticket… ' + (k ? '(otra vez) ' : '') + Math.round(a.progress * 100) + '%'); },
-          ultima ? [imagen.buffer] : []);
-        const texto = String((r && r.text) || '');
-        textos.push(texto);
-        if (ultima || (basta && basta(texto))) break;
+        const pas = TICKET_PASADAS[k], imagen = imagenes[pas.img];
+        try {
+          await t.pedir('setParameters', {params: {tessedit_pageseg_mode: pas.psm, preserve_interword_spaces: '1', user_defined_dpi: '300'}});
+          // la imagen se copia al lector; en la ultima pasada que la usa se le entrega (transfer) y aqui ya no queda
+          const ultimaDeEsta = !TICKET_PASADAS.slice(k + 1).some(p => p.img === pas.img);
+          const r = await t.pedir('recognize', {image: imagen, options: {rotateAuto: true}, output: {text: true}},
+            a => { if (a && a.status === 'recognizing text' && Number.isFinite(a.progress)) avisar('leyendo el ticket… ' + (k ? '(otra vez) ' : '') + Math.round(a.progress * 100) + '%'); },
+            ultimaDeEsta ? [imagen.buffer] : []);
+          textos.push(String((r && r.text) || ''));
+        } catch (e) { if (k > 0 && textos.length) break; throw e; }
+        if (k === TICKET_PASADAS.length - 1 || (basta && basta(textos))) break;
       }
-      return {textos, bajados};
+      return {textos: textos.slice(), bajados};
     })();
     return await Promise.race([trabajo, plazo]);
   } finally { clearTimeout(reloj); t.cerrar(); }
@@ -10479,7 +10635,7 @@ async function ticketElegido(inp) {
   const gen = ticketGen, valor = id => { const el = document.getElementById(id); return el ? el.value : ''; };
   const antes = Object.fromEntries(TICKET_CAMPOS.map(id => [id, valor(id)]));
   let leido = null, fallo = null;
-  try { leido = await ticketTexto(file, t => ticketEstado(t), tx => ticketLeer(tx, hoyLocal()).confianza === 'alta'); }
+  try { leido = await ticketTexto(file, t => ticketEstado(t), txs => ticketCompleto(txs, hoyLocal())); }
   catch (e) { fallo = e && e.code || 'ticket/lector'; if (!/^ticket\//.test(String(fallo))) console.error('leerTicket', e && e.name); }
   finally { inp.value = ''; botones.forEach(b => { b.disabled = false; }); ticketOcupado = false; }
   if (fallo) {
@@ -13212,7 +13368,7 @@ const AYUDA_IR = {
   deudas: () => { showPage('deudas', true); return ayEl('deuda-persona').closest('.panel'); },
   // sin tarjeta encendida, primero hay que encenderla
   tarjeta: () => { if (ctaApagada('tarjeta') && ctaApagada('tarjetaRev')) { showToast('primero enciende tu tarjeta aquí'); return AYUDA_IR.fijas(); } ayMov('tarjeta'); return ayEl('form-tarjeta-wrap'); },
-  agregar: () => { ayMisCuentas(); return ayEl('cx-nuevo-nombre').closest('.panel'); },
+  agregar: () => { ayMisCuentas(); { const t = document.getElementById('cx-nuevo-tipo'); if (t && (t.value === 'bolsa' || t.value === 'tarjeta')) { t.value = 'banco'; t.dispatchEvent(new Event('change')); } } return ayEl('cx-nuevo-nombre').closest('.panel'); },
   cajita: () => { ayMisCuentas(); const t = ayEl('cx-nuevo-tipo'); t.value = 'cajita'; t.dispatchEvent(new Event('change')); return t.closest('.field'); },
   fijas: () => { ayMisCuentas(); return document.querySelector('[data-cfg-cuentas]'); },
   calendario: () => { showPage('calendario', true); return document.getElementById('mov-cal'); },
@@ -13593,6 +13749,7 @@ function aplicarVisibilidadDashboard() {
   }
   const off = document.getElementById('dash-off'), onEl = document.getElementById('dash-on');
   if (off && onEl) { off.classList.toggle('active', !on); onEl.classList.toggle('active', on); }
+  if (typeof cxTipoTdc === 'function' && document.getElementById('cx-nuevo-tipo')) cxTipoTdc(); // el texto de "inversiones en bolsa" depende de esto
 }
 window.setDashboard = async function(valor) {
   if (dashboardEncendido() === !!valor) return;      // ya esta asi: no escribir por gusto
