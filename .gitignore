@@ -9,6 +9,8 @@ demo/
 *.png.bak
 AGENTS.md
 APRENDIZAJES.md
+# (17-nov-2026, seguridad sesion 2) el contexto completo de trabajo: el repo es publico y GitHub Pages sirve sus archivos
+CLAUDE.local.md
 
 # dependencias y basura de herramientas
 node_modules/
