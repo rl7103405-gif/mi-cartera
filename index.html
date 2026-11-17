@@ -666,7 +666,7 @@ html[data-tema='grafito'] .tabs{--sombra-scroll:rgba(255,255,255,.16)}
 /* sin la clase .btn a proposito: en Fundview .btn::first-letter se pone en mayuscula y aqui el texto empieza con el nombre que escribio la persona */
 .saldos-x-btn{font:inherit;font-size:13px;padding:9px 12px;min-height:44px;border:0.5px solid var(--border2);border-radius:var(--rs);background:var(--bg3);color:var(--text);cursor:pointer;text-align:left}
 #saldos-x[hidden]{display:none!important}
-#cx-cards[hidden],#gasto-fuente-x[hidden],#ingreso-destino-x[hidden]{display:none!important}
+#cx-cards[hidden],#gasto-fuente-x[hidden],#ingreso-destino-x[hidden],#cx-nuevo-tdc-campos[hidden]{display:none!important}
 .desliza-pista{display:flex;align-items:center;justify-content:center;height:46px;margin-top:4px;font-size:13px;color:var(--muted);text-align:center}
 .desliza-pista[hidden]{display:none}
 /* el monto con error se ve rojo aunque tenga el foco (el anillo verde lo tapaba) */
@@ -1870,7 +1870,6 @@ html[data-tema='grafito'] .cal-d.hoy .cal-n{color:#14171a}
         <div class="item-meta" style="line-height:1.5;margin-bottom:10px">Enciende las que uses, ponles el nombre de tu
           banco y ajusta tu fecha de corte. Al guardar, la app se vuelve a abrir con tus cuentas.</div>
         <div id="cuentas-config"></div>
-        <div class="item-meta" id="cuentas-tdc-aviso" role="status" style="line-height:1.5;margin-top:8px" hidden>Ya quedó marcada tu tarjeta. Ponle el nombre de tu banco y tu día de corte, y toca "guardar cuentas": hasta entonces no cambia nada.</div>
         <button class="btn btn-purple" id="cuentas-btn" onclick="guardarCuentas()">guardar cuentas</button>
       </div>
     </div>
@@ -1909,15 +1908,20 @@ html[data-tema='grafito'] .cal-d.hoy .cal-n{color:#14171a}
         </div>
         <div class="field"><label for="cx-nuevo-tasa-exc">tasa % arriba del tope (si tiene)</label><input type="number" id="cx-nuevo-tasa-exc" step="0.01" inputmode="decimal" placeholder="ej. 6.5"></div>
       </div>
-      <!-- (7-nov-2026) una tarjeta de credito no es una cuenta agregada: vive en "tus cuentas fijas". Solo con cuentas configurables -->
+      <!-- (7-nov-2026) una tarjeta de credito no es una cuenta agregada: es un lugar de "tus cuentas fijas". Solo con cuentas configurables.
+           (16-nov-2026) se da de alta aqui mismo: dia de corte y, en Fundview, lo que debes hoy (agregarTarjetaFija) -->
       <!-- (8-nov-2026) la bolsa tampoco es una cuenta agregada: es la pestaña Inversiones. Se ofrece encenderla o ir a ella -->
       <div id="cx-nuevo-bolsa" hidden>
         <div class="item-meta" id="cx-nuevo-bolsa-nota" style="line-height:1.5" role="status"></div>
         <button type="button" class="btn btn-purple" id="cx-nuevo-bolsa-btn">encender inversiones</button>
       </div>
       <div id="cx-nuevo-tdc" hidden>
+        <div class="row2" id="cx-nuevo-tdc-campos">
+          <div class="field"><label for="cx-nuevo-corte">día de corte</label><input type="number" id="cx-nuevo-corte" min="1" max="31" step="1" inputmode="numeric" placeholder="ej. 18"></div>
+          <div class="field"><label for="cx-nuevo-deuda">lo que debes hoy (opcional)</label><input type="number" id="cx-nuevo-deuda" min="0" step="0.01" inputmode="decimal" placeholder="ej. 800"></div>
+        </div>
         <div class="item-meta" id="cx-nuevo-tdc-nota" style="line-height:1.5" role="status"></div>
-        <button type="button" class="btn btn-purple" id="cx-nuevo-tdc-btn">ir a mi tarjeta</button>
+        <button type="button" class="btn btn-purple" id="cx-nuevo-tdc-btn">agregar tarjeta</button>
       </div>
       <button type="button" class="btn btn-purple" id="cx-nuevo-btn" onclick="agregarCuentaX()">agregar cuenta</button>
       <div class="item-meta" id="cx-fx" style="margin-top:8px">—</div>
@@ -2785,18 +2789,23 @@ function pintarTarjetasInicio() {
   ctasEn('inicio').forEach(id=>{ const el=cont.querySelector(`:scope>[data-inicio="${id}"]`); if(el) cont.appendChild(el); });
   esconderApagadas();
 }
-// (7-nov-2026, Pico y Beto la buscaron en "agregar una cuenta") una tarjeta de credito no es una cuenta agregada (x_): vive en
-// "tus cuentas fijas". Con cuentas configurables, el tipo "tarjeta de credito" no crea nada: explica y lleva a la primera tarjeta
-// apagada, la marca y enfoca su nombre. Nada se guarda hasta "guardar cuentas". Sin cuentas configurables la opcion no existe.
-// Sin funciones globales nuevas: los botones van con addEventListener.
-const tdcLibre = () => ['tarjeta', 'tarjetaRev'].find(k => SLOTS_CFG[k] && !confCta(k).on) || null;
+// (7-nov-2026, Pico y Beto la buscaron en "agregar una cuenta") una tarjeta de credito no es una cuenta agregada (x_): es uno de los dos
+// lugares de tarjeta de "tus cuentas fijas". (16-nov-2026) Con cuentas configurables, el tipo "tarjeta de credito" la da de alta AHI MISMO:
+// nombre, dia de corte y, en Fundview, lo que debes hoy; "agregar tarjeta" enciende el primer lugar apagado (agregarTarjetaFija). Antes solo
+// explicaba y mandaba a "tus cuentas fijas". Sin cuentas configurables la opcion no existe. Sin funciones globales nuevas (addEventListener).
+const tdcLibres = () => ['tarjeta', 'tarjetaRev'].filter(k => SLOTS_CFG[k] && !confCta(k).on);
+const tdcLibre = () => tdcLibres()[0] || null;
+// lo que debes hoy se puede anotar al dar de alta la tarjeta: solo Fundview; la tarjeta 1 siempre y la 2 solo si NO es garantizada
+// (el limite de una garantizada es su deposito, y aqui no se pregunta). Y solo si ese lugar NO trae ya dinero: si un cargo anterior entro y
+// la tarjeta no llego a encenderse (recarga, otra pestana), no se ofrece ni se anota otra vez
+const deudaAlAltaTdc = k => !!CFG.multi && !!k && (k === 'tarjeta' || !tdcGarantizada()) && !(Math.abs(saldoSlotCfg(k)) >= 0.005);
 function prepararTdcAgregar() {
   const sel = document.getElementById('cx-nuevo-tipo'); if (!sel) return;
   if (!CUENTAS_CFG) sel.querySelectorAll('option[data-solo-cfg]').forEach(o => o.remove());
   // (8-nov-2026) "inversiones en bolsa": solo donde la bolsa existe (una copia que la apaga no la ofrece)
   if (ctaApagada('stocks')) sel.querySelectorAll('option[value="bolsa"]').forEach(o => o.remove());
   sel.addEventListener('change', cxTipoTdc);
-  const b = document.getElementById('cx-nuevo-tdc-btn'); if (b && CUENTAS_CFG) b.addEventListener('click', irATarjetaFija);
+  const b = document.getElementById('cx-nuevo-tdc-btn'); if (b && CUENTAS_CFG) b.addEventListener('click', agregarTarjetaFija);
   const bb = document.getElementById('cx-nuevo-bolsa-btn'); if (bb) bb.addEventListener('click', irABolsa);
   // el boton de Inicio: sin cuentas configurables no hay tarjeta que agregar, y no se promete
   const ian = document.getElementById('inicio-anotar'); if (ian) ian.addEventListener('click', inicioAnotar);
@@ -2831,8 +2840,10 @@ async function irABolsa() {
 }
 function cxTipoTdc() {
   const sel = document.getElementById('cx-nuevo-tipo'), v = sel ? sel.value : '', es = v === 'tarjeta', bolsa = v === 'bolsa';
+  const k = es && CUENTAS_CFG ? tdcLibre() : null;
   ['cx-nuevo-moneda', 'cx-nuevo-saldo'].forEach(id => { const f = document.getElementById(id), c = f && f.closest('.field'); if (c) c.hidden = es || bolsa; });
-  { const f = document.getElementById('cx-nuevo-nombre'), c = f && f.closest('.field'); if (c) c.hidden = bolsa; }
+  // el nombre sirve tambien para la tarjeta; con los dos lugares de tarjeta ya encendidos no hay nada que nombrar
+  { const f = document.getElementById('cx-nuevo-nombre'), c = f && f.closest('.field'); if (c) c.hidden = bolsa || (es && !k); }
   const ag = document.getElementById('cx-nuevo-btn'); if (ag) ag.hidden = es || bolsa;
   const cb = document.getElementById('cx-nuevo-bolsa');
   if (cb) {
@@ -2847,29 +2858,54 @@ function cxTipoTdc() {
   }
   const caja = document.getElementById('cx-nuevo-tdc'); if (!caja || !CUENTAS_CFG) return;
   caja.hidden = !es; if (!es) return;
-  const k = tdcLibre();
+  document.getElementById('cx-nuevo-tdc-campos').hidden = !k;
+  { const d = document.getElementById('cx-nuevo-deuda'), c = d && d.closest('.field'); if (c) c.hidden = !deudaAlAltaTdc(k); }
   document.getElementById('cx-nuevo-tdc-nota').textContent = k
-    ? 'Una tarjeta de crédito no se agrega aquí: se enciende en "tus cuentas fijas", más arriba. Ahí le pones nombre y día de corte, y guardas con "guardar cuentas".'
+    ? 'Tu día de corte sale en tu estado de cuenta. Con tu tarjeta anotas tus compras y ves cuánto debes; eso sale en inicio, bajo tu total.'
     : 'Ya tienes tus dos tarjetas de crédito encendidas en "tus cuentas fijas", más arriba. Ahí les cambias el nombre o el día de corte.';
-  document.getElementById('cx-nuevo-tdc-btn').textContent = k ? 'ir a mi tarjeta' : 'ver mis tarjetas';
+  if (k && CFG.multi && Math.abs(saldoSlotCfg(k)) >= 0.005) document.getElementById('cx-nuevo-tdc-nota').textContent += ' Esta tarjeta ya trae anotado que debes ' + fmt(saldoSlotCfg(k)) + ': solo falta encenderla.';
+  document.getElementById('cx-nuevo-tdc-btn').textContent = k ? 'agregar tarjeta' : 'ver mis tarjetas';
 }
-function irATarjetaFija() {
+// (16-nov-2026) "agregar tarjeta": enciende el primer lugar de tarjeta apagado con el nombre y el dia de corte escritos. Si se escribio lo que
+// debes hoy (solo Fundview), primero va UN cargo (cargoDeudaInicial) y despues la escritura de las cuentas fijas, que recarga la app.
+// tdcAlta guarda el id de ese cargo: si un intento se corta a medias, el siguiente usa el MISMO id y el mismo monto (el campo se bloquea),
+// y si ya se habia anotado cae en 'ya-existe'; si ya quedo anotado y solo falto encender, no se vuelve a anotar.
+let tdcAlta = null;   // {k, id, monto, duda, hecho}
+async function agregarTarjetaFija() {
   const k = tdcLibre(), cont = document.querySelector('[data-cfg-cuentas]');
-  if (!cont) return;
-  if (!k) { cont.scrollIntoView({block: 'start'}); return; }
-  const on = document.getElementById('cfg-on-' + k), nom = document.getElementById('cfg-nom-' + k);
-  if (!on || !nom) { cont.scrollIntoView({block: 'start'}); return; }
-  on.checked = true;
-  const caja = on.closest('.cta-cfg'); if (caja) caja.dataset.off = '0';
-  // lo que ya escribio en "nombre" (el de su banco) pasa a su tarjeta
-  const escrito = (document.getElementById('cx-nuevo-nombre').value || '').trim().slice(0, 24);
-  // (7-nov-2026) si ya es el nombre de una cuenta agregada, no se copia a la tarjeta: se avisa y queda su nombre de siempre
-  if (escrito && nombreChocaConX(escrito)) showToast(avisoNombreCuenta(escrito));
-  else if (escrito) nom.value = escrito;
-  // el aviso va DENTRO del cuadrito marcado (abajo del todo, junto a "guardar cuentas", no se veia); renderConfigCuentas lo regresa
-  const aviso = document.getElementById('cuentas-tdc-aviso'); if (aviso) { aviso.hidden = false; if (caja) caja.appendChild(aviso); }
-  (caja || cont).scrollIntoView({block: 'center'});
-  nom.focus({preventScroll: true});
+  if (!k) { if (cont) cont.scrollIntoView({block: 'start'}); return; }
+  const btn = document.getElementById('cx-nuevo-tdc-btn'), campoDeuda = document.getElementById('cx-nuevo-deuda');
+  if (!btn || btn.disabled) return;
+  const v = id => { const x = document.getElementById(id); return x ? String(x.value || '').trim() : ''; };
+  const nombre = v('cx-nuevo-nombre').slice(0, 24).trim(), corteTxt = v('cx-nuevo-corte'), corte = Number(corteTxt);
+  const previo = tdcAlta && tdcAlta.k === k ? tdcAlta : null;
+  if (!nombre) { showToast('ponle un nombre a tu tarjeta, por ejemplo el de tu banco'); return; }
+  if (corteTxt === '' || !Number.isInteger(corte) || corte < 1 || corte > 31) { showToast('escribe el día de corte de tu tarjeta, del 1 al 31 (sale en tu estado de cuenta)'); return; }
+  let deuda = 0;
+  if (previo && (previo.duda || previo.hecho)) deuda = previo.monto;
+  else if (deudaAlAltaTdc(k)) { const t = v('cx-nuevo-deuda'), dd = t === '' ? 0 : parseFloat(t);
+    if (!(Number.isFinite(dd) && dd >= 0 && dd <= 1e7)) { showToast('lo que debes hoy va como número, por ejemplo 800'); return; }
+    deuda = c2(dd); }
+  // dos cuentas con el mismo nombre vuelven ilegible el historial (las mismas reglas de guardarCuentas)
+  if (Object.keys(SLOTS_CFG).some(x => x !== k && normNomCta(confCta(x).nombre) === normNomCta(nombre))) { showToast('ya tienes otra cuenta con ese nombre: ponle otro a tu tarjeta'); return; }
+  if (nombreChocaConX(nombre)) { showToast(avisoNombreCuenta(nombre)); return; }
+  if (!datosCargados || cargaDesdeCache || navigator.onLine === false) { showToast('para agregar tu tarjeta necesitas señal'); return; }
+  if (dineroOcupado) { showToast('espera, hay otra operación en curso'); return; }
+  let recarga = false;
+  btn.disabled = true;
+  try {
+    if (deuda > 0 && !(previo && previo.hecho)) {
+      if (!(previo && previo.duda)) tdcAlta = {k, id: nuevoId(), monto: deuda};
+      const r = await cargoDeudaInicial(k, tdcAlta.monto, tdcAlta.id);
+      if (r === 'duda') { tdcAlta.duda = true; if (campoDeuda) campoDeuda.disabled = true;
+        showToast('no pude confirmar si se anotó lo que debes: revisa tu señal e inténtalo otra vez (no se anota dos veces)'); return; }
+      if (r !== 'ok') { showToast('no se pudo agregar tu tarjeta: inténtalo otra vez'); return; }
+      tdcAlta.hecho = true; if (campoDeuda) campoDeuda.disabled = true;
+    }
+    recarga = await escribirCuentasCfg(cfgConTarjetas([{k, nombre, corte}]), null, tdcAlta && tdcAlta.k === k && tdcAlta.hecho
+      ? 'lo que debes ya quedó anotado, pero tu tarjeta no se encendió: revisa tu señal e inténtalo otra vez'
+      : 'no se pudo agregar tu tarjeta: revisa tu señal e inténtalo otra vez');
+  } finally { if (!recarga) btn.disabled = false; }   // si guardo, la app se recarga: el boton se queda apagado
 }
 // (4-nov-2026) retencion opcional de Fundview. La sugerencia lleva su fuente y su año; la del año que sigue entra cuando se publique
 const NOTA_RET = 'Sugerencia: 0.90% anual en 2026 (Ley de Ingresos de la Federación 2026). No toda cuenta retiene, revísalo en tu estado de cuenta. Si no la escribes, no se descuenta nada; para quitarla, escribe 0.';
@@ -12809,7 +12845,7 @@ let perfilSubActual='perfil';
 // sola operacion (txDinero: efectivo + cuentas que tu agregas) y despues los fondos. Solo agrega: los bancos que ya
 // tienes no se ofrecen y nada de lo existente se toca.
 const BANCOS_MX = ['Nu', 'Revolut', 'BBVA', 'Banorte', 'Santander', 'Banamex', 'HSBC', 'Klar', 'Mercado Pago', 'Hey Banco', 'Openbank', 'Mifel', 'Stori', 'Ualá'];
-let asis = null, asisAuto = false;
+let asis = null, asisAuto = false, asisCreando = false;   // asisCreando: "crear todo" en curso, un segundo toque no corre otra creacion
 function bancosQueYaTienes() {
   const s = new Set(REG_CUENTAS.filter(c => c.banco && !c.legada && (c.grupo || c.tarjeta)).map(c => c.banco.toLowerCase()));
   Object.values(state.cuentasX || {}).forEach(x => s.add(x.nombre.toLowerCase().replace(/ cajita$/, '')));
@@ -12837,90 +12873,142 @@ function esCarteraNueva() {
     REG_CUENTAS.flatMap(c => c.simple ? [c.simple] : c.comp ? [c.comp.base] : []).every(k => !(Math.abs(nFin(state[k])) > 0.005)) && !(fondoTotal() > 0);
 }
 window.abrirAsistente = function() {
-  // (7-nov-2026) con cuentas configurables, un paso para la tarjeta de credito: la primera apagada (si las dos ya estan encendidas, no se pregunta)
-  asis = {paso: 0, efectivo: null, elegidos: [], otro: '', det: {}, fondos: '', tdcSlot: CUENTAS_CFG ? tdcLibre() : null, tdc: {si: false, nombre: '', corte: '', deuda: ''}};
+  // (7-nov-2026) con cuentas configurables, la tarjeta de credito: libres = los lugares de tarjeta apagados al abrir (0, 1 o 2).
+  // (16-nov-2026, el papa de Beto no la encontro) la tarjeta es una casilla MAS de cada banco ("¿Que tienes en BBVA?"); el paso "tarjeta"
+  // del final queda de red para quien no marco ninguna (por ejemplo, quien no eligio bancos)
+  asis = {paso: 0, efectivo: null, elegidos: [], otro: '', det: {}, fondos: '', libres: CUENTAS_CFG ? tdcLibres() : [], tdc: {si: false, nombre: '', corte: '', deuda: ''}};
   const d = document.getElementById('asis-dlg'); if (!d) return;
   pintarAsistente(); if (!d.open) d.showModal();
 };
 window.cerrarAsistente = () => { const d = document.getElementById('asis-dlg'); if (d && d.open) d.close(); asis = null; };
-const asisPasos = () => ['hola', 'efectivo', 'bancos', ...asis.elegidos.map((b, i) => 'det' + i), 'fondos', ...(asis.tdcSlot ? ['tarjeta'] : []), 'resumen'];
+// lo de un banco: sel = lo que la persona marco que tiene ahi (cuenta, cajita, tdc), sus saldos y, si marco tarjeta, lo que escribio de ella
+const asisDet = b => asis.det[b] || (asis.det[b] = {sel: {}, tdc: {nombre: '', corte: '', deuda: ''}});
+// los bancos que marcaron tarjeta, en el orden en que se eligieron: el primero toma el primer lugar libre y el segundo, el segundo. Nunca mas que lugares
+const asisBancosTdc = () => asis.elegidos.filter(b => asis.det[b] && asis.det[b].sel.tdc).slice(0, asis.libres.length);
+const asisPasos = () => ['hola', 'efectivo', 'bancos', ...asis.elegidos.map((b, i) => 'det' + i), 'fondos', ...(asis.libres.length && !asisBancosTdc().length ? ['tarjeta'] : []), 'resumen'];
 function pintarAsistente() {
   const pasos = asisPasos(), p = pasos[asis.paso], e = escapeHtml, cuerpo = document.getElementById('asis-cuerpo');
   const tit = t => { document.getElementById('asis-tit').textContent = t; };
   // (4-nov-2026, Fundview) antes de elegir los bancos el total no se sabe (cada banco suma un paso): no se promete un "de 5" que luego pasa a "de 7"
-  document.getElementById('asis-paso').textContent = 'paso ' + (asis.paso + 1) + (CFG.multi && asis.paso <= pasos.indexOf('bancos') ? '' : ' de ' + pasos.length);
+  // (16-nov-2026) y mientras se dice que hay en cada banco, tampoco: marcar ahi una tarjeta quita el paso de la tarjeta del final
+  const sinTotal = asis.paso <= pasos.indexOf('bancos') ? CFG.multi : (asis.libres.length > 0 && asis.paso < pasos.indexOf('fondos'));
+  document.getElementById('asis-paso').textContent = 'paso ' + (asis.paso + 1) + (sinTotal ? '' : ' de ' + pasos.length);
   document.getElementById('asis-atras').hidden = asis.paso === 0;
   document.getElementById('asis-sig').textContent = p === 'resumen' ? 'crear todo' : (p === 'hola' ? 'empezar' : 'siguiente');
   const campo = (id, etq, ej, v) => '<div class="field"><label for="' + id + '">' + e(etq) + '</label><input type="number" id="' + id + '" step="0.01" inputmode="decimal" placeholder="' + e(ej) + '" value="' + (v == null ? '' : e(v)) + '"></div>';
+  // los campos de una tarjeta, los mismos en el paso de un banco y en el de la tarjeta. t = lo escrito, k = su lugar, ej = el nombre de ejemplo
+  // (7-nov-2026, solo Fundview) lo que debes hoy se puede anotar ahi mismo
+  const camposTdc = (t, k, ej) => '<div class="field" style="margin-top:10px"><label for="asis-tdc-nombre">cómo se llama (el de tu banco, por ejemplo)</label><input type="text" id="asis-tdc-nombre" maxlength="24" placeholder="' + e(ej) + '" value="' + e(t.nombre) + '"></div>' +
+    '<div class="field"><label for="asis-tdc-corte">día de corte</label><input type="number" id="asis-tdc-corte" min="1" max="31" step="1" inputmode="numeric" placeholder="ej. ' + e(confCta(k).corte) + '" value="' + e(t.corte) + '"></div>' +
+    (deudaAlAltaTdc(k) ? '<div class="field"><label for="asis-tdc-deuda">¿Cuánto debes hoy en esta tarjeta? (opcional)</label><input type="number" id="asis-tdc-deuda" min="0" step="0.01" inputmode="decimal" placeholder="ej. 800" value="' + e(t.deuda) + '"></div>'
+      : (CFG.multi && k && Math.abs(saldoSlotCfg(k)) >= 0.005 ? '<p class="item-meta" style="line-height:1.5">Esta tarjeta ya trae anotado que debes ' + e(fmt(saldoSlotCfg(k))) + ': solo se enciende.</p>' : ''));
   if (p === 'hola') { tit('Vamos a armar tu cartera');
-    cuerpo.innerHTML = '<p class="item-meta" style="line-height:1.5">Te hago unas preguntas cortas: tu efectivo, tus bancos y tus cajitas, y si quieres apartar dinero para algo. Al final creo todo junto. Lo que ya tienes no se toca, y todo se puede cambiar después en "mis cuentas".</p>'; }
+    cuerpo.innerHTML = '<p class="item-meta" style="line-height:1.5">Te hago unas preguntas cortas: tu efectivo, ' + (asis.libres.length ? 'tus bancos, tus cajitas y tus tarjetas de crédito' : 'tus bancos y tus cajitas') + ', y si quieres apartar dinero para algo. Al final creo todo junto. Lo que ya tienes no se toca, y todo se puede cambiar después en "mis cuentas".</p>'; }
   else if (p === 'efectivo') { tit('¿Cuánto efectivo traes hoy?');
     cuerpo.innerHTML = campo('asis-efectivo', 'pesos en mano (déjalo vacío si no quieres cambiarlo)', 'ej. 500', asis.efectivo); }
   else if (p === 'bancos') { tit(CFG.multi ? '¿Qué bancos tienes?' : '¿Qué otros bancos tienes?');
-    const ya = bancosQueYaTienes(), opciones = BANCOS_MX.filter(b => !ya.has(b.toLowerCase()));
+    // (16-nov-2026) el banco que la persona escribio en "¿otro?" tambien sale aqui, marcado: si no, no habia forma de quitarlo
+    const ya = bancosQueYaTienes(), opciones = BANCOS_MX.filter(b => !ya.has(b.toLowerCase())).concat(asis.elegidos.filter(b => !BANCOS_MX.includes(b)));
     cuerpo.innerHTML = '<div class="item-meta" style="margin-bottom:8px">toca los que tengas; los que ya están en tu cartera no salen aquí</div><div class="asis-bancos">' +
       opciones.map(b => '<button type="button" class="type-opt' + (asis.elegidos.includes(b) ? ' active' : '') + '" aria-pressed="' + asis.elegidos.includes(b) + '" data-banco="' + e(b) + '">' + e(b) + '</button>').join('') + '</div>' +
       '<div class="field" style="margin-top:10px"><label for="asis-otro">¿otro? escribe su nombre</label><input type="text" id="asis-otro" maxlength="24" placeholder="ej. Banco Azteca" value="' + e(asis.otro) + '"></div>';
-    cuerpo.querySelectorAll('[data-banco]').forEach(b => b.addEventListener('click', () => { const n = b.dataset.banco, i = asis.elegidos.indexOf(n);
-      if (i >= 0) asis.elegidos.splice(i, 1); else asis.elegidos.push(n); pintarAsistente(); })); }
-  else if (p.startsWith('det')) { const b = asis.elegidos[+p.slice(3)], d = asis.det[b] || (asis.det[b] = {tipo: 'cuenta'}); tit('¿Qué tienes en ' + b + '?');
-    const op = (v, t) => '<button type="button" class="type-opt' + (d.tipo === v ? ' active' : '') + '" aria-pressed="' + (d.tipo === v) + '" data-tipo="' + v + '">' + t + '</button>';
-    cuerpo.innerHTML = '<div class="asis-bancos">' + op('cuenta', 'cuenta normal') + op('cajita', 'cajita o savings') + op('ambas', 'las dos') + '</div>' +
-      (d.tipo !== 'cajita' ? campo('asis-cuenta', 'saldo de la cuenta hoy', 'ej. 3000', d.cuenta) : '') +
-      (d.tipo !== 'cuenta' ? campo('asis-cajita', 'saldo de la cajita hoy', 'ej. 10000', d.cajita) + campo('asis-tasa', 'tasa anual % que te paga', 'ej. 13', d.tasa) : '');
-    cuerpo.querySelectorAll('[data-tipo]').forEach(x => x.addEventListener('click', () => { asisLeer(); d.tipo = x.dataset.tipo; pintarAsistente(); })); }
+    cuerpo.querySelectorAll('[data-banco]').forEach(b => b.addEventListener('click', () => { asisLeer(); const n = b.dataset.banco, i = asis.elegidos.indexOf(n);
+      // un banco que se quita suelta su lugar de tarjeta (lo demas que se escribio de el se conserva, por si lo vuelve a elegir)
+      if (i >= 0) { asis.elegidos.splice(i, 1); if (asis.det[n]) asis.det[n].sel.tdc = false; } else asis.elegidos.push(n);
+      pintarAsistente(); asisEnfocar(x => x.dataset.banco === n); })); }
+  else if (p.startsWith('det')) { const b = asis.elegidos[+p.slice(3)], d = asisDet(b), s = d.sel; tit('¿Qué tienes en ' + b + '?');
+    // (16-nov-2026) casillas que se suman, sin nada marcado de entrada: cuenta, cajita y, con cuentas configurables, tarjeta de credito.
+    // La tarjeta toma un lugar libre (hay dos); sin lugar, la casilla se ve apagada y una nota dice por que
+    if (s.tdc && !asisBancosTdc().includes(b)) s.tdc = false;
+    const con = asisBancosTdc(), cabe = s.tdc || con.length < asis.libres.length, k = s.tdc ? asis.libres[con.indexOf(b)] : null;
+    const op = (v, t, off) => '<button type="button" class="type-opt' + (s[v] ? ' active' : '') + '" aria-pressed="' + !!s[v] + '" data-tipo="' + v + '"' + (off ? ' disabled aria-describedby="asis-tdc-lleno"' : '') + '>' + t + '</button>';
+    const sinLugar = !asis.libres.length ? 'Ya tienes tus dos tarjetas de crédito encendidas: se cambian en "mis cuentas".'
+      : 'Por ahora caben dos tarjetas de crédito' + (asis.libres.length < 2 ? ': ya tienes una encendida y aquí elegiste la de ' + e(con[0]) : ' y ya elegiste la de ' + con.map(e).join(' y la de ')) + '.';
+    cuerpo.innerHTML = '<div class="item-meta" style="margin-bottom:8px">toca todo lo que tengas ahí</div><div class="asis-bancos">' + op('cuenta', 'cuenta normal') + op('cajita', 'cajita o savings') + (CUENTAS_CFG ? op('tdc', 'tarjeta de crédito', !cabe) : '') + '</div>' +
+      (CUENTAS_CFG && !cabe ? '<p class="item-meta" id="asis-tdc-lleno" style="line-height:1.5;margin-top:8px">' + sinLugar + '</p>' : '') +
+      (s.cuenta ? '<div style="margin-top:10px">' + campo('asis-cuenta', 'saldo de la cuenta hoy', 'ej. 3000', d.cuenta) + '</div>' : '') +
+      (s.cajita ? '<div style="margin-top:10px">' + campo('asis-cajita', 'saldo de la cajita hoy', 'ej. 10000', d.cajita) + campo('asis-tasa', 'tasa anual % que te paga', 'ej. 13', d.tasa) + '</div>' : '') +
+      (s.tdc ? '<p class="item-meta" style="line-height:1.5;margin-top:10px">Tu tarjeta de crédito: con ella anotas tus compras y ves cuánto debes.</p>' + camposTdc(d.tdc, k, b.slice(0, 16).trim() + ' tarjeta') : '');
+    cuerpo.querySelectorAll('[data-tipo]').forEach(x => x.addEventListener('click', () => { asisLeer(); const v = x.dataset.tipo; s[v] = !s[v];
+      if (v === 'tdc' && s.tdc && !d.tdc.nombre) d.tdc.nombre = b.slice(0, 16).trim() + ' tarjeta';   // «BBVA tarjeta»: se puede cambiar
+      pintarAsistente(); asisEnfocar(y => y.dataset.tipo === v); })); }
   else if (p === 'fondos') { tit('¿Quieres apartar dinero para algo?');
     cuerpo.innerHTML = '<p class="item-meta" style="line-height:1.5">Un fondo es dinero que se queda en tu banco pero deja de contar para el día a día: un viaje, emergencias, un coche. Escribe sus nombres separados por comas, o déjalo vacío.</p>' +
       '<div class="field"><label for="asis-fondos">fondos</label><input type="text" id="asis-fondos" maxlength="120" placeholder="ej. viaje, emergencias" value="' + e(asis.fondos) + '"></div>'; }
-  else if (p === 'tarjeta') { tit('¿Tienes tarjeta de crédito?'); const t = asis.tdc, k = asis.tdcSlot;
+  else if (p === 'tarjeta') { tit('¿Tienes tarjeta de crédito?'); const t = asis.tdc, k = asis.libres[0];
     const op = (v, txt) => '<button type="button" class="type-opt' + (t.si === v ? ' active' : '') + '" aria-pressed="' + (t.si === v) + '" data-tdc="' + (v ? 'si' : 'no') + '">' + txt + '</button>';
     // (7-nov-2026, solo Fundview) la deuda de hoy se puede anotar aqui mismo; y se dice DONDE se anota si se deja para despues. El nombre sale prellenado con el banco que eligio
     cuerpo.innerHTML = '<p class="item-meta" style="line-height:1.5">Si tienes, la enciendo para que anotes tus compras con ella y veas cuánto debes. ' + (CFG.multi ? 'Lo que debes hoy lo puedes poner aquí abajo; si lo dejas vacío, lo anotas después en Movimientos, Registrar, Tarjeta, con «+ Cargo» (no cuenta como gasto).' : 'Lo que debes hoy lo anotas después.') + '</p>' +
       '<div class="asis-bancos">' + op(true, 'sí tengo') + op(false, 'no tengo') + '</div>' +
-      (t.si ? '<div class="field" style="margin-top:10px"><label for="asis-tdc-nombre">cómo se llama (el de tu banco, por ejemplo)</label><input type="text" id="asis-tdc-nombre" maxlength="24" placeholder="' + e(confCta(k).nombre) + '" value="' + e(t.nombre) + '"></div>' +
-        '<div class="field"><label for="asis-tdc-corte">día de corte</label><input type="number" id="asis-tdc-corte" min="1" max="31" step="1" inputmode="numeric" placeholder="ej. ' + e(confCta(k).corte) + '" value="' + e(t.corte) + '"></div>' +
-        (CFG.multi && asisDeudaPosible() ? '<div class="field"><label for="asis-tdc-deuda">¿Cuánto debes hoy en esta tarjeta? (opcional)</label><input type="number" id="asis-tdc-deuda" min="0" step="0.01" inputmode="decimal" placeholder="ej. 800" value="' + e(t.deuda) + '"></div>' : '') : '');
-    cuerpo.querySelectorAll('[data-tdc]').forEach(x => x.addEventListener('click', () => { asisLeer(); t.si = x.dataset.tdc === 'si';
+      (t.si ? camposTdc(t, k, confCta(k).nombre) : '');
+    cuerpo.querySelectorAll('[data-tdc]').forEach(x => x.addEventListener('click', () => { asisLeer(); const v = x.dataset.tdc; t.si = v === 'si';
       if (CFG.multi && t.si && !t.nombre && asis.elegidos.length) t.nombre = (asis.elegidos[0] + ' tarjeta').slice(0, 24);   // «BBVA tarjeta»: el primer banco que eligio
-      pintarAsistente(); })); }
+      pintarAsistente(); asisEnfocar(y => y.dataset.tdc === v); })); }
   else { tit('Esto voy a crear'); const l = asisResumen();
     cuerpo.innerHTML = l.length ? '<div>' + l.map(x => '<div class="item-row"><div class="item-title">' + e(x[0]) + '</div><div class="item-amt-pos">' + e(x[1]) + '</div></div>').join('') + '</div>'
       : '<div class="item-meta">No elegiste nada nuevo. Puedes cerrar y seguir como estás.</div>'; }
 }
+// al tocar una casilla el paso se vuelve a pintar: el foco regresa a esa casilla (con teclado o lector de pantalla se perdia)
+function asisEnfocar(cual) { const x = [...document.querySelectorAll('#asis-cuerpo button.type-opt')].find(cual); if (x && !x.disabled) x.focus({preventScroll: true}); }
 // guarda lo que hay en pantalla en asis (sin validar: la validacion es al avanzar)
 function asisLeer() {
   const v = id => { const el = document.getElementById(id); return el ? el.value.trim() : undefined; }, p = asisPasos()[asis.paso];
+  const leeTdc = t => { const n = v('asis-tdc-nombre'), c = v('asis-tdc-corte'), d = v('asis-tdc-deuda'); if (n !== undefined) t.nombre = n; if (c !== undefined) t.corte = c; if (d !== undefined) t.deuda = d; };
   if (p === 'efectivo') asis.efectivo = v('asis-efectivo');
   if (p === 'bancos') asis.otro = v('asis-otro') || '';
-  if (p && p.startsWith('det')) { const d = asis.det[asis.elegidos[+p.slice(3)]]; ['cuenta', 'cajita', 'tasa'].forEach(k => { const x = v('asis-' + k); if (x !== undefined) d[k] = x; }); }
+  if (p && p.startsWith('det')) { const d = asisDet(asis.elegidos[+p.slice(3)]); ['cuenta', 'cajita', 'tasa'].forEach(k => { const x = v('asis-' + k); if (x !== undefined) d[k] = x; }); leeTdc(d.tdc); }
   if (p === 'fondos') asis.fondos = v('asis-fondos') || '';
-  if (p === 'tarjeta') { const n = v('asis-tdc-nombre'), c = v('asis-tdc-corte'), d = v('asis-tdc-deuda'); if (n !== undefined) asis.tdc.nombre = n; if (c !== undefined) asis.tdc.corte = c; if (d !== undefined) asis.tdc.deuda = d; }
+  if (p === 'tarjeta') leeTdc(asis.tdc);
 }
-// (7-nov-2026, solo Fundview) lo que debes hoy en la tarjeta que se enciende: tarjeta 1 siempre; la 2, solo si NO es garantizada (el limite de una garantizada es su deposito, y el asistente no lo pregunta)
-function asisDeudaPosible() { return !!asis.tdcSlot && (asis.tdcSlot === 'tarjeta' || !tdcGarantizada()); }
-// la tarjeta que se va a encender: nombre (el escrito o el que ya tiene) y dia de corte (el escrito o el que ya tiene)
-function asisTdc() {
-  if (!asis.tdcSlot || !asis.tdc.si) return null;
-  const k = asis.tdcSlot, c = confCta(k), d = asis.tdc.corte === '' ? c.corte : Number(asis.tdc.corte);
-  // deuda: lo que debes hoy (null = no la anoto ahora); solo Fundview y solo si es un numero mayor que cero
-  const dd = CFG.multi && asisDeudaPosible() ? asisNum(asis.tdc.deuda) : null;
-  return {k, nombre: (asis.tdc.nombre || '').trim().slice(0, 24) || c.nombre, corte: d, deuda: Number.isFinite(dd) && dd > 0 ? c2(dd) : null};
+// las tarjetas que se van a encender (0, 1 o 2): las que se marcaron en un banco, en su orden, cada una en su lugar; si ninguna, la del paso
+// "tarjeta". Nombre y corte: lo escrito o, vacio, lo que ya tiene ese lugar. deuda: lo que debes hoy (null = no se anota ahora)
+function asisTdcs() {
+  if (!asis.libres.length) return [];
+  const una = (k, t, banco) => { const c = confCta(k), dd = deudaAlAltaTdc(k) ? asisNum(t.deuda) : null;
+    return {k, banco, nombre: (t.nombre || '').trim().slice(0, 24) || c.nombre, corte: t.corte === '' || t.corte == null ? c.corte : Number(t.corte), deuda: Number.isFinite(dd) && dd > 0 ? c2(dd) : null}; };
+  const con = asisBancosTdc();
+  if (con.length) return con.map((b, i) => una(asis.libres[i], asis.det[b].tdc, b));
+  return asis.tdc.si ? [una(asis.libres[0], asis.tdc, null)] : [];
+}
+// lo que no deja avanzar con una tarjeta ('' = todo bien). t = lo escrito. estricto: nombre y corte tienen que estar escritos
+// (7-nov-2026: en Fundview lo que se ve en gris es un EJEMPLO, no un valor; en el paso de un banco, igual en todas las carteras)
+function asisErrorTdc(tj, t, estricto) {
+  if (estricto && !(t.nombre || '').trim()) return 'ponle un nombre a tu tarjeta, por ejemplo el de tu banco';
+  if (estricto && String(t.corte == null ? '' : t.corte).trim() === '') return 'escribe el día de corte de tu tarjeta, del 1 al 31 (sale en tu estado de cuenta)';
+  if (deudaAlAltaTdc(tj.k)) { const dd = asisNum(t.deuda); if (t.deuda !== '' && t.deuda != null && !(Number.isFinite(dd) && dd >= 0 && dd <= 1e7)) return 'lo que debes hoy va como número, por ejemplo 800'; }
+  if (!Number.isInteger(tj.corte) || tj.corte < 1 || tj.corte > 31) return 'el día de corte va del 1 al 31';
+  // dos cuentas con el mismo nombre vuelven ilegible el historial (la misma regla de guardarCuentas). La otra tarjeta que este asistente
+  // va a encender cuenta con el nombre que va a llevar, no con el que hoy tiene su lugar
+  const otras = asisTdcs().filter(x => x.k !== tj.k);
+  if (Object.keys(SLOTS_CFG).some(k => k !== tj.k && normNomCta((otras.find(x => x.k === k) || confCta(k)).nombre) === normNomCta(tj.nombre))) return 'ya tienes otra cuenta con ese nombre: ponle otro a tu tarjeta';
+  // (7-nov-2026) tambien contra las cuentas agregadas y contra lo que este mismo asistente va a crear (bancos y sus cajitas, como los nombra asisCrear)
+  const porCrear = []; asis.elegidos.forEach(b => { const s = asisDet(b).sel; if (s.cuenta) porCrear.push(b); if (s.cajita) porCrear.push((b + ' cajita').slice(0, 24)); });
+  // (7-nov-2026, solo Fundview) "ya tienes una cuenta" solo si de verdad existe; si es un banco que el mismo asistente va a crear, se dice eso (aun no existe)
+  if (nombreChocaConX(tj.nombre, porCrear)) return CFG.multi && !nombreChocaConX(tj.nombre, []) ? avisoNombreElegido(tj.nombre) : avisoNombreCuenta(tj.nombre);
+  return '';
+}
+// todas las tarjetas otra vez, justo antes de crear: un nombre pudo quedar repetido al regresar y cambiar otro paso
+function asisErrorTarjetas() {
+  for (const tj of asisTdcs()) { const err = asisErrorTdc(tj, tj.banco ? asis.det[tj.banco].tdc : asis.tdc, tj.banco ? true : !!CFG.multi); if (err) return err; }
+  return '';
 }
 const asisNum = t => t === '' || t == null ? null : parseFloat(t);
 function asisFondos() { return [...new Set((asis.fondos || '').split(',').map(x => x.trim().slice(0, 30)).filter(Boolean))]; }
 function asisResumen() {
   const l = [], ef = asisNum(asis.efectivo);
   if (ef !== null) l.push(['efectivo', fmt(ef)]);
-  asis.elegidos.forEach(b => { const d = asis.det[b] || {};
-    if (d.tipo !== 'cajita') l.push([b, fmt(asisNum(d.cuenta) || 0)]);
-    if (d.tipo !== 'cuenta') l.push([b + ' cajita · ' + asisNum(d.tasa) + '% anual', fmt(asisNum(d.cajita) || 0)]); });
+  asis.elegidos.forEach(b => { const d = asisDet(b), s = d.sel;
+    if (s.cuenta) l.push([b, fmt(asisNum(d.cuenta) || 0)]);
+    if (s.cajita) l.push([b + ' cajita · ' + asisNum(d.tasa) + '% anual', fmt(asisNum(d.cajita) || 0)]); });
   asisFondos().forEach(n => l.push(['fondo: ' + n, 'vacío, para apartarle']));
-  const tj = asisTdc(); if (tj) l.push(['tarjeta de crédito: ' + tj.nombre, 'corte el ' + tj.corte]);
-  if (tj && tj.deuda) l.push(['Lo que debes hoy en ella', fmt(tj.deuda)]);   // solo Fundview (asisTdc solo trae deuda ahi)
+  const tjs = asisTdcs();
+  tjs.forEach(tj => { l.push(['tarjeta de crédito: ' + tj.nombre, 'corte el ' + tj.corte]);
+    // solo Fundview (asisTdcs solo trae deuda ahi). Con dos tarjetas se dice de cual
+    if (tj.deuda) l.push([tjs.length > 1 ? 'Lo que debes hoy en ' + tj.nombre : 'Lo que debes hoy en ella', fmt(tj.deuda)]); });
   return l;
 }
 window.asisMover = async function(dir) {
-  if (!asis) return;
+  if (!asis || asisCreando) return;
   asisLeer();
   const p = asisPasos()[asis.paso];
   if (dir > 0) {
@@ -12928,49 +13016,76 @@ window.asisMover = async function(dir) {
     if (p === 'bancos' && asis.otro) { const o = asis.otro.slice(0, 24);
       if (bancosQueYaTienes().has(o.toLowerCase())) { showToast(o + ' ya está en tu cartera'); return; }
       if (!asis.elegidos.includes(o)) asis.elegidos.push(o); asis.otro = ''; }
-    if (p.startsWith('det')) { const b = asis.elegidos[+p.slice(3)], d = asis.det[b];
+    if (p.startsWith('det')) { const b = asis.elegidos[+p.slice(3)], d = asisDet(b), s = d.sel;
+      // (16-nov-2026) nada viene marcado: hay que decir que se tiene ahi (o regresar y quitar el banco)
+      if (!s.cuenta && !s.cajita && !s.tdc) { showToast('toca lo que tengas en ' + b + ', o regresa y quítalo de tus bancos'); return; }
       const ok = x => x === '' || x == null || (Number.isFinite(asisNum(x)) && asisNum(x) >= 0);
-      if (!ok(d.cuenta) || !ok(d.cajita)) { showToast('los saldos van como número, por ejemplo 3000'); return; }
-      if (d.tipo !== 'cuenta' && !(asisNum(d.tasa) > 0 && asisNum(d.tasa) < 100)) { showToast('escribe la tasa anual de la cajita de ' + b + ', por ejemplo 13'); return; } }
-    if (p === 'tarjeta' && asis.tdc.si) { const tj = asisTdc();
-      // (7-nov-2026, solo Fundview) el nombre y el corte que se ven en gris son EJEMPLOS: no se convierten en valor sin que la persona los escriba
-      if (CFG.multi && !(asis.tdc.nombre || '').trim()) { showToast('ponle un nombre a tu tarjeta, por ejemplo el de tu banco'); return; }
-      if (CFG.multi && String(asis.tdc.corte).trim() === '') { showToast('escribe el día de corte de tu tarjeta, del 1 al 31 (sale en tu estado de cuenta)'); return; }
-      if (CFG.multi) { const dd = asisNum(asis.tdc.deuda); if (asisDeudaPosible() && asis.tdc.deuda !== '' && asis.tdc.deuda != null && !(Number.isFinite(dd) && dd >= 0 && dd <= 1e7)) { showToast('lo que debes hoy va como número, por ejemplo 800'); return; } }
-      if (!Number.isInteger(tj.corte) || tj.corte < 1 || tj.corte > 31) { showToast('el día de corte va del 1 al 31'); return; }
-      // dos cuentas con el mismo nombre vuelven ilegible el historial (la misma regla de guardarCuentas)
-      if (Object.keys(SLOTS_CFG).some(k => k !== tj.k && confCta(k).nombre.toLowerCase() === tj.nombre.toLowerCase())) { showToast('ya tienes otra cuenta con ese nombre: ponle otro a tu tarjeta'); return; }
-      // (7-nov-2026) tambien contra las cuentas agregadas y contra lo que este mismo asistente va a crear (bancos y sus cajitas, como los nombra asisCrear)
-      const porCrear = []; asis.elegidos.forEach(b => { const d = asis.det[b] || {tipo: 'cuenta'};
-        if (d.tipo !== 'cajita') porCrear.push(b); if (d.tipo !== 'cuenta') porCrear.push((b + ' cajita').slice(0, 24)); });
-      // (7-nov-2026, solo Fundview) "ya tienes una cuenta" solo si de verdad existe; si es un banco que el mismo asistente va a crear, se dice eso (aun no existe)
-      if (nombreChocaConX(tj.nombre, porCrear)) { showToast(CFG.multi && !nombreChocaConX(tj.nombre, []) ? avisoNombreElegido(tj.nombre) : avisoNombreCuenta(tj.nombre)); return; } }
-    if (p === 'resumen') return asisCrear();
+      if ((s.cuenta && !ok(d.cuenta)) || (s.cajita && !ok(d.cajita))) { showToast('los saldos van como número, por ejemplo 3000'); return; }
+      if (s.cajita && !(asisNum(d.tasa) > 0 && asisNum(d.tasa) < 100)) { showToast('escribe la tasa anual de la cajita de ' + b + ', por ejemplo 13'); return; }
+      if (s.tdc) { const tj = asisTdcs().find(x => x.banco === b), err = tj ? asisErrorTdc(tj, d.tdc, true) : 'por ahora caben dos tarjetas de crédito';
+        if (err) { showToast(err); return; } } }
+    if (p === 'tarjeta' && asis.tdc.si) { const err = asisErrorTdc(asisTdcs()[0], asis.tdc, !!CFG.multi); if (err) { showToast(err); return; } }
+    if (p === 'resumen') { const err = asisErrorTarjetas(); if (err) { showToast(err); return; } return asisCrear(); }
   }
   asis.paso = Math.max(0, Math.min(asisPasos().length - 1, asis.paso + dir));
   pintarAsistente();
 };
+// (7-nov-2026, 16-nov-2026) lo que debes hoy en una tarjeta que se va a encender: UN cargo por las vias de siempre (txDinero, con el id del
+// movimiento: otro intento con el MISMO id cae en 'ya-existe' y no se anota dos veces). Va ANTES de encenderla, porque encenderla recarga la app.
+// Devuelve 'ok', 'error' (no se anoto) o 'duda' (se corto a medias: pudo haberse anotado)
+async function cargoDeudaInicial(k, monto, id) {
+  const ahora = new Date().toISOString(), mov = {id, tipo: 'cargo', monto, nota: 'Saldo que debías al empezar', fecha: ahora, creado: ahora};
+  const plan = k === 'tarjetaRev' ? {tdcRevDelta: monto, tdcRevMovAdd: mov} : {tarjetaDelta: monto, tarjetaMovAdd: mov};
+  if (dineroOcupado) return 'error';
+  let res = null, err = null;
+  dineroOcupado = true;
+  try { res = await txDinero(plan); } catch (e) { err = e; } finally { liberarDinero(); }
+  if (err) { console.error('deuda inicial de la tarjeta', err); return 'duda'; }
+  if (res.error && res.codigo !== 'ya-existe') { console.error('deuda inicial de la tarjeta', res.error); return 'error'; }
+  if (!res.error) aplicarRes(res);
+  return 'ok';
+}
+// las cuentas fijas como estan, con estas tarjetas encendidas con su nombre y su corte: lo que se le pasa a escribirCuentasCfg. No escribe deuda
+function cfgConTarjetas(tjs) {
+  const nuevo = {};
+  Object.keys(SLOTS_CFG).forEach(k => { const s = SLOTS_CFG[k], c = confCta(k), x = {on: s.fijo ? true : c.on, nombre: c.nombre};
+    if (s.tipo === 'tarjeta') x.corte = c.corte;
+    if (s.garantizable) x.modo = c.modo === 'garantizada' ? 'garantizada' : 'normal';
+    nuevo[k] = x; });
+  tjs.forEach(tj => { Object.assign(nuevo[tj.k], {on: true, nombre: tj.nombre, corte: tj.corte});
+    // la garantizada pide un deposito que aqui no se pregunta: se enciende normal (sin deposito no hay nada que perder)
+    if (SLOTS_CFG[tj.k].garantizable && !(Math.abs(nFin(state.revTdcDeposito)) >= 0.005)) nuevo[tj.k].modo = 'normal'; });
+  return nuevo;
+}
+// (16-nov-2026) "crear todo" se apaga durante TODA la creacion (txDinero, fondos, deuda de tarjetas y encendido): antes el boton solo se
+// apagaba alrededor del primer txDinero y, con solo tarjetas o fondos, un segundo toque corria otro asisCrear en paralelo
 async function asisCrear() {
+  if (asisCreando) return;
+  asisCreando = true;
+  const btn = document.getElementById('asis-sig'); if (btn) btn.disabled = true;
+  try { await asisCrearTrabajo(); }
+  finally { asisCreando = false; if (btn) btn.disabled = false; }
+}
+async function asisCrearTrabajo() {
   const crear = {}, hoy = hoyLocal();
   let nAlta = 0; const ahora = () => new Date(Date.now() + (nAlta++)).toISOString();   // cada cuenta con su propio instante: asi conservan el orden en que se crearon
   const nuevoIdX = () => 'x_' + (Date.now().toString(36) + Math.random().toString(36).slice(2, 8)).slice(0, 14).toLowerCase();
-  asis.elegidos.forEach(b => { const d = asis.det[b] || {};
-    if (d.tipo !== 'cajita') crear[nuevoIdX()] = {nombre: b, moneda: 'MXN', tipo: 'banco', on: true, saldo: c2(asisNum(d.cuenta) || 0), creada: ahora()};
-    if (d.tipo !== 'cuenta') crear[nuevoIdX()] = {nombre: (b + ' cajita').slice(0, 24), moneda: 'MXN', tipo: 'cajita', on: true, saldo: c2(asisNum(d.cajita) || 0), creada: ahora(),
+  asis.elegidos.forEach(b => { const d = asisDet(b), s = d.sel;
+    if (s.cuenta) crear[nuevoIdX()] = {nombre: b, moneda: 'MXN', tipo: 'banco', on: true, saldo: c2(asisNum(d.cuenta) || 0), creada: ahora()};
+    if (s.cajita) crear[nuevoIdX()] = {nombre: (b + ' cajita').slice(0, 24), moneda: 'MXN', tipo: 'cajita', on: true, saldo: c2(asisNum(d.cajita) || 0), creada: ahora(),
       tasa: asisNum(d.tasa), tope: 0, tasaExc: 0, fecha: hoy}; });
   if (Object.keys(state.cuentasX || {}).length + Object.keys(crear).length > CX_MAX) { showToast('son demasiadas cuentas: máximo ' + CX_MAX); return; }
   const ef = asisNum(asis.efectivo), plan = {};
   if (ef !== null) plan.absolutos = {efectivo: c2(ef)};
   if (Object.keys(crear).length) plan.fx = {crear};
-  const fondos = asisFondos(), tj = asisTdc();
-  if (!plan.absolutos && !plan.fx && !fondos.length && !tj) { cerrarAsistente(); return; }
-  const btn = document.getElementById('asis-sig');
+  const fondos = asisFondos(), tjs = asisTdcs();
+  if (!plan.absolutos && !plan.fx && !fondos.length && !tjs.length) { cerrarAsistente(); return; }
   if (plan.absolutos || plan.fx) {
     if (dineroOcupado) { showToast('espera, hay otra operación en curso'); return; }
     let res = null, err = null;
-    btn.disabled = true; dineroOcupado = true;
+    dineroOcupado = true;   // el boton ya esta apagado por asisCrear durante toda la creacion
     try { res = await txDinero(plan); } catch (e) { err = e; }
-    finally { btn.disabled = false; liberarDinero(); }
+    finally { liberarDinero(); }
     if (err) { console.error('asistente', err); showToast(msgFalloDinero()); return; }
     if (res.error && res.codigo !== 'ya-existe') { showToast(res.error); return; }
     if (!res.error) aplicarRes(res);
@@ -12981,34 +13096,20 @@ async function asisCrear() {
     // (4-nov-2026) el MISMO chequeo que "crear fondo" (altaEnLista): tambien rechaza el nombre del fondo de fabrica ("Mi fondo"), que no esta en la lista
     await cambiarListaFondos(altaEnLista(id, n), 'fondo creado: ' + n);
   }
-  // (7-nov-2026, solo Fundview) lo que debes hoy en la tarjeta: UN cargo por las vias de siempre (txDinero, con el id del movimiento: un reintento cae en 'ya-existe'),
-  // ANTES de encenderla (encenderla recarga la app). Si falla, la cartera ya quedo armada y el aviso dice donde anotarlo
-  let avisoDeuda = '';
-  if (tj && tj.deuda) {
-    const mov = {id: nuevoId(), tipo: 'cargo', monto: tj.deuda, nota: 'Saldo que debías al empezar', fecha: new Date().toISOString(), creado: new Date().toISOString()};
-    const planD = tj.k === 'tarjetaRev' ? {tdcRevDelta: tj.deuda, tdcRevMovAdd: mov} : {tarjetaDelta: tj.deuda, tarjetaMovAdd: mov};
-    let resD = null, errD = null;
-    if (dineroOcupado) errD = new Error('ocupado');
-    else { dineroOcupado = true; try { resD = await txDinero(planD); } catch (e) { errD = e; } finally { liberarDinero(); } }
-    if (errD || (resD && resD.error && resD.codigo !== 'ya-existe')) { console.error('asistente, deuda de la tarjeta', errD || resD.error); avisoDeuda = 'tu cartera quedó armada, pero no pude anotar lo que debes hoy: anótalo en Movimientos, Registrar, Tarjeta, con «+ Cargo»'; }
-    else if (resD && !resD.error) aplicarRes(resD);
-  }
+  // (7-nov-2026, solo Fundview) lo que debes hoy en cada tarjeta, ANTES de encenderlas (encenderlas recarga la app). Si falla, la cartera ya
+  // quedo armada y el aviso dice donde anotarlo
+  const sinDeuda = [], enDuda = [], conDeuda = [];   // 'error' (no se anoto), 'duda' (pudo anotarse) y 'ok'
+  for (const tj of tjs) if (tj.deuda) { const r = await cargoDeudaInicial(tj.k, tj.deuda, nuevoId()); (r === 'ok' ? conDeuda : r === 'duda' ? enDuda : sinDeuda).push(tj.nombre); }
+  const avisoDeuda = enDuda.length ? 'tu cartera quedó armada, pero no pude confirmar si se anotó lo que debes hoy' + (tjs.length > 1 ? ' en ' + enDuda.join(' ni en ') : '') + ': revísalo en Movimientos, Registrar, Tarjeta antes de anotarlo'
+    : sinDeuda.length ? 'tu cartera quedó armada, pero no pude anotar lo que debes hoy' + (tjs.length > 1 ? ' en ' + sinDeuda.join(' ni en ') : '') + ': anótalo en Movimientos, Registrar, Tarjeta, con «+ Cargo»' : '';
   asisMarcarHecho();
   cerrarAsistente();
   refrescar(render, renderCuentasX, pintarFuentesX, renderMisCuentas, renderFondo);
   showToast(avisoDeuda || 'listo: tu cartera quedó armada');
-  // (7-nov-2026) la tarjeta va AL FINAL: guardar las cuentas fijas recarga la app. No escribe deuda: solo la enciende
-  if (tj) {
-    const nuevo = {};
-    Object.keys(SLOTS_CFG).forEach(k => { const s = SLOTS_CFG[k], c = confCta(k), x = {on: s.fijo ? true : c.on, nombre: c.nombre};
-      if (s.tipo === 'tarjeta') x.corte = c.corte;
-      if (s.garantizable) x.modo = c.modo === 'garantizada' ? 'garantizada' : 'normal';
-      nuevo[k] = x; });
-    Object.assign(nuevo[tj.k], {on: true, nombre: tj.nombre, corte: tj.corte});
-    // la garantizada pide un deposito que el asistente no pregunta: se enciende normal (sin deposito no hay nada que perder)
-    if (SLOTS_CFG[tj.k].garantizable && !(Math.abs(nFin(state.revTdcDeposito)) >= 0.005)) nuevo[tj.k].modo = 'normal';
-    await escribirCuentasCfg(nuevo, null, 'tu cartera quedó armada, pero tu tarjeta no se encendió: hazlo en mis cuentas, en tus cuentas fijas');
-  }
+  // (7-nov-2026) las tarjetas van AL FINAL y en UNA sola escritura: guardar las cuentas fijas recarga la app. No escribe deuda: solo las enciende
+  if (tjs.length) await escribirCuentasCfg(cfgConTarjetas(tjs), null, conDeuda.length || enDuda.length
+    ? 'tu cartera quedó armada, pero tu tarjeta no se encendió: enciéndela en mis cuentas, en tus cuentas fijas. Lo que debes no lo anotes otra vez sin revisarlo'
+    : 'tu cartera quedó armada, pero tu tarjeta no se encendió: hazlo en mis cuentas, en tus cuentas fijas');
 }
 // ── MIS CUENTAS (28-oct-2026) ─────────────────────────────────
 // Todo lo que tiene la persona de un vistazo: cuantos bancos, sus cuentas del dia a dia, las que dan interes,
@@ -13123,7 +13224,7 @@ const AYUDA_BASE = [
     r:['Toca "+ Persona" para agregarla, elige "Me deben", "Me pagaron", "Yo debo" o "Le pagué", escribe el monto y toca "Registrar". Aquí se anota lo que debes o te deben entre personas.'],
     claves:'deuda deudas debo deben debe prestamo prestar preste prestaron presto amigo persona pagaron'},
   {id:'tarjeta', g:'anotar', p:'¿Cómo anoto lo de mi tarjeta de crédito?', donde:'Movimientos › Registrar › Tarjeta', ir:'tarjeta', boton:'ir a mi tarjeta',
-    r:['Primero enciéndela en "Tus cuentas fijas", dentro de "Mis cuentas": mientras esté apagada no sale la opción "Tarjeta". Una compra con tarjeta se registra como gasto: en "Pagado con" elige tu tarjeta. Para anotar que la pagaste, en la opción "Tarjeta" toca "- Pagué" y elige de dónde salió el dinero. "+ Cargo" sube lo que debes, pero no cuenta como gasto.'],
+    r:['Primero agrégala: en "Mis cuentas", en "Agregar una cuenta", elige el tipo "Tarjeta de crédito". Mientras no la tengas no sale la opción "Tarjeta". Una compra con tarjeta se registra como gasto: en "Pagado con" elige tu tarjeta. Para anotar que la pagaste, en la opción "Tarjeta" toca "- Pagué" y elige de dónde salió el dinero. "+ Cargo" sube lo que debes, pero no cuenta como gasto.'],
     claves:'tarjeta tarjetas credito tdc cargo pague pagar corte deuda compra pago meses'},
 
   {id:'deuda-tarjeta', g:'anotar', p:'¿Cómo anoto lo que debo en mi tarjeta, o su saldo?', donde:'Movimientos › Registrar › Tarjeta', ir:'tarjeta', boton:'ir a mi tarjeta',
@@ -13144,8 +13245,8 @@ const AYUDA_BASE = [
   {id:'calendario', g:'ver', p:'¿Dónde veo mis gastos en un calendario?', donde:'Calendario', ir:'calendario', boton:'ir al calendario',
     r:['En la pestaña "Calendario" ves cada día del mes con lo que gastaste y lo que viene: tus suscripciones y el corte de tus tarjetas. Toca un día para ver sus movimientos. Arriba eliges si ves todo, lo que ya fue o lo que viene.'],
     claves:'calendario vienen viene proximo proximos cobros'},
-  {id:'poner-tarjeta', g:'cuentas', p:'¿Cómo pongo mi tarjeta de crédito?', donde:'Perfil › Mis cuentas › Tus cuentas fijas', ir:'fijas', boton:'ir a tus cuentas fijas',
-    r:['Tu tarjeta ya viene en "Tus cuentas fijas", apagada. Marca "Tarjeta de crédito", ponle el nombre de tu banco y tu día de corte, y toca "Guardar cuentas". En "Agregar una cuenta" no se crea: si eliges ahí "Tarjeta de crédito", te trae aquí. Lo que debes sale en inicio, en rojo bajo tu total.'],
+  {id:'poner-tarjeta', g:'cuentas', p:'¿Cómo pongo mi tarjeta de crédito?', donde:'Perfil › Mis cuentas › Agregar una cuenta', ir:'ponerTarjeta', boton:'ir a agregar mi tarjeta',
+    r:['En "Agregar una cuenta", en "Tipo" elige "Tarjeta de crédito". Escribe su nombre y tu día de corte, y si quieres lo que debes hoy, y toca "Agregar tarjeta". Caben dos tarjetas; después les cambias el nombre o el corte en "Tus cuentas fijas". Lo que debes sale en inicio, en rojo bajo tu total.'],
     claves:'poner pongo agregar agrego anadir alta nueva tarjeta tarjetas credito tdc donde encuentro'},
   {id:'fijas', g:'cuentas', p:'¿Cómo enciendo, apago o le cambio el nombre a una cuenta?', donde:'Perfil › Mis cuentas › Tus cuentas fijas', ir:'fijas', boton:'ir a tus cuentas fijas',
     r:['Ahí enciendes tus tarjetas y tus cuentas fijas, les pones nombre y tocas "Guardar cuentas". Una cuenta con dinero no se apaga: primero vacíala. Las que agregaste tú se nombran y se apagan en "Cuentas que tú agregas".'],
@@ -13367,7 +13468,9 @@ const AYUDA_IR = {
   suscripciones: () => { showPage('movimientos', true); movSub('sus'); return ayEl('sus-panel'); },
   deudas: () => { showPage('deudas', true); return ayEl('deuda-persona').closest('.panel'); },
   // sin tarjeta encendida, primero hay que encenderla
-  tarjeta: () => { if (ctaApagada('tarjeta') && ctaApagada('tarjetaRev')) { showToast('primero enciende tu tarjeta aquí'); return AYUDA_IR.fijas(); } ayMov('tarjeta'); return ayEl('form-tarjeta-wrap'); },
+  tarjeta: () => { if (ctaApagada('tarjeta') && ctaApagada('tarjetaRev')) { showToast('primero agrega tu tarjeta aquí'); return AYUDA_IR.ponerTarjeta(); } ayMov('tarjeta'); return ayEl('form-tarjeta-wrap'); },
+  // (16-nov-2026) "agregar una cuenta" con el tipo "tarjeta de credito" ya elegido: solo navega y elige el tipo, no escribe nada
+  ponerTarjeta: () => { ayMisCuentas(); const t = ayEl('cx-nuevo-tipo'); t.value = 'tarjeta'; t.dispatchEvent(new Event('change')); return ayEl('cx-nuevo-nombre').closest('.panel'); },
   agregar: () => { ayMisCuentas(); { const t = document.getElementById('cx-nuevo-tipo'); if (t && (t.value === 'bolsa' || t.value === 'tarjeta')) { t.value = 'banco'; t.dispatchEvent(new Event('change')); } } return ayEl('cx-nuevo-nombre').closest('.panel'); },
   cajita: () => { ayMisCuentas(); const t = ayEl('cx-nuevo-tipo'); t.value = 'cajita'; t.dispatchEvent(new Event('change')); return t.closest('.field'); },
   fijas: () => { ayMisCuentas(); return document.querySelector('[data-cfg-cuentas]'); },
@@ -16298,9 +16401,6 @@ function renderConfigCuentas() {
   const cont = document.getElementById('cuentas-config');
   if (!cont || !CUENTAS_CFG) return;
   if (cont.contains(document.activeElement)) return; // no borrarle lo que esta escribiendo
-  // al repintar se pierde lo marcado sin guardar (irATarjetaFija): el aviso de "ya quedo marcada" ya no seria cierto
-  // (y si irATarjetaFija lo metio en un cuadrito, se saca antes de borrarlos)
-  const tdcAv = document.getElementById('cuentas-tdc-aviso'); if (tdcAv) { tdcAv.hidden = true; cont.after(tdcAv); }
   const e = escapeHtml;
   cont.innerHTML = Object.keys(SLOTS_CFG).map(k => {
     const s = SLOTS_CFG[k], c = confCta(k), saldo = saldoSlotCfg(k);
