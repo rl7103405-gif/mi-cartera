@@ -738,6 +738,12 @@ html[data-tema='grafito'] .btn.inicio-accion{background:var(--accent);border-col
 .desliza-pista[hidden]{display:none}
 /* el monto con error se ve rojo aunque tenga el foco (el anillo verde lo tapaba) */
 .field input.is-error:focus,.field input.is-error:focus-visible{outline-color:var(--red);border-color:var(--red)}
+/* (17-nov-2026) falta elegir la cuenta: el selector en rojo y el texto debajo. Fecha: el selector del telefono, del mismo alto que los demas */
+.field select.falta-cuenta{border-color:var(--red-txt)}
+.type-toggle.falta-cuenta{outline:2px solid var(--red-txt);outline-offset:3px;border-radius:var(--rs)}
+.falta-cuenta-txt{font-size:13px;line-height:1.4;color:var(--red-txt);margin-top:8px;font-weight:600}
+.field input[type=date]{min-height:44px;font-family:inherit;text-align:left}
+.field input[type=date]::-webkit-date-and-time-value{text-align:left}
 /* grafito: blanco sobre --red (#e2705f) da 3.13:1; con el rojo de los temas claros da 4.90:1 */
 html[data-tema='grafito'] .desliza-si,html[data-tema='grafito'] .desliza-perilla{background:#c04a3a}
 /* tono 'ok' (guardar cambios): verde de la app en vez de rojo. En los temas claros --accent-dark da >=4.5:1
@@ -858,6 +864,39 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
 .cat-mov-e{font-size:13px;padding:2px 0 2px 8px}
 /* con dos botones por fila (editar + borrar) el texto se encoge (y hace wrap), no ellos */
 .item-row>div:first-child{min-width:0}
+/* (17-nov-2026) Movimientos: filtros y lista por dia. El monto en su columna, alineado y con cifras tabulares; editar y borrar en
+   otra columna fija, para que nada se encime con un monto largo. Gastos en --red-txt (--red no llega a 4.5:1 en los temas claros) */
+.mov-filtros{margin:-6px 0 10px}
+.mov-mas{display:inline-flex;align-items:center;gap:6px;min-height:44px;padding:0 2px;background:none;border:none;color:var(--accent-dark);font:inherit;font-size:13px;font-weight:600;cursor:pointer}
+.mov-mas-n{min-width:20px;height:20px;padding:0 6px;border-radius:10px;background:var(--accent-dark);color:#fff;font-size:11px;line-height:20px;text-align:center}
+html[data-tema='grafito'] .mov-mas-n{background:var(--accent);color:#0f1a14}
+.mov-mas-chev{transition:transform .2s cubic-bezier(0.22,1,0.36,1)}
+.mov-mas[aria-expanded="true"] .mov-mas-chev{transform:rotate(180deg)}
+.mov-mas-cuerpo{padding:12px 14px 2px;margin-top:2px;background:var(--bg3);border:0.5px solid var(--border2);border-radius:var(--rs)}
+.mov-mas-cuerpo .field input,.mov-mas-cuerpo .field select{background-color:var(--bg2s)}
+#mov-f-buscar::-webkit-search-cancel-button{-webkit-appearance:none;appearance:none}
+.mov-f-fila{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.mov-f-fila .field{min-width:0}
+@media (max-width:360px){.mov-f-fila{grid-template-columns:1fr}}
+.mov-resumen{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:4px 12px;min-height:24px;margin:0 2px 10px;font-size:13px;color:var(--muted)}
+.mov-resumen:empty{display:none}
+.mov-resumen b{color:var(--text);font-weight:600;font-variant-numeric:tabular-nums}
+.mov-quitar{min-height:44px;margin:-10px 0;padding:0 2px;background:none;border:none;color:var(--accent-dark);font:inherit;font-size:13px;font-weight:600;text-decoration:underline;text-underline-offset:3px;cursor:pointer}
+#movimientos-historial{padding-top:4px;padding-bottom:4px}
+.mov-dia{display:flex;justify-content:space-between;align-items:baseline;gap:12px;padding:16px 0 6px;border-bottom:0.5px solid var(--border2);font-size:12px;font-weight:600;color:var(--text)}
+.mov-dia:first-child{padding-top:10px}
+.mov-dia-tot{font-weight:500;color:var(--muted);font-variant-numeric:tabular-nums;white-space:nowrap}
+.mov-row{display:grid;grid-template-columns:minmax(0,1fr) auto auto;align-items:center;column-gap:10px}
+.mov-row .item-meta{overflow-wrap:anywhere}
+.mov-amt{font-size:15px;font-weight:600;font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap}
+.mov-amt.item-amt-neg{color:var(--red-txt)}
+.mov-acc{display:flex;align-items:center;margin-right:-8px}
+.mov-acc .edit-btn,.mov-acc .del-btn.del-x{min-width:44px;min-height:44px;margin:0;padding:0;justify-content:center;color:var(--muted);border-radius:var(--rs)}
+.mov-acc .edit-btn:hover{color:var(--text);background:var(--bg3)}
+.mov-acc .del-btn.del-x:hover{color:var(--red-txt);background:var(--bg3)}
+.mov-acc svg{display:block}
+.mov-acc-vacia{width:80px}
+.mov-quitar[hidden]{display:none}
 .del-btn:active{color:var(--red)}
 
 /* ESCRITORIO: layout ancho tipo portafolio (inicio y resumen); formularios se mantienen angostos */
@@ -1045,21 +1084,38 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
 .cal-d.hoy .cal-n{background:var(--accent-dark);color:#fff;font-weight:600}
 html[data-tema='grafito'] .cal-d.hoy .cal-n{color:#14171a}
 .cal-a{font-size:11px;line-height:1.15;font-variant-numeric:tabular-nums;white-space:nowrap;max-width:100%;overflow:hidden}
-.cal-a.g{color:var(--red)}
+.cal-a.g{color:var(--red-txt)}
 .cal-a.v{color:var(--text);font-weight:500}
 .cal-d.viene{border:1px dashed var(--accent);background:var(--g2)}
-.cal-d.max{border:1.5px solid var(--red);background:rgba(192,74,58,0.12)}
+/* (17-nov-2026, sesion C) tinte por lo gastado ese dia, en 4 niveles (renderCalendario). Sobre el tinte mas fuerte la cifra va en
+   --text: el rojo sobre rojo no llega a 4.5:1. El dia de mas gasto lleva ademas su borde */
+.cal-d.g1{background:color-mix(in srgb,var(--red) var(--cg1),transparent)}
+.cal-d.g2{background:color-mix(in srgb,var(--red) var(--cg2),transparent)}
+.cal-d.g3{background:color-mix(in srgb,var(--red) var(--cg3),transparent)}
+.cal-d.g4{background:color-mix(in srgb,var(--red) var(--cg4),transparent)}
+.cal-d.g3 .cal-a.g,.cal-d.g4 .cal-a.g{color:var(--text)}
+.cal-d.g1:hover,.cal-d.g2:hover,.cal-d.g3:hover,.cal-d.g4:hover{filter:brightness(0.97)}
+.cal-d.max{border:1.5px solid var(--red-txt)}
 .cal-d.max .cal-a.g{font-weight:700}
+.cal-d.viene.g1,.cal-d.viene.g2,.cal-d.viene.g3,.cal-d.viene.g4{border-style:dashed;border-color:var(--accent)}
 .cal-d[aria-pressed="true"]{box-shadow:0 0 0 2px var(--text)}
-.cal-corte{font-size:9.5px;line-height:1.2;color:var(--text);background:var(--bg3);border-radius:4px;padding:0 3px;letter-spacing:0.01em}
+.cal-corte{font-size:10.5px;line-height:1.2;color:var(--text);background:var(--bg3);border-radius:4px;padding:0 3px;letter-spacing:0.01em}
 .cal-pt{width:6px;height:6px;border-radius:50%;background:var(--muted);margin-top:3px;flex:0 0 6px}
-#mov-cal{--cal-ambar:#b7791f}html[data-tema='grafito'] #mov-cal{--cal-ambar:#e0a84b}
+#mov-cal{--cal-ambar:#b7791f;--cg1:7%;--cg2:12%;--cg3:18%;--cg4:25%}html[data-tema='grafito'] #mov-cal{--cal-ambar:#e0a84b;--cg1:14%;--cg2:22%;--cg3:32%;--cg4:42%}
 .cal-pend{width:7px;height:7px;border-radius:50%;border:1.5px solid var(--cal-ambar);margin-top:2px;flex:0 0 7px;box-sizing:content-box}
 .cal-ley{display:flex;flex-wrap:wrap;gap:6px 14px;padding:8px 8px 6px;font-size:11px;color:var(--muted)}
 .cal-ley>div{display:inline-flex;align-items:center;gap:5px}
 .cal-ley i{display:inline-block;width:12px;height:12px;border-radius:4px;box-sizing:border-box}
-.cal-ley .i-g{width:auto;height:auto;color:var(--red);font-style:normal;font-weight:700;line-height:1}
-.cal-ley .i-max{border:1.5px solid var(--red);background:rgba(192,74,58,0.12)}
+.cal-ley .i-g{width:auto;height:auto;color:var(--red-txt);font-style:normal;font-weight:700;line-height:1}
+.cal-ley .i-max{border:1.5px solid var(--red-txt);background:color-mix(in srgb,var(--red) var(--cg4),transparent)}
+.cal-ley .cal-ley-esc{gap:3px}
+.cal-ley .cal-ley-esc span:first-child{margin-right:2px}.cal-ley .cal-ley-esc span:last-child{margin-left:2px}
+.cal-ley .i-g1{background:color-mix(in srgb,var(--red) var(--cg1),transparent)}
+.cal-ley .i-g2{background:color-mix(in srgb,var(--red) var(--cg2),transparent)}
+.cal-ley .i-g3{background:color-mix(in srgb,var(--red) var(--cg3),transparent)}
+.cal-ley .i-g4{background:color-mix(in srgb,var(--red) var(--cg4),transparent)}
+#mov-cal.priv .cal-ley-esc{display:none}
+@media (min-width:900px){.cal-a{font-size:12px}}
 .cal-ley .i-v{border:1px dashed var(--accent);background:var(--g2)}
 .cal-ley .i-p{width:9px;height:9px;border-radius:50%;border:1.5px solid var(--cal-ambar)}
 #mov-cal.priv .cal-ley-max,#mov-cal.priv .cal-ley-g{display:none}
@@ -1667,7 +1723,7 @@ html[data-tema='grafito'] .cal-d.hoy .cal-n{color:#14171a}
     <div class="field" id="transfer-llega-wrap" hidden><label id="transfer-llega-lbl" for="transfer-llega">llega</label><input type="number" id="transfer-llega" placeholder="ej. 300" step="0.01" inputmode="decimal"></div>
     <div class="item-meta" id="transfer-llega-ayuda" hidden style="margin:-4px 0 10px"></div>
     <div class="field"><label>nota (opcional)</label><input type="text" id="transfer-nota" maxlength="200" placeholder="ej. depósito en cajero"></div>
-    <div class="field"><label>fecha (YYYY-MM-DD, vacía = hoy)</label><input type="text" id="transfer-fecha" placeholder="hoy"></div>
+    <div class="field"><label>fecha (si no la eliges, es hoy)</label><input type="date" id="transfer-fecha" data-hasta-hoy></div>
     <button class="btn btn-purple" id="transfer-btn" onclick="registrarTransferencia()">transferir</button>
   </div>
   <div class="section-title">últimas transferencias</div>
@@ -1723,7 +1779,7 @@ html[data-tema='grafito'] .cal-d.hoy .cal-n{color:#14171a}
       <div class="field"><label>monto</label><input type="number" id="gasto-monto" placeholder="ej. 150" step="1" inputmode="decimal" oninput="pintarAyudaMontoX('gasto')"></div>
       <div class="item-meta" id="gasto-x-ayuda" hidden style="margin:-4px 0 10px"></div>
       <div class="field"><label>nota (opcional)</label><input type="text" id="gasto-nota" maxlength="200" placeholder="ej. taquería"></div>
-      <div class="field"><label>fecha (YYYY-MM-DD, vacía = hoy)</label><input type="text" id="gasto-fecha" placeholder="hoy"></div>
+      <div class="field"><label>fecha (si no la eliges, es hoy)</label><input type="date" id="gasto-fecha" data-hasta-hoy></div>
       <div class="field"><label>pagado con</label>
         <div class="type-toggle" id="gasto-fuente-toggle"><!-- botones: pintarListasCuentas() --></div>
         <!-- (20-oct-2026) cuentas en otra moneda: se pintan solas (pintarFuentesX) -->
@@ -1740,7 +1796,7 @@ html[data-tema='grafito'] .cal-d.hoy .cal-n{color:#14171a}
       <div class="field"><label>monto</label><input type="number" id="ingreso-monto" placeholder="ej. 5000" step="1" inputmode="decimal" oninput="pintarAyudaMontoX('ingreso')"></div>
       <div class="item-meta" id="ingreso-x-ayuda" hidden style="margin:-4px 0 10px"></div>
       <div class="field"><label>nota (opcional)</label><input type="text" id="ingreso-nota" maxlength="200" placeholder="ej. pago proyecto"></div>
-      <div class="field"><label>fecha (YYYY-MM-DD, vacía = hoy)</label><input type="text" id="ingreso-fecha" placeholder="hoy"></div>
+      <div class="field"><label>fecha (si no la eliges, es hoy)</label><input type="date" id="ingreso-fecha" data-hasta-hoy></div>
       <div class="field"><label>entra a</label>
         <div class="type-toggle" id="ingreso-destino-toggle"><!-- botones: pintarListasCuentas() --></div>
         <div class="type-toggle" id="ingreso-destino-x" hidden style="margin-top:6px"></div>
@@ -1759,7 +1815,7 @@ html[data-tema='grafito'] .cal-d.hoy .cal-n{color:#14171a}
     <div class="field"><label>monto</label><input type="number" id="tarjeta-cargo-monto" placeholder="ej. 350" step="0.01" inputmode="decimal">
       <button type="button" class="btn-total" id="tarjeta-total-btn" onclick="pagarTotal('nu')" hidden></button></div>
     <div class="field"><label>nota</label><input type="text" id="tarjeta-cargo-nota" maxlength="200" placeholder="ej. spotify, gasolina..."></div>
-    <div class="field"><label>fecha (YYYY-MM-DD, vacía = hoy)</label><input type="text" id="tarjeta-fecha" placeholder="hoy"></div>
+    <div class="field"><label>fecha (si no la eliges, es hoy)</label><input type="date" id="tarjeta-fecha" data-hasta-hoy></div>
     <div class="field"><label>si pagas, el dinero sale de</label>
       <select id="tarjeta-pago-fuente"></select>
     </div>
@@ -1782,7 +1838,7 @@ html[data-tema='grafito'] .cal-d.hoy .cal-n{color:#14171a}
     <div class="field"><label>monto</label><input type="number" id="tarjeta-rev-monto" placeholder="ej. 120" step="0.01" inputmode="decimal">
       <button type="button" class="btn-total" id="tarjeta-rev-total-btn" onclick="pagarTotal('rev')" hidden></button></div>
     <div class="field"><label>nota</label><input type="text" id="tarjeta-rev-nota" maxlength="200" placeholder="ej. uber, súper..."></div>
-    <div class="field"><label>fecha (YYYY-MM-DD, vacía = hoy)</label><input type="text" id="tarjeta-rev-fecha" placeholder="hoy"></div>
+    <div class="field"><label>fecha (si no la eliges, es hoy)</label><input type="date" id="tarjeta-rev-fecha" data-hasta-hoy></div>
     <div class="field"><label>si pagas, el dinero sale de</label>
       <select id="tarjeta-rev-pago-fuente"></select>
     </div>
@@ -1815,6 +1871,19 @@ html[data-tema='grafito'] .cal-d.hoy .cal-n{color:#14171a}
       <div class="month-label" id="mov-periodo-label">—</div>
       <button class="month-nav" onclick="cambiarPeriodoMov(1)">&#8250;</button>
     </div>
+    <!-- (17-nov-2026, pedido de Beto: encontrar un gasto exacto) filtros que se suman al tipo y al periodo. Solo filtran lo que ya esta
+         en memoria: cero lecturas y cero escrituras. Viven en memoria (movFiltros), como movFiltro -->
+    <div class="mov-filtros">
+      <button type="button" class="mov-mas" id="mov-mas-btn" aria-expanded="false" aria-controls="mov-mas" onclick="toggleMovMas()"><span>más filtros</span><span class="mov-mas-n" id="mov-mas-n" hidden></span><svg class="mov-mas-chev" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>
+      <div class="mov-mas-cuerpo" id="mov-mas" hidden>
+        <div class="mov-f-fila">
+          <div class="field"><label for="mov-f-cuenta" id="mov-f-cuenta-lbl">cuenta</label><select id="mov-f-cuenta" onchange="setMovFiltroCampo('cuenta',this.value)"></select></div>
+          <div class="field"><label for="mov-f-cat">categoría</label><select id="mov-f-cat" onchange="setMovFiltroCampo('cat',this.value)"></select></div>
+        </div>
+        <div class="field"><label for="mov-f-buscar">buscar en la nota o por monto</label><input type="search" id="mov-f-buscar" placeholder="ej. tacos, o 230" autocomplete="off" enterkeyhint="search" maxlength="60" oninput="buscarMov(this.value)"></div>
+      </div>
+    </div>
+    <div class="mov-resumen" id="mov-resumen"></div>
     <div class="panel" id="bandeja-panel" hidden></div>
     <div class="panel" id="movimientos-historial"><div class="empty-state">sin movimientos registrados</div></div>
   </div>
@@ -1859,6 +1928,7 @@ html[data-tema='grafito'] .cal-d.hoy .cal-n{color:#14171a}
       </table>
       <div class="cal-ley">
         <div class="cal-ley-g"><i class="i-g">$</i>gastado</div>
+        <div class="cal-ley-esc"><span>menos</span><i class="i-g1"></i><i class="i-g2"></i><i class="i-g3"></i><i class="i-g4"></i><span>más gastado</span></div>
         <div class="cal-ley-max"><i class="i-max"></i>día de más gasto</div>
         <div><i class="i-v"></i>por venir</div>
         <div><i class="i-p"></i>sin registrar</div>
@@ -2181,7 +2251,7 @@ html[data-tema='grafito'] .cal-d.hoy .cal-n{color:#14171a}
       </div>
       <div class="field"><label>monto</label><input type="number" id="deuda-monto" placeholder="ej. 500" step="0.01" inputmode="decimal"></div>
       <div class="field"><label>nota (opcional)</label><input type="text" id="deuda-nota" maxlength="200" placeholder="ej. licencia, medicina..."></div>
-      <div class="field"><label>fecha (YYYY-MM-DD, vacía = hoy)</label><input type="text" id="deuda-fecha" placeholder="hoy"></div>
+      <div class="field"><label>fecha (si no la eliges, es hoy)</label><input type="date" id="deuda-fecha" data-hasta-hoy></div>
       <button class="btn btn-purple" id="deuda-btn" onclick="registrarDeuda()">registrar</button>
     </div>
   </div>
@@ -2218,7 +2288,7 @@ html[data-tema='grafito'] .cal-d.hoy .cal-n{color:#14171a}
       <div class="field"><label>cuenta</label>
         <select id="stock-cuenta"></select>
       </div>
-      <div class="field"><label>fecha (YYYY-MM-DD, vacía = hoy)</label><input type="text" id="stock-fecha" placeholder="hoy"></div>
+      <div class="field"><label>fecha (si no la eliges, es hoy)</label><input type="date" id="stock-fecha" data-hasta-hoy></div>
     </div>
     <button class="btn btn-purple" id="stock-op-btn" onclick="enviarOpStock()">registrar compra</button>
     <datalist id="stock-symbols"></datalist>
@@ -2317,7 +2387,7 @@ html[data-tema='grafito'] .cal-d.hoy .cal-n{color:#14171a}
       </div>
       <div class="row2" style="gap:8px">
         <div class="field"><label for="fondo-monto">monto</label><input type="number" id="fondo-monto" step="0.01" min="0" inputmode="decimal" placeholder="0.00"></div>
-        <div class="field"><label for="fondo-fecha">fecha (vacía = hoy)</label><input type="text" id="fondo-fecha" placeholder="AAAA-MM-DD"></div>
+        <div class="field"><label for="fondo-fecha">fecha (si no la eliges, es hoy)</label><input type="date" id="fondo-fecha" data-hasta-hoy></div>
       </div>
       <div class="field"><label for="fondo-nota">nota</label><input type="text" id="fondo-nota" maxlength="120" placeholder="ej. depósito del seguro"></div>
       <div class="item-meta" id="fondo-ayuda" style="margin-bottom:8px;line-height:1.45"></div>
@@ -2419,7 +2489,7 @@ html[data-tema='grafito'] .cal-d.hoy .cal-n{color:#14171a}
     <div class="field"><label for="edit-mov-monto">monto</label><input type="number" id="edit-mov-monto" step="0.01" min="0" inputmode="decimal" style="font-size:16px" oninput="pintarEfectoEdit()"></div>
     <div class="field"><span class="lbl-cuenta" id="edit-mov-cuenta-lbl">cuenta</span><div class="type-toggle" id="edit-mov-cuenta" role="group" aria-labelledby="edit-mov-cuenta-lbl"></div></div>
     <div class="item-meta" id="edit-mov-efecto" aria-live="polite" hidden style="margin:-4px 0 10px"></div>
-    <div class="field"><label for="edit-mov-fecha">fecha (YYYY-MM-DD)</label><input type="text" id="edit-mov-fecha" maxlength="10" style="font-size:16px" placeholder="AAAA-MM-DD" oninput="pintarEfectoEdit()"></div>
+    <div class="field"><label for="edit-mov-fecha">fecha</label><input type="date" id="edit-mov-fecha" data-hasta-hoy style="font-size:16px" oninput="pintarEfectoEdit()" onchange="pintarEfectoEdit()"></div>
     <div class="field"><label for="edit-mov-cat">categoría</label><select id="edit-mov-cat" onchange="pintarEfectoEdit()"></select></div>
     <div class="field"><label for="edit-mov-nota">nota</label><input type="text" id="edit-mov-nota" maxlength="200" placeholder="opcional" oninput="pintarEfectoEdit()"></div>
     <button type="button" class="btn btn-purple" id="edit-mov-btn" onclick="guardarEdicionMov()">guardar cambios</button>
@@ -2814,8 +2884,8 @@ function refrescarSinUso() {
   if (cambio) {
     pintarListasCuentas(true);
     try { pintarFuentesX(); } catch (e) { console.error('sinUso', e); }
-    if (sinUsoFV.has(state.fuenteGasto)) window.setFuente('efectivo');
-    if (sinUsoFV.has(state.destinoIngreso)) window.setDestinoIngreso('efectivo');
+    if (sinUsoFV.has(state.fuenteGasto)) window.setFuente('');
+    if (sinUsoFV.has(state.destinoIngreso)) window.setDestinoIngreso('');
   }
   document.querySelectorAll('.saldos-form [data-cuenta], [data-inicio]').forEach(el => {
     const id = el.dataset.cuenta || el.dataset.inicio;
@@ -2823,6 +2893,27 @@ function refrescarSinUso() {
     else if (el.dataset.sinUso) { delete el.dataset.sinUso; el.hidden = ctaApagada(id); }
   });
 }
+const TXT_ELIGE_CUENTA='elige una cuenta';
+// (17-nov-2026, decision de Beto: se le iban gastos a Efectivo) ninguna forma elige la cuenta por la persona. Si falta,
+// se dice JUNTO al selector (no solo un aviso que se va) y no se guarda. Se quita al elegir.
+function faltaCuenta(id, texto, sinMover) {
+  const el=document.getElementById(id); if(!el){ showToast(texto); return; }
+  el.classList.add('falta-cuenta'); el.setAttribute('aria-invalid','true');
+  const cont=el.closest('.field')||el.parentNode;
+  let msg=cont.querySelector('.falta-cuenta-txt');
+  if(!msg){ msg=document.createElement('div'); msg.className='falta-cuenta-txt'; msg.setAttribute('role','alert'); cont.appendChild(msg); }
+  msg.textContent=texto; msg.dataset.para=id;
+  if(sinMover) return;   // un cambio que no hizo la persona (el tipo de deuda) marca el selector sin moverle la pantalla ni el foco
+  try { el.scrollIntoView({block:'center', behavior:'smooth'}); } catch(e) {}
+  if(el.tagName==='SELECT') el.focus({preventScroll:true});
+}
+function quitarFaltaCuenta(id) {
+  const el=document.getElementById(id); if(!el||!el.classList.contains('falta-cuenta')) return;
+  el.classList.remove('falta-cuenta'); el.removeAttribute('aria-invalid');
+  const cont=el.closest('.field')||el.parentNode, msg=cont&&cont.querySelector('.falta-cuenta-txt[data-para="'+id+'"]');
+  if(msg) msg.remove();
+}
+document.addEventListener('change',e=>{ const el=e.target; if(el&&el.tagName==='SELECT'&&el.id&&el.value) quitarFaltaCuenta(el.id); });
 function pintarListasCuentas(repinta) {   // repinta: ya hay estado (la primera vez, al cargar el script, aun no existe)
   const reg=id=>REG_CUENTAS.find(c=>c.id===id);
   const etq=(id,donde)=>{ const c=reg(id); return (c.etq&&c.etq[donde])||c.nombre; };
@@ -2831,10 +2922,11 @@ function pintarListasCuentas(repinta) {   // repinta: ya hay estado (la primera 
     const antes=sel.value;
     sel.textContent='';
     const opc=(v,t)=>{ const o=document.createElement('option'); o.value=v; o.textContent=t; sel.appendChild(o); return o; };
+    opc('',TXT_ELIGE_CUENTA);   // (17-nov-2026) ninguna cuenta de entrada: la persona elige (registrar sin elegir lo dice junto al selector)
     if(ext&&ext.antes) opc('externo',ext.antes);
     ids.forEach(id=>{ const o=opc(id,etq(id,donde)); if(donde==='deuda'&&reg(id).tarjeta) o.dataset.soloSale='1'; });
     if(ext&&ext.despues) opc('externo',ext.despues);
-    if(antes&&[...sel.options].some(o=>o.value===antes)) sel.value=antes; // al repintar por "sin uso" se conserva lo elegido
+    sel.value=(antes&&[...sel.options].some(o=>o.value===antes))?antes:''; // al repintar por "sin uso" se conserva lo elegido
   };
   select('transfer-origen', ctasVis('transfer'), 'transfer');
   select('transfer-destino', ctasVis('destino'), 'destino');
@@ -2846,7 +2938,7 @@ function pintarListasCuentas(repinta) {   // repinta: ya hay estado (la primera 
   const botones=(contId,ids,fn,actual)=>{
     const cont=document.getElementById(contId); if(!cont) return;
     cont.textContent='';
-    const sel=ids.includes(actual)?actual:(CFG.multi&&actual&&esIdX(actual)?null:ids[0]);   // una cuenta agregada (x_) elegida: ningun boton fijo se marca (con `actual` vacio, al cargar el script, esIdX aun no existe)
+    const sel=ids.includes(actual)?actual:null;   // (17-nov-2026) sin cuenta elegida, ningun boton se marca (antes caia en el primero, efectivo)
     ids.forEach((id,i)=>{ const b=document.createElement('div'); b.className='type-opt'+(id===sel?' active':'');
       b.dataset.cuenta=id; b.textContent=etq(id,'boton'); b.addEventListener('click',()=>window[fn](id)); cont.appendChild(b); });
   };
@@ -3130,7 +3222,8 @@ try { modoPrivado = localStorage.getItem(lsKey('modoPrivado'))==='1'; } catch(e)
 function fmt(n) {
   if (modoPrivado) return '$ ····';
   if (n === null || n === undefined || isNaN(n)) return '$—';
-  return '$' + Number(n).toLocaleString('es-MX', {minimumFractionDigits:2, maximumFractionDigits:2});
+  const r = Math.sign(n) * Math.round(Math.abs(Number(n)) * 100) / 100;   // (17-nov-2026) el signo va antes del peso: "−$450.00", no "$-450.00"
+  return (r < 0 ? '−' : '') + '$' + Math.abs(r).toLocaleString('es-MX', {minimumFractionDigits:2, maximumFractionDigits:2});
 }
 // (20-oct-2026) monto en la moneda de una cuenta en otra moneda: 'A$12.50'. fmt() se queda para pesos
 function fmtX(n, moneda) {
@@ -5684,7 +5777,8 @@ let state = {
   // a mano desde el tablero — son pocas posiciones y esto cambia dos veces al año.
   // {AVGO:{sector:'Tecnologia', divAnual:2.36, crecDiv:12}}
   tickers:{},
-  fuenteGasto:'efectivo', destinoIngreso:'efectivo', tipoDeuda:'cargo',
+  // (17-nov-2026, decision de Beto) ninguna cuenta elegida de entrada: fuenteGasto y destinoIngreso vacios
+  fuenteGasto:'', destinoIngreso:'', tipoDeuda:'cargo',
   mesOffset:0, resPeriodo:'mes',
   catsGasto:[...CATS_GASTO_DEFAULT], catsIngreso:[...CATS_INGRESO_DEFAULT],
   apartados:[],
@@ -7716,7 +7810,7 @@ function susFormHTML(pre, id) {
     + '<div><label>nombre</label><input id="sus-f-nombre" maxlength="40" value="' + escapeHtml(pre.nombre || '') + '" placeholder="ej. gimnasio"></div>'
     + '<div><label>monto</label><input id="sus-f-monto" type="number" step="0.01" inputmode="decimal" value="' + (pre.monto > 0 ? pre.monto : '') + '" placeholder="0.00"></div>'
     + '<div><label>día del mes</label><input id="sus-f-dia" type="number" min="1" max="31" inputmode="numeric" value="' + (pre.dia || '') + '" placeholder="1 a 31"></div>'
-    + '<div><label>se paga con</label><select id="sus-f-fuente">' + fu.map(k => '<option value="' + escapeHtml(k) + '"' + (k === pre.fuente ? ' selected' : '') + '>' + escapeHtml(susEtiqueta(k, ofrecidas)) + '</option>').join('') + '</select></div>'
+    + '<div><label>se paga con</label><select id="sus-f-fuente">' + (pre.fuente ? '' : '<option value="" selected>' + TXT_ELIGE_CUENTA + '</option>') + fu.map(k => '<option value="' + escapeHtml(k) + '"' + (k === pre.fuente ? ' selected' : '') + '>' + escapeHtml(susEtiqueta(k, ofrecidas)) + '</option>').join('') + '</select></div>'
     + '<div><label>categoría</label><select id="sus-f-cat">' + cats.map(c => '<option value="' + escapeHtml(c) + '"' + (c === pre.cat ? ' selected' : '') + '>' + escapeHtml(c) + '</option>').join('') + '</select></div>'
     + '<div class="sus-form-acc">'
     + '<button type="button" class="sus-act" onclick="susCancelar()">cancelar</button>'
@@ -7759,10 +7853,10 @@ function renderSuscripciones() {
          + '<div class="item-meta" style="padding-bottom:6px">gastos que se repiten una vez al mes, por un monto parecido y cerca del mismo día</div>' + sug + '</div>' : '')
     + '<div class="item-meta" style="margin-top:10px;line-height:1.5">El día que toca, desde la madrugada, en inicio te aparece para registrarla con un tap. <b>Tú confirmas cada cargo</b>: si ese mes no la pagaste, no la registras.</div>';
 }
-window.susNueva = function() { susEditando = {id: null, pre: {cat: 'Suscripciones', fuente: susFuentes()[0] || ''}}; renderSuscripciones(); const e = document.getElementById('sus-f-nombre'); if (e) e.focus(); };
+window.susNueva = function() { susEditando = {id: null, pre: {cat: 'Suscripciones', fuente: ''}}; /* (17-nov-2026) sin cuenta de entrada */ renderSuscripciones(); const e = document.getElementById('sus-f-nombre'); if (e) e.focus(); };
 window.susCancelar = function() { susEditando = null; renderSuscripciones(); };
 window.susEditar = function(btn) { const s = (state.suscripciones || []).find(x => x.id === btn.dataset.id); if (!s) return; susEditando = {id: s.id, pre: {...s}}; renderSuscripciones(); };
-window.susAdoptar = function(btn) { const c = susSugPintadas[Number(btn.dataset.i)]; if (!c) return; susEditando = {id: null, pre: {...c}}; renderSuscripciones(); };
+window.susAdoptar = function(btn) { const c = susSugPintadas[Number(btn.dataset.i)]; if (!c) return; susEditando = {id: null, pre: {...c, fuente: ''}}; renderSuscripciones(); };   // (17-nov-2026) la cuenta la elige la persona
 window.susNoEs = function(btn) {
   const c = susSugPintadas[Number(btn.dataset.i)]; if (!c) return;
   try { const m = susNoEsMap(); m[susFirma(c)] = 1; localStorage.setItem(SUS_NO_KEY(), JSON.stringify(m)); } catch (e) {}
@@ -8163,20 +8257,20 @@ window.setMovTipo = t => {
 };
 // (20-oct-2026) las cuentas en otra moneda tienen su propia fila de botones (data-cx: NO data-cta, que las copias
 // con cuentas configurables usan para esconder lo que no es una de sus cuentas fijas): se marca la elegida en las dos
-window.setFuente = f => { state.fuenteGasto=f; document.querySelectorAll('#gasto-fuente-toggle .type-opt').forEach(el=>el.classList.toggle('active',el.dataset.cuenta===f));
+window.setFuente = f => { state.fuenteGasto=f; if(f) quitarFaltaCuenta('gasto-fuente-toggle'); document.querySelectorAll('#gasto-fuente-toggle .type-opt').forEach(el=>el.classList.toggle('active',el.dataset.cuenta===f));
   document.querySelectorAll('#gasto-fuente-x .type-opt').forEach(el=>el.classList.toggle('active',el.dataset.cx===f)); pintarAyudaMontoX('gasto'); };
-window.setDestinoIngreso = f => { state.destinoIngreso=f; document.querySelectorAll('#ingreso-destino-toggle .type-opt').forEach(el=>el.classList.toggle('active',el.dataset.cuenta===f));
+window.setDestinoIngreso = f => { state.destinoIngreso=f; if(f) quitarFaltaCuenta('ingreso-destino-toggle'); document.querySelectorAll('#ingreso-destino-toggle .type-opt').forEach(el=>el.classList.toggle('active',el.dataset.cuenta===f));
   document.querySelectorAll('#ingreso-destino-x .type-opt').forEach(el=>el.classList.toggle('active',el.dataset.cx===f)); pintarAyudaMontoX('ingreso'); };
 window.setTipoDeuda = t => { state.tipoDeuda=t; ['cargo','pago','debo','pague'].forEach(id=>document.getElementById('tipo-'+id).classList.toggle('active',id===t)); ajustarCuentasDeuda(); };
 // (16-oct-2026) una tarjeta de credito solo sirve cuando el dinero SALE (le presto, le pago): en
 // "me pagaron" / "yo debo" el dinero entra y una tarjeta no recibe dinero. Se apagan esas opciones
-// y, si estaba elegida una, se cambia a efectivo y se avisa (no en silencio)
+// y, si estaba elegida una, queda sin cuenta y se pide elegir otra (17-nov: antes se cambiaba a efectivo)
 function ajustarCuentasDeuda() {
   const sel=document.getElementById('deuda-cuenta'); if(!sel) return;
   const sale=(DEUDA_TIPOS[state.tipoDeuda]||{}).cuenta<0;
   let estabaEnTarjeta=false;
   [...sel.options].forEach(o=>{ if(o.dataset.soloSale==='1'){ o.disabled=!sale; if(!sale&&o.selected) estabaEnTarjeta=true; } });
-  if(estabaEnTarjeta){ sel.value='efectivo'; showToast('una tarjeta de crédito solo sirve para dinero que sale: cambié a efectivo'); }
+  if(estabaEnTarjeta){ sel.value=''; faltaCuenta('deuda-cuenta','Una tarjeta de crédito solo sirve para dinero que sale: elige otra cuenta',true); }
 }
 
 // ── CALCS ─────────────────────────────────────────────────────
@@ -8200,11 +8294,19 @@ function fmtFechaMov(f, opts) {
 // como dia local). El dinero se aplica al saldo de HOY aunque la fecha sea pasada:
 // las cuentas de interes no recalculan rendimiento retroactivo. Devuelve null si la
 // fecha tecleada es invalida o futura (ya aviso con toast).
+function fechaIncompleta(el) {
+  if(!el||!el.validity||!el.validity.badInput) return false;
+  el.classList.add('t-input','is-error'); el.setAttribute('aria-invalid','true'); el.focus();
+  showToast('la fecha está incompleta: termínala o bórrala (vacía es hoy)');
+  return true;
+}
+// (17-nov-2026) los campos de fecha no dejan elegir un dia futuro: max = hoy, puesto al enfocar (la app puede quedar abierta de un dia a otro)
+document.addEventListener('focusin',e=>{ const el=e.target; if(el&&el.matches&&el.matches('input[type=date][data-hasta-hoy]')) el.max=hoyLocal(); });
 function fechaMovOpcional(inputId) {
   const el=document.getElementById(inputId);
   const raw=el?el.value.trim():'';
-  if(!raw) return new Date().toISOString();
-  if(!fechaCalendarioValida(raw)){ showToast('fecha no válida, usa el formato 2026-08-15'); return null; }
+  if(!raw){ if(fechaIncompleta(el)) return null; return new Date().toISOString(); }
+  if(!fechaCalendarioValida(raw)){ showToast('fecha no válida'); return null; }
   if(raw>hoyLocal()){ showToast('la fecha no puede ser futura'); return null; }
   return raw===hoyLocal()?new Date().toISOString():raw+'T00:00:00Z';
 }
@@ -8853,6 +8955,7 @@ window.registrarTarjeta = async function(tipo) {
   let fuente=null;
   if(tipo==='pago') {
     fuente=document.getElementById('tarjeta-pago-fuente').value;
+    if(!fuente){ faltaCuenta('tarjeta-pago-fuente','Elige de dónde salió el pago'); return; }
     // (7-nov-2026) una cuenta agregada (x_) tiene su propio camino: pagoTarjetaX valida y arma el plan con plan.fx
     if(!esIdX(fuente)&&![...ctasEn('pagoTj'),'externo'].includes(fuente)){showToast('cuenta no válida');return;}
     // el monto contra la deuda y contra el saldo lo revalida txDinero con los valores
@@ -8862,7 +8965,7 @@ window.registrarTarjeta = async function(tipo) {
   }
   if(dineroOcupado){showToast('espera, hay otra operación en curso');return;}
   const fechaMov=fechaMovOpcional('tarjeta-fecha'); if(fechaMov===null) return;
-  if(tipo==='pago'&&esIdX(fuente)) return pagoTarjetaX('tarjeta',fuente,c2(monto),nota,fechaMov,[btnCargo,btnPago],['tarjeta-cargo-monto','tarjeta-cargo-nota','tarjeta-fecha']);
+  if(tipo==='pago'&&esIdX(fuente)) return pagoTarjetaX('tarjeta',fuente,c2(monto),nota,fechaMov,[btnCargo,btnPago],['tarjeta-cargo-monto','tarjeta-cargo-nota','tarjeta-fecha',...(tipo==='pago'?['tarjeta-pago-fuente']:[])]);
   const m=c2(monto), ahora=new Date().toISOString();
   const plan={tarjetaMovAdd:{id:nuevoId(),tipo,monto:m,nota,...(tipo==='pago'?{fuente}:{}),fecha:fechaMov,creado:ahora}};
   let tr=null, ref=null;
@@ -8885,12 +8988,12 @@ window.registrarTarjeta = async function(tipo) {
   if(err){ console.error('registrarTarjeta',err); showToast(msgFalloDinero()); return; }
   // (16-oct-2026) ya-existe = el commit anterior SI llego (el SDK reintento): exito. Se limpia la forma para
   // que no se mande otra vez, y se recarga porque no hay valores canonicos en res
-  if(res.error&&res.codigo==='ya-existe'){ ['tarjeta-cargo-monto','tarjeta-cargo-nota','tarjeta-fecha'].forEach(id=>document.getElementById(id).value=''); yaAplicado(); return; }
+  if(res.error&&res.codigo==='ya-existe'){ ['tarjeta-cargo-monto','tarjeta-cargo-nota','tarjeta-fecha',...(tipo==='pago'?['tarjeta-pago-fuente']:[])].forEach(id=>document.getElementById(id).value=''); yaAplicado(); return; }
   if(res.error){ showToast(res.error); return; }
   // -- post-commit --
   aplicarRes(res);
   if(tr){ tr.id=ref.id; insertarPorFecha(state.transferencias,tr); }
-  ['tarjeta-cargo-monto','tarjeta-cargo-nota','tarjeta-fecha'].forEach(id=>document.getElementById(id).value='');
+  ['tarjeta-cargo-monto','tarjeta-cargo-nota','tarjeta-fecha',...(tipo==='pago'?['tarjeta-pago-fuente']:[])].forEach(id=>document.getElementById(id).value='');
   refrescar(render,renderTransferencias,renderMovimientos);
   showToast(tipo==='cargo'?'+'+fmt(m)+' a la tarjeta':'pago de '+fmt(m)+' registrado');
 };
@@ -8948,13 +9051,14 @@ window.registrarTarjetaRev = async function(tipo) {
     }
   } else {
     fuente=document.getElementById('tarjeta-rev-pago-fuente').value;
+    if(!fuente){ faltaCuenta('tarjeta-rev-pago-fuente','Elige de dónde salió el pago'); return; }
     if(!esIdX(fuente)&&![...ctasEn('pagoTjRev'),'externo'].includes(fuente)){showToast('cuenta no válida');return;}
     if(monto>state.revTdcDeuda+0.01){showToast('el pago excede la deuda de la TDC Revolut');return;}
     if(fuente!=='externo'&&!esIdX(fuente)&&monto>disponibleCuenta(fuente)+0.01){showToast('saldo insuficiente en '+CUENTAS[fuente]);return;}
   }
   if(dineroOcupado){showToast('espera, hay otra operación en curso');return;}
   const fechaMov=fechaMovOpcional('tarjeta-rev-fecha'); if(fechaMov===null) return;
-  if(tipo==='pago'&&esIdX(fuente)) return pagoTarjetaX('tarjetaRev',fuente,c2(monto),nota,fechaMov,[btnCargo,btnPago],['tarjeta-rev-monto','tarjeta-rev-nota','tarjeta-rev-fecha']);
+  if(tipo==='pago'&&esIdX(fuente)) return pagoTarjetaX('tarjetaRev',fuente,c2(monto),nota,fechaMov,[btnCargo,btnPago],['tarjeta-rev-monto','tarjeta-rev-nota','tarjeta-rev-fecha',...(tipo==='pago'?['tarjeta-rev-pago-fuente']:[])]);
   const m=c2(monto), ahora=new Date().toISOString();
   const plan={tdcRevMovAdd:{id:nuevoId(),tipo,monto:m,nota,...(tipo==='pago'?{fuente}:{}),fecha:fechaMov,creado:ahora}};
   let tr=null, ref=null;
@@ -8976,12 +9080,12 @@ window.registrarTarjetaRev = async function(tipo) {
   if(err){ console.error('registrarTarjetaRev',err); showToast(msgFalloDinero()); return; }
   // (16-oct-2026) ya-existe = el commit anterior SI llego (el SDK reintento): exito. Se limpia la forma para
   // que no se mande otra vez, y se recarga porque no hay valores canonicos en res
-  if(res.error&&res.codigo==='ya-existe'){ ['tarjeta-rev-monto','tarjeta-rev-nota','tarjeta-rev-fecha'].forEach(id=>document.getElementById(id).value=''); yaAplicado(); return; }
+  if(res.error&&res.codigo==='ya-existe'){ ['tarjeta-rev-monto','tarjeta-rev-nota','tarjeta-rev-fecha',...(tipo==='pago'?['tarjeta-rev-pago-fuente']:[])].forEach(id=>document.getElementById(id).value=''); yaAplicado(); return; }
   if(res.error){ showToast(res.error); return; }
   // -- post-commit --
   aplicarRes(res);
   if(tr){ tr.id=ref.id; insertarPorFecha(state.transferencias,tr); }
-  ['tarjeta-rev-monto','tarjeta-rev-nota','tarjeta-rev-fecha'].forEach(id=>document.getElementById(id).value='');
+  ['tarjeta-rev-monto','tarjeta-rev-nota','tarjeta-rev-fecha',...(tipo==='pago'?['tarjeta-rev-pago-fuente']:[])].forEach(id=>document.getElementById(id).value='');
   refrescar(render,renderTransferencias,renderMovimientos);
   showToast(tipo==='cargo'?'+'+fmt(m)+' a la TDC Revolut':'pago de '+fmt(m)+' registrado');
 };
@@ -9238,6 +9342,8 @@ window.registrarTransferencia = async function() {
   const btn=document.getElementById('transfer-btn');
   const origen=document.getElementById('transfer-origen').value;
   const destino=document.getElementById('transfer-destino').value;
+  if(!origen){ faltaCuenta('transfer-origen','Elige de dónde sale el dinero'); return; }
+  if(!destino){ faltaCuenta('transfer-destino','Elige a dónde llega el dinero'); return; }
   // (20-oct-2026) si un lado es una cuenta en otra moneda, va por su propio camino (lo que salio y lo que llego)
   if(esIdX(origen)||esIdX(destino)) return registrarTransferenciaX(origen,destino);
   const monto=Math.round(parseFloat(document.getElementById('transfer-monto').value)*100)/100;
@@ -9302,12 +9408,12 @@ window.registrarTransferencia = async function() {
   if(err){ console.error('registrarTransferencia',err); showToast(msgFalloDinero()); return; }
   // (16-oct-2026) ya-existe = el commit anterior SI llego (el SDK reintento): exito. Se limpia la forma para
   // que no se mande otra vez, y se recarga porque no hay valores canonicos en res
-  if(res.error&&res.codigo==='ya-existe'){ ['transfer-monto','transfer-nota','transfer-fecha'].forEach(id=>document.getElementById(id).value=''); yaAplicado(); return; }
+  if(res.error&&res.codigo==='ya-existe'){ ['transfer-monto','transfer-nota','transfer-fecha','transfer-origen','transfer-destino'].forEach(id=>document.getElementById(id).value=''); ajustarTransferX(); yaAplicado(); return; }
   if(res.error){ showToast(res.error); return; }
   // -- post-commit --
   aplicarRes(res);
   tr.id=ref.id; insertarPorFecha(state.transferencias,tr);
-  ['transfer-monto','transfer-nota','transfer-fecha'].forEach(id=>document.getElementById(id).value='');
+  ['transfer-monto','transfer-nota','transfer-fecha','transfer-origen','transfer-destino'].forEach(id=>document.getElementById(id).value=''); ajustarTransferX();
   refrescar(render,renderTransferencias,renderMovimientos);
   showToast(fmt(m)+' · '+CUENTAS[origen]+' → '+CUENTAS[destino]);
 };
@@ -9333,7 +9439,7 @@ async function transferirDelFondo(btn, cuenta, destino, m, nota, fecha) {
   try { res = await txDinero(plan); } catch (e) { err = e; }
   finally { btn.disabled = false; liberarDinero(); }
   if (err) { console.error('transferirDelFondo', err); showToast(msgFalloDinero()); return; }
-  const limpiar = () => ['transfer-monto', 'transfer-nota', 'transfer-fecha'].forEach(id => document.getElementById(id).value = '');
+  const limpiar = () => { ['transfer-monto', 'transfer-nota', 'transfer-fecha', 'transfer-origen', 'transfer-destino'].forEach(id => document.getElementById(id).value = ''); ajustarTransferX(); };
   if (res.error && res.codigo === 'ya-existe') { limpiar(); yaAplicado(); return; }
   if (res.error) { showToast(res.error); return; }
   aplicarRes(res);
@@ -9489,9 +9595,9 @@ function pintarFuentesX() {
     c.innerHTML = activas.map(([id, x]) => boton(id, x, fn, actual)).join('');
     c.hidden = !activas.length;
   });
-  // si la cuenta elegida se apago o desaparecio (en este u otro aparato), se regresa a efectivo
-  if (esIdX(state.fuenteGasto) && !activas.some(([id]) => id === state.fuenteGasto)) window.setFuente('efectivo');
-  if (esIdX(state.destinoIngreso) && !activas.some(([id]) => id === state.destinoIngreso)) window.setDestinoIngreso('efectivo');
+  // si la cuenta elegida se apago o desaparecio (en este u otro aparato), queda sin cuenta: la persona elige otra (17-nov: ya no cae a efectivo)
+  if (esIdX(state.fuenteGasto) && !activas.some(([id]) => id === state.fuenteGasto)) window.setFuente('');
+  if (esIdX(state.destinoIngreso) && !activas.some(([id]) => id === state.destinoIngreso)) window.setDestinoIngreso('');
   // transferencias: un grupo aparte en los dos selects (el valor elegido se conserva si sigue existiendo)
   ['transfer-origen', 'transfer-destino'].forEach(sid => {
     const s = document.getElementById(sid); if (!s) return;
@@ -9542,7 +9648,7 @@ function ajustarTransferX() {
   const o = document.getElementById('transfer-origen'), d = document.getElementById('transfer-destino');
   const wrap = document.getElementById('transfer-llega-wrap'); if (!o || !d || !wrap) return;
   const mo = monedaDeCuenta(o.value), md = monedaDeCuenta(d.value);
-  const cruza = !!mo && !!md && mo !== md;
+  const cruza = !!o.value && !!d.value && !!mo && !!md && mo !== md;
   wrap.hidden = !cruza;
   const lblM = document.getElementById('transfer-monto-lbl');
   if (lblM) lblM.textContent = cruza ? 'sale (' + (mo === 'MXN' ? '$' : MONEDAS_X[mo].sim) + ')' : 'monto';
@@ -9627,7 +9733,7 @@ async function registrarTransferenciaX(origen, destino) {
     if (!(montoP > 0)) { showToast('ingresa un monto válido'); return; }
     if (dineroOcupado) { showToast('espera, hay otra operación en curso'); return; }
     const fechaP = fechaMovOpcional('transfer-fecha'); if (fechaP === null) return;
-    return pagoTarjetaX(destino, origen, montoP, document.getElementById('transfer-nota').value.trim(), fechaP, [btn], ['transfer-monto', 'transfer-llega', 'transfer-nota', 'transfer-fecha']);
+    return pagoTarjetaX(destino, origen, montoP, document.getElementById('transfer-nota').value.trim(), fechaP, [btn], ['transfer-monto', 'transfer-llega', 'transfer-nota', 'transfer-fecha', 'transfer-origen', 'transfer-destino']);
   }
   const CTAS_PESOS = ['efectivo','nu','cajita1','revolut','revSavings','mifel'];
   const lado = esIdX(origen) ? destino : origen;   // la cuenta en pesos
@@ -9659,7 +9765,7 @@ async function registrarTransferenciaX(origen, destino) {
   catch(e) { err = e; }
   finally { btn.disabled = false; liberarDinero(); }
   if (err) { console.error('registrarTransferenciaX', err); showToast(msgFalloDinero()); return; }
-  const limpiar = () => ['transfer-monto','transfer-llega','transfer-nota','transfer-fecha'].forEach(i => { const e = document.getElementById(i); if (e) e.value = ''; });
+  const limpiar = () => { ['transfer-monto','transfer-llega','transfer-nota','transfer-fecha','transfer-origen','transfer-destino'].forEach(i => { const e = document.getElementById(i); if (e) e.value = ''; }); ajustarTransferX(); };
   if (res.error && res.codigo === 'ya-existe') { limpiar(); yaAplicado(); return; }
   if (res.error) { showToast(res.error); return; }
   aplicarRes(res);
@@ -9692,7 +9798,7 @@ async function transferirEntreX(origen, destino, moneda) {
   catch(e) { err = e; }
   finally { btn.disabled = false; liberarDinero(); }
   if (err) { console.error('transferirEntreX', err); showToast(msgFalloDinero()); return; }
-  const limpiar = () => ['transfer-monto','transfer-llega','transfer-nota','transfer-fecha'].forEach(i => { const e = document.getElementById(i); if (e) e.value = ''; });
+  const limpiar = () => { ['transfer-monto','transfer-llega','transfer-nota','transfer-fecha','transfer-origen','transfer-destino'].forEach(i => { const e = document.getElementById(i); if (e) e.value = ''; }); ajustarTransferX(); };
   if (res.error && res.codigo === 'ya-existe') { limpiar(); yaAplicado(); return; }
   if (res.error) { showToast(res.error); return; }
   aplicarRes(res);
@@ -10434,7 +10540,7 @@ async function altaGasto(cat,monto,nota,fuente,btn,fecha,extra) {
   if(res.error&&res.codigo==='ya-existe'&&!idFijo){
     gasto.id=ref.id; await traerYaEstaba(ref,state.gastos);
     if(!state.gastos.some(x=>x.id===ref.id)){ insertarPorFecha(state.gastos,gasto); refrescar(render,renderMovimientos); } // getDoc fallo: se sabe que llego
-    showToast('-'+fmt(m)+' registrado'); return true;
+    showToast('−'+fmt(m)+' registrado'); return true;
   }
   if(res.error){ showToast(res.error); return false; }
   // -- post-commit: se refleja lo que quedo en el SERVIDOR, no lo que creia la pantalla --
@@ -10442,13 +10548,14 @@ async function altaGasto(cat,monto,nota,fuente,btn,fecha,extra) {
   gasto.id=ref.id; insertarPorFecha(state.gastos,gasto);
   const quedoNegativo=!!plan.deltas && res.saldos[fuente]<0;
   refrescar(render,renderMovimientos);
-  showToast(quedoNegativo?('-'+fmt(m)+' registrado · ojo: SALDO quedó negativo'):('-'+fmt(m)+' registrado'));
+  showToast(quedoNegativo?('−'+fmt(m)+' registrado · ojo: SALDO quedó negativo'):('−'+fmt(m)+' registrado'));
   avisoCategoria(cat,gasto.fecha); // aviso diferido si ese mes ya va muy arriba del promedio
   avisoLimite(m,gasto.fecha,cat);  // y el del limite del mes y de su categoria (gana si salen los dos)
   return true;
 }
 window.registrarGasto = async function() {
   if(!montoValido('gasto-monto')) return;
+  if(!state.fuenteGasto){ faltaCuenta('gasto-fuente-toggle','Elige de dónde salió el dinero'); return; }
   const fecha=fechaMovOpcional('gasto-fecha'); if(fecha===null) return;
   // (20-oct-2026) una cuenta en otra moneda va por su propio camino (plan.fx), nunca por deltas
   const ok=esIdX(state.fuenteGasto) ? await altaMovX('gasto',
@@ -10461,7 +10568,7 @@ window.registrarGasto = async function() {
     state.fuenteGasto,
     document.getElementById('gasto-btn'),fecha);
   if(ok) palomita('gasto-btn');
-  if(ok){ ['gasto-monto','gasto-nota','gasto-fecha'].forEach(id=>document.getElementById(id).value=''); ticketQuitarMarcas(); ticketGen++; }
+  if(ok){ ['gasto-monto','gasto-nota','gasto-fecha'].forEach(id=>document.getElementById(id).value=''); window.setFuente(''); ticketQuitarMarcas(); ticketGen++; }
 };
 // <ticket-puras> (7-nov-2026) Foto del ticket: del texto que da el lector a {monto, fecha, comercio, confianza}. Funciones puras, sin DOM ni red:
 // test-ticket.mjs las corre en Node. Regla: ante la duda NO se llena (monto null); un monto mal leido que la persona no revise es peor que un campo vacio.
@@ -10985,6 +11092,97 @@ window.setMovPeriodo = p => {
   renderMovimientos();
 };
 window.cambiarPeriodoMov = d => { movOffset+=d; renderMovimientos(); };
+// (17-nov-2026) mas filtros: cuenta (la de "pagado con" o "entra a"), categoria y buscar en la nota o por monto
+const movFiltros={cuenta:'', cat:'', q:''};
+const ICONO_EDITAR='<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20h4L19 9a2.8 2.8 0 0 0-4-4L4 16v4z"/><path d="M13.5 6.5l4 4"/></svg>';
+const ICONO_BORRAR='<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>';
+const movNorm=t=>String(t==null?'':t).normalize('NFD').replace(/\p{M}/gu,'').toLowerCase().replace(/\s+/g,' ').trim();
+// "230", "$230", "1,250.50": un monto. null si lo escrito no es un monto
+function movMontoBuscado(q) { const t=String(q||'').replace(/[$\s]/g,'').replace(/,(?=\d{3}(\D|$))/g,''); return /^\d+(\.\d{1,2})?$/.test(t)?{n:Number(t), centavos:t.includes('.')}:null; }
+// "230" encuentra $230.00 y $230.50 (la persona recuerda los pesos, no los centavos); "230.50" o "230.00" (con centavos escritos) solo ese.
+// En otra moneda, tambien lo que se escribio en esa moneda
+function movMontoCoincide(it, b) {
+  return [it.monto, it.montoOrig].some(v => Number.isFinite(v) && (Math.abs(v-b.n)<0.005 || (!b.centavos && Math.floor(v+1e-9)===b.n)));
+}
+const CTA_DESCONOCIDA='?';   // una sola opcion para las cuentas que la app no reconoce (un valor raro escrito por el Atajo, por ejemplo)
+function movCoincide(m) {
+  const it=m.it, f=movFiltros;
+  // un pago de tarjeta no tiene "pagado con" de gasto ni categoria: con esos filtros no sale
+  if(m.tipo==='pago'&&(f.cuenta||f.cat)) return false;
+  const cta=m.tipo==='gasto'?it.fuente:it.destino;
+  // sin cuenta anotada (legado, Atajo) tambien es "no la reconozco": el renglon dice "(cuenta desconocida)" y el filtro debe encontrarlo
+  if(f.cuenta===CTA_DESCONOCIDA){ if(m.tipo==='pago'||(cta&&nombreCuenta(cta))) return false; }
+  else if(f.cuenta&&cta!==f.cuenta) return false;
+  if(f.cat&&catFV(it.cat)!==f.cat) return false;
+  if(f.q){
+    // en privado no se busca por monto: teclear cifras y ver que renglon sale descubriria el importe
+    const q=movNorm(f.q), b=modoPrivado?null:movMontoBuscado(f.q);
+    // un pago de tarjeta se encuentra tambien por su titulo ("pago de tarjeta NU")
+    const enTexto=movNorm(it.nota).includes(q)||(m.tipo!=='pago'?movNorm(catFV(it.cat)).includes(q):movNorm('pago de '+(CUENTAS[m.tarjeta]||'tarjeta')).includes(q));
+    if(!enTexto&&!(b&&movMontoCoincide(it,b))) return false;
+  }
+  return true;
+}
+const movFiltrosActivos=()=>(movFiltros.cuenta?1:0)+(movFiltros.cat?1:0)+(movFiltros.q.trim()?1:0);
+window.toggleMovMas = () => {
+  const b=document.getElementById('mov-mas-btn'), c=document.getElementById('mov-mas'); if(!b||!c) return;
+  // la clase open va junto con hidden: un escucha global de clics recalcula aria-expanded con ella (ver aria-controls)
+  const abrir=c.hidden; c.hidden=!abrir; c.classList.toggle('open',abrir); b.setAttribute('aria-expanded',String(abrir));
+  if(abrir){ pintarFiltrosMov(); const q=document.getElementById('mov-f-buscar'); if(q&&matchMedia('(hover: hover)').matches) q.focus(); }
+};
+window.setMovFiltroCampo = (k, v) => { if(!(k in movFiltros)) return; movFiltros[k]=String(v||''); renderMovimientos(); };
+let movBuscaT=0;
+window.buscarMov = v => { clearTimeout(movBuscaT); movBuscaT=setTimeout(()=>{ movFiltros.q=String(v||'').slice(0,60); renderMovimientos(); },150); };
+window.quitarFiltrosMov = () => {
+  clearTimeout(movBuscaT); movFiltros.cuenta=''; movFiltros.cat=''; movFiltros.q='';
+  const q=document.getElementById('mov-f-buscar'); if(q) q.value='';
+  renderMovimientos();
+  const b=document.getElementById('mov-mas-btn'); if(b) b.focus();
+};
+// las opciones salen de la MISMA fuente que "Pagado con"/"Entra a" (fijas sin las que ya no se usan, y las agregadas encendidas),
+// mas cualquier cuenta o categoria que ya tenga movimientos aunque hoy no se ofrezca: un dato real nunca queda fuera del filtro
+function pintarFiltrosMov() {
+  const selC=document.getElementById('mov-f-cuenta'), selK=document.getElementById('mov-f-cat'); if(!selC||!selK) return;
+  const g=movFiltro!=='ingresos', i=movFiltro!=='gastos';
+  const lbl=document.getElementById('mov-f-cuenta-lbl'); if(lbl) lbl.textContent=movFiltro==='gastos'?'pagado con':(movFiltro==='ingresos'?'entra a':'cuenta');
+  const ids=[];
+  let raras=false;
+  const pon=id=>{ if(!id||typeof id!=='string'||ids.includes(id)) return; if(!nombreCuenta(id)){ raras=true; return; } ids.push(id); };
+  if(g) FUENTES_GASTO.filter(id=>!sinUsoFV.has(id)).forEach(pon);
+  if(i) DESTINOS_INGRESO.filter(id=>!sinUsoFV.has(id)).forEach(pon);
+  try { cuentasXActivas().forEach(([id])=>pon(id)); } catch(e) {}
+  if(g) state.gastos.forEach(x=>{ if(!x.fuente) raras=true; else pon(x.fuente); });
+  if(i) state.ingresos.forEach(x=>{ if(!x.destino) raras=true; else pon(x.destino); });
+  if(movFiltros.cuenta===CTA_DESCONOCIDA) raras=true; else pon(movFiltros.cuenta);
+  // se reconstruye solo si cambiaron las opciones: rehacer un select abierto lo cierra (iOS) a media eleccion
+  const opciones=(sel,lista,todas,actual)=>{
+    const firma=JSON.stringify([todas,lista]);
+    if(sel.dataset.firma===firma){ if(sel.value!==actual) sel.value=actual; return; }
+    sel.dataset.firma=firma; sel.textContent='';
+    const o0=document.createElement('option'); o0.value=''; o0.textContent=todas; sel.appendChild(o0);
+    lista.forEach(([v,t])=>{ const o=document.createElement('option'); o.value=v; o.textContent=t; sel.appendChild(o); });
+    sel.value=actual;
+  };
+  opciones(selC, [...ids.map(id=>[id, nombreCuenta(id)]), ...(raras?[[CTA_DESCONOCIDA, TXT_CTA_RARA]]:[])], TXT_TODAS_CUENTAS, movFiltros.cuenta);
+  const cats=[];
+  const ponK=c=>{ if(typeof c!=='string'||!c) return; const k=catFV(c); if(!cats.includes(k)) cats.push(k); };
+  if(g){ (state.catsGasto||[]).forEach(ponK); state.gastos.forEach(x=>ponK(x.cat)); }
+  if(i){ (state.catsIngreso||[]).forEach(ponK); state.ingresos.forEach(x=>ponK(x.cat)); }
+  ponK(movFiltros.cat);
+  opciones(selK, cats.map(c=>[c,c]), TXT_TODAS_CATS, movFiltros.cat);
+  const nAct=movFiltrosActivos(), badge=document.getElementById('mov-mas-n');
+  if(badge){ badge.textContent=nAct?String(nAct):''; badge.hidden=!nAct; }
+  const bt=document.getElementById('mov-mas-btn');
+  if(bt){ if(nAct) bt.setAttribute('aria-label', TXT_MAS_FILTROS+', '+nAct+(nAct===1?' activo':' activos')); else bt.removeAttribute('aria-label'); }
+}
+const TXT_TODAS_CUENTAS='todas', TXT_TODAS_CATS='todas', TXT_CTA_RARA='cuentas que no reconozco', TXT_MAS_FILTROS='más filtros';
+// encabezado de cada dia: "hoy", "ayer" o "lunes 16 nov", con lo que se gasto y lo que entro ese dia (de lo filtrado)
+function movDiaTitulo(k) {
+  if(k===hoyLocal()) return 'hoy';
+  const d=parseFechaLocal(k), ay=new Date(); ay.setHours(0,0,0,0); ay.setDate(ay.getDate()-1);
+  if(d.getTime()===ay.getTime()) return 'ayer';
+  return d.toLocaleDateString('es-MX',{weekday:'long',day:'numeric',month:'short',...(d.getFullYear()!==new Date().getFullYear()?{year:'numeric'}:{})}).replace(/ de /g,' ').replace(/,/g,'').replace(/\./g,'');
+}
 // pagos de las tarjetas de crédito para el historial, saneados: el arreglo viene tal cual de la nube
 function pagosTarjetaHist() {
   const ok=p=>p&&typeof p==='object'&&p.tipo==='pago'&&Number.isFinite(p.monto)&&p.monto>0&&typeof p.fecha==='string';
@@ -10996,27 +11194,28 @@ function pagosTarjetaHist() {
       fecha:/^\d{4}-\d{2}-\d{2}$/.test(it.fecha)?it.fecha+'T00:00:00Z':it.fecha}})));
 }
 function renglonPagoTarjeta(m) {
-  const it=m.it, fecha=fmtFechaMov(it.fecha,{day:'numeric',month:'short'});
+  const it=m.it;
   const nomCta=k=>Object.prototype.hasOwnProperty.call(CUENTAS,k)?CUENTAS[k]:'';
   const cta=it.fuente==='externo'?'otra cuenta':(esIdX(it.fuente)?nombreCuenta(it.fuente):nomCta(it.fuente));   // (7-nov-2026) una cuenta agregada se llama como ella la llamo
   // la nota automática de las transferencias ya dice de dónde salió: no repetirlo
   const desde=cta&&!it.nota.includes(cta)?'desde '+cta:'';
-  const meta=[it.nota||'',fecha,desde,'no cuenta como gasto'].filter(Boolean).map(escapeHtml).join(' · ');
-  return `<div class="item-row"><div><div class="item-cat">pago de ${escapeHtml(nomCta(m.tarjeta)||'tarjeta')}</div><div class="item-meta">${meta}</div></div><div style="display:flex;align-items:center"><div class="item-amt-pago">${fmt(it.monto)}</div></div></div>`;
+  const meta=[it.nota||'',desde,'no cuenta como gasto'].filter(Boolean).map(escapeHtml).join(' · ');
+  return `<div class="item-row mov-row"><div><div class="item-cat">pago de ${escapeHtml(nomCta(m.tarjeta)||'tarjeta')}</div><div class="item-meta">${meta}</div></div><div class="mov-amt item-amt-pago">${fmt(it.monto)}</div><div class="mov-acc mov-acc-vacia" aria-hidden="true"></div></div>`;
 }
 // un gasto o ingreso en su renglon, con sus botones de editar y borrar: la lista y el dia del calendario pintan lo mismo
 function renglonMov(m) {
   const it=m.it;
-  const fecha=fmtFechaMov(it.fecha,{day:'numeric',month:'short'});
   const esGasto=m.tipo==='gasto';
   // catalogo CUENTAS (nunca el valor crudo): el Atajo escribe por REST y el campo podria traer cualquier cosa
   // (20-oct-2026) nombreCuenta incluye las cuentas en otra moneda, cuyo nombre escribe el usuario: se escapa
   const cuenta=escapeHtml(nombreCuenta(esGasto?it.fuente:it.destino)||'(cuenta desconocida)');
-  const del=it.id?`<button type="button" class="del-btn del-x" aria-label="borrar" onclick="${esGasto?'eliminarGasto':'eliminarIngreso'}('${it.id}')">&times;</button>`:'';
+  const del=it.id?`<button type="button" class="del-btn del-x" aria-label="borrar" title="borrar" onclick="${esGasto?'eliminarGasto':'eliminarIngreso'}('${it.id}')">${ICONO_BORRAR}</button>`:'';
   // editar corrige la captura SIN mover dinero ni fecha: por eso no hace falta borrar y volver a registrar
-  const edit=it.id?`<button class="edit-btn" title="editar movimiento" aria-label="editar movimiento" onclick="editarMovimiento('${esGasto?'gasto':'ingreso'}','${it.id}')">&#9998;</button>`:'';
+  const edit=it.id?`<button type="button" class="edit-btn" title="editar movimiento" aria-label="editar movimiento" onclick="editarMovimiento('${esGasto?'gasto':'ingreso'}','${it.id}')">${ICONO_EDITAR}</button>`:'';
   const marca=it.pendiente===true?' · atajo: pendiente de aplicar':(it.porAtajo===true&&it.aplicadoSaldo===false?' · atajo: rechazado (no afectó saldos)':'');
-  return`<div class="item-row"><div><div class="item-cat">${escapeHtml(it.cat)}</div><div class="item-meta">${escapeHtml(it.nota||'')} · ${fecha} · ${cuenta}${marca}</div></div><div style="display:flex;align-items:center"><div class="${esGasto?'item-amt-neg':'item-amt-pos'}">${esGasto?'-':'+'}${fmtMov(it)}</div>${edit}${del}</div></div>`;
+  // (17-nov-2026) sin la fecha: el dia va en el encabezado (en la lista y en el dia del calendario); la nota solo si hay
+  const meta=[it.nota?escapeHtml(it.nota):'',cuenta].filter(Boolean).join(' · ')+marca;
+  return`<div class="item-row mov-row"><div><div class="item-cat">${escapeHtml(catFV(it.cat))}</div><div class="item-meta">${meta}</div></div><div class="mov-amt ${esGasto?'item-amt-neg':'item-amt-pos'}">${esGasto?'−':'+'}${fmtMov(it)}</div><div class="mov-acc">${edit}${del}</div></div>`;
 }
 function renderMovimientos() {
   const c=document.getElementById('movimientos-historial');
@@ -11036,14 +11235,52 @@ function renderMovimientos() {
     // gasto (lo gastado con la tarjeta ya se registró como gasto) ni entran a ningún total
     ...(movFiltro==='todos'?pagosTarjetaHist().filter(m=>enRango(m.it)):[])
   ];
-  if(!todos.length){c.innerHTML='<div class="empty-state">sin '+(movFiltro==='todos'?'movimientos':movFiltro)+' en este periodo</div>';return;}
-  todos.sort((a,b)=>((msFechaMov(b.it.fecha)||0)-(msFechaMov(a.it.fecha)||0))||String(b.it.creado||'').localeCompare(String(a.it.creado||'')));
-  const recortado=todos.length>200;
-  c.innerHTML=(recortado?'<div class="item-meta" style="text-align:center;padding:6px 0">mostrando los 200 más recientes de '+todos.length+'</div>':'')+
-  todos.slice(0,200).map(m=>{
-    if(m.tipo==='pago') return renglonPagoTarjeta(m);
-    return renglonMov(m);
-  }).join('');
+  // (17-nov-2026) mas filtros: tambien antes del cap
+  pintarFiltrosMov();
+  const hayFiltros=movFiltrosActivos()>0;
+  const lista=hayFiltros?todos.filter(movCoincide):todos;
+  pintarResumenMov(lista, hayFiltros);
+  if(!lista.length){
+    c.innerHTML=hayFiltros?'<div class="empty-state">ningún movimiento coincide con tus filtros en este periodo</div>'
+      :'<div class="empty-state">sin '+(movFiltro==='todos'?'movimientos':movFiltro)+' en este periodo</div>';
+    return;
+  }
+  lista.sort((a,b)=>((msFechaMov(b.it.fecha)||0)-(msFechaMov(a.it.fecha)||0))||String(b.it.creado||'').localeCompare(String(a.it.creado||'')));
+  const recortado=lista.length>200;
+  // lo de cada dia se suma de TODO lo filtrado (no solo de los 200 que se pintan)
+  const porDia=Object.create(null);
+  lista.forEach(m=>{ if(m.tipo==='pago'||!movValido(m.it)) return; const k=diaLocalMov(m.it.fecha); if(!k) return;
+    const d=porDia[k]||(porDia[k]={g:0,i:0}); if(m.tipo==='gasto') d.g+=m.it.monto; else d.i+=m.it.monto; });
+  let html=recortado?'<div class="item-meta" style="text-align:center;padding:6px 0">mostrando los 200 más recientes de '+lista.length+'</div>':'', dia=null;
+  lista.slice(0,200).forEach(m=>{
+    const k=diaLocalMov(m.it.fecha)||'';
+    if(k!==dia){
+      dia=k; const t=porDia[k]||{g:0,i:0};
+      const tot=[t.g>0.004?'−'+fmt(t.g):'', t.i>0.004?'+'+fmt(t.i):''].filter(Boolean).join(' · ');
+      html+='<div class="mov-dia"><span>'+escapeHtml(k?movDiaTitulo(k):'sin fecha')+'</span>'+(tot?'<span class="mov-dia-tot">'+tot+'</span>':'')+'</div>';
+    }
+    html+=m.tipo==='pago'?renglonPagoTarjeta(m):renglonMov(m);
+  });
+  c.innerHTML=html;
+}
+// "12 movimientos · gastaste $X · entró $Y" de lo que se ve (filtrado, no solo los 200), y "quitar filtros" si hay alguno.
+// Los pagos de tarjeta no suman (no son gasto). En privado sin montos: fmt ya los tapa
+function pintarResumenMov(lista, hayFiltros) {
+  const el=document.getElementById('mov-resumen'); if(!el) return;
+  let g=0, i=0, n=0;
+  lista.forEach(m=>{ n++; if(m.tipo==='pago'||!movValido(m.it)) return; if(m.tipo==='gasto') g+=m.it.monto; else i+=m.it.monto; });
+  if(!n&&!hayFiltros){ el.innerHTML=''; return; }
+  const partes=[n===1?'1 movimiento':n+' movimientos'];
+  // solo lo que hay: con un filtro que solo da gastos no se dice "entró $0.00" (salvo que se hayan pedido ingresos)
+  const verG=movFiltro==='gastos'||(movFiltro==='todos'&&(g>0.004||i<=0.004)), verI=movFiltro==='ingresos'||(movFiltro==='todos'&&i>0.004);
+  if(verG&&!modoPrivado) partes.push('gastaste <b>'+fmt(g)+'</b>');
+  if(verI&&!modoPrivado) partes.push('entró <b>'+fmt(i)+'</b>');
+  // el lector de pantalla oye el texto solo cuando cambia: aria-live en el span, que no se rehace si es igual
+  const txt=partes.join(' · ');
+  let sp=el.querySelector('span[aria-live]');
+  if(!sp){ el.innerHTML='<span aria-live="polite"></span><button type="button" class="mov-quitar" onclick="quitarFiltrosMov()" hidden>quitar filtros</button>'; sp=el.querySelector('span[aria-live]'); }
+  if(sp.innerHTML!==txt) sp.innerHTML=txt;
+  el.querySelector('.mov-quitar').hidden=!hayFiltros;
 }
 
 // ── CALENDARIO DE GASTOS (4-nov-2026; idea de Beto del 3-nov, IDEAS.md) ─────────────
@@ -11168,7 +11405,11 @@ function renderCalendario() {
     if(verG&&verV) cont+='<span class="cal-pt" style="background:var(--accent-dark)"></span>';
     if(verVienen&&pend) cont+='<span class="cal-pend"></span>';
     if(verVienen&&corte) cont+='<span class="cal-corte">corte</span>';
-    const cls='cal-d'+(pasado?' pasado':'')+(esHoy?' hoy':'')+(verVienen&&(vienenAqui.length||corte)?' viene':'')+(verFueron&&esMax?' max':'');
+    // (17-nov-2026, sesion C) el mes se lee de un vistazo: cada dia con gasto lleva un tinte de 4 niveles, mas fuerte entre mas se gasto.
+    // Raiz cuadrada contra el dia de mas gasto: con una renta enorme, los demas dias no se quedan todos en blanco. En privado no hay tinte
+    // (diria que dia se gasto mas que otro)
+    const nivel=(verG&&!modoPrivado&&maxG>0)?Math.min(4,Math.max(1,Math.ceil(Math.sqrt(g/maxG)*4))):0;
+    const cls='cal-d'+(pasado?' pasado':'')+(esHoy?' hoy':'')+(verVienen&&(vienenAqui.length||corte)?' viene':'')+(verFueron&&esMax?' max':'')+(nivel?' g'+nivel:'');
     filas+='<td><button type="button" class="'+cls+'" data-dia="'+k+'" tabindex="'+(k===foco?'0':'-1')+'" aria-pressed="'+(calDia===k)+'"'+(esHoy?' aria-current="date"':'')
       +' aria-label="'+escapeHtml(calEtiquetaDia(k,g,esMax,ag))+'"><span class="cal-n">'+d+'</span>'+cont+'</button></td>';
     if(++col===7&&d<ult){ filas+='</tr><tr>'; col=0; }
@@ -11439,6 +11680,7 @@ window.guardarEdicionMov = async function() {
   const nota=document.getElementById('edit-mov-nota').value.trim();
   const montoTxt=document.getElementById('edit-mov-monto').value;
   const diaTxt=diaEditNorm(document.getElementById('edit-mov-fecha').value);
+  if(!diaTxt&&fechaIncompleta(document.getElementById('edit-mov-fecha'))) return;
   // un movimiento rechazado por el Atajo tiene monto y cuenta deshabilitados: se conservan los
   // originales y NO se valida el monto (si venia invalido, justo por eso fue rechazado), para
   // que si se puedan corregir categoria, nota y fecha
@@ -11458,7 +11700,7 @@ window.guardarEdicionMov = async function() {
   const diaOrig=diaLocalMov(visto.fecha);
   let fecha=visto.fecha;
   if(diaTxt && diaTxt!==diaOrig){
-    if(!fechaCalendarioValida(diaTxt)){ showToast('fecha no válida, usa el formato 2026-08-15'); return; }
+    if(!fechaCalendarioValida(diaTxt)){ showToast('fecha no válida: elígela en el calendario del campo'); return; }
     if(diaTxt>hoyLocal()){ showToast('la fecha no puede ser futura'); return; }
     fecha = diaTxt===hoyLocal() ? new Date().toISOString() : diaTxt+'T00:00:00Z';
     // un pago de suscripcion lleva el mes en su id: cambiarlo de mes dejaria "pagada" la equivocada
@@ -11620,6 +11862,7 @@ async function altaIngreso(cat,monto,nota,destino,btn,fecha) {
 }
 window.registrarIngreso = async function() {
   if(!montoValido('ingreso-monto')) return;
+  if(!state.destinoIngreso){ faltaCuenta('ingreso-destino-toggle','Elige a dónde entró el dinero'); return; }
   const fecha=fechaMovOpcional('ingreso-fecha'); if(fecha===null) return;
   const ok=esIdX(state.destinoIngreso) ? await altaMovX('ingreso',
     document.getElementById('ingreso-cat').value, parseFloat(document.getElementById('ingreso-monto').value),
@@ -11631,7 +11874,7 @@ window.registrarIngreso = async function() {
     state.destinoIngreso,
     document.getElementById('ingreso-btn'),fecha);
   if(ok) palomita('ingreso-btn');
-  if(ok){ ['ingreso-monto','ingreso-nota','ingreso-fecha'].forEach(id=>document.getElementById(id).value=''); }
+  if(ok){ ['ingreso-monto','ingreso-nota','ingreso-fecha'].forEach(id=>document.getElementById(id).value=''); window.setDestinoIngreso(''); }
 };
 
 window.eliminarIngreso = async function(id) {
@@ -11775,6 +12018,7 @@ window.registrarDeuda = async function() {
   const tipo=state.tipoDeuda;
   if(!state.personas[persona]){showToast('persona no válida');return;}
   if(!DEUDA_TIPOS[tipo]){showToast('tipo no válido');return;}
+  if(!cuenta){ faltaCuenta('deuda-cuenta','Elige la cuenta del dinero (o "'+CTA_EXTERNO.otro+'", si no quieres mover ninguna)'); return; }
   if(!DEUDA_CUENTAS_ALTA.includes(cuenta)){showToast('cuenta no válida');return;}
   // (16-oct-2026) un monto que se redondea a cero no se registra: despues no se podria borrar
   if(!Number.isFinite(monto)||c2(monto)<0.01){showToast('ingresa un monto válido');return;}
@@ -11802,12 +12046,12 @@ window.registrarDeuda = async function() {
   if(err){ console.error('registrarDeuda',err); showToast(msgFalloDinero()); return; }
   // (16-oct-2026) ya-existe = el commit anterior SI llego (el SDK reintento): exito. Se limpia la forma para
   // que no se mande otra vez, y se recarga porque no hay valores canonicos en res
-  if(res.error&&res.codigo==='ya-existe'){ ['deuda-monto','deuda-nota','deuda-fecha'].forEach(id=>document.getElementById(id).value=''); yaAplicado(); return; }
+  if(res.error&&res.codigo==='ya-existe'){ ['deuda-monto','deuda-nota','deuda-fecha','deuda-cuenta'].forEach(id=>document.getElementById(id).value=''); yaAplicado(); return; }
   if(res.error){ showToast(res.error); return; }
   // -- post-commit --
   aplicarRes(res);
   state.personas[persona]=personaSegura(res.persona,persona); // saldo y movimientos canonicos de esa persona
-  ['deuda-monto','deuda-nota','deuda-fecha'].forEach(id=>document.getElementById(id).value='');
+  ['deuda-monto','deuda-nota','deuda-fecha','deuda-cuenta'].forEach(id=>document.getElementById(id).value='');
   // el saldo de la persona afecta el patrimonio neto aunque la cuenta sea externo
   refrescar(renderDeudas,render);
   showToast('movimiento registrado');
@@ -12039,14 +12283,16 @@ function pedirDatosStock() {
     if(!Number.isFinite(montoUsd)||montoUsd<=0){ showToast('total en dólares no válido'); return null; }
   }
   const cuenta=document.getElementById('stock-cuenta').value;
+  if(!cuenta){ faltaCuenta('stock-cuenta','Elige la cuenta del dinero'); return null; }
   if(!CTAS_STOCK_OP.includes(cuenta)){ showToast('cuenta no válida'); return null; }
   const fRaw=document.getElementById('stock-fecha').value.trim();
+  if(!fRaw&&fechaIncompleta(document.getElementById('stock-fecha'))) return null;
   const fecha=fRaw||hoyLocal();
   if(!fechaCalendarioValida(fecha)||fecha>hoyLocal()){ showToast('fecha no válida'); return null; }
   return {simbolo,acciones,monto,montoUsd,cuenta,fecha};
 }
 function limpiarFormStock() {
-  ['stock-simbolo','stock-acciones','stock-monto','stock-usd','stock-fecha'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
+  ['stock-simbolo','stock-acciones','stock-monto','stock-usd','stock-fecha','stock-cuenta'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
 }
 async function operarStock(tipo) {
   if(stockOpOcupado||dineroOcupado) return;
@@ -13440,7 +13686,7 @@ const AYUDA_BASE = [
     r:['En la lista de movimientos, cada renglón tiene un lápiz para corregirlo y una × para borrarlo; elige "Todos" para verlos todos. Al borrarlo, el dinero regresa a su cuenta. Una transferencia entre tus cuentas se borra con su × en "Últimas transferencias", en inicio.'],
     claves:'corregir corrijo borrar borro eliminar quitar editar cambiar modificar error equivoque arreglar movimiento movimientos gasto ingreso transferencia'},
   {id:'gasto-fecha', g:'anotar', p:'¿Cómo registro un gasto con otra fecha, o le cambio la fecha?', donde:'Movimientos › Registrar › Gasto', ir:'gasto', boton:'ir a registrar un gasto',
-    r:['Al registrar, escribe la fecha en el campo "Fecha" (año-mes-día, por ejemplo 2026-11-04); si lo dejas vacío, queda con la de hoy. Para cambiar la fecha de uno que ya registraste, toca su lápiz en la lista de movimientos, cambia la fecha y guarda.'],
+    r:['Al registrar, toca el campo "Fecha" y elige el día; si no eliges ninguno, queda con la de hoy. Para cambiar la fecha de uno que ya registraste, toca su lápiz en la lista de movimientos, cambia la fecha y guarda.'],
     claves:'fecha fechas ayer anteayer antier retroactivo anterior pasado otra cambiar cambio poner pongo gasto ingreso registrar movimiento lapiz'},
   {id:'transferir', g:'anotar', p:'¿Cómo anoto una transferencia entre mis cuentas?', donde:'Inicio › Transferir entre cuentas', ir:'transferir', boton:'ir a transferir entre cuentas',
     r:['Elige "Desde" y "Hacia", escribe el monto y toca "Transferir". Esto solo lo anota: el dinero real lo mueves en tu banco. No cuenta como gasto.'],
@@ -14392,14 +14638,14 @@ window.fondoTipoCambio = function() {
   if (ay) {
     let txt = FONDO_AYUDA[t] || '';
     if (t === 'rendimiento') {
-      const c = (document.getElementById('fondo-cuenta') || {}).value, sug0 = rendFondoSugerido(c);
+      const c = (document.getElementById('fondo-cuenta') || {}).value, sug0 = c ? rendFondoSugerido(c) : null;
       // (code-reviewer) con varios fondos se sugiere la parte de ESTE fondo; el abono del banco se registra en cada fondo
       const parteF = apartadoDe(c) > 0 ? apartadoFondo(fondoActual, c) / apartadoDe(c) : 0, varios = listaFondos().length > 1;
       const sug = sug0 && {...sug0, monto: c2(sug0.monto * (varios ? parteF : 1))};
       txt += sug ? (sug.sinAncla ? ' En ' + (CUENTAS[c] || c) + ' el fondo todavía no tiene movimientos: no hay desde cuándo estimar.'
                    : ' En ' + (CUENTAS[c] || c) + ', desde tu último abono registrado (o desde que apartaste ahí), hace ' + sug.dias + ' días, el fondo generó ≈' + fmt(sug.monto) +
                    ' (estimado)' + (varios ? ', la parte de este fondo: registra el abono en cada fondo con la misma fecha.' : '. Revolut abona a diario: basta con registrarlo una vez al mes, con la fecha del abono.'))
-                 : ' Esa cuenta no le genera interés al fondo.';
+                 : (c ? ' Esa cuenta no le genera interés al fondo.' : '');
     }
     ay.textContent = txt;
   }
@@ -14430,7 +14676,8 @@ function renderFondo() {
   const k = document.getElementById('fondo-kpis'); if (!k) return;
   ['fondo-cuenta', 'fondo-destino'].forEach(id => {
     const sel = document.getElementById(id);
-    if (sel && !sel.options.length) sel.innerHTML = CTAS_FONDO.map(c => '<option value="' + c + '">' + escapeHtml(CUENTAS[c] || c) + '</option>').join('');
+    // (17-nov-2026) sin cuenta de entrada, como en las demas formas
+    if (sel && !sel.options.length) sel.innerHTML = '<option value="">' + TXT_ELIGE_CUENTA + '</option>' + CTAS_FONDO.map(c => '<option value="' + c + '">' + escapeHtml(CUENTAS[c] || c) + '</option>').join('');
   });
   fondoTipoCambio();
   // (28-oct-2026) varios fondos: subpestañas y todo lo de abajo es del fondo abierto (fondoActual)
@@ -14676,6 +14923,8 @@ window.registrarFondo = async function() {
   const destino = document.getElementById('fondo-destino').value;
   const monto = Math.round(parseFloat(document.getElementById('fondo-monto').value) * 100) / 100;
   const nota = document.getElementById('fondo-nota').value.trim().slice(0, 120);
+  if (!cuenta) { faltaCuenta('fondo-cuenta', 'Elige la cuenta'); return; }
+  if (tipo === 'traspaso' && !destino) { faltaCuenta('fondo-destino', 'Elige a qué cuenta va'); return; }
   if (!TIPOS_FONDO.includes(tipo) || !CTAS_FONDO.includes(cuenta)) { showToast('elige qué pasó y la cuenta'); return; }
   if (!Number.isFinite(monto) || monto <= 0) { showToast('ingresa un monto válido'); return; }
   if (tipo === 'traspaso' && (!CTAS_FONDO.includes(destino) || destino === cuenta)) { showToast('elige una cuenta destino distinta'); return; }
@@ -14702,10 +14951,10 @@ window.registrarFondo = async function() {
   try { res = await txDinero(plan); } catch (e) { err = e; }
   finally { if (btn) btn.disabled = false; liberarDinero(); }
   if (err) { console.error('registrarFondo', err); showToast(msgFalloDinero()); return; }
-  if (res.error && res.codigo === 'ya-existe') { ['fondo-monto', 'fondo-nota', 'fondo-fecha'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; }); yaAplicado(); return; }
+  if (res.error && res.codigo === 'ya-existe') { ['fondo-monto', 'fondo-nota', 'fondo-fecha', 'fondo-cuenta', 'fondo-destino'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; }); fondoTipoCambio(); yaAplicado(); return; }
   if (res.error) { showToast(res.error); return; }
   aplicarRes(res);
-  ['fondo-monto', 'fondo-nota', 'fondo-fecha'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+  ['fondo-monto', 'fondo-nota', 'fondo-fecha', 'fondo-cuenta', 'fondo-destino'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; }); fondoTipoCambio();
   refrescar(render, renderFondo);
   showToast((FONDO_TIPOS_TXT[tipo] || tipo) + ': ' + fmt(m));
 };
