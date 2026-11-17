@@ -43,6 +43,18 @@ window.CFG = Object.freeze({ns:'cartera', pfx:'', correo:'rl7103405@gmail.com',
 })();
 </script>
 <script>
+// (16-nov-2026) ARRANQUE CON SESION GUARDADA. Medido: quien ya habia entrado veia el formulario de entrar mas de un segundo (y luego "cargando") antes de Inicio.
+// Si ESTE aparato ya entro antes (marca 'abre', la misma clave que lsKey), en su lugar se ve el esqueleto de Inicio hasta que llega la sesion guardada.
+// No ensena ningun dato ni decide nada: solo cambia que pantalla VACIA se ve. La marca la pone y la quita el modulo (alCambiarSesion): entrar la pone, quedarse sin
+// sesion la quita. Si el modulo no llega a contestar (sin red y sin los archivos guardados), a los 8 s se quita sola y queda lo de siempre.
+(function(){var c=window.CFG||{},h=document.documentElement;
+  if(window.__fvAccion) return;   // llego con la liga de un correo de la cuenta: esa pantalla manda
+  try{if(localStorage.getItem((c.ns&&c.ns!=='cartera'?c.ns+':':'')+'abre')!=='1') return;}catch(e){return;}
+  h.classList.add('abriendo');
+  setTimeout(function(){h.classList.remove('abriendo');},8000);
+})();
+</script>
+<script>
 // (4-nov-2026, Fundview) SABER SI ALGO TRUENA, SIN VER DATOS. Solo con CFG.multi y con la URL que pone armar.mjs: en la familia sale en la primera linea, sin dejar nada en window.
 // Lo unico que sale del aparato: tipo de error, codigo de Firebase, archivo:linea:columna, version, pantalla, familia del navegador y un mensaje al que solo le quedan palabras
 // de una lista fija de errores tecnicos. Una nota, un nombre, un monto o un correo no estan en esa lista: salen como _ . Sin uid y sin correo. Va primero para alcanzar tambien
@@ -239,8 +251,8 @@ html[data-tema='grafito']{
 .tema-chip{width:44px;height:44px;border-radius:50%;border:2px solid transparent;cursor:pointer;padding:0;box-shadow:var(--sombra)}
 .tema-chip[aria-pressed='true']{border-color:var(--accent);transform:scale(1.06)}
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
-button,input,select,textarea{font-family:inherit} /* los controles nativos no heredan la fuente del body por default */
-body{font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;color:var(--text);min-height:100vh;padding-bottom:calc(80px + env(safe-area-inset-bottom));
+button,input,select,textarea{font-family:inherit;font-variant-numeric:tabular-nums} /* los controles nativos no heredan la fuente del body por default (ni la variante de los numeros) */
+body{font-variant-numeric:tabular-nums;font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;color:var(--text);min-height:100vh;padding-bottom:calc(80px + env(safe-area-inset-bottom));
   background:
     radial-gradient(circle at 20% 0%, var(--g1), transparent 30rem),
     radial-gradient(circle at 90% 25%, var(--g2), transparent 28rem),
@@ -362,6 +374,24 @@ html[data-tema='grafito'] .fv-msg{color:var(--accent)}
 #cobro-aviso{margin:0 0 14px;padding:12px 14px;border-radius:var(--rs);background:var(--bg3);border:0.5px solid var(--border2);font-size:13px;line-height:1.45}
 #cobro-aviso button{display:block;background:none;border:0;padding:8px 0 0;min-height:44px;font:inherit;font-weight:600;color:var(--accent-dark);cursor:pointer;text-decoration:underline}
 html[data-tema='grafito'] #cobro-aviso button{color:var(--accent)}
+/* (12-nov-2026) "ya transferi" */
+.cobro-campo{display:block;font-size:12px;color:var(--muted);margin:12px 0 4px}
+.cobro-campo[hidden]{display:none}
+.cobro-campo input,.cobro-campo select{display:block;width:100%;margin-top:4px;background:var(--bg3);border:0.5px solid var(--border2);border-radius:var(--rs);padding:11px 14px;color:var(--text);font-size:16px;min-height:44px;box-sizing:border-box}
+.cobro-campo input[type=file]{padding:9px 10px;font-size:14px}
+.cobro-campo input[aria-invalid=true],.cobro-campo select[aria-invalid=true]{border-color:var(--red-txt)}
+.cobro-dos{display:flex;gap:10px;flex-wrap:wrap}
+.cobro-dos .cobro-campo{flex:1 1 140px}
+.cobro-check{display:flex;align-items:center;gap:10px;min-height:44px;font-size:14px;margin-top:8px}
+.cobro-check input{width:20px;height:20px;flex:0 0 auto}
+.cobro-err{font-size:13px;line-height:1.45;color:var(--red-txt);margin:4px 0 0}
+#cobro-f-vista{display:block;max-width:100%;max-height:260px;margin-top:8px;border-radius:var(--rs);border:0.5px solid var(--border2)}
+#cobro-f-vista[hidden]{display:none}
+.cobro-mandar{margin-top:16px}
+.cobro-av{padding:10px 0;border-bottom:0.5px solid var(--border);font-size:14px;line-height:1.45}
+.cobro-av:last-child{border-bottom:none;margin-bottom:8px}
+.cobro-av-est{font-weight:600}
+.cobro-av-det{font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
 /* (3-nov-2026) ayuda de Fundview: solo existe con CFG.multi (plantilla #fv-ayuda-plantilla) */
 .ay-label{display:block;font-size:17px;font-weight:650;letter-spacing:-0.2px;margin:0 0 10px;text-wrap:balance}
 .ay-busca{display:flex;gap:8px;align-items:flex-start}
@@ -411,6 +441,32 @@ html[data-tema='grafito'] .ay-donde{color:var(--accent)}
 .modal-sub{font-size:13px;color:var(--muted);margin:2px 0 14px}
 .edit-btn{background:none;border:none;color:var(--muted);font-size:14px;padding:4px 0 4px 12px;min-width:44px;min-height:44px;display:inline-flex;align-items:center;justify-content:flex-end;cursor:pointer;line-height:1;flex-shrink:0}
 .loading-text{font-size:14px;color:var(--muted)}
+/* (16-nov-2026) lo que el navegador pinta solo, con el color del tema: la seleccion de texto y el cursor de los campos (salian en el azul del sistema) */
+::selection{background:rgba(47,111,79,.26)}
+::selection{background:color-mix(in srgb,var(--accent) 30%,transparent)}
+input,textarea{caret-color:var(--accent)}
+/* (16-nov-2026) esqueleto de Inicio: se ve solo con html.abriendo (aparato que ya entro antes), en vez del formulario de entrar y del "cargando".
+   Tiene la forma de Inicio (barra, pestañas, total, dos botones, tarjetas) y nada que tocar. Sin brillo que barre: un pulso lento, y quieto con movimiento reducido */
+.arranque{display:none}
+html.abriendo .arranque{display:block;position:fixed;inset:0;z-index:1000;background:var(--bg);overflow:hidden;padding-top:max(env(safe-area-inset-top),20px)}
+html.abriendo #login-screen,html.abriendo #loading-overlay{display:none}
+.arr-barra{height:54px;padding:0 20px;display:flex;align-items:center;border-bottom:0.5px solid var(--border)}
+.arr-tabs{height:44px;border-bottom:0.5px solid var(--border);padding:0 20px;display:flex;align-items:center;gap:22px}
+.arr-cuerpo{max-width:430px;margin:0 auto;padding:20px}
+.arr-b{display:block;border-radius:8px;background:var(--border2);opacity:.38}
+.arr-logo{width:112px;height:22px}.arr-tab{width:54px;height:10px}
+.arr-etq{width:104px;height:9px;margin-bottom:12px}.arr-total{width:min(250px,70%);height:46px;border-radius:12px;margin-bottom:14px}.arr-sub{width:150px;height:10px}
+.arr-acc{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:22px 0 24px}.arr-acc .arr-b{height:44px;border-radius:var(--rs)}
+.arr-tarjetas{display:flex;flex-direction:column;gap:10px}
+.arr-tarjeta{height:74px;border-radius:var(--r);background:var(--bg2);border:1px solid var(--sup-borde,var(--border));padding:16px;display:flex;align-items:center;gap:12px}
+.arr-tarjeta .arr-b:first-child{width:38px;height:38px;border-radius:12px;flex-shrink:0}.arr-tarjeta .arr-b:last-child{width:42%;height:12px}
+@media(min-width:900px){.arr-cuerpo{max-width:1060px}.arr-tarjetas{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}}
+@media(prefers-reduced-motion:no-preference){.arr-cuerpo,.arr-tabs{animation:arr-pulso 1.8s ease-in-out infinite}}
+@keyframes arr-pulso{50%{opacity:.55}}
+/* si la espera pasa de un segundo, el esqueleto lo dice con palabras (16-nov-2026, prueba de usuario: tres segundos de gris sin texto parecen una app trabada) */
+.arr-texto{position:absolute;left:0;right:0;bottom:calc(28px + env(safe-area-inset-bottom));text-align:center;font-size:13px;color:var(--muted);opacity:0;animation:arr-texto .4s ease-out 1.2s forwards}
+@media(prefers-reduced-motion:reduce){.arr-texto{animation-duration:.01s}}
+@keyframes arr-texto{to{opacity:1}}
 
 /* NAV */
 nav{position:sticky;top:0;z-index:100;background:var(--nav-bg);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-bottom:0.5px solid var(--border);padding:0 20px;display:flex;align-items:center;justify-content:space-between;height:54px}
@@ -635,6 +691,12 @@ html[data-tema='grafito'] .tabs{--sombra-scroll:rgba(255,255,255,.16)}
 .mc-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,380px),1fr));gap:0 12px;align-items:start}
 .mc-tipo{font-size:11px;color:var(--muted);margin-top:1px}
 .asis-bancos{display:flex;flex-wrap:wrap;gap:8px}.asis-bancos .type-opt{flex:0 0 auto;min-height:44px;padding:10px 14px}
+/* (17-nov-2026) agregar una cuenta: el tipo en botones a la vista (como los bancos del asistente). El select que sigue llevando el valor
+   no se ve ni se toca: queda de 1 px, fuera del teclado (tabindex) y del lector (aria-hidden) */
+.cx-tipos{gap:8px;margin-bottom:0}.cx-tipos .type-opt{flex:0 0 auto;min-width:44px;padding:10px 14px;font-size:13px}
+/* en el telefono los renglones se llenan de lado a lado (a 390 px: tres y dos), para que no queden escalonados */
+@media (max-width:640px){.cx-tipos .type-opt{flex:1 1 auto;padding:10px}}
+.field select.cx-tipo-sel{position:absolute;width:1px;height:1px;min-height:0;padding:0;margin:0;border:0;overflow:hidden;clip-path:inset(50%);opacity:0;pointer-events:none}
 .desliza-dlg:not([open]){display:none}
 .desliza-caja{padding:18px;max-height:calc(100dvh - 40px);overflow:auto}
 .desliza-txt{font-size:14px;line-height:1.45;color:var(--muted);white-space:pre-line;margin-top:6px}
@@ -1040,6 +1102,21 @@ html[data-tema='grafito'] .cal-d.hoy .cal-n{color:#14171a}
 <body>
 
 <!-- LOGIN -->
+<!-- (16-nov-2026) esqueleto de Inicio para quien ya habia entrado en este aparato (html.abriendo, lo pone el script de arriba). Sin datos y sin nada que tocar -->
+<div class="arranque" id="arranque" role="status" aria-busy="true">
+  <span class="arr-texto">abriendo tu cartera…</span>
+  <div class="arr-barra" aria-hidden="true"><span class="arr-b arr-logo"></span></div>
+  <div class="arr-tabs" aria-hidden="true"><span class="arr-b arr-tab"></span><span class="arr-b arr-tab"></span><span class="arr-b arr-tab"></span><span class="arr-b arr-tab"></span></div>
+  <div class="arr-cuerpo" aria-hidden="true">
+    <span class="arr-b arr-etq"></span><span class="arr-b arr-total"></span><span class="arr-b arr-sub"></span>
+    <div class="arr-acc"><span class="arr-b"></span><span class="arr-b"></span></div>
+    <div class="arr-tarjetas">
+      <div class="arr-tarjeta"><span class="arr-b"></span><span class="arr-b"></span></div>
+      <div class="arr-tarjeta"><span class="arr-b"></span><span class="arr-b"></span></div>
+      <div class="arr-tarjeta"><span class="arr-b"></span><span class="arr-b"></span></div>
+    </div>
+  </div>
+</div>
 <div class="login-screen" id="login-screen">
   <div class="login-box">
     <div class="login-logo"><svg xmlns="http://www.w3.org/2000/svg" class="fv-logo fv-logo-login" role="img" aria-label="Fundview" viewBox="0 0 879.8 256.0"><g><path class="fv-anillo" fill-rule="evenodd" d="M219.994,123.978A92,92 0 0 1 165.952,208.807L153.581,174.816A56,56 0 0 0 183.959,127.131Z M152.797,213.595A92,92 0 1 1 167.804,42.057L149.718,73.383A56,56 0 1 0 140.425,179.604Z"/><path class="fv-noche" d="M179.929,49.057A92,92 0 0 1 218.774,110.032L182.739,113.184A56,56 0 0 0 161.843,80.383Z"/></g><path class="fv-noche" d="M306.6997680365297 164.82801611328125V91.62646177538171Q306.6997680365297 82.0608015014091 311.9778392694064 76.58440880734517Q317.2559105022831 71.10801611328125 328.4058922374429 71.10801611328125H342.193302283105V84.23381885300728H331.56810593607304Q327.47610593607305 84.23381885300728 325.5617844748858 86.34614031419449Q323.64746301369865 88.4584617753817 323.64746301369865 92.4843010447881V164.82801611328125ZM296.66905388127856 107.46710469775613V94.3413019580301H341.20346301369864V107.46710469775613Z M376.195935546875 166.41201611328125Q365.45111621093747 166.41201611328125 359.23391943359377 159.35001611328124Q353.01672265625 152.28801611328126 353.01672265625 139.7216064453125V94.33998388671874H369.9130771484375V135.57673876953126Q369.9130771484375 144.42065820312502 372.83023364257815 148.55221630859376Q375.74739013671876 152.6837744140625 381.845703125 152.6837744140625Q388.683212890625 152.6837744140625 392.48475488281247 148.12982275390624Q396.286296875 143.57587109375 396.286296875 134.89031298828124V94.33998388671874H413.1826513671875V164.82801611328125H397.6591484375L397.28952587890626 145.4766904296875L399.4807548828125 146.13667431640624Q397.7911806640625 156.08955810546874 391.8511806640625 161.25078710937498Q385.9111806640625 166.41201611328125 376.195935546875 166.41201611328125Z M428.91672265625004 164.82801611328125V94.33998388671874H444.2026352539063L444.86265136718754 114.113703125L442.80340625 113.29532568359375Q443.912193359375 105.92965478515625 447.1857917480469 101.42842578125Q450.45939013671875 96.92719677734375 455.25099658203123 94.84159033203125Q460.0426030273438 92.75598388671875 465.71861914062504 92.75598388671875Q473.5066030273438 92.75598388671875 478.8262094726563 96.16157421874999Q484.1458159179688 99.56716455078124 486.90462719726565 105.57316455078126Q489.66343847656253 111.57916455078126 489.66343847656253 119.49919677734374V164.82801611328125H472.767083984375V124.93773535156251Q472.767083984375 118.997767578125 471.61870654296877 114.8925869140625Q470.4703291015625 110.78740625 467.7775661621094 108.63581591796876Q465.08480322265626 106.48422558593751 460.54404833984376 106.48422558593751Q453.7593256835938 106.48422558593751 449.7862014160156 111.22300463867188Q445.8130771484375 115.96178369140625 445.8130771484375 124.93773535156251V164.82801611328125Z M530.4247387695312 166.41201611328125Q521.4223452148437 166.41201611328125 514.8619516601563 161.89761450195311Q508.30155810546876 157.383212890625 504.7639597167969 149.12000805664064Q501.226361328125 140.85680322265625 501.226361328125 129.584Q501.226361328125 118.31119677734375 504.790361328125 110.04799194335938Q508.35436132812504 101.784787109375 514.9411564941406 97.27038549804688Q521.5279516601563 92.75598388671875 530.4247387695312 92.75598388671875Q537.7903613281251 92.75598388671875 543.3871484375001 95.80518872070313Q548.983935546875 98.8543935546875 551.8351323242188 104.31919677734375V71.10801611328125H568.7314868164062V164.82801611328125H552.7327226562501L552.33672265625 154.37362255859375Q549.43272265625 160.04962255859374 543.6247307128906 163.2308193359375Q537.8167387695313 166.41201611328125 530.4247387695312 166.41201611328125ZM535.5201127929688 152.7366259765625Q540.7736547851563 152.7366259765625 544.4036145019531 150.04385498046875Q548.03357421875 147.351083984375 549.9343532714844 142.16352587890626Q551.8351323242188 136.9759677734375 551.8351323242188 129.584Q551.8351323242188 122.033638671875 549.9343532714844 116.88567895507812Q548.03357421875 111.73771923828124 544.4036145019531 109.08454663085936Q540.7736547851563 106.4313740234375 535.5201127929688 106.4313740234375Q527.81140625 106.4313740234375 523.2574626464843 112.62212890625Q518.7035190429688 118.8128837890625 518.7035190429688 129.584Q518.7035190429688 140.17031298828124 523.2838642578125 146.45346948242187Q527.8642094726563 152.7366259765625 535.5201127929688 152.7366259765625Z M603.6584096679687 164.82801611328125 577.9183935546876 94.33998388671874H595.7651416015625L613.7169965820312 147.77326806640625L631.6160483398437 94.33998388671874H649.4627963867188L623.6699770507812 164.82801611328125Z M658.59672265625 164.82801611328125V94.33998388671874H675.4930771484375V164.82801611328125ZM658.2799194335937 84.91527734374999V69.9727548828125H675.8098803710938V84.91527734374999Z M721.5873095703125 166.41201611328125Q711.0536708984375 166.41201611328125 703.3052370605469 161.871212890625Q695.5568032226563 157.33040966796875 691.3195822753906 149.0276064453125Q687.082361328125 140.72480322265625 687.082361328125 129.584Q687.082361328125 118.44319677734376 691.3195822753906 110.20639355468751Q695.5568032226563 101.96959033203125 703.2260402832031 97.362787109375Q710.89527734375 92.75598388671875 721.2705224609375 92.75598388671875Q731.32898046875 92.75598388671875 738.8794143066407 97.25719677734375Q746.4298481445312 101.75840966796875 750.5614626464844 110.20642578125Q754.6930771484375 118.65444189453125 754.6930771484375 130.50804833984375V134.28327734375H704.612322265625Q705.1139125976563 143.602361328125 709.6678642578125 148.24869848632812Q714.2218159179688 152.89503564453125 721.7985224609375 152.89503564453125Q727.4480483398438 152.89503564453125 731.1836064453125 150.37387915039062Q734.9191645507813 147.85272265625 736.4239516601563 143.206361328125L753.6898803710938 144.28877099609375Q750.8650771484375 154.50562255859376 742.3246271972657 160.4588193359375Q733.7841772460938 166.41201611328125 721.5873095703125 166.41201611328125ZM704.612322265625 122.93118066406251H737.1631484375Q736.6351645507813 114.35127734375 732.3188112792968 110.20651440429688Q728.0024580078125 106.06175146484375 721.2705224609375 106.06175146484375Q714.4857998046875 106.06175146484375 710.0638481445312 110.40451440429688Q705.641896484375 114.74727734375 704.612322265625 122.93118066406251Z M781.0399677734375 164.82801611328125 759.8143935546876 94.33998388671874H777.1331093750001L790.7553417968751 145.71395849609374L804.9583935546876 94.33998388671874H819.689767578125L833.9456225585939 145.71395849609374L847.6470517578126 94.33998388671874H864.9657675781251L843.7401933593751 164.82801611328125H826.2631806640626L812.3240805664063 117.5987802734375L798.4377836914064 164.82801611328125Z"/></svg></div>
@@ -1332,8 +1409,45 @@ html[data-tema='grafito'] .cal-d.hoy .cal-n{color:#14171a}
       <p class="cobro-txt" id="cobro-precio"></p>
       <p class="cobro-txt">Es una transferencia desde tu banco. No se renueva sola: cada pago lo haces tú, cuando quieras.</p>
       <div id="cobro-cuenta"></div>
+      <div id="cobro-concepto"></div>
       <div id="cobro-ref"></div>
       <p class="cobro-txt" id="cobro-factura" style="margin-top:10px"></p>
+    </div>
+    <!-- (12-nov-2026, plan-cobro) "ya transferi": la persona avisa que pago, con su captura; Beto lo confirma a mano -->
+    <div class="section-title">Ya transferí</div>
+    <div class="panel" id="cobro-avisos-panel">
+      <div id="cobro-avisos"></div>
+      <button type="button" class="btn" id="cobro-ya-btn" aria-expanded="false" aria-controls="cobro-form">Ya transferí</button>
+      <form id="cobro-form" hidden novalidate>
+        <p class="cobro-txt">Con esto revisamos tu pago. Lo confirmamos a mano y aquí te decimos cuando quede.</p>
+        <label class="cobro-campo" for="cobro-f-img">Captura de tu transferencia
+          <input type="file" id="cobro-f-img" accept="image/*"></label>
+        <img id="cobro-f-vista" alt="Tu captura" hidden>
+        <p class="cobro-err" id="cobro-e-img" hidden></p>
+        <label class="cobro-campo" for="cobro-f-clave">Clave de rastreo
+          <input type="text" id="cobro-f-clave" autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="40" placeholder="Viene en tu comprobante"></label>
+        <p class="cobro-err" id="cobro-e-clave" hidden></p>
+        <label class="cobro-campo" for="cobro-f-monto">Cuánto transferiste
+          <select id="cobro-f-monto"></select></label>
+        <p class="cobro-err" id="cobro-e-monto" hidden></p>
+        <div class="cobro-dos">
+          <label class="cobro-campo" for="cobro-f-fecha">Fecha
+            <input type="date" id="cobro-f-fecha"></label>
+          <label class="cobro-campo" for="cobro-f-hora">Hora
+            <input type="time" id="cobro-f-hora"></label>
+        </div>
+        <p class="cobro-err" id="cobro-e-fecha" hidden></p>
+        <p class="cobro-err" id="cobro-e-hora" hidden></p>
+        <label class="cobro-campo" for="cobro-f-concepto">Lo que pusiste en el concepto
+          <input type="text" id="cobro-f-concepto" autocomplete="off" maxlength="80"></label>
+        <p class="cobro-err" id="cobro-e-concepto" hidden></p>
+        <label class="cobro-check"><input type="checkbox" id="cobro-f-otro"> La transferencia salió de la cuenta de otra persona</label>
+        <label class="cobro-campo" for="cobro-f-pagador" id="cobro-f-pagador-fila" hidden>Su nombre completo
+          <input type="text" id="cobro-f-pagador" autocomplete="off" maxlength="80"></label>
+        <p class="cobro-err" id="cobro-e-pagador" hidden></p>
+        <p class="cobro-err" id="cobro-e-envio" role="alert" hidden></p>
+        <button type="submit" class="btn cobro-mandar" id="cobro-f-mandar">Mandar aviso</button>
+      </form>
     </div>
     <div class="section-title">Cancelar</div>
     <div class="panel">
@@ -1370,7 +1484,6 @@ html[data-tema='grafito'] .cal-d.hoy .cal-n{color:#14171a}
 
 <!-- LOADING -->
 <div class="loading-overlay" id="loading-overlay">
-  <div style="font-size:28px">&#128178;</div>
   <div class="loading-text">cargando tu cartera...</div>
   <button type="button" id="reintentar-login" class="btn" style="display:none;margin-top:14px;max-width:240px" onclick="reintentarLogin()">volver a iniciar sesión</button>
 </div>
@@ -1649,6 +1762,8 @@ html[data-tema='grafito'] .cal-d.hoy .cal-n{color:#14171a}
       <button class="btn btn-red" id="tarjeta-cargo-btn" onclick="registrarTarjeta('cargo')" style="margin-top:0">+ cargo</button>
       <button class="btn btn-green" id="tarjeta-pago-btn" onclick="registrarTarjeta('pago')" style="margin-top:0">- pagué</button>
     </div>
+    <!-- (17-nov-2026) para que es cada camino de una compra con tarjeta: gasto con "pagado con" o "+ cargo" -->
+    <div class="item-meta nota-cargo" style="line-height:1.5;margin-top:10px">Una compra nueva va en "gasto", con tu tarjeta en "pagado con". "+ cargo" solo sube lo que debes, sin contar como gasto: sirve para anotar lo que ya debías.</div>
   </div>
   </div>
   </details>
@@ -1670,6 +1785,8 @@ html[data-tema='grafito'] .cal-d.hoy .cal-n{color:#14171a}
       <button class="btn btn-red" id="tarjeta-rev-cargo-btn" onclick="registrarTarjetaRev('cargo')" style="margin-top:0">+ cargo</button>
       <button class="btn btn-green" id="tarjeta-rev-pago-btn" onclick="registrarTarjetaRev('pago')" style="margin-top:0">- pagué</button>
     </div>
+    <!-- (17-nov-2026) para que es cada camino de una compra con tarjeta: gasto con "pagado con" o "+ cargo" -->
+    <div class="item-meta nota-cargo" style="line-height:1.5;margin-top:10px">Una compra nueva va en "gasto", con tu tarjeta en "pagado con". "+ cargo" solo sube lo que debes, sin contar como gasto: sirve para anotar lo que ya debías.</div>
   </div>
   </div>
   </details>
@@ -1884,8 +2001,22 @@ html[data-tema='grafito'] .cal-d.hoy .cal-n{color:#14171a}
       </div>
       <div id="cx-perfil-lista"><div class="item-meta">todavía no agregas cuentas</div></div>
       <div class="section-title" style="margin-top:14px">agregar una cuenta</div>
-      <div class="row2">
-        <div class="field"><label for="cx-nuevo-nombre">nombre (el de tu banco, por ejemplo)</label><input type="text" id="cx-nuevo-nombre" maxlength="24" placeholder="ej. CommBank"></div>
+      <!-- (17-nov-2026) el tipo va a la vista, en botones: quien llega por "+ agregar un banco, cajita o tarjeta" no veia la palabra "tarjeta"
+           dentro de un menu cerrado. Los botones son UNA eleccion (radiogroup). El <select> sigue siendo la fuente de verdad (lo leen
+           agregarCuentaX, la ayuda y las pruebas): no se ve ni se alcanza con el teclado, y su "change" repinta los botones (cxPintarTipos) -->
+      <div class="field">
+        <span class="lbl-cuenta" id="cx-tipos-lbl">¿qué vas a agregar?</span>
+        <div class="type-toggle cx-tipos" id="cx-tipos" role="radiogroup" aria-labelledby="cx-tipos-lbl">
+          <button type="button" class="type-opt active" role="radio" aria-checked="true" data-tipo="banco">banco</button>
+          <button type="button" class="type-opt" role="radio" aria-checked="false" tabindex="-1" data-tipo="cajita">cajita o savings</button>
+          <button type="button" class="type-opt" role="radio" aria-checked="false" tabindex="-1" data-tipo="tarjeta">tarjeta de crédito</button>
+          <button type="button" class="type-opt" role="radio" aria-checked="false" tabindex="-1" data-tipo="efectivo">efectivo</button>
+          <button type="button" class="type-opt" role="radio" aria-checked="false" tabindex="-1" data-tipo="bolsa">inversiones en bolsa</button>
+        </div>
+        <select id="cx-nuevo-tipo" class="cx-tipo-sel" aria-hidden="true" tabindex="-1" onchange="document.getElementById('cx-nuevo-cajita').hidden=this.value!=='cajita'"><option value="banco">banco</option><option value="cajita">cajita o savings (con interés)</option><option value="tarjeta" data-solo-cfg>tarjeta de crédito</option><option value="efectivo">efectivo</option><option value="bolsa">inversiones en bolsa</option></select>
+      </div>
+      <div class="field"><label for="cx-nuevo-nombre">nombre (el de tu banco, por ejemplo)</label><input type="text" id="cx-nuevo-nombre" maxlength="24" placeholder="ej. CommBank"></div>
+      <div class="row2" style="align-items:end">
         <div class="field"><label for="cx-nuevo-moneda">moneda</label>
           <select id="cx-nuevo-moneda">
             <option value="MXN" selected>peso mexicano ($)</option>
@@ -1895,12 +2026,10 @@ html[data-tema='grafito'] .cal-d.hoy .cal-n{color:#14171a}
             <option value="CNY">yuan chino (¥)</option>
             <option value="NZD">dólar neozelandés (NZ$)</option>
           </select></div>
-      </div>
-      <div class="row2">
-        <div class="field"><label for="cx-nuevo-tipo">tipo</label>
-          <select id="cx-nuevo-tipo" onchange="document.getElementById('cx-nuevo-cajita').hidden=this.value!=='cajita'"><option value="banco">banco</option><option value="cajita">cajita o savings (con interés)</option><option value="tarjeta" data-solo-cfg>tarjeta de crédito</option><option value="efectivo">efectivo</option><option value="bolsa">inversiones en bolsa</option></select></div>
         <div class="field"><label for="cx-nuevo-saldo">saldo de hoy, en esa moneda</label><input type="number" id="cx-nuevo-saldo" step="0.01" inputmode="decimal" placeholder="ej. 500"></div>
       </div>
+      <!-- (17-nov-2026) efectivo: ya hay una cuenta fija de efectivo; esta es OTRA aparte, y se dice antes de crearla -->
+      <div class="item-meta" id="cx-nuevo-ef-nota" style="line-height:1.5;margin-bottom:10px" role="status" hidden>Ya tienes una cuenta de efectivo para lo que traes en mano. Esta sería otra aparte: por ejemplo una alcancía o lo que guardas en casa.</div>
       <div id="cx-nuevo-cajita" hidden>
         <div class="row2">
           <div class="field"><label for="cx-nuevo-tasa">tasa anual % que te paga</label><input type="number" id="cx-nuevo-tasa" step="0.01" inputmode="decimal" placeholder="ej. 13"></div>
@@ -1917,7 +2046,7 @@ html[data-tema='grafito'] .cal-d.hoy .cal-n{color:#14171a}
       </div>
       <div id="cx-nuevo-tdc" hidden>
         <div class="row2" id="cx-nuevo-tdc-campos">
-          <div class="field"><label for="cx-nuevo-corte">día de corte</label><input type="number" id="cx-nuevo-corte" min="1" max="31" step="1" inputmode="numeric" placeholder="ej. 18"></div>
+          <div class="field"><label for="cx-nuevo-corte">día de corte</label><input type="number" id="cx-nuevo-corte" min="1" max="31" step="1" inputmode="numeric" placeholder="del 1 al 31"></div>
           <div class="field"><label for="cx-nuevo-deuda">lo que debes hoy (opcional)</label><input type="number" id="cx-nuevo-deuda" min="0" step="0.01" inputmode="decimal" placeholder="ej. 800"></div>
         </div>
         <div class="item-meta" id="cx-nuevo-tdc-nota" style="line-height:1.5" role="status"></div>
@@ -2804,7 +2933,25 @@ function prepararTdcAgregar() {
   if (!CUENTAS_CFG) sel.querySelectorAll('option[data-solo-cfg]').forEach(o => o.remove());
   // (8-nov-2026) "inversiones en bolsa": solo donde la bolsa existe (una copia que la apaga no la ofrece)
   if (ctaApagada('stocks')) sel.querySelectorAll('option[value="bolsa"]').forEach(o => o.remove());
+  // (17-nov-2026) los botones del tipo: solo los que el select ofrece (sin cuentas configurables no hay "tarjeta de crédito"; con la bolsa
+  // apagada no hay "inversiones en bolsa"). Un clic o las flechas eligen; el valor vive en el select y su "change" hace lo de siempre
+  const grupo = document.getElementById('cx-tipos');
+  if (grupo) {
+    const hay = new Set([...sel.options].map(o => o.value));
+    grupo.querySelectorAll('[role="radio"]').forEach(b => { if (!hay.has(b.dataset.tipo)) b.remove(); });
+    grupo.addEventListener('click', ev => { const b = ev.target.closest('[role="radio"]'); if (b && grupo.contains(b)) cxElegirTipo(b.dataset.tipo); });
+    grupo.addEventListener('keydown', ev => {
+      const bs = [...grupo.querySelectorAll('[role="radio"]')], i = bs.indexOf(ev.target.closest('[role="radio"]'));
+      if (i < 0 || ev.altKey || ev.ctrlKey || ev.metaKey) return;
+      const a = {ArrowRight: i + 1, ArrowDown: i + 1, ArrowLeft: i - 1, ArrowUp: i - 1, Home: 0, End: bs.length - 1}[ev.key];
+      if (a === undefined) return;
+      ev.preventDefault();
+      const b = bs[(a + bs.length) % bs.length];
+      cxElegirTipo(b.dataset.tipo); b.focus();
+    });
+  }
   sel.addEventListener('change', cxTipoTdc);
+  cxPintarTipos();
   const b = document.getElementById('cx-nuevo-tdc-btn'); if (b && CUENTAS_CFG) b.addEventListener('click', agregarTarjetaFija);
   const bb = document.getElementById('cx-nuevo-bolsa-btn'); if (bb) bb.addEventListener('click', irABolsa);
   // el boton de Inicio: sin cuentas configurables no hay tarjeta que agregar, y no se promete
@@ -2838,12 +2985,33 @@ async function irABolsa() {
     showPage('dashboard', true);
   } finally { if (btn) btn.disabled = false; }
 }
+// (17-nov-2026) los botones del tipo dicen lo que el select tiene elegido: el marcado lleva aria-checked y es la unica parada del tabulador
+function cxPintarTipos() {
+  const sel = document.getElementById('cx-nuevo-tipo'), grupo = document.getElementById('cx-tipos'); if (!sel || !grupo) return;
+  const bs = [...grupo.querySelectorAll('[role="radio"]')];
+  bs.forEach(b => { const on = b.dataset.tipo === sel.value;
+    b.classList.toggle('active', on); b.setAttribute('aria-checked', String(on)); b.tabIndex = on ? 0 : -1; });
+  // si el valor no es de ningun boton (alguien puso una opcion que esta copia no ofrece y el select quedo vacio), el grupo
+  // no se queda sin parada de tabulador: se entra por el primero
+  if (bs.length && !bs.some(b => b.tabIndex === 0)) bs[0].tabIndex = 0;
+}
+function cxElegirTipo(v) {
+  const sel = document.getElementById('cx-nuevo-tipo'); if (!sel || ![...sel.options].some(o => o.value === v)) return;
+  if (sel.value === v) { cxPintarTipos(); return; }
+  sel.value = v; sel.dispatchEvent(new Event('change'));
+}
+// el ejemplo gris del nombre segun lo que se agrega (el de banco o cajita es el que trae el campo)
+const CX_EJ = {tarjeta: 'ej. mi tarjeta', efectivo: 'ej. alcancía'};
 function cxTipoTdc() {
   const sel = document.getElementById('cx-nuevo-tipo'), v = sel ? sel.value : '', es = v === 'tarjeta', bolsa = v === 'bolsa';
+  cxPintarTipos();
   const k = es && CUENTAS_CFG ? tdcLibre() : null;
   ['cx-nuevo-moneda', 'cx-nuevo-saldo'].forEach(id => { const f = document.getElementById(id), c = f && f.closest('.field'); if (c) c.hidden = es || bolsa; });
   // el nombre sirve tambien para la tarjeta; con los dos lugares de tarjeta ya encendidos no hay nada que nombrar
-  { const f = document.getElementById('cx-nuevo-nombre'), c = f && f.closest('.field'); if (c) c.hidden = bolsa || (es && !k); }
+  { const f = document.getElementById('cx-nuevo-nombre'), c = f && f.closest('.field'); if (c) c.hidden = bolsa || (es && !k);
+    if (f) { if (f.dataset.ej === undefined) f.dataset.ej = f.placeholder; f.placeholder = CX_EJ[v] || f.dataset.ej; } }
+  // (17-nov-2026) efectivo: ya existe la cuenta fija de efectivo; se avisa que esta es otra aparte ANTES de crearla
+  { const n = document.getElementById('cx-nuevo-ef-nota'); if (n) n.hidden = v !== 'efectivo' || ctaApagada('efectivo'); }
   const ag = document.getElementById('cx-nuevo-btn'); if (ag) ag.hidden = es || bolsa;
   const cb = document.getElementById('cx-nuevo-bolsa');
   if (cb) {
@@ -2862,7 +3030,7 @@ function cxTipoTdc() {
   { const d = document.getElementById('cx-nuevo-deuda'), c = d && d.closest('.field'); if (c) c.hidden = !deudaAlAltaTdc(k); }
   document.getElementById('cx-nuevo-tdc-nota').textContent = k
     ? 'Tu día de corte sale en tu estado de cuenta. Con tu tarjeta anotas tus compras y ves cuánto debes; eso sale en inicio, bajo tu total.'
-    : 'Ya tienes tus dos tarjetas de crédito encendidas en "tus cuentas fijas", más arriba. Ahí les cambias el nombre o el día de corte.';
+    : 'Ya tienes tus dos tarjetas de crédito encendidas y por ahora solo caben dos: no se puede agregar una tercera. Su nombre y su día de corte se cambian en "tus cuentas fijas", más arriba.';
   if (k && CFG.multi && Math.abs(saldoSlotCfg(k)) >= 0.005) document.getElementById('cx-nuevo-tdc-nota').textContent += ' Esta tarjeta ya trae anotado que debes ' + fmt(saldoSlotCfg(k)) + ': solo falta encenderla.';
   document.getElementById('cx-nuevo-tdc-btn').textContent = k ? 'agregar tarjeta' : 'ver mis tarjetas';
 }
@@ -3807,14 +3975,32 @@ fvGlobal.fvElegirFactor = tipo => {
 fvGlobal.fvCodReenviar = () => { if (fvSms.ctx && fvSmsFalta(fvSms.ctx.quien) === 0) { fvErr('codigo', ''); return fvSmsReenviar(fvSms.ctx); } };
 // version de terminos que se acepta al crear la cuenta y al volver a pedirlos (usuarios/<uid>.terminos). Formato AAAA-MM o AAAA-MM-DD: se comparan como texto.
 // Al cambiar el texto de copias\fundview-legal.html: subir FV_TERMINOS y reescribir FV_TERMINOS_CAMBIOS. Lo dice la pantalla "Actualizamos los términos y el aviso"
-const FV_TERMINOS = '2026-11-05';
+const FV_TERMINOS = '2026-11-16';
 const FV_TERMINOS_CAMBIOS = [
-  'Ahora te pedimos el nombre con el que quieres que te llamemos. Solo lo usamos para saludarte en la app y en algunos correos de tu cuenta, y lo puedes cambiar en tu perfil.',
-  'Lo demás es lo de la versión del 4 de noviembre:',
-  'Ahora contemplan entrar con un código por SMS. Si usas esa forma, te pedimos un número de teléfono: solo se usa para mandarte ese código, no te mandamos otros mensajes y no se guarda junto con lo que anotas.',
+  // 16-nov-2026: los terminos pasan a ser la adaptacion del contrato de prestacion de servicios (se cobra un servicio, no una licencia del programa).
+  // Tras la revision: el resumen nombra cada cambio que toca derechos u obligaciones, no solo los titulares
+  'Los términos ahora están escritos como un contrato de prestación de servicios: lo que contratas es el servicio de organizar y dar seguimiento a tus finanzas personales, con acompañamiento para usarlo, que se presta por medio de la app.',
+  'No es una venta ni una licencia del programa: la app es de quien presta el servicio y es solo el medio por el que lo recibes.',
+  'Al aceptar declaras que eres mayor de edad. El aviso de privacidad ahora dice el nombre completo de quien responde por tus datos y ante qué autoridad te puedes quejar.',
+  'Si nos pides por correo algo sobre tus datos y no podemos confirmar que eres tú, te pediremos una identificación una sola vez; tienes 10 días naturales para mandarla. Solo se usa para eso y se borra al terminar tu solicitud.',
+  'Lo que anotas se trata como confidencial: no se usa para nada distinto de prestarte el servicio ni se revela, salvo que una autoridad lo exija conforme a la ley. Para llevar el servicio revisamos la lista de cuentas (nombre, correo, fecha de registro, última vez que entraste y hasta cuándo está pagada cada una) y contamos cuántas ya anotaron movimientos y desde cuándo; es un conteo que no lee montos, notas ni categorías.',
+  'Para prestar el servicio podemos apoyarnos en colaboradores y proveedores sin pedirte autorización; quien responde ante ti no cambia. Respondemos por lo que venga del servicio, salvo causas ajenas a nosotros, y no garantizamos resultados fuera de nuestro control.',
+  'Podemos suspender tu cuenta o terminar el contrato si incumples los términos. Si Fundview deja de operar, te avisamos por correo con al menos 5 días hábiles de anticipación. Puedes acudir a la Profeco; para lo que no se resuelva ahí, los tribunales son los de la ciudad de Puebla, sin quitarte ningún derecho que la ley te dé como consumidor.',
+  // lo del cobro solo sale con el cobro prendido (CFG.cobro), igual que el parrafo "Tu suscripción" de los terminos (copias\armar.mjs, data-fv-cobro).
+  // La version del 12-nov (suscripcion) nunca se publico. AL PRENDER EL COBRO: subir FV_TERMINOS (cambia el texto aceptado) y correo a cada persona
+  ...(CFG.cobro ? [
+    'Fundview ahora tiene suscripción. El precio está en la pestaña "Suscripción" de tu perfil. Pagas por transferencia desde tu banco, con tu nombre completo en el concepto; no hay cargos automáticos ni se renueva sola.',
+    'Si no pagas, por ahora la app sigue igual y no se borra nada. Si eso cambia, te avisamos por correo antes.',
+    'Cuando transfieras, nos avisas en la app con la captura de tu transferencia y su clave de rastreo. Guardamos ese aviso para revisar tu pago; la captura se borra con tu cuenta o a los 90 días de revisarla.',
+    'Para que una misma transferencia no sirva en dos cuentas, guardamos una huella de la clave de rastreo y de la captura. No lleva tu nombre, tu correo, el monto ni la clave. El renglón de cada pago (fecha, monto y si fue mensual o anual) se conserva aunque borres tu cuenta.',
+    'Por ahora no emitimos factura. Lo ya pagado no se devuelve, salvo que el servicio deje de funcionar por causa nuestra.',
+  ] : ['Por ahora el servicio no tiene costo. Cuando lo tenga, te avisamos por correo antes y te pedimos aceptar los términos con el precio y la forma de pago.']),
+  // quien acepto una version anterior a la del 5-nov tambien ve lo de antes (como hizo la del 5-nov con la del 4)
+  'Si aceptaste antes del 5 de noviembre, también cambió esto:',
+  'Te pedimos el nombre con el que quieres que te llamemos. Solo lo usamos para saludarte en la app y en algunos correos de tu cuenta, y lo puedes cambiar en tu perfil.',
+  'Los términos contemplan entrar con un código por SMS. Si usas esa forma, te pedimos un número de teléfono: solo se usa para mandarte ese código, no te mandamos otros mensajes y no se guarda junto con lo que anotas.',
   'Google (Firebase) procesa ese número para mandar el mensaje. Para evitar abusos, el envío pasa por Google reCAPTCHA y guardamos 48 horas una huella de tu número (no el número) para contar los códigos.',
   'Si pierdes tu teléfono o cambias de número, escríbenos desde el correo de tu cuenta y confirmamos que eres tú.',
-  'Si entras con tu app autenticadora, no tienes que cambiar nada.',
   'Si algo falla en tu aparato, la app nos manda un aviso técnico para poder arreglarlo: no lleva tu nombre, tu correo, tus montos ni tus notas. Como en cualquier servidor, su registro guarda hasta 30 días tu dirección de internet y los datos de tu navegador.'
 ];
 // solo se pide lo que es mas viejo que esta version. Una copia vieja de la app (el service worker sirve primero lo guardado) que ve una version MAS nueva
@@ -5127,6 +5313,24 @@ const fvColsUsuario = () => [C_GASTOS, C_INGRESOS, C_TRANSF, C_OPS, C_REND];
 async function fvBorrarSuscripcion() {
   try { await conPlazoBorrado(deleteDoc(FV_COBRO_DOC())); }
   catch (e) { if (!e || e.code !== 'permission-denied') throw e; console.warn('fundview: la suscripcion queda para la limpieza'); }
+  // (12-nov-2026) los avisos de "ya transferi" y sus capturas. Primero la captura (Storage no depende de Firestore), luego el aviso, de pagina en pagina
+  // hasta vaciar. De Storage SOLO se tolera que la captura ya no exista; cualquier otro error corta el borrado (se ve y se reintenta) y deja el aviso: el aviso es
+  // lo que dice que hay una captura por quitar. Unas reglas viejas de Firestore (permission-denied) si se toleran: lo que quede lo quita limpieza.mjs.
+  // Las huellas (pagosUsados, pagosImg) se quedan a proposito: sin ellas la misma transferencia serviria para otra cuenta. No llevan datos de la persona
+  for (;;) {
+    let avisos;
+    try { avisos = await conPlazoBorrado(getDocsFromServer(query(collection(db, 'usuarios', CFG.uid, 'pagos'), limit(FV_BORRA_PAGINA)))); }
+    catch (e) { if (!e || e.code !== 'permission-denied') throw e; return; }
+    if (avisos.empty) return;
+    let quitados = 0;
+    for (const d of avisos.docs) {
+      try { const {m, s} = await fvStorage(); await conPlazoBorrado(m.deleteObject(m.ref(s, fvPagoRuta(d.id)))); }
+      catch (e) { if (!e || e.code !== 'storage/object-not-found') throw e; }
+      try { await conPlazoBorrado(deleteDoc(d.ref)); quitados++; }
+      catch (e) { if (!e || e.code !== 'permission-denied') throw e; }
+    }
+    if (!quitados) return;   // las reglas no dejaron quitar ninguno: no dar vueltas para siempre
+  }
 }
 async function fvBorrarDatos() {
   let n = 0;
@@ -5341,6 +5545,8 @@ function textoEstadoPrecios() {
   if (fechas.length < syms.length) return 'faltan precios de algunas acciones · pulsa actualizar';
   return 'precios del ' + cierreDash(fechas[0]).txt + ' · pulsa actualizar';
 }
+// (16-nov-2026) quita el esqueleto de arranque (html.abriendo): lo llama alCambiarSesion en cuanto hay algo que ensenar (Inicio, la pantalla de entrar o el aviso de error)
+const finArranque = () => document.documentElement.classList.remove('abriendo');
 async function alCambiarSesion(user) {
   if (recargandoUid) return;   // la pagina ya se esta volviendo a abrir: ni signOut ni avisos
   if (CFG.multi && fvBorrado.activo) return;   // se esta borrando la cuenta: esa pantalla manda (al borrar el usuario llega un cambio de sesion)
@@ -5356,6 +5562,10 @@ async function alCambiarSesion(user) {
     if (CFG.multi) { fvPasoActual = null; fvResolver = null; fvSecreto = null; fvSmsOlvidar(); }   // un cierre de sesion desde otra pestaña no debe dejar visible el paso del codigo
     document.getElementById('login-screen').classList.add('hidden');
     document.getElementById('loading-overlay').classList.remove('hidden');
+    // (16-nov-2026) tambien al entrar por primera vez: el esqueleto de Inicio en vez del "cargando". Si la carga se alarga, a los 8 s se quita y
+    // queda el "cargando tu cartera..." de siempre, que si dice con palabras que sigue trabajando
+    document.documentElement.classList.add('abriendo'); setTimeout(finArranque, 8000);
+    try { localStorage.setItem(lsKey('abre'), '1'); } catch (e) {}   // (16-nov-2026) la proxima vez que abra en este aparato: esqueleto de Inicio en vez del formulario de entrar
     // un error de una carga anterior no se queda pegado en el overlay
     document.querySelector('.loading-text').textContent = 'cargando tu cartera...';
     const btnReIni = document.getElementById('reintentar-login'); if (btnReIni) btnReIni.style.display = 'none';
@@ -5365,6 +5575,7 @@ async function alCambiarSesion(user) {
     const hayCopiaLocal = await pintarDesdeCache();
     if (hayCopiaLocal) {
       document.getElementById('loading-overlay').classList.add('hidden');
+      finArranque();
       renderCatSelect('gasto-cat', state.catsGasto);
       renderCatSelect('ingreso-cat', state.catsIngreso);
       refrescar(renderPersonaSelect, render, renderMovimientos, renderTransferencias, pintarFuentesX);
@@ -5376,6 +5587,7 @@ async function alCambiarSesion(user) {
     const ok = await loadFromFirebase();
     if (gen !== genAuth) return;   // llego otro cambio de sesion mientras cargaba: manda el nuevo, esta pantalla no se toca
     if (!ok && recargandoCfg) return; // se esta volviendo a abrir con la configuracion de cuentas: nada de avisos de sin conexion
+    finArranque();   // sin copia local el esqueleto espero al servidor: aqui ya hay Inicio, o el aviso de que no cargo
     if (!ok) {
       if (hayCopiaLocal) {
         // ya hay algo util en pantalla: no se bloquea la app, pero se deja MUY claro
@@ -5418,6 +5630,9 @@ async function alCambiarSesion(user) {
   } else {
     document.getElementById('login-screen').classList.remove('hidden');
     document.getElementById('loading-overlay').classList.add('hidden');
+    // (16-nov-2026) sin sesion, este aparato deja de abrir con el esqueleto; con sesion pero con un paso pendiente (Fundview) la marca se queda
+    if (!user) { try { localStorage.removeItem(lsKey('abre')); } catch (e) {} }
+    finArranque();
     if (CFG.multi) return entradaFundview(user, acceso);   // en Fundview cada cosa que falta tiene su pantalla
     if (user && AVISO_ENTRADA[acceso]) document.getElementById('login-error').textContent = AVISO_ENTRADA[acceso];
     if (user) signOut(auth);
@@ -5598,6 +5813,7 @@ async function pintarDesdeCache() {
 // reintento automatico de la sincronizacion (ver armarReintentoSenal, mas abajo). Se declaran
 // aqui, antes de su primer uso posible, para no caer en la zona muerta de `let`
 let reintentandoSync = false, senalTimer = null, senalIntentos = 0;
+const SENAL_TOPE = 12, SENAL_LENTO = 300000;   // 4 + 8 + 16 + 32 + 60 x 8 s; despues, cada 5 minutos
 function marcarCopiaLocal(activo, falloSync) {
   mostrandoCopiaLocal = !!activo;
   // la carga que fallo (o la cache sin red) deja armado el reintento solo; al confirmar se cancela.
@@ -6089,7 +6305,7 @@ function suscribirEnVivo() {
     fvDetenerApp();
     location.reload();
   }, ()=>{}));
-  if (CFG.multi && CFG.cobro) unsubs.push(fvCobroEscuchar());
+  if (CFG.multi && CFG.cobro) unsubs.push(fvCobroEscuchar(), fvPagosEscuchar());
 }
 // se vacia al liberar el candado (ver liberarDinero)
 function drenarSnapshots() {
@@ -10158,18 +10374,24 @@ function armarReintentoSenal() {
     clearTimeout(senalTimer); senalTimer = null; senalIntentos = 0; return;
   }
   if (senalTimer) return;
+  // (16-nov-2026, auditoria) sin tope, una carga que el servidor NIEGA (reglas, App Check) se repetia cada minuto mientras la pestaña siguiera abierta,
+  // y cada intento son lecturas cobradas. Tras SENAL_TOPE intentos (unos 9 minutos) ya no reintenta cada minuto sino cada SENAL_LENTO (5 minutos).
+  // No se detiene del todo a proposito: con la red muerta y navigator.onLine en true (wifi sin internet) no llega ningun evento 'online', y parar
+  // dejaria la app sin recuperarse sola y la bandeja sin subir. Volver la red o volver a la pantalla empiezan la cuenta otra vez; el boton sigue ahi
   senalIntentos++;
-  senalTimer = setTimeout(() => { senalTimer = null; alVolverSenal(); }, Math.min(60000, 4000 * 2 ** (senalIntentos - 1)));
+  senalTimer = setTimeout(() => { senalTimer = null; alVolverSenal(); }, senalIntentos > SENAL_TOPE ? SENAL_LENTO : Math.min(60000, 4000 * 2 ** (senalIntentos - 1)));
 }
 window.armarReintentoSenal = armarReintentoSenal; // marcarCopiaLocal (mas arriba) la llama por aqui
-window.addEventListener('online', alVolverSenal);
+// reiniciar la cuenta no basta: hay que soltar el temporizador ya armado (tras el tope puede ser de 5 minutos) para que el siguiente reintento vuelva a ser de 4 s
+const senalDeNuevo = () => { clearTimeout(senalTimer); senalTimer = null; senalIntentos = 0; alVolverSenal(); };
+window.addEventListener('online', senalDeNuevo);
 // se fue la senal con la app abierta: el punto se pone rojo y la banda lo dice (lo que se ve es lo
 // ultimo que llego; un gasto o ingreso se guarda en el telefono)
 window.addEventListener('offline', () => { if (auth.currentUser) { setSyncDot('err'); marcarCopiaLocal(true, true); } });
 // en iPhone la app instalada se congela en segundo plano y puede no enterarse del 'online':
 // al volver a la pantalla se revisa igual
 document.addEventListener('visibilitychange', () => {
-  if (document.visibilityState === 'visible' && navigator.onLine !== false && auth.currentUser) alVolverSenal();
+  if (document.visibilityState === 'visible' && navigator.onLine !== false && auth.currentUser) senalDeNuevo();
 });
 
 // ── GASTOS ────────────────────────────────────────────────────
@@ -11079,7 +11301,9 @@ window.editarMovimiento = function(tipo, id) {
   document.getElementById('edit-mov-tit').textContent='editar '+tipo;
   document.getElementById('edit-mov-cuenta-lbl').textContent = tipo==='gasto' ? 'pagado con' : 'entra a'; // igual que en registrar
   // cuentas: las de registrar; una cuenta legada (p. ej. gbm retirado) se muestra pero no se elige
-  const opciones = [...EDIT_CUENTAS[tipo]];
+  // (17-nov-2026, calificacion con usuario-real) sin la cuenta fija que ya no se ofrece al registrar (sinUsoFV: en Fundview, el banco de fabrica vacio de quien
+  // tiene sus bancos agregados): elegirla aqui la dejaba en negativo y la hacia aparecer en Inicio. Si el movimiento ya esta en ella, se queda en la lista
+  const opciones = EDIT_CUENTAS[tipo].filter(c => !sinUsoFV.has(c) || c === it[campo]);
   // un documento legado o del Atajo puede venir SIN cuenta: no se pinta pastilla para "undefined"
   if (it[campo] && !opciones.includes(it[campo])) opciones.unshift(it[campo]);
   // (20-oct-2026) en otra moneda tambien se bloquean monto y cuenta: el monto en pesos depende del tipo de
@@ -12899,7 +13123,7 @@ function pintarAsistente() {
   // los campos de una tarjeta, los mismos en el paso de un banco y en el de la tarjeta. t = lo escrito, k = su lugar, ej = el nombre de ejemplo
   // (7-nov-2026, solo Fundview) lo que debes hoy se puede anotar ahi mismo
   const camposTdc = (t, k, ej) => '<div class="field" style="margin-top:10px"><label for="asis-tdc-nombre">cómo se llama (el de tu banco, por ejemplo)</label><input type="text" id="asis-tdc-nombre" maxlength="24" placeholder="' + e(ej) + '" value="' + e(t.nombre) + '"></div>' +
-    '<div class="field"><label for="asis-tdc-corte">día de corte</label><input type="number" id="asis-tdc-corte" min="1" max="31" step="1" inputmode="numeric" placeholder="ej. ' + e(confCta(k).corte) + '" value="' + e(t.corte) + '"></div>' +
+    '<div class="field"><label for="asis-tdc-corte">día de corte</label><input type="number" id="asis-tdc-corte" min="1" max="31" step="1" inputmode="numeric" placeholder="del 1 al 31" value="' + e(t.corte) + '"></div>' +
     (deudaAlAltaTdc(k) ? '<div class="field"><label for="asis-tdc-deuda">¿Cuánto debes hoy en esta tarjeta? (opcional)</label><input type="number" id="asis-tdc-deuda" min="0" step="0.01" inputmode="decimal" placeholder="ej. 800" value="' + e(t.deuda) + '"></div>'
       : (CFG.multi && k && Math.abs(saldoSlotCfg(k)) >= 0.005 ? '<p class="item-meta" style="line-height:1.5">Esta tarjeta ya trae anotado que debes ' + e(fmt(saldoSlotCfg(k))) + ': solo se enciende.</p>' : ''));
   if (p === 'hola') { tit('Vamos a armar tu cartera');
@@ -13117,17 +13341,18 @@ async function asisCrearTrabajo() {
 // agregar y cambiar cuentas vive debajo, en cada seccion.
 function renderMisCuentas() {
   renderConfigCuentas();
+  cxPintarTipos();   // los botones del tipo de "agregar una cuenta", al dia con su valor aunque alguien lo haya cambiado sin avisar
   const el = document.getElementById('mis-cuentas'); if (!el) return;
   const e = escapeHtml;
   // (28-oct-2026) una tarjeta por banco con lo que tienes ahi; el efectivo, los fondos y la bolsa aparte
   const bancos = new Map();   // clave en minusculas -> {nombre, filas:[{prod, sub, monto, neg}], total}
   const meter = (banco, fila) => { const k = banco.toLowerCase(); if (!bancos.has(k)) bancos.set(k, {nombre: banco, filas: [], total: 0});
     const b = bancos.get(k); b.filas.push(fila); if (!fila.neg && Number.isFinite(fila.valor)) b.total += fila.valor; else if (!fila.neg) b.pend = true; };
-  REG_CUENTAS.filter(c => c.banco && !c.legada && c.grupo).forEach(c => { const v = saldoTuyo(c.id);
+  // (17-nov-2026) la cuenta fija vacia que Inicio ya no ofrece (sinUsoFV: en cero, sin apartado y sin movimientos) tampoco sale aqui: no cambia ninguna suma
+  REG_CUENTAS.filter(c => c.banco && !c.legada && c.grupo && !sinUsoFV.has(c.id)).forEach(c => { const v = saldoTuyo(c.id);
     meter(c.banco, {prod: c.prod || c.nombre, sub: (c.comp ? descModelo(c.id) : '') + (apartadoDe(c.id) > 0 ? (c.comp ? ' · ' : '') + 'sin el fondo' : ''), monto: fmt(v), valor: v}); });
   // tarjetas: lo que debes (no suma al banco) y, en Revolut, el deposito de garantia (si es tuyo)
-  if (!ctaApagada('tarjeta') && Number.isFinite(state.tarjetaDeuda)) meter(ctaReg('tarjeta').banco || 'Nu', {prod: 'tarjeta de crédito', sub: 'lo que debes · corte el ' + CORTE_TJ, monto: fmt(state.tarjetaDeuda), neg: true});
-  if (!ctaApagada('tarjetaRev') && !tdcGarantizada()) meter(ctaReg('tarjetaRev').banco || CUENTAS.tarjetaRev, {prod: 'tarjeta de crédito', sub: 'lo que debes · corte el ' + CORTE_TJREV, monto: fmt(state.revTdcDeuda || 0), neg: true});
+  // (las dos tarjetas normales se meten mas abajo, ya con todos los bancos a la vista: ver bancoDeTdc)
   if (depositoTdc() > 0) {
     meter(ctaReg('tarjetaRev').banco || 'Revolut', {prod: 'depósito de la tarjeta', sub: 'tu garantía: es tuyo, aunque congelado', monto: fmt(state.revTdcDeposito), valor: state.revTdcDeposito});
     meter(ctaReg('tarjetaRev').banco || 'Revolut', {prod: 'tarjeta de crédito', sub: 'lo que debes', monto: fmt(state.revTdcDeuda || 0), neg: true});
@@ -13142,6 +13367,15 @@ function renderMisCuentas() {
       monto: fmtX(sx, x.moneda), valor: pesos === null ? NaN : pesos};
     if (x.tipo === 'efectivo') efX.push({...fila, prod: x.nombre + (x.moneda === 'MXN' ? '' : ' · ' + x.moneda)});
     else meter(x.tipo === 'cajita' ? x.nombre.replace(/ cajita$/i, '') : x.nombre, fila); });
+  // (17-nov-2026) con cuentas configurables el "banco" de una tarjeta es su propio nombre («BBVA tarjeta») y salia como un banco aparte con
+  // $0.00 en verde arriba de lo que debe. Si se llama «<banco> tarjeta» y ese banco ya esta en la lista (fijo o agregado), su renglon va
+  // DENTRO de ese banco, como una cajita «<banco> cajita»; si no, su cuadrito dice que es una tarjeta y va sin total (soloTdc, abajo).
+  // Lo que debes nunca sumo al banco (neg): ningun total cambia. Van despues de las cuentas agregadas para encontrar su banco; por eso
+  // un cuadrito que es solo de una tarjeta ahora sale al final de los bancos (antes, entre los fijos y los agregados): primero donde
+  // esta tu dinero y despues lo que debes. Quien tiene la tarjeta dentro de un banco fijo (Nu, Revolut) la ve donde siempre
+  const bancoDeTdc = nom => { const b = String(nom).replace(/ tarjeta$/i, '').trim(), k = b.toLowerCase(); return b && k !== String(nom).toLowerCase() && bancos.has(k) ? bancos.get(k).nombre : nom; };
+  if (!ctaApagada('tarjeta') && Number.isFinite(state.tarjetaDeuda)) meter(bancoDeTdc(ctaReg('tarjeta').banco || 'Nu'), {prod: 'tarjeta de crédito', sub: 'lo que debes · corte el ' + CORTE_TJ, corte: CORTE_TJ, monto: fmt(state.tarjetaDeuda), neg: true});
+  if (!ctaApagada('tarjetaRev') && !tdcGarantizada()) meter(bancoDeTdc(ctaReg('tarjetaRev').banco || CUENTAS.tarjetaRev), {prod: 'tarjeta de crédito', sub: 'lo que debes · corte el ' + CORTE_TJREV, corte: CORTE_TJREV, monto: fmt(state.revTdcDeuda || 0), neg: true});
   // (28-oct-2026, Beto: "no se distingue qué es cada cosa") TODO va en un cuadrito igual: nombre, qué es y su total
   const caja = (tit, tipo, filas, total) => '<div class="mc-banco"><div class="item-row" style="border-bottom:0;padding-bottom:2px"><div style="min-width:0">' +
     '<div class="item-title" style="font-weight:600">' + e(tit) + '</div><div class="mc-tipo">' + e(tipo) + '</div></div>' +
@@ -13157,7 +13391,10 @@ function renderMisCuentas() {
     return {prod: x.nombre, sub: g > 0.005 ? 'incluye ≈' + fmt(g) + ' de interés estimado' : '', monto: fmt(v), valor: v}; });
   const posA = Object.entries(state.posiciones || {}).filter(([, p]) => p.acciones > 0);
   el.innerHTML = '<div class="mc-grid">' +
-    [...bancos.values()].map(b => caja(b.nombre, 'banco' + (b.pend ? PEND : ''), b.filas, fmt(b.total))).join('') +
+    // soloTdc: un cuadrito que solo trae una tarjeta de credito no es un banco con $0.00: dice que es una tarjeta, sin total
+    [...bancos.values()].map(b => { const soloTdc = b.filas.every(f => f.neg && f.corte !== undefined);
+      return soloTdc ? caja(b.nombre, 'tarjeta de crédito', b.filas.map(f => ({...f, prod: 'lo que debes', sub: 'corte el ' + f.corte})), '')
+        : caja(b.nombre, 'banco' + (b.pend ? PEND : ''), b.filas, fmt(b.total)); }).join('') +
     caja('Efectivo', 'billetes y monedas' + (efX.length ? ', también en otras monedas' : '') + (efPend ? PEND : ''), efectivo, fmt(efTot)) +
     (fondos.length ? caja('Fondos', 'apartados dentro de tus bancos: no los cuentes para gastar', fondos, fmt(fondos.reduce((t, x) => t + x.valor, 0))) : '') +
     (posA.length ? caja('Inversiones', 'bolsa', [{prod: posA.map(([k]) => k).join(', '), monto: 'ver en inversiones', otro: true}], '') : '') +
@@ -13234,10 +13471,10 @@ const AYUDA_BASE = [
     r:['Escribe solo lo que cambió y toca "Guardar". Las cuentas que tú agregaste salen ahí mismo, en una lista: toca la que quieras y usa "Guardar saldo" en su tarjeta.'],
     claves:'saldo saldos actualizar actualizo cambiar poner banco efectivo corregir corrijo capturar'},
   {id:'agregar', g:'cuentas', p:'¿Cómo agrego otra cuenta, en pesos o en otra moneda?', donde:'Perfil › Mis cuentas › Agregar una cuenta', ir:'agregar', boton:'ir a agregar una cuenta',
-    r:['Escribe el nombre, la "Moneda", el "Tipo" y el saldo de hoy, y toca "Agregar cuenta". Hay pesos, dólares de varios países, euros y yuanes; las de otra moneda se suman a tu total en pesos con el tipo de cambio del día. Luego sale en inicio y la puedes usar en gastos e ingresos.'],
+    r:['Elige qué vas a agregar ("Banco", "Cajita o savings", "Efectivo"), escribe el nombre, la "Moneda" y el saldo de hoy, y toca "Agregar cuenta". Hay pesos, dólares de varios países, euros y yuanes; las de otra moneda se suman a tu total en pesos con el tipo de cambio del día. Luego sale en inicio y la puedes usar en gastos e ingresos.'],
     claves:'agregar agrego anadir nueva otra cuenta cuentas banco bancos efectivo moneda extranjero extranjera dolar dolares euro euros yuan yuanes tipo de cambio'},
   {id:'cajita', g:'cuentas', p:'¿Cómo agrego una cajita o una cuenta que da intereses?', donde:'Perfil › Mis cuentas › Agregar una cuenta', ir:'cajita', boton:'ir a agregar una cajita',
-    r:['En "Tipo" elige "Cajita o savings (con interés)" y escribe la tasa anual que te paga. Fundview estima el interés con esa tasa; lo que manda es lo que diga tu banco. Si tu banco la cambia, usa "Cambiar tasa" en la misma pantalla. Si tu cuenta te retiene ISR, escríbelo en "Retención de ISR"; si no lo escribes, no se descuenta nada.'],
+    r:['En "Agregar una cuenta" elige "Cajita o savings" y escribe la tasa anual que te paga. Fundview estima el interés con esa tasa; lo que manda es lo que diga tu banco. Si tu banco la cambia, usa "Cambiar tasa" en la misma pantalla. Si tu cuenta te retiene ISR, escríbelo en "Retención de ISR"; si no lo escribes, no se descuenta nada.'],
     claves:'cajita cajitas savings ahorro ahorros interes intereses tasa rendimiento rendimientos porcentaje apartado'},
   {id:'cuadra', g:'cuentas', correo:true, p:'Mi cajita no cuadra con mi banco', donde:'Inicio › Actualizar saldos', ir:'saldos', boton:'ir a actualizar saldos',
     r:['El interés de una cajita es un estimado y Fundview solo suma lo que anotas: puede diferir de tu banco, que es el que manda.', 'Si es solo el interés y no falta ningún movimiento, escribe el saldo de tu app en "Actualizar saldos" o "Guardar saldo". Si retiene ISR, anótalo en "Retención de ISR".', 'Si la diferencia no es de intereses (por ejemplo, falta o sobra un movimiento), revisa Movimientos o escríbenos.'],
@@ -13246,7 +13483,7 @@ const AYUDA_BASE = [
     r:['En la pestaña "Calendario" ves cada día del mes con lo que gastaste y lo que viene: tus suscripciones y el corte de tus tarjetas. Toca un día para ver sus movimientos. Arriba eliges si ves todo, lo que ya fue o lo que viene.'],
     claves:'calendario vienen viene proximo proximos cobros'},
   {id:'poner-tarjeta', g:'cuentas', p:'¿Cómo pongo mi tarjeta de crédito?', donde:'Perfil › Mis cuentas › Agregar una cuenta', ir:'ponerTarjeta', boton:'ir a agregar mi tarjeta',
-    r:['En "Agregar una cuenta", en "Tipo" elige "Tarjeta de crédito". Escribe su nombre y tu día de corte, y si quieres lo que debes hoy, y toca "Agregar tarjeta". Caben dos tarjetas; después les cambias el nombre o el corte en "Tus cuentas fijas". Lo que debes sale en inicio, en rojo bajo tu total.'],
+    r:['En "Agregar una cuenta" elige "Tarjeta de crédito". Escribe su nombre y tu día de corte, y si quieres lo que debes hoy, y toca "Agregar tarjeta". Caben dos tarjetas; después les cambias el nombre o el corte en "Tus cuentas fijas". Lo que debes sale en inicio, en rojo bajo tu total.'],
     claves:'poner pongo agregar agrego anadir alta nueva tarjeta tarjetas credito tdc donde encuentro'},
   {id:'fijas', g:'cuentas', p:'¿Cómo enciendo, apago o le cambio el nombre a una cuenta?', donde:'Perfil › Mis cuentas › Tus cuentas fijas', ir:'fijas', boton:'ir a tus cuentas fijas',
     r:['Ahí enciendes tus tarjetas y tus cuentas fijas, les pones nombre y tocas "Guardar cuentas". Una cuenta con dinero no se apaga: primero vacíala. Las que agregaste tú se nombran y se apagan en "Cuentas que tú agregas".'],
@@ -13360,6 +13597,22 @@ const AYUDA_DIRECTAS = [[/\bagreg\w* (un |otro |mi )?banco\b/, 'agregar'],
   [/\b(cerr\w*|cierr\w*)\b.*\bsesion\b|\bsesion\b.*\b(cerr\w*|cierr\w*)\b|\blog ?out\b|\bsign ?out\b|\bdeslogue\w*|^(como |donde )?(salir|salgo|me salgo)( de (la |mi )?(app|aplicacion|cuenta|fundview|sesion))?$|\bquiero salir\b(?! de (?!(la |mi )?(app|aplicacion|fundview|sesion|cuenta)\b))|\bsalir de (la |mi )?(app|aplicacion|fundview|sesion)\b/, 'salir'],
   [/\bcomo sabe\b/, 'conexion'], [/\bcuanto gast\w*/, 'resumen'], [/^(que es|que es esto|que es esta|que es la app|que es esta app|que es fundview|que hace|que hace fundview|de que se trata|para que es|para que sirve|para que sirve esto|para que sirve fundview|como funciona|como funciona fundview)$/, 'que-es'],
   [/\bcuanto tengo\b|\bdonde esta (mi|el) dinero\b/, 'total'], [/^(como (la |se |lo )?us[oa]( fundview| la app| esta app| esto)?|soy nuev[oa])$/, 'empezar'], [/\b(cambi\w*|olvid\w*|nueva) (mi |la )?clave\b/, 'contrasena']];
+// (17-nov-2026, calificacion con usuario-real) CUANDO FUNDVIEW COBRA (CFG.cobro: ayudaCobro.on lo prende quien monta la pestaña Suscripción), "pagar",
+// "cancelar", "factura" y "ya transferí" hablan del cobro de Fundview antes que de los pagos fijos de la persona. "Cómo cancelo" NUNCA lleva a borrar la
+// cuenta: quien solo queria dejar de pagar perderia todo lo que anoto. Lo que nombra un pago suyo (tarjeta, deuda, un pago fijo) sigue su camino de siempre.
+// Corre ANTES de AYUDA_ESCALAR ("factura" suena a impuestos y "ya pagué y no me sale" a un dato perdido: aqui son del cobro)
+const ayudaCobro = {on: false};
+const AYUDA_SUYO = /\b(tarjeta|tarjetas|tdc|deuda|deudas|prestamo|renta|pago fijo|pagos fijos|plataforma|gimnasio|gym|luz|agua|telefono|celular|internet)\b/;
+const AYUDA_PAGO = [
+  /^(como|donde|cuando|a quien|con que|cuanto) (pago|se paga|pagar|le pago|les pago|hay que pagar|tengo que pagar)$/,
+  /\b(pag\w*|transfer\w*|deposit\w*|cobr\w*)\b.*\b(fundview|la app|esta app|la aplicacion|mensualidad|mi suscripcion|la suscripcion)\b|\b(fundview|la app|esta app|la aplicacion)\b.*\b(pag\w*|cobr\w*|cuesta|cobro)\b/,
+  /\bsi no pago\b|\bno (quiero|puedo|voy a) pagar\b|\bdejar de pagar\b|\bdej\w* de pagar\b/,
+  /\bya (pague|transferi|deposite|hice (la|mi) transferencia)\b/,
+  /\b(cancel\w*|dar(me|se|la|lo)? de baja|me doy de baja)\b/,
+  /\bfactur\w*/,
+  /\bclabe\b|\bclave de rastreo\b|\bcomprobante\b|\bcaptura de (mi |la )?transferencia\b/,
+];
+const ayudaEsPago = n => ayudaCobro.on && !AYUDA_SUYO.test(n) && AYUDA_PAGO.some(re => re.test(n));
 // esto suena a una base, pero no lo es: al correo
 const AYUDA_NO_ES = /\bseguro de\b|\bcorreo\b|\bdueno\b/;
 const AYUDA_RAZON = {
@@ -13414,6 +13667,7 @@ function ayParecida(t, ix) {
 function buscarAyuda(q, parcial) {
   const n = ayNorm(q);
   if (!n) return {tipo: 'vacio'};
+  if (ayudaEsPago(n)) return {tipo: 'respuesta', ids: ['cuesta']};
   for (const r of AYUDA_ESCALAR) {
     if (!r.re.test(n)) continue;
     if (r.siUso === false && AYUDA_USO.test(n)) continue;
@@ -13489,6 +13743,7 @@ const AYUDA_IR = {
   borrar: () => { ayPerfil(); return ayEl('fv-btn-borrar'); },
   legal: () => { fvLegal(); return null; },
 };
+const ayAquiReloj = new WeakMap();   // elemento señalado -> el reloj que le quita la marca
 function ayudaIr(k) {
   const f = AYUDA_IR[k]; if (!f) return;
   const v = ayEl('ay-volver'), el = f();
@@ -13498,7 +13753,10 @@ function ayudaIr(k) {
   if (!el.matches('button,a,input,select,summary,[tabindex]')) el.setAttribute('tabindex', '-1');
   el.focus({preventScroll: true});
   el.classList.add('ay-aqui');
-  setTimeout(() => el.classList.remove('ay-aqui'), 2400);
+  // (17-nov-2026) si dos respuestas seguidas señalan lo mismo (por ejemplo "agregar una cuenta" y "poner mi tarjeta"), el reloj de la
+  // primera ya no le quita la marca a la segunda antes de tiempo
+  clearTimeout(ayAquiReloj.get(el));
+  ayAquiReloj.set(el, setTimeout(() => el.classList.remove('ay-aqui'), 2400));
 }
 async function ayudaCopiar(b) {
   const est = ayEl('ay-estado');
@@ -13623,7 +13881,8 @@ function fvCobroPintarEstado() {
     return;
   }
   if (!f) {
-    caja.innerHTML = '<p class="cobro-txt"><b>Todavía no hay un pago registrado.</b></p><p class="cobro-txt">Puedes seguir usando Fundview igual. Si quieres pagar, abajo está cómo.</p>';
+    caja.innerHTML = (fvPagoPendiente() ? '<p class="cobro-txt"><b>Recibimos tu aviso de pago y lo estamos revisando.</b></p><p class="cobro-txt">Cuando lo confirmemos, aquí vas a ver hasta qué fecha está pagado.</p>'
+      : '<p class="cobro-txt"><b>Todavía no hay un pago registrado.</b></p><p class="cobro-txt">Puedes seguir usando Fundview igual. Si quieres pagar, abajo está cómo.</p>');
     return;
   }
   const dias = fvCobroDias(f), plan = FV_COBRO_PLANES[fvCobro.d.plan] || '';
@@ -13654,9 +13913,14 @@ function fvCobroPintarPago() {
   const f = document.getElementById('cobro-factura'); f.textContent = k.factura || ''; f.hidden = !k.factura;
   // la referencia: la del documento, o la que sale del uid cuando el servidor ya dijo que aun no hay documento. Nada sale de una copia que no sabe
   const ref = (fvCobro.existe && fvCobro.d && fvCobro.d.referencia) || (fvCobro.cargado && !fvCobro.desdeCache && !fvCobro.error && !fvCobro.existe ? fvCobro.ref : null);
+  // (12-nov-2026, Beto) en el concepto va el NOMBRE COMPLETO de quien tiene la cuenta, no la referencia: es lo que Beto ve en su banco junto al remitente
+  const nom = fvNombreVisto(), con = document.getElementById('cobro-concepto');
+  if (con) con.innerHTML = nom
+    ? fvCobroFila('Concepto: tu nombre completo', nom, 'concepto') + '<p class="cobro-txt" style="margin-top:10px">Escríbelo tal cual en el concepto de tu transferencia. Si no es tu nombre completo, cámbialo antes en tu perfil.</p>'
+    : '<p class="cobro-txt"><b>Antes de transferir, escribe tu nombre completo en tu perfil.</b> Es lo que va en el concepto: así sabemos que el pago es tuyo.</p>';
   const caja = document.getElementById('cobro-ref');
-  if (ref) caja.innerHTML = fvCobroFila('Tu referencia (ponla en el concepto)', ref, 'ref') + '<p class="cobro-txt" style="margin-top:10px">Con ella sabemos que el pago es tuyo. No lleva ningún dato tuyo. Te marcamos el pago a mano: puede tardar unos días en verse aquí.</p>';
-  else caja.innerHTML = '<p class="cobro-txt">Tu referencia aparece cuando haya señal. Sin ella no sabríamos que el pago es tuyo: mejor espera a verla.</p>';
+  if (ref) caja.innerHTML = fvCobroFila('Tu referencia', ref, 'ref') + '<p class="cobro-txt" style="margin-top:10px">Si nos escribes por tu pago, dinos esta referencia. No lleva ningún dato tuyo.</p>';
+  else caja.innerHTML = '<p class="cobro-txt">Tu referencia aparece cuando haya señal.</p>';
 }
 function fvCobroPintarAviso() {
   const a = document.getElementById('cobro-aviso');
@@ -13690,6 +13954,220 @@ function fvCobroEscuchar() {
   fvCobro.inicio = Date.now();
   return onSnapshot(FV_COBRO_DOC(), {includeMetadataChanges: true}, snap => fvCobroRecibir(snap, snap.metadata.fromCache), () => { fvCobro.error = true; fvCobroPintar(); });
 }
+// ── "YA TRANSFERI" (12-nov-2026, plan-cobro; decisiones de Beto del 12-nov 10:25 y 10:30) ──
+// La app no ve la transferencia (pasa en la app del banco de la persona): pide lo que la persona REPORTA y lo revisa Beto a mano
+// (avisos-pago.mjs). Dos candados contra dos cuentas con la misma transferencia, en las reglas (nota 4g): la huella de la clave de rastreo
+// (la calcula la regla) y la de la captura; una cuenta solo la repite si Beto rechazo el aviso anterior. Que el concepto sea el nombre del perfil,
+// que el monto sea el del plan y que la fecha no pase de 30 dias se revisan SOLO aqui, en la app (las reglas solo validan la forma): lo que llegue
+// por otro camino lo compara Beto contra Revolut. Nada de esto bloquea la app: es un aviso.
+// usuarios/<uid>/pagos/<id> lo crea la persona y nunca lo cambia; la captura va a Storage (usuarios/<uid>/pagos/<id>.jpg, storage.rules).
+// <fv-pago-puras> (funciones puras: test-pago.mjs las corre en Node)
+const fvPagoNormClave = v => String(v == null ? '' : v).toUpperCase().replace(/[\s\-‐-―−.]/g, '');
+const fvPagoNormNombre = v => String(v == null ? '' : v).normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[.'’\-]/g, ' ').replace(/\s+/g, ' ').trim();
+const fvPagoFechaOk = f => { if (typeof f !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(f)) return false; const t = Date.parse(f + 'T00:00:00Z'); return !Number.isNaN(t) && new Date(t).toISOString().slice(0, 10) === f; };
+const fvPagoPesos = n => '$' + Number(n).toLocaleString('en-US');
+// c: lo escrito (clave, monto, fecha, hora, concepto, otro, pagador, imagen). k: {hoy:'AAAA-MM-DD', ahora:'HH:MM' (hora de Mexico), nombre (el del perfil), precios:[mes, año]}
+function fvPagoValidar(c, k) {
+  const e = {}, d = {};
+  if (!c.imagen) e.img = 'Adjunta la captura de tu transferencia.';
+  const clave = fvPagoNormClave(c.clave);
+  if (!clave) e.clave = 'Escribe la clave de rastreo. Viene en el comprobante de tu banco.';
+  else if (!/^[A-Z0-9]{8,30}$/.test(clave)) e.clave = 'Esa clave de rastreo no se ve bien. Revísala en tu comprobante: son de 8 a 30 letras y números.';
+  else d.clave = clave;
+  const precios = (k.precios || []).filter(n => Number.isInteger(n) && n > 0), monto = Number(c.monto);
+  if (!precios.includes(monto)) e.monto = 'El monto tiene que ser ' + precios.map(fvPagoPesos).join(' o ') + '.';
+  else d.monto = monto;
+  if (!c.fecha) e.fecha = 'Escribe la fecha de tu transferencia.';
+  else if (!fvPagoFechaOk(c.fecha)) e.fecha = 'Esa fecha no existe.';
+  else {
+    const dias = Math.round((Date.parse(k.hoy + 'T00:00:00Z') - Date.parse(c.fecha + 'T00:00:00Z')) / 86400000);
+    if (dias < 0) e.fecha = 'Esa fecha todavía no llega.';
+    else if (dias > 30) e.fecha = 'Esa transferencia es de hace más de 30 días. Escríbenos desde Perfil › Ayuda y lo vemos.';
+    else d.fecha = c.fecha;
+  }
+  if (!c.hora) e.hora = 'Escribe la hora de tu transferencia, como sale en tu comprobante.';
+  else if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(c.hora)) e.hora = 'Esa hora no se ve bien.';
+  else if (d.fecha && d.fecha === k.hoy && c.hora > k.ahora) e.hora = 'Esa hora todavía no llega.';
+  else d.hora = c.hora;
+  const nombre = fvPagoNormNombre(k.nombre), concepto = String(c.concepto || '').replace(/[\p{Cc}\s]+/gu, ' ').trim();
+  if (!nombre) e.concepto = 'Primero escribe tu nombre completo en tu perfil: es lo que va en el concepto.';
+  else if (!concepto) e.concepto = 'Escribe lo que pusiste en el concepto.';
+  else if (fvPagoNormNombre(concepto) !== nombre) e.concepto = 'En el concepto va tu nombre completo, como en tu perfil: ' + String(k.nombre).trim() + '. Si tu transferencia ya salió con otro concepto, no la repitas: escríbenos desde Perfil › Ayuda.';
+  else d.concepto = concepto.slice(0, 80);
+  if (c.otro) {
+    const p = String(c.pagador || '').replace(/[\p{Cc}\s]+/gu, ' ').trim();
+    if (p.length < 2 || p.length > 80 || !/\p{L}/u.test(p)) e.pagador = 'Escribe el nombre completo de quien hizo la transferencia.';
+    else d.pagador = p;
+  }
+  return {errores: e, datos: d, ok: !Object.keys(e).length};
+}
+// (16-nov-2026, auditoria del cobro) el id de un aviso es AAAA-MM-n, con n de 1 a 5: las reglas no dejan mas de FV_PAGOS_MES avisos por cuenta al mes
+// (sin ese tope una cuenta podia inundar la revision y apartar huellas ajenas). 'mes' es AAAA-MM en UTC, como lo ve la regla; 'usados', los ids que ya existen
+const FV_PAGOS_MES = 5;
+const fvPagoMes = ms => new Date(ms).toISOString().slice(0, 7);
+const fvPagoIdsLibres = (mes, usados) => { const u = new Set(usados || []), l = []; for (let k = 1; k <= FV_PAGOS_MES; k++) if (!u.has(mes + '-' + k)) l.push(mes + '-' + k); return l; };
+// </fv-pago-puras>
+const FV_PAGOS_COL = () => collection(db, 'usuarios', CFG.uid, 'pagos');
+const fvPago = {lista: [], cargado: false, error: false, img: null, enviando: false};
+const fvPagoPlazo = (p, ms) => Promise.race([p, new Promise((_, no) => setTimeout(() => no(Object.assign(new Error('plazo'), {code: 'fv/plazo'})), ms))]);
+const fvPagoAhora = () => { try { return new Intl.DateTimeFormat('en-GB', {timeZone: 'America/Mexico_City', hour: '2-digit', minute: '2-digit', hourCycle: 'h23'}).format(new Date()); } catch (e) { const d = new Date(); return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0'); } };
+// Storage solo se baja cuando hace falta (mandar un aviso o borrar la cuenta con capturas): nadie mas paga su peso
+let fvStMod = null;
+async function fvStorage() {
+  if (!fvStMod) { const m = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js'); const fvSt = m.getStorage(app); fvStMod = {m, s: fvSt}; }
+  return fvStMod;
+}
+const fvPagoRuta = id => 'usuarios/' + CFG.uid + '/pagos/' + id + '.jpg';
+// la captura se achica en el aparato: JPEG de 1600 px de lado como mucho y menos de 1 MB (tope de las reglas: 1.5 MB). Lo que no se pueda abrir, se dice
+async function fvPagoImagen(archivo) {
+  if (!archivo || !/^image\//.test(archivo.type || 'image/')) throw Object.assign(new Error('no es imagen'), {code: 'fv/no-imagen'});
+  if (archivo.size > 25 * 1024 * 1024) throw Object.assign(new Error('muy grande'), {code: 'fv/muy-grande'});
+  let bmp;
+  try { bmp = await createImageBitmap(archivo); } catch (e) { throw Object.assign(new Error('no abre'), {code: 'fv/no-imagen'}); }
+  const intentos = [[1600, 0.82], [1600, 0.7], [1280, 0.7], [1024, 0.6]];
+  let blob = null;
+  for (const [lado, cal] of intentos) {
+    const f = Math.min(1, lado / Math.max(bmp.width, bmp.height)), w = Math.max(1, Math.round(bmp.width * f)), h = Math.max(1, Math.round(bmp.height * f));
+    const cv = document.createElement('canvas'); cv.width = w; cv.height = h;
+    const cx = cv.getContext('2d'); cx.fillStyle = '#fff'; cx.fillRect(0, 0, w, h); cx.drawImage(bmp, 0, 0, w, h);
+    blob = await new Promise(r => cv.toBlob(r, 'image/jpeg', cal));
+    if (blob && blob.size < 1024 * 1024) break;
+  }
+  if (bmp.close) bmp.close();
+  if (!blob || blob.size >= 1400 * 1024) throw Object.assign(new Error('no cabe'), {code: 'fv/muy-grande'});
+  const b = await crypto.subtle.digest('SHA-256', await blob.arrayBuffer());
+  return {blob, hash: [...new Uint8Array(b)].map(x => x.toString(16).padStart(2, '0')).join('')};
+}
+const FV_PAGO_EST = {pendiente: 'Lo estamos revisando', confirmado: 'Confirmado', rechazado: 'No lo pudimos confirmar'};
+function fvPagoPintarLista() {
+  const caja = document.getElementById('cobro-avisos');   // un aviso con hp (hasPendingWrites) solo esta en este aparato: no llego al servidor
+  if (!caja) return;
+  if (!fvPago.cargado) { caja.innerHTML = fvPago.error ? '<p class="cobro-txt">No se pudieron cargar tus avisos de pago. Hace falta señal.</p>' : ''; return; }
+  if (!fvPago.lista.length) { caja.innerHTML = '<p class="cobro-txt">Cuando hayas transferido, avísanos aquí con tu captura y la clave de rastreo de tu comprobante.</p>'; return; }
+  caja.innerHTML = fvPago.lista.slice(0, 6).map(p => {
+    const est = p.hp ? 'Enviando… falta señal' : (FV_PAGO_EST[p.estado] || FV_PAGO_EST.pendiente);
+    const motivo = p.estado === 'rechazado' ? '<div>' + escapeHtml(String(p.motivo || 'Revisa tus datos.').slice(0, 200)) + ' Puedes volver a avisar.</div>' : '';
+    const det = [fvPagoFechaOk(p.fecha) ? fvCobroFechaTxt(p.fecha) + (p.hora ? ', ' + p.hora : '') : '', Number.isFinite(p.monto) ? fvPagoPesos(p.monto) : '', typeof p.clave === 'string' ? 'Clave ' + p.clave : ''].filter(Boolean).join(' · ');
+    return '<div class="cobro-av"><div class="cobro-av-est">' + escapeHtml(est) + '</div>' + motivo + '<div class="cobro-av-det">' + escapeHtml(det) + '</div></div>';
+  }).join('');
+}
+function fvPagosEscuchar() {
+  return onSnapshot(query(FV_PAGOS_COL(), orderBy('creado', 'desc'), limit(10)), {includeMetadataChanges: true}, snap => {
+    fvPago.lista = snap.docs.map(d => ({...d.data(), id: d.id, hp: d.metadata.hasPendingWrites})); fvPago.cargado = true; fvPago.error = false; fvPagoPintarLista(); fvCobroPintarEstado();
+  }, () => { fvPago.error = true; fvPagoPintarLista(); });
+}
+// solo cuenta el que el servidor ya tiene: uno en cola (hp) no es "recibido"
+const fvPagoPendiente = () => fvPago.lista.some(p => p.estado === 'pendiente' && !p.hp);
+function fvPagoErrores(e) {
+  for (const k of ['img', 'clave', 'monto', 'fecha', 'hora', 'concepto', 'pagador']) {
+    const p = document.getElementById('cobro-e-' + k), campo = document.getElementById('cobro-f-' + (k === 'img' ? 'img' : k));
+    if (p) { p.textContent = e[k] || ''; p.hidden = !e[k]; }
+    if (campo) { if (e[k]) { campo.setAttribute('aria-invalid', 'true'); campo.setAttribute('aria-describedby', 'cobro-e-' + k); } else { campo.removeAttribute('aria-invalid'); campo.removeAttribute('aria-describedby'); } }
+  }
+}
+function fvPagoErrorEnvio(t) { const p = document.getElementById('cobro-e-envio'); if (p) { p.textContent = t || ''; p.hidden = !t; } }
+function fvPagoPrepararForm() {
+  const k = CFG.cobro, sel = document.getElementById('cobro-f-monto');
+  if (sel && !sel.options.length) {
+    sel.innerHTML = '<option value="">Elige</option><option value="' + Number(k.precioMes) + '">' + fvPagoPesos(k.precioMes) + ' · un mes</option><option value="' + Number(k.precioAnio) + '">' + fvPagoPesos(k.precioAnio) + ' · un año</option>';
+  }
+  const f = document.getElementById('cobro-f-fecha'), h = fvCobroHoy();
+  if (f) { f.max = h; if (!f.value) f.value = h; }
+}
+async function fvPagoMandar(ev) {
+  if (ev) ev.preventDefault();
+  if (fvPago.enviando) return;
+  fvPagoErrorEnvio('');
+  const val = id => (document.getElementById(id) || {}).value || '';
+  const c = {imagen: !!fvPago.img, clave: val('cobro-f-clave'), monto: val('cobro-f-monto'), fecha: val('cobro-f-fecha'), hora: val('cobro-f-hora'), concepto: val('cobro-f-concepto'),
+    otro: !!(document.getElementById('cobro-f-otro') || {}).checked, pagador: val('cobro-f-pagador')};
+  const r = fvPagoValidar(c, {hoy: fvCobroHoy(), ahora: fvPagoAhora(), nombre: fvNombreVisto() || '', precios: [Number(CFG.cobro.precioMes), Number(CFG.cobro.precioAnio)]});
+  fvPagoErrores(r.errores);
+  if (!r.ok) { const pri = document.querySelector('#cobro-form [aria-invalid=true]'); if (pri) pri.focus(); return; }
+  if (navigator.onLine === false) return fvPagoErrorEnvio('Hace falta señal para mandar tu aviso. No se mandó nada.');
+  // (16-nov-2026) el id es de los cinco de este mes: sin saber cuales ya use no se manda (la lista llega sola; si no ha llegado, se dice)
+  if (fvPago.error) return fvPagoErrorEnvio('No pudimos cargar tus avisos. Recarga la página y vuelve a intentarlo.');
+  if (!fvPago.cargado) return fvPagoErrorEnvio('Todavía no cargan tus avisos. Vuelve a intentarlo en un momento.');
+  const libres = fvPagoIdsLibres(fvPagoMes(Date.now()), fvPago.lista.map(p => p.id));
+  if (!libres.length) return fvPagoErrorEnvio('Este mes ya mandaste ' + FV_PAGOS_MES + ' avisos, que es el tope. Si te falta avisar un pago, escríbenos desde Perfil › Ayuda.');
+  const btn = document.getElementById('cobro-f-mandar'), img = fvPago.img;
+  fvPago.enviando = true; btn.disabled = true; btn.textContent = 'Mandando…';
+  let id = libres[0];
+  let subida = false, lotando = false, enviado = false;
+  try {
+    const claveHash = await fvHash(r.datos.clave), imgHash = img.hash;
+    // las huellas: si otra cuenta ya las aparto, las reglas niegan leerlas (las propias y las que no existen se leen). Asi el aviso dice por que.
+    // Si es PROPIA, solo se puede repetir cuando Beto ya rechazo ese aviso (las reglas lo exigen): con el aviso pendiente, confirmado o sin rastro, no se manda
+    for (const [col, h, txt, ya] of [['pagosUsados', claveHash, 'Esa transferencia ya se avisó en otra cuenta. Si es tuya, escríbenos desde Perfil › Ayuda.', 'Esa transferencia ya la avisaste. Si te equivocaste en un dato, no hace falta mandar otro aviso: lo revisamos contra el banco.'], ['pagosImg', imgHash, 'Esa captura ya se usó en otra cuenta. Si es tuya, escríbenos desde Perfil › Ayuda.', 'Esa captura ya la avisaste. Si te equivocaste en un dato, no hace falta mandar otro aviso: lo revisamos contra el banco.']]) {
+      try {
+        const sn = await fvPagoPlazo(getDocFromServer(doc(db, col, h)), 15000);
+        if (sn.exists()) {
+          const pid = String((sn.data() || {}).pago || '');
+          const av = /^[A-Za-z0-9_-]{1,64}$/.test(pid) ? await fvPagoPlazo(getDocFromServer(doc(db, 'usuarios', CFG.uid, 'pagos', pid)), 15000) : null;
+          if (!av || !av.exists() || av.data().estado !== 'rechazado') throw Object.assign(new Error('huella propia'), {code: 'fv/huella', texto: ya});
+        }
+      }
+      catch (e) { if (e && e.code === 'permission-denied') throw Object.assign(new Error('huella ajena'), {code: 'fv/huella', texto: txt}); throw e; }
+    }
+    const {m, s} = await fvStorage();
+    // un nombre puede estar ocupado por una captura que no llego a ser aviso (una subida que se corto): las reglas no dejan reemplazarla, se usa el siguiente
+    for (let i = 0; i < libres.length && !subida; i++) {
+      id = libres[i];
+      try { await fvPagoPlazo(m.uploadBytes(m.ref(s, fvPagoRuta(id)), img.blob, {contentType: 'image/jpeg'}), 90000); subida = true; }
+      catch (e) { if (!e || e.code !== 'storage/unauthorized' || i === libres.length - 1) throw e; }
+    }
+    const lote = writeBatch(db), datos = {...r.datos, claveHash, imgHash, creado: serverTimestamp(), estado: 'pendiente'};
+    lote.set(doc(db, 'usuarios', CFG.uid, 'pagos', id), datos);
+    lote.set(doc(db, 'pagosUsados', claveHash), {uid: CFG.uid, pago: id});
+    lote.set(doc(db, 'pagosImg', imgHash), {uid: CFG.uid, pago: id});
+    lotando = true;
+    await fvPagoPlazo(lote.commit(), 20000);
+    enviado = true;
+  } catch (e) {
+    const code = e && e.code;
+    // con el plazo agotado el lote quedo en la cola de Firestore y sale solo al volver la señal: no se borra la captura (la necesita) y no se manda otra vez
+    if (code === 'fv/plazo' && lotando) { fvPagoErrorEnvio('Tu aviso quedó en espera de señal. No lo mandes otra vez: se envía solo cuando vuelva la señal.'); }
+    else if (!enviado) {
+      // (16-nov-2026, revision) solo se quita la captura que ESTE intento subio. Con el nombre fijo (AAAA-MM-n) un plazo agotado ya no dice de quien es ese
+      // nombre: puede ser la captura de otro aviso que esta lista todavia no trae. Una subida que se corto y llega despues queda huerfana y la quita el barrido diario
+      if (subida) { try { const {m, s} = await fvStorage(); await m.deleteObject(m.ref(s, fvPagoRuta(id))); } catch (x) {} }
+      fvPagoErrorEnvio(code === 'fv/huella' ? e.texto
+        : code === 'permission-denied' || code === 'storage/unauthorized' ? 'No se pudo mandar tu aviso. Revisa tus datos y que la fecha de tu teléfono esté bien, y vuelve a intentarlo; si sigue, escríbenos desde Perfil › Ayuda.'
+        : 'No se pudo mandar tu aviso: hace falta señal. Vuelve a intentarlo en un momento.');
+      console.warn('fundview: aviso de pago', code || '');
+    }
+  } finally {
+    fvPago.enviando = false; btn.disabled = false; btn.textContent = 'Mandar aviso';
+  }
+  // fuera del try: un error de la pantalla no puede hacer pasar por fallido un aviso que ya llego (y borrarle la captura)
+  if (enviado) {
+    fvPagoLimpiarForm();
+    showToast('Listo: recibimos tu aviso. Lo revisamos y aquí te decimos.');
+  }
+}
+function fvPagoLimpiarForm() {
+  const form = document.getElementById('cobro-form');
+  if (!form) return;
+  form.reset(); fvPago.img = null; fvPagoErrores({}); fvPagoErrorEnvio('');
+  const v = document.getElementById('cobro-f-vista'); if (v.src) URL.revokeObjectURL(v.src); v.removeAttribute('src'); v.hidden = true;
+  document.getElementById('cobro-f-pagador-fila').hidden = true;
+  form.hidden = true; const b = document.getElementById('cobro-ya-btn'); b.hidden = false; b.setAttribute('aria-expanded', 'false');
+  fvPagoPrepararForm();
+}
+async function fvPagoElegirImagen(ev) {
+  const input = ev.target, archivo = input.files && input.files[0], v = document.getElementById('cobro-f-vista');
+  fvPago.img = null; if (v.src) URL.revokeObjectURL(v.src); v.removeAttribute('src'); v.hidden = true;
+  if (!archivo) return;
+  try {
+    fvPago.img = await fvPagoImagen(archivo);
+    v.src = URL.createObjectURL(fvPago.img.blob); v.hidden = false;
+    const p = document.getElementById('cobro-e-img'); p.textContent = ''; p.hidden = true; input.removeAttribute('aria-invalid'); input.removeAttribute('aria-describedby');
+  } catch (e) {
+    input.value = '';
+    const t = e && e.code === 'fv/muy-grande' ? 'Esa imagen es demasiado grande. Manda una captura de pantalla de tu comprobante.' : 'No pude abrir esa imagen. Manda una captura de pantalla de tu comprobante (JPG o PNG).';
+    const p = document.getElementById('cobro-e-img'); p.textContent = t; p.hidden = false; input.setAttribute('aria-invalid', 'true');
+  }
+}
 if (CFG.multi && CFG.cobro) {
   const pl = ayEl('fv-cobro-plantilla'), hueco = ayEl('perfil-sub-cuentas'), tabs = ayEl('perfil-subtabs');
   if (pl && hueco && tabs) {
@@ -13710,8 +14188,21 @@ if (CFG.multi && CFG.cobro) {
     });
     // con cobro, la ayuda ya no dice que es gratis
     const q = AYUDA_BASE.find(x => x.id === 'cuesta');
-    if (q) Object.assign(q, {donde: 'Perfil › Suscripción', ir: 'cobro', boton: 'ir a tu suscripción', r: ['El precio y cómo pagar están en "Tu suscripción". Es una transferencia desde tu banco y no se renueva sola. Si no pagas, no se cobra nada.']});
+    if (q) Object.assign(q, {p: '¿Cuánto cuesta Fundview y cómo lo pago?', donde: 'Perfil › Suscripción', ir: 'cobro', boton: 'ir a tu suscripción',
+      r: ['El precio y cómo pagar están en "Tu suscripción": una transferencia desde tu banco, con tu nombre completo en el concepto. Después toca "Ya transferí" y manda tu captura; lo revisamos a mano y ahí verás hasta cuándo quedó pagado.',
+        'No se renueva sola: para cancelar, no pagues y listo. Si no pagas, la app sigue igual. ' + String(CFG.cobro.factura || ''),
+        'Tus propios pagos fijos se anotan en Movimientos › Suscripciones.'],
+      claves: 'cuesta costo precio gratis cobran cobrar pagar pago pague mensualidad transferencia transferi cancelar cancelo baja factura clabe rastreo comprobante suscripcion'});
+    ayudaCobro.on = true;
     AYUDA_IR.cobro = () => { showPage('perfil'); perfilSub('cobro'); return ayEl('cobro-estado'); };
+    // "ya transferi" (12-nov-2026)
+    const yaBtn = ayEl('cobro-ya-btn'), form = ayEl('cobro-form');
+    yaBtn.addEventListener('click', () => { fvPagoPrepararForm(); form.hidden = false; yaBtn.hidden = true; yaBtn.setAttribute('aria-expanded', 'true'); ayEl('cobro-f-img').focus(); });
+    form.addEventListener('submit', fvPagoMandar);
+    ayEl('cobro-f-img').addEventListener('change', fvPagoElegirImagen);
+    ayEl('cobro-f-clave').addEventListener('blur', e => { const v = fvPagoNormClave(e.target.value); if (v) e.target.value = v; });
+    ayEl('cobro-f-otro').addEventListener('change', e => { ayEl('cobro-f-pagador-fila').hidden = !e.target.checked; if (e.target.checked) ayEl('cobro-f-pagador').focus(); });
+    fvPagoPintarLista();
     fvCobroPintar();
   }
 }
@@ -13719,9 +14210,15 @@ if (CFG.multi && CFG.cobro) {
 async function fvCobroParaExportar() {
   try {
     const s = await conPlazoEntrada(getDoc(FV_COBRO_DOC()));
-    if (!s.exists()) return null;
+    // (12-nov-2026) los avisos de "ya transferi" tambien son suyos: van sin las huellas (no le dicen nada) y sin la captura (la tiene ella)
+    let avisos = [];
+    try {
+      const q = await conPlazoEntrada(getDocs(query(collection(db, 'usuarios', CFG.uid, 'pagos'), limit(100))));
+      avisos = q.docs.map(x => { const a = x.data(); return {clave: a.clave || null, monto: a.monto ?? null, fecha: a.fecha || null, hora: a.hora || null, concepto: a.concepto || null, pagador: a.pagador || null, estado: a.estado || null, motivo: a.motivo || null, creado: a.creado && a.creado.toDate ? a.creado.toDate().toISOString() : null}; });
+    } catch (e) {}
+    if (!s.exists()) return avisos.length ? {pagadoHasta: null, plan: null, referencia: null, actualizado: null, avisos} : null;
     const d = s.data();
-    return {pagadoHasta: d.pagadoHasta || null, plan: d.plan || null, referencia: d.referencia || null, actualizado: d.actualizado && d.actualizado.toDate ? d.actualizado.toDate().toISOString() : null};
+    return {pagadoHasta: d.pagadoHasta || null, plan: d.plan || null, referencia: d.referencia || null, actualizado: d.actualizado && d.actualizado.toDate ? d.actualizado.toDate().toISOString() : null, avisos};
   } catch (e) { return null; }
 }
 function aplicarVisibilidadAmigos(){
@@ -14368,6 +14865,8 @@ window.exportarMisDatosExcel = async function() {
       const cobroX = CFG.cobro ? await fvCobroParaExportar() : null;   // (revision) con el cobro apagado no se lee nada, tampoco al exportar
       if (cobroX) hoja('Mi suscripción a Fundview', [['plan', 'plan', 14], ['pagado hasta', 'hasta', 16], ['referencia', 'ref', 18]],
         [{plan: FV_COBRO_PLANES[cobroX.plan] || cobroX.plan || '', hasta: cobroX.pagadoHasta || '', ref: cobroX.referencia || ''}], {desc: 'tu plan y hasta cuándo está pagado'});
+      if (cobroX && cobroX.avisos && cobroX.avisos.length) hoja('Mis avisos de pago', [['fecha', 'fecha', 12], ['hora', 'hora', 8], ['monto', 'monto', 10, 'mon'], ['clave de rastreo', 'clave', 32], ['concepto', 'concepto', 28], ['pagó otra persona', 'pagador', 24], ['estado', 'estado', 16], ['motivo', 'motivo', 30]],
+        cobroX.avisos.map(a => ({...a, estado: FV_PAGO_EST[a.estado] || a.estado || '', pagador: a.pagador || '', motivo: a.motivo || ''})), {desc: 'lo que nos avisaste al transferir'});
     }
     hoja('Patrimonio', [['fecha', 'f', 12, 'fecha'], ['tu dinero', 'total', 16, 'mon']],
       (state.snapshots || []).map(x => ({f: diaXl(parseFechaLocal(x.f)), total: nFin(x.total)})), {desc: 'cómo ha cambiado tu dinero día por día'});
