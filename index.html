@@ -694,6 +694,8 @@ html[data-tema='grafito'] .btn.inicio-accion{background:var(--accent);border-col
 .desliza-dlg{margin:auto;inset:0;height:fit-content;max-height:calc(100dvh - 40px);border:1px solid var(--sup-borde,var(--border2));border-radius:var(--r);padding:0;width:calc(100% - 40px);max-width:360px;background:var(--bg2s);color:var(--text);box-shadow:var(--sombra)}
 .desliza-dlg::backdrop{background:rgba(0,0,0,0.45)}
 .asis-dlg{max-width:440px}
+.asis-err{font-size:13px;color:var(--red-txt);margin-top:10px;line-height:1.4}.asis-err:empty{display:none}
+.fv-antes-app{margin:4px 0 14px;padding:10px 12px;border-radius:10px;background:var(--bg3);color:var(--text)}
 #cx-perfil-lista input{font:inherit;font-size:14px;padding:10px 12px;border:1px solid var(--border2);border-radius:var(--rs);background:var(--bg3);color:var(--text);min-height:44px;box-sizing:border-box}
 .mc-banco{border:1px solid var(--border2);border-radius:var(--rs);padding:4px 12px 6px;margin-bottom:10px}
 /* (28-oct-2026) mis cuentas: todos los cuadritos iguales, en cuadricula en escritorio */
@@ -1219,6 +1221,7 @@ html[data-tema='grafito'] .cal-d.hoy .cal-n{color:#14171a}
     <section class="fv-paso" data-paso="crear" hidden aria-labelledby="fv-t-crear">
       <h1 id="fv-t-crear" tabindex="-1">Crea tu cuenta</h1>
       <p>Necesitas el código de invitación que te mandaron. Usa el mismo correo al que te invitaron: el código solo sirve con ese. Tu cuenta queda aislada: ninguna otra persona puede ver tus datos.</p>
+      <div class="fv-nota fv-antes-app" id="fv-crear-app" hidden>Antes de crear tu cuenta, baja una app autenticadora en tu teléfono, como Google Authenticator o Microsoft Authenticator: la vas a necesitar para proteger tu cuenta, después de confirmar tu correo.</div>
       <div class="login-field"><label class="fv-label" for="fv-cod">código de invitación</label><input type="text" id="fv-cod" placeholder="FV-XXXX-XXXX-XXXX-XXXX" autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="40"></div>
       <div class="login-field"><label class="fv-label" for="fv-nombre">¿cómo quieres que te llamemos?</label><input type="text" id="fv-nombre" autocomplete="given-name" autocapitalize="words" spellcheck="false" maxlength="40" aria-describedby="fv-nombre-ayuda"><div class="fv-ayuda" id="fv-nombre-ayuda">para saludarte en la app y en algunos correos de tu cuenta</div></div>
       <div class="login-field"><label class="fv-label" for="fv-correo">tu correo</label><input type="email" id="fv-correo" autocomplete="email" autocapitalize="off" spellcheck="false"></div>
@@ -1270,6 +1273,7 @@ html[data-tema='grafito'] .cal-d.hoy .cal-n{color:#14171a}
     <section class="fv-paso" data-paso="totp" hidden aria-labelledby="fv-t-totp">
       <h1 id="fv-t-totp" tabindex="-1">Protege tu cuenta</h1>
       <p>Cada vez que entres, Fundview te va a pedir un código de una app autenticadora, como Google Authenticator o Microsoft Authenticator. Si no tienes una, bájala antes de seguir.</p>
+      <div class="fv-nota fv-antes-app" id="fv-totp-no-recargues">Haz los dos pasos sin cerrar ni recargar esta página. Si se recarga, te damos otra clave y la que ya guardaste en tu app deja de servir.</div>
       <h2>1. Da de alta Fundview en la app</h2>
       <a class="login-btn" id="fv-otp-liga" aria-disabled="true">abrir la app autenticadora</a>
       <details class="fv-qr" id="fv-qr" hidden>
@@ -2549,6 +2553,7 @@ html[data-tema='grafito'] .cal-d.hoy .cal-n{color:#14171a}
     <div class="item-meta" id="asis-paso" style="margin-bottom:4px"></div>
     <div class="modal-tit" id="asis-tit"></div>
     <div id="asis-cuerpo" style="margin-top:10px"></div>
+    <div class="asis-err" id="asis-err" role="alert"></div>
     <div class="row2" style="gap:8px;margin-top:14px">
       <button type="button" class="btn" id="asis-atras" style="margin-top:0" onclick="asisMover(-1)">atrás</button>
       <button type="button" class="btn btn-purple" id="asis-sig" style="margin-top:0" onclick="asisMover(1)">siguiente</button>
@@ -5599,6 +5604,8 @@ if (CFG.multi) {
   if (!fvSmsActivo()) {
     const irTel = document.getElementById('fv-ir-tel'), sinApp = document.getElementById('fv-sin-app');
     if (irTel) irTel.hidden = true;
+    // (18-nov-2026, sesion F) sin SMS, la cuenta nueva necesita la app autenticadora: se pide ANTES de crear la cuenta, no a medio camino
+    const crearApp = document.getElementById('fv-crear-app'); if (crearApp) crearApp.hidden = false;
     if (sinApp && sinApp.firstChild) sinApp.firstChild.data = sinApp.firstChild.data.replace('¿Perdiste tu app autenticadora o tu teléfono, o cambiaste de número?', '¿Perdiste tu app autenticadora o cambiaste de teléfono?');
   }
   // perfil: su texto en lugar del de la familia, los terminos y borrar mi cuenta. El dialogo va al cuerpo de la pagina
@@ -6498,7 +6505,7 @@ function saldoX(x, ms) {
   // en rojo no gana ni cobra interes (code-reviewer: la deuda crecia a la tasa de la cajita)
   return (x.tipo === 'cajita' && x.saldo > 0 && x.tasa > 0 && x.fecha) ? c2(calcCompoundAt(x.saldo, x.fecha, ms == null ? Date.now() : ms, modeloX(x))) : x.saldo;
 }
-const descCajitaX = x => x.tasa + '% anual' + (x.tope > 0 ? ' hasta ' + fmt(x.tope) + ' · ' + x.tasaExc + '% excedente' : '') + (x.ret > 0 ? ' · neto de ISR ' + x.ret + '%' : '');
+const descCajitaX = x => (x.tasa > 0 ? x.tasa + '% anual' : 'sin tasa') + (x.tope > 0 ? ' hasta ' + fmt(x.tope) + ' · ' + x.tasaExc + '% excedente' : '') + (x.ret > 0 ? ' · neto de ISR ' + x.ret + '%' : '');
 // que hay que DEVOLVER a las cuentas en otra moneda si se borra este movimiento. Sale del documento
 // del SERVIDOR (no de la pantalla). null = el movimiento esta danado y no se puede revertir.
 function reversaX(d) {
@@ -9946,7 +9953,7 @@ function renderCuentasXSinCuidar() {
     per.innerHTML = todas.length ? todas.map(([id, x]) => `<div class="item-row" style="flex-wrap:wrap;gap:6px">
         <div style="flex:1 1 160px"><input type="text" id="cx-nom-${id}" maxlength="24" value="${escapeHtml(x.nombre)}" aria-label="nombre de la cuenta" style="width:100%">
           <div class="item-meta">${MONEDAS_X[x.moneda].nom} · ${TIPOS_CX[x.tipo]}${x.tipo === 'cajita' ? ' · ' + escapeHtml(descCajitaX(x)) : ''} · ${fmtX(saldoX(x), x.moneda)}${x.on ? '' : ' · apagada'}</div>
-          ${x.tipo === 'cajita' ? `<div style="display:flex;gap:6px;margin-top:6px;align-items:center"><input type="number" id="cx-tasa-${id}" step="0.01" inputmode="decimal" placeholder="tasa ${x.tasa}%" aria-label="tasa anual nueva de ${escapeHtml(x.nombre)}" style="width:110px">
+          ${x.tipo === 'cajita' ? `<div style="display:flex;gap:6px;margin-top:6px;align-items:center"><input type="number" id="cx-tasa-${id}" step="0.01" inputmode="decimal" placeholder="${x.tasa > 0 ? 'tasa ' + x.tasa + '%' : 'tasa anual %'}" aria-label="tasa anual nueva de ${escapeHtml(x.nombre)}" style="width:110px">
             <button type="button" class="btn" style="margin-top:0;padding:8px 10px;font-size:12px" onclick="cambiarTasaX('${id}')">cambiar tasa</button></div>${CFG.multi ? `<div style="display:flex;gap:6px;margin-top:6px;align-items:center"><input type="number" id="cx-ret-${id}" step="0.01" inputmode="decimal" placeholder="${x.ret > 0 ? 'ISR ' + x.ret + '%' : 'ej. 0.90'}" aria-label="retención de ISR anual de ${escapeHtml(x.nombre)}" style="width:110px">
             <button type="button" class="btn" style="margin-top:0;padding:8px 10px;font-size:12px" onclick="cambiarRetX('${id}')">cambiar retención</button></div>` : ''}` : ''}</div>
         <div style="display:flex;gap:6px">
@@ -13365,13 +13372,28 @@ window.abrirAsistente = function() {
   const d = document.getElementById('asis-dlg'); if (!d) return;
   pintarAsistente(); if (!d.open) d.showModal();
 };
-window.cerrarAsistente = () => { const d = document.getElementById('asis-dlg'); if (d && d.open) d.close(); asis = null; };
+// (18-nov-2026, sesion F, revision) mientras se crea la cartera no se cierra ("ahora no" ni Esc): el aviso de un error quedaria en un dialogo
+// cerrado y asis en null a media creacion. Los cierres de la propia creacion pasan forzar
+window.cerrarAsistente = forzar => { if (asisCreando && forzar !== true) return; const d = document.getElementById('asis-dlg'); if (d && d.open) d.close(); asis = null; };
+document.getElementById('asis-dlg')?.addEventListener('cancel', e => { if (asisCreando) e.preventDefault(); });
 // lo de un banco: sel = lo que la persona marco que tiene ahi (cuenta, cajita, tdc), sus saldos y, si marco tarjeta, lo que escribio de ella
 const asisDet = b => asis.det[b] || (asis.det[b] = {sel: {}, tdc: {nombre: '', corte: '', deuda: ''}});
 // los bancos que marcaron tarjeta, en el orden en que se eligieron: el primero toma el primer lugar libre y el segundo, el segundo. Nunca mas que lugares
 const asisBancosTdc = () => asis.elegidos.filter(b => asis.det[b] && asis.det[b].sel.tdc).slice(0, asis.libres.length);
 const asisPasos = () => ['hola', 'efectivo', 'bancos', ...asis.elegidos.map((b, i) => 'det' + i), 'fondos', ...(asis.libres.length && !asisBancosTdc().length ? ['tarjeta'] : []), 'resumen'];
+// (18-nov-2026, sesion F) el error del asistente va DENTRO del dialogo: un aviso normal (#toast) queda detras de su capa y casi no se lee
+// vacio y luego el texto en el siguiente cuadro: role="alert" lo anuncia aunque sea el mismo mensaje. Con el dialogo cerrado, el aviso de siempre
+let asisAvisoRaf = 0;
+function asisAviso(t) {
+  const d = document.getElementById('asis-dlg'), el = document.getElementById('asis-err');
+  cancelAnimationFrame(asisAvisoRaf);
+  if (el) el.textContent = '';
+  if (!t) return;
+  if (!el || !d || !d.open) { showToast(t); return; }
+  asisAvisoRaf = requestAnimationFrame(() => { el.textContent = t; });
+}
 function pintarAsistente() {
+  asisAviso('');
   const pasos = asisPasos(), p = pasos[asis.paso], e = escapeHtml, cuerpo = document.getElementById('asis-cuerpo');
   const tit = t => { document.getElementById('asis-tit').textContent = t; };
   // (4-nov-2026, Fundview) antes de elegir los bancos el total no se sabe (cada banco suma un paso): no se promete un "de 5" que luego pasa a "de 7"
@@ -13412,7 +13434,7 @@ function pintarAsistente() {
     cuerpo.innerHTML = '<div class="item-meta" style="margin-bottom:8px">toca todo lo que tengas ahí</div><div class="asis-bancos">' + op('cuenta', 'cuenta normal') + op('cajita', 'cajita o savings') + (CUENTAS_CFG ? op('tdc', 'tarjeta de crédito', !cabe) : '') + '</div>' +
       (CUENTAS_CFG && !cabe ? '<p class="item-meta" id="asis-tdc-lleno" style="line-height:1.5;margin-top:8px">' + sinLugar + '</p>' : '') +
       (s.cuenta ? '<div style="margin-top:10px">' + campo('asis-cuenta', 'saldo de la cuenta hoy', 'ej. 3000', d.cuenta) + '</div>' : '') +
-      (s.cajita ? '<div style="margin-top:10px">' + campo('asis-cajita', 'saldo de la cajita hoy', 'ej. 10000', d.cajita) + campo('asis-tasa', 'tasa anual % que te paga', 'ej. 13', d.tasa) + '</div>' : '') +
+      (s.cajita ? '<div style="margin-top:10px">' + campo('asis-cajita', 'saldo de la cajita hoy', 'ej. 10000', d.cajita) + campo('asis-tasa', 'tasa anual % que te paga', 'ej. 13', d.tasa) + '<div class="item-meta asis-nota-tasa">Si no la sabes, déjala vacía: la cajita se guarda sin calcular interés y la pones después en Perfil › Mis cuentas.</div></div>' : '') +
       (s.tdc ? '<p class="item-meta" style="line-height:1.5;margin-top:10px">Tu tarjeta de crédito: con ella anotas tus compras y ves cuánto debes.</p>' + camposTdc(d.tdc, k, b.slice(0, 16).trim() + ' tarjeta') : '');
     cuerpo.querySelectorAll('[data-tipo]').forEach(x => x.addEventListener('click', () => { asisLeer(); const v = x.dataset.tipo; s[v] = !s[v];
       if (v === 'tdc' && s.tdc && !d.tdc.nombre) d.tdc.nombre = b.slice(0, 16).trim() + ' tarjeta';   // «BBVA tarjeta»: se puede cambiar
@@ -13484,7 +13506,7 @@ function asisResumen() {
   if (ef !== null) l.push(['efectivo', fmt(ef)]);
   asis.elegidos.forEach(b => { const d = asisDet(b), s = d.sel;
     if (s.cuenta) l.push([b, fmt(asisNum(d.cuenta) || 0)]);
-    if (s.cajita) l.push([b + ' cajita · ' + asisNum(d.tasa) + '% anual', fmt(asisNum(d.cajita) || 0)]); });
+    if (s.cajita) l.push([b + ' cajita · ' + (asisNum(d.tasa) > 0 ? asisNum(d.tasa) + '% anual' : 'sin tasa por ahora'), fmt(asisNum(d.cajita) || 0)]); });
   asisFondos().forEach(n => l.push(['fondo: ' + n, 'vacío, para apartarle']));
   const tjs = asisTdcs();
   tjs.forEach(tj => { l.push(['tarjeta de crédito: ' + tj.nombre, 'corte el ' + tj.corte]);
@@ -13497,20 +13519,21 @@ window.asisMover = async function(dir) {
   asisLeer();
   const p = asisPasos()[asis.paso];
   if (dir > 0) {
-    if (p === 'efectivo' && asis.efectivo !== '' && asis.efectivo != null && !(Number.isFinite(asisNum(asis.efectivo)) && asisNum(asis.efectivo) >= 0)) { showToast('escribe el efectivo como número, por ejemplo 500'); return; }
+    if (p === 'efectivo' && asis.efectivo !== '' && asis.efectivo != null && !(Number.isFinite(asisNum(asis.efectivo)) && asisNum(asis.efectivo) >= 0)) { asisAviso('escribe el efectivo como número, por ejemplo 500'); return; }
     if (p === 'bancos' && asis.otro) { const o = asis.otro.slice(0, 24);
-      if (bancosQueYaTienes().has(o.toLowerCase())) { showToast(o + ' ya está en tu cartera'); return; }
+      if (bancosQueYaTienes().has(o.toLowerCase())) { asisAviso(o + ' ya está en tu cartera'); return; }
       if (!asis.elegidos.includes(o)) asis.elegidos.push(o); asis.otro = ''; }
     if (p.startsWith('det')) { const b = asis.elegidos[+p.slice(3)], d = asisDet(b), s = d.sel;
       // (16-nov-2026) nada viene marcado: hay que decir que se tiene ahi (o regresar y quitar el banco)
-      if (!s.cuenta && !s.cajita && !s.tdc) { showToast('toca lo que tengas en ' + b + ', o regresa y quítalo de tus bancos'); return; }
+      if (!s.cuenta && !s.cajita && !s.tdc) { asisAviso('toca lo que tengas en ' + b + ', o regresa y quítalo de tus bancos'); return; }
       const ok = x => x === '' || x == null || (Number.isFinite(asisNum(x)) && asisNum(x) >= 0);
-      if ((s.cuenta && !ok(d.cuenta)) || (s.cajita && !ok(d.cajita))) { showToast('los saldos van como número, por ejemplo 3000'); return; }
-      if (s.cajita && !(asisNum(d.tasa) > 0 && asisNum(d.tasa) < 100)) { showToast('escribe la tasa anual de la cajita de ' + b + ', por ejemplo 13'); return; }
+      if ((s.cuenta && !ok(d.cuenta)) || (s.cajita && !ok(d.cajita))) { asisAviso('los saldos van como número, por ejemplo 3000'); return; }
+      // (18-nov-2026, sesion F) la tasa es opcional: vacia, la cajita se guarda sin calcular interes (nunca se inventa una tasa) y se pone despues
+      if (s.cajita && asisNum(d.tasa) !== null && !(asisNum(d.tasa) >= 0 && asisNum(d.tasa) < 100)) { asisAviso('la tasa de la cajita de ' + b + ' va como número, por ejemplo 13; si no la sabes, déjala vacía'); return; }
       if (s.tdc) { const tj = asisTdcs().find(x => x.banco === b), err = tj ? asisErrorTdc(tj, d.tdc, true) : 'por ahora caben dos tarjetas de crédito';
-        if (err) { showToast(err); return; } } }
-    if (p === 'tarjeta' && asis.tdc.si) { const err = asisErrorTdc(asisTdcs()[0], asis.tdc, !!CFG.multi); if (err) { showToast(err); return; } }
-    if (p === 'resumen') { const err = asisErrorTarjetas(); if (err) { showToast(err); return; } return asisCrear(); }
+        if (err) { asisAviso(err); return; } } }
+    if (p === 'tarjeta' && asis.tdc.si) { const err = asisErrorTdc(asisTdcs()[0], asis.tdc, !!CFG.multi); if (err) { asisAviso(err); return; } }
+    if (p === 'resumen') { const err = asisErrorTarjetas(); if (err) { asisAviso(err); return; } return asisCrear(); }
   }
   asis.paso = Math.max(0, Math.min(asisPasos().length - 1, asis.paso + dir));
   pintarAsistente();
@@ -13558,21 +13581,21 @@ async function asisCrearTrabajo() {
   asis.elegidos.forEach(b => { const d = asisDet(b), s = d.sel;
     if (s.cuenta) crear[nuevoIdX()] = {nombre: b, moneda: 'MXN', tipo: 'banco', on: true, saldo: c2(asisNum(d.cuenta) || 0), creada: ahora()};
     if (s.cajita) crear[nuevoIdX()] = {nombre: (b + ' cajita').slice(0, 24), moneda: 'MXN', tipo: 'cajita', on: true, saldo: c2(asisNum(d.cajita) || 0), creada: ahora(),
-      tasa: asisNum(d.tasa), tope: 0, tasaExc: 0, fecha: hoy}; });
-  if (Object.keys(state.cuentasX || {}).length + Object.keys(crear).length > CX_MAX) { showToast('son demasiadas cuentas: máximo ' + CX_MAX); return; }
+      tasa: asisNum(d.tasa) || 0, tope: 0, tasaExc: 0, fecha: hoy}; });
+  if (Object.keys(state.cuentasX || {}).length + Object.keys(crear).length > CX_MAX) { asisAviso('son demasiadas cuentas: máximo ' + CX_MAX); return; }
   const ef = asisNum(asis.efectivo), plan = {};
   if (ef !== null) plan.absolutos = {efectivo: c2(ef)};
   if (Object.keys(crear).length) plan.fx = {crear};
   const fondos = asisFondos(), tjs = asisTdcs();
-  if (!plan.absolutos && !plan.fx && !fondos.length && !tjs.length) { cerrarAsistente(); return; }
+  if (!plan.absolutos && !plan.fx && !fondos.length && !tjs.length) { cerrarAsistente(true); return; }
   if (plan.absolutos || plan.fx) {
-    if (dineroOcupado) { showToast('espera, hay otra operación en curso'); return; }
+    if (dineroOcupado) { asisAviso('espera, hay otra operación en curso'); return; }
     let res = null, err = null;
     dineroOcupado = true;   // el boton ya esta apagado por asisCrear durante toda la creacion
     try { res = await txDinero(plan); } catch (e) { err = e; }
     finally { liberarDinero(); }
-    if (err) { console.error('asistente', err); showToast(msgFalloDinero()); return; }
-    if (res.error && res.codigo !== 'ya-existe') { showToast(res.error); return; }
+    if (err) { console.error('asistente', err); asisAviso(msgFalloDinero()); return; }
+    if (res.error && res.codigo !== 'ya-existe') { asisAviso(res.error); return; }
     if (!res.error) aplicarRes(res);
   }
   // los fondos van aparte (su lista vive en cartera/fondo): si alguno ya existe, se salta
@@ -13588,7 +13611,7 @@ async function asisCrearTrabajo() {
   const avisoDeuda = enDuda.length ? 'tu cartera quedó armada, pero no pude confirmar si se anotó lo que debes hoy' + (tjs.length > 1 ? ' en ' + enDuda.join(' ni en ') : '') + ': revísalo en Movimientos, Registrar, Tarjeta antes de anotarlo'
     : sinDeuda.length ? 'tu cartera quedó armada, pero no pude anotar lo que debes hoy' + (tjs.length > 1 ? ' en ' + sinDeuda.join(' ni en ') : '') + ': anótalo en Movimientos, Registrar, Tarjeta, con «+ Cargo»' : '';
   asisMarcarHecho();
-  cerrarAsistente();
+  cerrarAsistente(true);
   refrescar(render, renderCuentasX, pintarFuentesX, renderMisCuentas, renderFondo);
   showToast(avisoDeuda || 'listo: tu cartera quedó armada');
   // (7-nov-2026) las tarjetas van AL FINAL y en UNA sola escritura: guardar las cuentas fijas recarga la app. No escribe deuda: solo las enciende
