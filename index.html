@@ -426,6 +426,9 @@ html[data-tema='grafito'] .ay-donde{color:var(--accent)}
 .ay-correo-bts .ay-copiar{flex:0 0 auto;width:auto;padding:0 18px}
 .ay-todas{display:block;margin:10px 0 0}
 .ay-aqui{outline:2px solid var(--accent)!important;outline-offset:3px;border-radius:var(--rs)}
+.ay-abrir{min-width:44px;min-height:44px;font-size:17px;font-weight:700;line-height:1}
+/* (18-nov-2026) mientras se ve "volver a la ayuda", lo ultimo de la pagina puede subir por encima del boton en vez de quedar tapado */
+body:has(#ay-volver:not([hidden])){padding-bottom:150px}
 .ay-volver{position:fixed;left:16px;bottom:calc(76px + env(safe-area-inset-bottom));z-index:50;min-height:44px;padding:0 16px;border-radius:22px;border:0.5px solid var(--border2);background:var(--bg2s);color:var(--text);font-size:14px;font-weight:500;cursor:pointer;box-shadow:var(--sombra)}
 .ay-volver[hidden]{display:none}
 .fv-nota a{color:var(--accent);font-weight:500;overflow-wrap:anywhere}
@@ -732,6 +735,20 @@ html[data-tema='grafito'] .btn.inicio-accion{background:var(--accent);border-col
 .cta-cfg-on{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600}
 .cta-cfg-on input{width:18px;height:18px;accent-color:var(--accent)}
 .cta-cfg .field{margin-bottom:0}
+.cfg-mas-btn{margin:0 0 10px}
+/* (18-nov-2026, calificacion "como se ve") cuentas que tu agregas: la tasa y la retencion con su etiqueta a la vista, y los botones
+   en su propio renglon, sin partirse ("guardar nombre" salia en dos renglones a 390 px) y de 44 px */
+.cx-etq{display:block;font-size:12px;color:var(--muted);margin:8px 0 4px}
+.cx-ctl{display:flex;gap:6px;align-items:center}
+.cx-ctl input{flex:1 1 90px;min-width:0;min-height:44px}
+.cx-ctl-pie{flex:1 1 100%}
+.cx-ctl-pie .cx-acc{flex:1 1 0}
+/* (18-nov-2026, calificacion "como se ve") objetivos tactiles de 44 px sin mover el diseño: las ligas de texto ("cambiar", "ver detalle")
+   crecen hacia arriba y abajo con margen negativo; las flechas de mes del Resumen y "+ persona" de Deudas, a 44 */
+.liga-acc{display:inline-flex;align-items:center;min-height:44px;margin:-12px 0}
+.month-nav{min-width:44px;min-height:44px}
+#deuda-persona-add{min-height:44px}
+.btn.cx-acc{margin-top:0;padding:8px 12px;font-size:13px;min-height:44px;white-space:nowrap;width:auto}
 /* (20-oct-2026) cuentas en otra moneda: .cards y .type-toggle definen display y le ganan a hidden */
 .cx-chev{margin-left:6px;vertical-align:-1px;color:var(--muted);transition:transform .2s}
 #cx-cards [aria-expanded="true"] .cx-chev{transform:rotate(180deg)}
@@ -2173,7 +2190,7 @@ html[data-tema='grafito'] .cal-d.hoy .cal-n{color:#14171a}
 
       <div class="item-meta" style="line-height:1.5;margin:14px 0 8px">
         <b>Pestaña de tus fondos.</b> Para llevar el dinero que apartas (universidad, viaje, emergencias):
-        no cuenta como tuyo en inicio, en tus metas ni en tu score, y ninguna operación normal lo
+        no cuenta como tuyo en inicio, en tus metas ni en tu calificación, y ninguna operación normal lo
         puede tocar. La protección aplica aunque la pestaña esté apagada.
       </div>
       <div class="type-toggle" id="fondo-toggle">
@@ -2212,7 +2229,7 @@ html[data-tema='grafito'] .cal-d.hoy .cal-n{color:#14171a}
     <div class="section-title mt">camino a tus metas</div>
     <div class="panel" id="camino-panel"><div class="empty-state">calculando...</div></div>
   </div>
-  <div class="sec">
+  <div class="sec" id="metas-fondos-sec">
     <!-- (28-oct-2026) los apartados ahora son fondos: separan el dinero de verdad. Aqui solo se ve el avance -->
     <div class="section-title">metas de tus fondos</div>
     <div class="panel" id="apartados-panel"><div class="empty-state">cargando...</div></div>
@@ -2435,9 +2452,9 @@ html[data-tema='grafito'] .cal-d.hoy .cal-n{color:#14171a}
       <div class="type-opt" onclick="setResPeriodo('ano')">a&ntilde;o</div>
     </div>
     <div class="month-selector">
-      <button class="month-nav" onclick="cambiarMes(-1)">&#8249;</button>
+      <button type="button" class="month-nav" aria-label="periodo anterior" onclick="cambiarMes(-1)">&#8249;</button>
       <div class="month-label" id="mes-label">—</div>
-      <button class="month-nav" onclick="cambiarMes(1)">&#8250;</button>
+      <button type="button" class="month-nav" aria-label="periodo siguiente" onclick="cambiarMes(1)">&#8250;</button>
     </div>
     <div class="row2" style="margin-bottom:16px">
       <div class="summary-box"><div class="s-label">ingresos</div><div class="s-amt pos" id="res-ingresos">$—</div></div>
@@ -2470,7 +2487,7 @@ html[data-tema='grafito'] .cal-d.hoy .cal-n{color:#14171a}
     <details class="acc">
     <summary>
       <div class="acc-icon chip-verde"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l6-6 4 4 8-8"/><path d="M14 7h7v7"/></svg></div>
-      <div><div class="acc-tit">cuánto ganó tu dinero</div><div class="acc-sub">intereses, plusvalía y dividendos</div></div>
+      <div><div class="acc-tit">cuánto ganó tu dinero</div><div class="acc-sub">intereses, lo que subieron tus acciones y dividendos</div></div>
     </summary>
     <div class="acc-body"><div class="panel" id="res-utilidades"></div></div>
     </details>
@@ -2479,7 +2496,7 @@ html[data-tema='grafito'] .cal-d.hoy .cal-n{color:#14171a}
     <details class="acc">
     <summary>
       <div class="acc-icon chip-verde"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M19 5L5 19"/><circle cx="6.5" cy="6.5" r="2.5"/><circle cx="17.5" cy="17.5" r="2.5"/></svg></div>
-      <div><div class="acc-tit">rendimientos del periodo</div><div class="acc-sub">cajitas, savings y balance real</div></div>
+      <div><div class="acc-tit">rendimientos del periodo</div><div class="acc-sub">tus cajitas y tu balance real</div></div>
     </summary>
     <div class="acc-body"><div class="panel" id="res-rendimientos"></div></div>
     </details>
@@ -2918,6 +2935,26 @@ function refrescarSinUso() {
     const id = el.dataset.cuenta || el.dataset.inicio;
     if (nuevo.has(id)) { el.hidden = true; el.dataset.sinUso = '1'; }
     else if (el.dataset.sinUso) { delete el.dataset.sinUso; el.hidden = ctaApagada(id); }
+  });
+}
+// (18-nov-2026, calificacion "como se ve": la tarjeta "Bolsa $0.00" de Inicio, la grafica vacia del Resumen y la cuenta "bolsa" del
+// dialogo de metas le salian a quien nunca encendio las inversiones) la bolsa no se ensena mientras: el tablero este apagado, no haya
+// ni una compra ni acciones, no valga nada y ninguna meta la siga. Con cualquier dato vuelve a salir, y encender el tablero la trae.
+// Sin datos del servidor (copia local o sin cargar) no se esconde: la copia puede no traer compras que si existen. Solo pantalla.
+function bolsaSinUso() {
+  if (!datosCargados || cargaDesdeCache || ctaApagada('stocks') || dashboardEncendido()) return false;
+  if ((state.stocksOps || []).length) return false;
+  if (Object.values(state.posiciones || {}).some(p => p && nFin(p.acciones) > 0)) return false;
+  if (Object.hasOwn(CAMPO_SIMPLE, 'stocks') && Math.abs(nFin(state[CAMPO_SIMPLE.stocks])) >= 0.005) return false;
+  if (((state.metas && state.metas.items) || []).some(m => m && m.cuenta === 'stocks')) return false;
+  return true;
+}
+// la tarjeta de Inicio y la grafica del Resumen. NO el interruptor del perfil (#dashboard-toggle) ni su texto: con eso se enciende
+function refrescarBolsa() {
+  const sin = bolsaSinUso();
+  document.querySelectorAll('[data-inicio="stocks"], .sec[data-cuenta="stocks"]').forEach(el => {
+    if (sin) { el.hidden = true; el.dataset.bolsaSinUso = '1'; }
+    else if (el.dataset.bolsaSinUso) { delete el.dataset.bolsaSinUso; el.hidden = ctaApagada('stocks'); }
   });
 }
 const TXT_ELIGE_CUENTA='elige una cuenta';
@@ -8666,6 +8703,7 @@ window.pagarTotal=k=>{
 };
 function render() {
   try { refrescarSinUso(); } catch(e) { console.error('sin uso',e); }
+  try { refrescarBolsa(); } catch(e) { console.error('bolsa sin uso',e); }
   if (CFG.multi) { try { fvPintarHola(); } catch(e) { console.error('hola',e); } }
   try { pintarPagoTotal(); } catch(e) { console.error('pagar todo',e); }
   // (21-oct-2026, Roberto) las tarjetas de inicio muestran solo lo TUYO: el fondo se ve en su pestaña
@@ -9758,14 +9796,14 @@ async function altaMovX(tipo, cat, montoOrig, nota, cuentaId, btn, fecha, extra)
   if (res.error && res.codigo === 'ya-existe' && !idFijo) {
     await traerYaEstaba(ref, lista);
     if (!lista.some(z => z.id === ref.id)) { insertarPorFecha(lista, {...mov, id:ref.id}); refrescar(render, renderMovimientos); }
-    showToast((esGasto ? '-' : '+') + fmtX(mo, x.moneda) + ' registrado'); return true;
+    showToast((esGasto ? fmtX(-mo, x.moneda) : '+' + fmtX(mo, x.moneda)) + ' registrado'); return true;
   }
   if (res.error) { showToast(res.error); return false; }
   aplicarRes(res);
   insertarPorFecha(lista, {...mov, id:ref.id});
   refrescar(render, renderMovimientos);
   const queda = res.cx && res.cx[cuentaId] ? res.cx[cuentaId].saldo : null;
-  showToast((esGasto ? '-' : '+') + fmtX(mo, x.moneda) + (x.moneda === 'MXN' ? '' : ' (≈ ' + fmt(m) + ')') + ' registrado' + (queda !== null && queda < 0 ? ' · ojo: ' + x.nombre + ' quedó en rojo' : ''));
+  showToast((esGasto ? fmtX(-mo, x.moneda) : '+' + fmtX(mo, x.moneda)) + (x.moneda === 'MXN' ? '' : ' (≈ ' + fmt(m) + ')') + ' registrado' + (queda !== null && queda < 0 ? ' · ojo: ' + x.nombre + ' quedó en rojo' : ''));
   if (esGasto) { avisoCategoria(cat, mov.fecha); avisoLimite(m, mov.fecha, cat); }
   return true;
 }
@@ -9986,12 +10024,12 @@ function renderCuentasXSinCuidar() {
     per.innerHTML = todas.length ? todas.map(([id, x]) => `<div class="item-row" style="flex-wrap:wrap;gap:6px">
         <div style="flex:1 1 160px"><input type="text" id="cx-nom-${id}" maxlength="24" value="${escapeHtml(x.nombre)}" aria-label="nombre de la cuenta" style="width:100%">
           <div class="item-meta">${MONEDAS_X[x.moneda].nom} · ${TIPOS_CX[x.tipo]}${x.tipo === 'cajita' ? ' · ' + escapeHtml(descCajitaX(x)) : ''} · ${fmtX(saldoX(x), x.moneda)}${x.on ? '' : ' · apagada'}</div>
-          ${x.tipo === 'cajita' ? `<div style="display:flex;gap:6px;margin-top:6px;align-items:center"><input type="number" id="cx-tasa-${id}" step="0.01" inputmode="decimal" placeholder="${x.tasa > 0 ? 'tasa ' + x.tasa + '%' : 'tasa anual %'}" aria-label="tasa anual nueva de ${escapeHtml(x.nombre)}" style="width:110px">
-            <button type="button" class="btn" style="margin-top:0;padding:8px 10px;font-size:12px" onclick="cambiarTasaX('${id}')">cambiar tasa</button></div>${CFG.multi ? `<div style="display:flex;gap:6px;margin-top:6px;align-items:center"><input type="number" id="cx-ret-${id}" step="0.01" inputmode="decimal" placeholder="${x.ret > 0 ? 'ISR ' + x.ret + '%' : 'ej. 0.90'}" aria-label="retención de ISR anual de ${escapeHtml(x.nombre)}" style="width:110px">
-            <button type="button" class="btn" style="margin-top:0;padding:8px 10px;font-size:12px" onclick="cambiarRetX('${id}')">cambiar retención</button></div>` : ''}` : ''}</div>
-        <div style="display:flex;gap:6px">
-          <button type="button" class="btn" style="margin-top:0;padding:8px 10px;font-size:12px" onclick="renombrarCuentaX('${id}')">guardar nombre</button>
-          <button type="button" class="btn" style="margin-top:0;padding:8px 10px;font-size:12px" onclick="encenderCuentaX('${id}', ${!x.on})">${x.on ? 'apagar' : 'encender'}</button>
+          ${x.tipo === 'cajita' ? `<label class="cx-etq" for="cx-tasa-${id}">tasa anual nueva (%)</label><div class="cx-ctl"><input type="number" id="cx-tasa-${id}" step="0.01" inputmode="decimal" placeholder="${x.tasa > 0 ? 'hoy ' + x.tasa + '%' : 'ej. 10'}">
+            <button type="button" class="btn cx-acc" onclick="cambiarTasaX('${id}')">cambiar tasa</button></div>${CFG.multi ? `<label class="cx-etq" for="cx-ret-${id}">retención de ISR (% anual, opcional)</label><div class="cx-ctl"><input type="number" id="cx-ret-${id}" step="0.01" inputmode="decimal" placeholder="${x.ret > 0 ? 'hoy ' + x.ret + '%' : 'ej. 0.90'}">
+            <button type="button" class="btn cx-acc" onclick="cambiarRetX('${id}')">cambiar retención</button></div>` : ''}` : ''}</div>
+        <div class="cx-ctl cx-ctl-pie">
+          <button type="button" class="btn cx-acc" onclick="renombrarCuentaX('${id}')">guardar nombre</button>
+          <button type="button" class="btn cx-acc" onclick="encenderCuentaX('${id}', ${!x.on})">${x.on ? 'apagar' : 'encender'}</button>
         </div></div>`).join('') + (CFG.multi && todas.some(([, x]) => x.tipo === 'cajita') ? '<div class="item-meta nota-ret" id="cx-ret-nota">' + escapeHtml(NOTA_RET) + '</div>' : '') : '<div class="item-meta">todavía no agregas cuentas</div>';
   }
   // el tipo de cambio solo importa si hay alguna cuenta en moneda extranjera
@@ -11617,7 +11655,7 @@ window.editarMovimiento = function(tipo, id) {
   inpMonto.classList.remove('is-error','is-shaking'); inpMonto.removeAttribute('aria-invalid'); // restos de un intento anterior
   if (enX) document.getElementById('edit-mov-monto').value = String(c2(nFin(it.monto)));
   document.getElementById('edit-mov-sub').textContent = enX
-    ? 'movimiento en otra moneda ('+fmtMov(it)+'): puedes cambiar categoría, nota y fecha; para corregir el monto o la cuenta, bórralo y regístralo de nuevo'
+    ? (it.moneda && it.moneda !== 'MXN' ? 'movimiento en otra moneda ('+fmtMov(it)+')' : 'movimiento de una cuenta que agregaste') + ': puedes cambiar categoría, nota y fecha; para corregir el monto o la cuenta, bórralo y regístralo de nuevo'
     : bloqueadas
     ? 'este movimiento del Atajo fue rechazado: puedes cambiar categoría, nota y fecha; para corregir el monto o la cuenta, bórralo y regístralo de nuevo'
     : (it.suscripcion ? 'pago de una suscripción: no se puede cambiar de mes' : (movSinEfecto(it) ? 'pendiente del Atajo: aún no mueve tus saldos' : ''));
@@ -13323,10 +13361,12 @@ function renderPerfil() {
   const el=document.getElementById('perfil-resumen');
   const p=state.perfil||{}, est=estandarDe(p);
   const edad=p.anoNac?(new Date().getFullYear()-p.anoNac):null;
-  const viv={familia:'vives con familia (sin renta)',renta:'pagas renta',propia:'casa propia'}[p.vivienda]||'situación de vivienda sin capturar';
+  // (18-nov-2026, calificacion "como se ve") sin dato de vivienda no se dice nada: "situacion de vivienda sin capturar" bajo el nombre sobraba
+  const viv={familia:'vives con familia (sin renta)',renta:'pagas renta',propia:'casa propia'}[p.vivienda]||'';
   if(el){
     const fila=(t,v)=>'<div class="item-row"><div class="item-meta" style="font-size:13px">'+escapeHtml(t)+'</div><div style="font-weight:600;text-align:right">'+escapeHtml(v)+'</div></div>';
-    el.innerHTML=fila('tu situación',[edad?edad+' años':null,viv,p.dependientes?p.dependientes+' dependiente(s)':null].filter(Boolean).join(' · '))
+    const sit=[edad?edad+' años':null,viv,p.dependientes?p.dependientes+' dependiente(s)':null].filter(Boolean).join(' · ');
+    el.innerHTML=(sit?fila('tu situación',sit):'')
       +(p.ingresoBase?fila('ingreso base al mes',fmt(p.ingresoBase)):'')
       +fila('ahorrar cada mes','al menos '+est.ahorroObj+'% (mínimo '+est.ahorroMin+'%)')
       +fila('gastar','hasta '+est.gastoMax+'% de lo que entra')
@@ -13352,7 +13392,7 @@ function renderPerfil() {
   const nom=(p.nombre||'').trim();
   const nEl=document.getElementById('perfil-nombre'); if(nEl) nEl.textContent=nom||'tu perfil';
   const sEl=document.getElementById('perfil-sub');
-  if(sEl) sEl.textContent=(edad?(edad+' años · '):'')+viv;
+  if(sEl){ const sub=[edad?edad+' años':null,viv].filter(Boolean).join(' · '); sEl.textContent=sub; sEl.hidden=!sub; }
   const av=document.getElementById('perfil-avatar'), ini=document.getElementById('avatar-inicial');
   if(av){
     // la foto se asigna por style (nunca interpolada en HTML)
@@ -13770,14 +13810,14 @@ const AYUDA_BASE = [
     claves:'empiezo empezar comienzo comenzar inicio primero primera vez nuevo principio arrancar usar uso'},
 
   {id:'gasto', g:'anotar', p:'¿Cómo registro un gasto?', donde:'Movimientos › Registrar › Gasto', ir:'gasto', boton:'ir a registrar un gasto',
-    r:['Elige la categoría, escribe el monto y en "Pagado con" elige de dónde salió el dinero. Termina con "Registrar gasto". Si dejas la fecha vacía, queda con la de hoy.'],
-    claves:'gasto gastos gaste gastar compra compras compre pague pago salida'},
+    r:['Elige la categoría, escribe el monto y en "Pagado con" elige de dónde salió el dinero; si pagaste con tarjeta, elige tu tarjeta. Termina con "Registrar gasto". Si dejas la fecha vacía, queda con la de hoy.'],
+    claves:'gasto gastos gaste gastar compra compras compre pague pago salida gasolina gasolinera super supermercado despensa comida mandado'},
   {id:'ingreso', g:'anotar', p:'¿Cómo registro un ingreso?', donde:'Movimientos › Registrar › Ingreso', ir:'ingreso', boton:'ir a registrar un ingreso',
     r:['Elige "Ingreso", la categoría y el monto, y en "Entra a" elige la cuenta. Termina con "Registrar ingreso". Si dejas la fecha vacía, queda con la de hoy.'],
     claves:'ingreso ingresos sueldo salario nomina quincena entrada cobre deposito recibi me pagaron trabajo'},
   {id:'editar', g:'anotar', p:'¿Cómo corrijo o borro un movimiento?', donde:'Movimientos › Registrar › Movimientos', ir:'historial', boton:'ir a mis movimientos',
-    r:['En la lista de movimientos, cada renglón tiene un lápiz para corregirlo y una × para borrarlo; elige "Todos" para verlos todos. Al borrarlo, el dinero regresa a su cuenta. Una transferencia entre tus cuentas se borra con su × en "Últimas transferencias", en inicio.'],
-    claves:'corregir corrijo borrar borro eliminar quitar editar cambiar modificar error equivoque arreglar movimiento movimientos gasto ingreso transferencia'},
+    r:['En la lista de movimientos, cada renglón tiene un lápiz para corregirlo y una × para borrarlo; elige "Todos" para verlos todos. Al borrarlo, el dinero regresa a su cuenta.', 'Si es de una cuenta que agregaste tú, el lápiz solo cambia categoría, nota y fecha: si te equivocaste de cuenta o de monto, bórralo y anótalo otra vez. Una transferencia se borra con su × en "Últimas transferencias", en inicio.'],
+    claves:'corregir corrijo borrar borro eliminar quitar editar cambiar modificar error equivoque equivocado mal puse arreglar movimiento movimientos gasto ingreso transferencia'},
   {id:'gasto-fecha', g:'anotar', p:'¿Cómo registro un gasto con otra fecha, o le cambio la fecha?', donde:'Movimientos › Registrar › Gasto', ir:'gasto', boton:'ir a registrar un gasto',
     r:['Al registrar, toca el campo "Fecha" y elige el día; si no eliges ninguno, queda con la de hoy. Para cambiar la fecha de uno que ya registraste, toca su lápiz en la lista de movimientos, cambia la fecha y guarda.'],
     claves:'fecha fechas ayer anteayer antier retroactivo anterior pasado otra cambiar cambio poner pongo gasto ingreso registrar movimiento lapiz'},
@@ -13789,10 +13829,10 @@ const AYUDA_BASE = [
     claves:'categoria categorias renombrar juntar nueva agregar cambiar quitar nombre'},
   {id:'suscripciones', g:'anotar', p:'¿Cómo anoto una suscripción o un pago fijo?', donde:'Movimientos › Suscripciones', ir:'suscripciones', boton:'ir a suscripciones',
     r:['Toca "+ Agregar suscripción" y llénala. El día que toca te aparece en inicio para registrarla, y tú confirmas cada cargo: si ese mes no la pagaste, no la registras.'],
-    claves:'suscripcion suscripciones pago fijo mensual renta servicio recurrente cada mes domiciliado'},
+    claves:'suscripcion suscripciones pago fijo mensual renta servicio recurrente cada mes domiciliado plataforma plataformas streaming netflix spotify musica peliculas'},
   {id:'deudas', g:'anotar', p:'¿Cómo anoto lo que me deben o lo que debo?', donde:'Movimientos › Deudas', ir:'deudas', boton:'ir a deudas',
     r:['Toca "+ Persona" para agregarla, elige "Me deben", "Me pagaron", "Yo debo" o "Le pagué", escribe el monto y toca "Registrar". Aquí se anota lo que debes o te deben entre personas.'],
-    claves:'deuda deudas debo deben debe prestamo prestar preste prestaron presto amigo persona pagaron'},
+    claves:'deuda deudas debo deben debe prestamo prestar preste prestaron presto amigo persona pagaron hermana hermano hijo hija mama papa familia'},
   {id:'tarjeta', g:'anotar', p:'¿Cómo anoto lo de mi tarjeta de crédito?', donde:'Movimientos › Registrar › Tarjeta', ir:'tarjeta', boton:'ir a mi tarjeta',
     r:['Primero agrégala: en "Mis cuentas", en "Agregar una cuenta", elige el tipo "Tarjeta de crédito". Mientras no la tengas no sale la opción "Tarjeta". Una compra con tarjeta se registra como gasto: en "Pagado con" elige tu tarjeta. Para anotar que la pagaste, en la opción "Tarjeta" toca "- Pagué" y elige de dónde salió el dinero. "+ Cargo" sube lo que debes, pero no cuenta como gasto.'],
     claves:'tarjeta tarjetas credito tdc cargo pague pagar corte deuda compra pago meses'},
@@ -13819,11 +13859,11 @@ const AYUDA_BASE = [
     r:['En "Agregar una cuenta" elige "Tarjeta de crédito". Escribe su nombre y tu día de corte, y si quieres lo que debes hoy, y toca "Agregar tarjeta". Caben dos tarjetas; después les cambias el nombre o el corte en "Tus cuentas fijas". Lo que debes sale en inicio, en rojo bajo tu total.'],
     claves:'poner pongo agregar agrego anadir alta nueva tarjeta tarjetas credito tdc donde encuentro'},
   {id:'fijas', g:'cuentas', p:'¿Cómo enciendo, apago o le cambio el nombre a una cuenta?', donde:'Perfil › Mis cuentas › Tus cuentas fijas', ir:'fijas', boton:'ir a tus cuentas fijas',
-    r:['Ahí enciendes tus tarjetas y tus cuentas fijas, les pones nombre y tocas "Guardar cuentas". Una cuenta con dinero no se apaga: primero vacíala. Las que agregaste tú se nombran y se apagan en "Cuentas que tú agregas".'],
+    r:['Ahí enciendes tus tarjetas y tus cuentas fijas, les pones nombre o cambias el día de corte de tu tarjeta y tocas "Guardar cuentas". Las que no usas quedan guardadas abajo: toca "Ver más cuentas" para verlas. Una cuenta con dinero no se apaga: primero vacíala. Las que agregaste tú se nombran y se apagan en "Cuentas que tú agregas".'],
     claves:'encender enciendo apagar apago prender nombre renombrar cambiar quitar desactivar activar cuenta cuentas fija fijas corte tarjeta banco'},
   {id:'fondo', g:'cuentas', p:'¿Cómo aparto dinero para algo, como un viaje?', donde:'Perfil › Mis cuentas › + Crear un fondo', ir:'fondo', boton:'ir a crear un fondo',
     r:['Un fondo es dinero apartado dentro de tus cuentas: no sale de tu banco, solo deja de contar para el día a día. Ya trae uno llamado "Mi fondo", que puedes dejar vacío. Ponle nombre al tuyo y toca "Crear fondo". Después, en "Registrar un movimiento del fondo", elige "Apartar dinero que ya está en la cuenta".'],
-    claves:'fondo fondos apartar aparto apartado guardar viaje emergencias coche separar reservar universidad'},
+    claves:'fondo fondos apartar aparto apartado guardar viaje viajes vacaciones ahorrar emergencias coche separar reservar universidad'},
   {id:'bolsa', g:'cuentas', p:'¿Cómo anoto mis acciones?', donde:'Perfil › Mis cuentas › Qué pestañas ves', ir:'bolsa', boton:'ir a mis acciones',
     r:['Enciende el tablero en "Qué pestañas ves". Sale la pestaña "Inversiones", y ahí, en "Bolsa · registrar operación", anotas lo que "Compré" o "Vendí". Fundview solo lleva la cuenta: no compra ni vende nada.'],
     claves:'accion acciones bolsa inversion inversiones invertido inverti tablero compre vendi posicion portafolio dividendo'},
@@ -13831,11 +13871,15 @@ const AYUDA_BASE = [
   {id:'total', g:'ver', p:'¿Dónde veo cuánto tengo en total?', donde:'Inicio', ir:'inicio', boton:'ir a inicio',
     r:['Hasta arriba de inicio, en "Activos totales", con "Ver desglose" para abrirlo. Abajo, "Dónde está mi dinero" lo reparte. Es la suma de lo que has anotado: no viene de tu banco.'],
     claves:'total cuanto tengo dinero patrimonio suma ver veo donde esta mi desglose activos'},
+  // (18-nov-2026, calificacion con usuario-real) Pico buscaba su corte y lo que debe, y ya salen en inicio
+  {id:'cuanto-debo', g:'ver', p:'¿Dónde veo cuánto debo y mi fecha de corte?', donde:'Inicio', ir:'deuda', boton:'ir a lo que debo',
+    r:['En inicio, bajo tu total, sale en rojo lo que debes en tus tarjetas y con cuánto te quedas si las pagas hoy. Tu total no resta esa deuda: por eso puede verse más alto que lo que de verdad tienes.', 'El día de corte sale en inicio, en la tarjeta de tu tarjeta de crédito, y en el calendario. Lo que debes a personas está en Deudas.'],
+    claves:'debo deuda deudas total corte corta fecha dia rojo resta restar debes tarjeta tarjetas pantalla principal'},
   {id:'real', g:'ver', p:'¿Es real este número?', donde:'Inicio', ir:'inicio', boton:'ir a inicio',
     r:['Es lo que tú has anotado, sumado. Fundview no se conecta a tu banco ni lo lee, así que no puede saber si coincide con lo que tienes de verdad.', 'El interés de una cajita es un estimado con la tasa que escribiste. Para acercarlo a tu banco, pon tu saldo al día en "Actualizar saldos".'],
     claves:'real reales numero cifra cifras cantidad verdad correcto correcta cierto exacto exacta confiable estimado estimada estimacion cajita dice dinero total interes intereses'},
   {id:'ganancia', g:'ver', p:'¿Cuánto ha ganado mi dinero?', donde:'Resumen › Cuánto ganó tu dinero', ir:'ganancia', boton:'ir a cuánto ganó mi dinero',
-    r:['En "Resumen", abre "Cuánto ganó tu dinero" y elige el periodo: ahí salen los intereses de tus cajitas, la plusvalía de tus acciones y tus dividendos. En inicio, bajo tu total, también ves cuánto ganó tu dinero este mes. Es un estimado con las tasas que escribiste: lo que manda es tu banco.'],
+    r:['En "Resumen", abre "Cuánto ganó tu dinero" y elige el periodo: ahí salen los intereses de tus cajitas, lo que subieron o bajaron tus acciones y tus dividendos. En inicio, bajo tu total, también ves cuánto ganó tu dinero este mes. Es un estimado con las tasas que escribiste: lo que manda es tu banco.'],
     claves:'gane ganado ganancia ganancias gano ganando pago pagaron dio dieron produjo produce interes intereses cajita cajitas rendimiento rendimientos utilidad'},
   {id:'resumen', g:'ver', p:'¿Dónde veo cuánto gasté?', donde:'Resumen', ir:'resumen', boton:'ir a resumen',
     r:['En resumen eliges "Día", "Semana", "Mes" o "Año" y ves tus ingresos, tus gastos y "A dónde se va tu dinero".'],
@@ -13851,7 +13895,7 @@ const AYUDA_BASE = [
     claves:'ocultar oculto esconder escondo tapar privado montos cifras ojo'},
 
   {id:'perfil-datos', g:'cuenta', p:'¿Cómo cambio mi foto, mis datos o el color de la app?', donde:'Perfil › Tu perfil', ir:'perfil', boton:'ir a tu perfil',
-    r:['Ahí están "Editar mis datos", "Cambiar foto" y "Color de la app". Entre los colores hay uno oscuro. El color se guarda en cada aparato.'],
+    r:['Ahí están "Editar mis datos" (tu nombre va ahí), "Cambiar foto" y "Color de la app". Entre los colores hay uno oscuro. El color se guarda en cada aparato.'],
     claves:'foto imagen datos nombre editar color colores tema oscuro claro perfil edad vivienda apariencia'},
   {id:'privacidad', g:'cuenta', p:'¿Quién puede ver mis datos? ¿Es seguro?', donde:'Perfil › Tus datos y tu privacidad', ir:'privacidad', boton:'ir a tus datos y tu privacidad',
     r:['Cada cuenta está aislada: ninguna otra persona que use Fundview puede ver tus datos. Quien administra el servidor podría, técnicamente, abrir la base de datos: no lo hacemos y cada acceso queda registrado. Para entrar te pedimos tu contraseña y un código de tu teléfono. Tu número solo se usa para mandarte ese código.'],
@@ -13928,8 +13972,19 @@ const AYUDA_DIRECTAS = [[/\bagreg\w* (un |otro |mi )?banco\b/, 'agregar'],
   // "cierro mi cuenta" o "salir de mi cuenta y borrarla" es borrar la cuenta, no cerrar sesion; con la palabra "sesion" sigue siendo salir
   [/^(?!.*\bsesion\b)(?=.*\b(cerr|cierr)\w*\b.*\bcuenta\b|.*\bsalir\w* de (la |mi )?cuenta\b.*\b(borr|elimin)\w*)/, 'borrar'],
   [/\b(cerr\w*|cierr\w*)\b.*\bsesion\b|\bsesion\b.*\b(cerr\w*|cierr\w*)\b|\blog ?out\b|\bsign ?out\b|\bdeslogue\w*|^(como |donde )?(salir|salgo|me salgo)( de (la |mi )?(app|aplicacion|cuenta|fundview|sesion))?$|\bquiero salir\b(?! de (?!(la |mi )?(app|aplicacion|fundview|sesion|cuenta)\b))|\bsalir de (la |mi )?(app|aplicacion|fundview|sesion)\b/, 'salir'],
-  [/\bcomo sabe\b/, 'conexion'], [/\bcuanto gast\w*/, 'resumen'], [/^(que es|que es esto|que es esta|que es la app|que es esta app|que es fundview|que hace|que hace fundview|de que se trata|para que es|para que sirve|para que sirve esto|para que sirve fundview|como funciona|como funciona fundview)$/, 'que-es'],
-  [/\bcuanto tengo\b|\bdonde esta (mi|el) dinero\b/, 'total'], [/^(como (la |se |lo )?us[oa]( fundview| la app| esta app| esto)?|soy nuev[oa])$/, 'empezar'], [/\b(cambi\w*|olvid\w*|nueva) (mi |la )?clave\b/, 'contrasena']];
+  // (18-nov-2026, calificacion con usuario-real) cambiar el corte es de las cuentas fijas; verlo, o ver lo que debes, es de inicio (Pico)
+  [/^(?!.*\b(salga|aparezca|ventana|pantalla|ver|veo)\b)(?=.*\b(cambi|pon|pong|poner|actualiz|modific)\w*\b.*\b(corte|corta)\b|.*\b(corte|corta)\b.*\b(cambi|modific|actualiz)\w*)/, 'fijas'],
+  [/\bcuanto debo\b(?! (ahorrar|gastar|apartar|pagar|de impuesto|a |al |a la ))|\bno me resta\w*|\brestando\b|\bmucho dinero\b.*\bno es\b|\b(debo|deuda)\b.*\ben rojo\b/, 'cuanto-debo'],
+  [/^(?!.*\b(anot|apunt|registr|captur|pon|pong|poner|agreg|met|carg|escrib|actualiz|ingres|pas|cambi)\w*)(?!.*\bcaja\b)(?=.*\b(lo que debo|corte|corta|cortes)\b)/, 'cuanto-debo'],
+  [/\bpag\w* (la |mi |las |mis )?(tarjeta|tarjetas|tdc)\b/, 'tarjeta'],
+  [/\ble preste\b|\bme presto\b|\b(mi (hermano|hermana|mama|papa|amigo|amiga|primo|prima|tio|tia|hijo|hija|vecino|vecina|jefe|novio|novia|esposo|esposa)|alguien) me debe\b|\ble debo\b/, 'deudas'],
+  [/\b(registre|anote|puse|capture|meti)\b.*\bdos veces\b|\bse me duplic\w*|^(?!.*\b(cada|mensual\w*|fijo|fija)\b)(?=.*\brepetid\w*)/, 'editar'],
+  [/\b(pague|compre|gaste)\b.*\bcon (la |mi )?(tarjeta|tdc)\b/, 'gasto'],
+  [/^(?!.*\b(cuenta|categoria|banco|tarjeta|fondo|meta)\b)(?=.*\b(mi nombre|nombre del concepto)\b)/, 'perfil-datos'],
+  // solo si es la pregunta completa: "no entiendo el interes de mi cajita" tiene que buscar normal
+  [/^(ayuda( por favor| porfa)?|(ayuda( por favor| porfa)? )?(no entiendo( nada)?|no le entiendo( nada)?|no se (como )?usar(la|lo)?( esto| la app| fundview)?)( por favor| porfa)?)$/, 'empezar'],
+  [/\bcomo sabe\b/, 'conexion'], [/\bcuanto (llevo |he |me )?gast\w*|\ben que (me )?gast\w*|\bgastos del mes\b/, 'resumen'], [/^(que es|que es esto|que es esta|que es la app|que es esta app|que es fundview|que hace|que hace fundview|de que se trata|para que es|para que sirve|para que sirve esto|para que sirve fundview|como funciona|como funciona fundview)$/, 'que-es'],
+  [/\bcuanto (dinero )?tengo\b(?! que)|\bdonde esta (mi|el) dinero\b/, 'total'], [/^(como (la |se |lo )?us[oa]( fundview| la app| esta app| esto)?|soy nuev[oa])$/, 'empezar'], [/\b(cambi\w*|olvid\w*|nueva) (mi |la )?clave\b/, 'contrasena']];
 // (17-nov-2026, calificacion con usuario-real) CUANDO FUNDVIEW COBRA (CFG.cobro: ayudaCobro.on lo prende quien monta la pestaña Suscripción), "pagar",
 // "cancelar", "factura" y "ya transferí" hablan del cobro de Fundview antes que de los pagos fijos de la persona. "Cómo cancelo" NUNCA lleva a borrar la
 // cuenta: quien solo queria dejar de pagar perderia todo lo que anoto. Lo que nombra un pago suyo (tarjeta, deuda, un pago fijo) sigue su camino de siempre.
@@ -13941,8 +13996,10 @@ const AYUDA_PAGO = [
   /\b(pag\w*|transfer\w*|deposit\w*|cobr\w*)\b.*\b(fundview|la app|esta app|la aplicacion|mensualidad|mi suscripcion|la suscripcion)\b|\b(fundview|la app|esta app|la aplicacion)\b.*\b(pag\w*|cobr\w*|cuesta|cobro)\b/,
   /\bsi no pago\b|\bno (quiero|puedo|voy a) pagar\b|\bdejar de pagar\b|\bdej\w* de pagar\b/,
   /\bya (pague|transferi|deposite|hice (la|mi) transferencia)\b/,
+  /^(?=.*\b(tarda|tardan|aparece|aparecer|confirman|confirmar)\b)(?=.*\bmi pago\b)(?=.*\b(transferencia|suscripcion|fundview|aviso|captura)\b)|\bcuanto tarda\w* en (aparecer|confirmar\w*) mi pago\b/,
   /\b(cancel\w*|dar(me|se|la|lo)? de baja|me doy de baja)\b/,
   /\bfactur\w*/,
+  /\b(cuest\w*|cuanto es|precio)\b.*\bsuscripcion\b/,
   /\bclabe\b|\bclave de rastreo\b|\bcomprobante\b|\bcaptura de (mi |la )?transferencia\b/,
 ];
 const ayudaEsPago = n => ayudaCobro.on && !AYUDA_SUYO.test(n) && AYUDA_PAGO.some(re => re.test(n));
@@ -13954,11 +14011,15 @@ const AYUDA_RAZON = {
   'falla': 'Eso lo revisamos nosotros. Escríbenos qué estabas haciendo y qué dice la pantalla.',
   'contacto': 'Nos encuentras en este correo.',
   'impuestos': 'Eso no lo contesto aquí: los impuestos dependen de tu caso. Escríbenos y lo vemos.',
-  'consejo': 'Eso no lo contesto aquí. Fundview no da asesoría financiera ni de inversión, así que esta ayuda no te va a decir qué te conviene. Escríbenos y lo vemos.',
-  'inversion': 'Eso no lo contesto aquí. Fundview no compra ni vende nada y no da asesoría de inversión. Escríbenos y lo vemos.',
+  'consejo': 'Eso no lo contesto aquí. Fundview no da asesoría financiera ni de inversión, así que esta ayuda no te va a decir qué te conviene.',
+  'inversion': 'Eso no lo contesto aquí. Fundview no compra ni vende nada y no da asesoría de inversión.',
   'sin': 'No encontré eso en la ayuda. Escríbenos y lo vemos.',
 };
-const AYUDA_VACIAS = new Set(('a al algo alguna alguien alla aqui asi ayuda ayudame ayudar acerca con cual cuando cuanto cuanta cuantos como de del donde dos el ella en entonces es esa ese esta estas este esto favor fundview app aplicacion gracias hacer haga hago hay hola la las le les lo los me meto meter mi mis necesito no o oye para pero por porque puede puedo quiero que se sea si sin soy sobre su sus tambien te tengo ti tu tus un una uno unos unas va voy y ya yo eso esa quisiera saber podrias podria decir decirme dime disculpa buenas buenos tardes dias noches pregunta duda').split(' '));
+// (18-nov-2026) estas razones no ofrecen el correo: no damos consejo, y escribirnos no lo cambia
+const AYUDA_SIN_CORREO = ['consejo', 'inversion'];
+// lo que mas se pregunta: se ofrece cuando la ayuda no entiende, para tocar en vez de volver a escribir
+const AYUDA_COMUNES = ['gasto', 'cuanto-debo', 'agregar', 'empezar'];
+const AYUDA_VACIAS = new Set(('a al algo alguna alguien alla aqui asi ayuda ayudame ayudar acerca con cual cuando cuanto cuanta cuantos como de del donde dos el ella en entonces es esa ese esta estas este esto favor fundview app aplicacion gracias hacer haga hago hay hola la las le les lo los me meto meter mi mis necesito no o oye para pero por porque puede puedo quiero que se sea si sin soy sobre su sus tambien te tengo ti tu tus un una uno unos unas va voy y ya yo eso esa quisiera saber podrias podria decir decirme dime disculpa buenas buenos tardes dias noches pregunta duda oiga mija mijo mijita porfa porfavor hice hizo hoy manana desde').split(' '));
 const AYUDA_SINONIMOS = {celular:'telefono', cel:'telefono', movil:'telefono', smartphone:'telefono', lana:'dinero', plata:'dinero', feria:'dinero', varo:'dinero', pesos:'dinero', tdc:'tarjeta',
   dolar:'moneda', dolares:'moneda', euro:'moneda', euros:'moneda', yuan:'moneda', yuanes:'moneda', usd:'moneda', aud:'moneda', nzd:'moneda', eur:'moneda', cny:'moneda', divisa:'moneda', divisas:'moneda', extranjera:'moneda', extranjero:'moneda',
   savings:'cajita', password:'contrasena', pass:'contrasena', email:'correo', mail:'correo', eliminar:'borrar', elimino:'borrar', suprimir:'borrar', acciones:'accion', pongo:'poner', pon:'poner', veo:'ver', uso:'usar', compu:'computadora', laptop:'computadora', ipad:'tablet'};
@@ -14016,9 +14077,12 @@ function buscarAyuda(q, parcial) {
     if (ix.df.has(t)) return {t: [t], f: 1};
     if (parcial && i === ts.length - 1 && t.length >= 3) { const v = [...ix.df.keys()].filter(k => k.startsWith(t)); if (v.length) return {t: v, f: 0.9}; }
     const p = ayParecida(t, ix);
-    return p ? {t: [p], f: 0.8} : {t: [t], f: 1};
+    return p ? {t: [p], f: 0.8} : {t: [t], f: 1, nueva: true};
   });
-  const esDebil = p => p.t.every(t => ix.deb.has(t)), total = pal.filter(p => !esDebil(p)).reduce((s, p) => s + Math.max(...p.t.map(ix.peso)), 0);
+  // (18-nov-2026) una palabra que la ayuda no conoce ("hermana", "bbva", "desde") pesa la mitad: si no, una frase dictada con palabras de mas
+  // no alcanzaba el 60% aunque dijera de que se trata. Solo con dos palabras conocidas o mas: con una sola ("falta un banco en la lista") la frase
+  // habla de otra cosa y una respuesta de "banco" no le sirve. Si NINGUNA se conoce no hay nada que cubrir y sale el correo
+  const esDebil = p => p.t.every(t => ix.deb.has(t)), conocidas = pal.filter(p => !p.nueva && !esDebil(p)).length, pesoP = p => p.nueva ? (conocidas >= 2 ? 0.5 : 1) : Math.max(...p.t.map(ix.peso)), total = pal.filter(p => !esDebil(p)).reduce((s, p) => s + pesoP(p), 0);
   if (pal.every(esDebil)) return {tipo: 'vago'};
   const res = [];
   for (const f of ix.filas) {
@@ -14065,6 +14129,8 @@ const AYUDA_IR = {
   fondo: () => { abrirFondoNuevo(); return ayEl('fondo-nuevo'); },
   bolsa: () => { if (dashboardEncendido()) { showPage('dashboard', true); return ayAbrir(ayEl('stock-op-btn')); } ayMisCuentas(); return ayEl('dashboard-toggle').closest('.panel'); },
   inicio: () => { showPage('inicio', true); return document.querySelector('.total-section'); },
+  // la linea roja bajo el total, si hay deuda; si no, el total
+  deuda: () => { showPage('inicio', true); const d = ayEl('total-deuda'); return d && !d.hidden && d.offsetParent !== null ? d : document.querySelector('.total-section'); },
   resumen: () => { showPage('resumen', true); return ayEl('res-periodo-toggle'); },
   ganancia: () => { showPage('resumen', true); return ayAbrir(ayEl('res-utilidades')); },
   limite: () => { ayPerfil(); return ayAbrir(ayEl('limite-input')); },
@@ -14125,10 +14191,16 @@ function ayudaPintar(r, enfocar) {
   if (r.tipo === 'vacio') { res.hidden = true; res.textContent = ''; lista.hidden = false; est.textContent = ''; return; }
   const porId = id => AYUDA_BASE.find(e => e.id === id), todas = '<button type="button" class="volver-btn ay-todas" data-ay-todas="1">ver todas las preguntas</button>';
   let html, aviso;
-  if (r.tipo === 'vago') { html = '<div class="panel ay-correo"><p class="ay-txt" tabindex="-1">Dime un poco más: por ejemplo, registrar un gasto o agregar una cuenta.</p></div>'; aviso = 'dime un poco más'; }
+  const comunes = () => '<h3 class="section-title mt">lo que más se pregunta</h3><div class="panel ay-comunes">' + AYUDA_COMUNES.map(porId).filter(Boolean).map(e => ayudaItemHTML(e, false)).join('') + '</div>';
+  if (r.tipo === 'vago') { html = '<div class="panel ay-correo"><p class="ay-txt" tabindex="-1">Dime un poco más: por ejemplo, registrar un gasto o agregar una cuenta.</p></div>' + comunes(); aviso = 'dime un poco más'; }
   else if (r.tipo === 'escalar' && r.razon === 'perdi-app') { html = '<div class="panel">' + ayudaItemHTML(porId('perdi-app'), true) + '</div>'; aviso = 'una respuesta: ' + porId('perdi-app').p; }
-  else if (r.tipo === 'escalar' || r.tipo === 'sin') {
+  else if (r.tipo === 'escalar' && AYUDA_SIN_CORREO.includes(r.razon)) {
+    html = '<div class="panel ay-correo"><h3 class="ay-tit" tabindex="-1">Esto no lo contesta la ayuda</h3><p class="ay-txt">' + escapeHtml(r.texto) + '</p></div>';
+    if (r.razon === 'inversion') html += '<h3 class="section-title mt">si lo que quieres es anotarlas</h3><div class="panel">' + ayudaItemHTML(porId('bolsa'), false) + '</div>';
+    aviso = 'Esto no lo contesta la ayuda';
+  } else if (r.tipo === 'escalar' || r.tipo === 'sin') {
     html = '<div class="panel ay-correo">' + ayudaCorreoHTML(r.texto, r.tipo === 'sin' ? 'Esto no está en la ayuda' : 'Esto lo vemos nosotros') + '</div>';
+    if (r.tipo === 'sin') html = comunes() + html;
     if (r.razon === 'inversion') html += '<h3 class="section-title mt">si lo que quieres es anotarlas</h3><div class="panel">' + ayudaItemHTML(porId('bolsa'), false) + '</div>';
     aviso = (r.tipo === 'sin' ? 'esto no está en la ayuda' : 'esto lo vemos nosotros') + '. Puedes escribir a ' + AYUDA_CORREO;
   } else {
@@ -14147,6 +14219,11 @@ if (CFG.multi) {
     hueco.after(pl.content.cloneNode(true));
     const b = document.createElement('button'); b.type = 'button'; b.className = 'stab'; b.id = 'ptab-ayuda'; b.textContent = 'ayuda';
     b.addEventListener('click', () => perfilSub('ayuda')); tabs.appendChild(b);
+    // (18-nov-2026, calificacion con usuario-real) a 390 px la pestaña perfil queda fuera de la pantalla y nadie encontraba la ayuda
+    const q = document.createElement('button'); q.type = 'button'; q.className = 'logout-btn ay-abrir'; q.id = 'ay-abrir'; q.textContent = '?';
+    q.title = 'Ayuda'; q.setAttribute('aria-label', 'Ayuda');
+    q.addEventListener('click', () => { showPage('perfil'); perfilSub('ayuda'); const i = ayEl('ay-q'); if (i) { i.scrollIntoView({block: 'center'}); i.focus({preventScroll: true}); } });
+    const ojo = ayEl('privado-btn'); if (ojo) ojo.before(q);
     const v = document.createElement('button'); v.type = 'button'; v.className = 'ay-volver'; v.id = 'ay-volver'; v.hidden = true; v.textContent = '‹ volver a la ayuda';
     document.querySelector('.tabs').after(v);
     v.addEventListener('click', () => { showPage('perfil'); perfilSub('ayuda'); const s = document.querySelector('#perfil-sub-ayuda details[open] summary') || ayEl('ay-q'); if (s) { s.scrollIntoView({block: 'center'}); s.focus(); } });
@@ -14586,7 +14663,8 @@ if (CFG.multi && CFG.cobro) {
     // con cobro, la ayuda ya no dice que es gratis
     const q = AYUDA_BASE.find(x => x.id === 'cuesta');
     if (q) Object.assign(q, {p: '¿Cuánto cuesta Fundview y cómo lo pago?', donde: 'Perfil › Suscripción', ir: 'cobro', boton: 'ir a tu suscripción',
-      r: ['El precio y cómo pagar están en "Tu suscripción": una transferencia desde tu banco, con tu nombre completo en el concepto. Después toca "Ya transferí" y manda tu captura; lo revisamos a mano y ahí verás hasta cuándo quedó pagado.',
+      r: [(Number(CFG.cobro.precioMes) > 0 ? 'Cuesta $' + Number(CFG.cobro.precioMes).toLocaleString('en-US') + ' al mes. ' : '') + 'Cómo pagar está en "Tu suscripción": una transferencia desde tu banco, con tu nombre completo en el concepto. Después toca "Ya transferí" y manda tu captura.',
+        'Tu aviso dice "Lo estamos revisando" hasta que lo confirmamos a mano; ahí mismo verás hasta cuándo quedó pagado. Si ya pasó un buen rato y no cambia, escríbenos.',
         'No se renueva sola: para cancelar, no pagues y listo. Si no pagas, la app sigue igual. ' + String(CFG.cobro.factura || ''),
         'Tus propios pagos fijos se anotan en Movimientos › Suscripciones.'],
       claves: 'cuesta costo precio gratis cobran cobrar pagar pago pague mensualidad transferencia transferi cancelar cancelo baja factura clabe rastreo comprobante suscripcion'});
@@ -14769,6 +14847,7 @@ function aplicarVisibilidadDashboard() {
   const off = document.getElementById('dash-off'), onEl = document.getElementById('dash-on');
   if (off && onEl) { off.classList.toggle('active', !on); onEl.classList.toggle('active', on); }
   if (typeof cxTipoTdc === 'function' && document.getElementById('cx-nuevo-tipo')) cxTipoTdc(); // el texto de "inversiones en bolsa" depende de esto
+  try { refrescarBolsa(); } catch(e) { console.error('bolsa sin uso', e); }
 }
 window.setDashboard = async function(valor) {
   if (dashboardEncendido() === !!valor) return;      // ya esta asi: no escribir por gusto
@@ -14803,10 +14882,10 @@ window.setFondoTab = async function(valor) {
 const FONDO_TIPOS_TXT = {entrada:'llegó al fondo', apartar:'apartado', rendimiento:'rendimiento del banco',
   salida:'pagado con el fondo', traspaso:'traspaso', liberar:'liberado a tu dinero'};
 const FONDO_AYUDA = {
-  entrada:'Sube el saldo de esa cuenta y lo aparta. No es un ingreso: no cuenta en tu mes ni en tu score. OJO: si ya capturaste ese saldo en "actualizar saldos", NO uses esta: usa "apartar dinero que ya está en la cuenta", o lo contarías dos veces.',
+  entrada:'Sube el saldo de esa cuenta y lo aparta. No es un ingreso: no cuenta en tu mes ni en tu calificación. OJO: si ya capturaste ese saldo en "actualizar saldos", NO uses esta: usa "apartar dinero que ya está en la cuenta", o lo contarías dos veces.',
   apartar:'El dinero ya está en la cuenta (por ejemplo, ya lo habías capturado): no mueve el saldo, solo lo aparta.',
   rendimiento:'El interés que el banco le pagó al fondo. Ya está en el saldo: aquí se aparta y deja de contar como tuyo.',
-  salida:'Baja el saldo de la cuenta y lo apartado (por ejemplo, pagaste la inscripción). No es un gasto: no cuenta en tu mes ni en tu score.',
+  salida:'Baja el saldo de la cuenta y lo apartado (por ejemplo, pagaste la inscripción). No es un gasto: no cuenta en tu mes ni en tu calificación.',
   traspaso:'Mueves dinero del fondo entre tus cuentas: el saldo y lo apartado viajan juntos.',
   liberar:'Deja de estar apartado y pasa a ser dinero tuyo, sin mover el saldo.'};
 window.fondoTipoCambio = function() {
@@ -15436,8 +15515,8 @@ function renderMetas(ctx) {
     const pct=pend?0:(meta>0?actual/meta*100:0), faltan=meta-actual;
     // la barra se recorta a 100% pero el texto muestra el avance real
     const txt=pend?'Aún no se puede medir':faltan>0
-      ?`te faltan ${fmt(faltan)} · llevas ${pct.toFixed(1)}% de la meta`
-      :`meta superada por ${fmt(-faltan)} · ${pct.toFixed(1)}%`;
+      ?`te faltan ${fmt(faltan)} · llevas ${pctCorto(pct)}% de la meta`
+      :`meta superada por ${fmt(-faltan)} · ${pctCorto(pct)}%`;
     const bloq=metaBloqueada(m.cuenta,ctx)?(esIdX(m.cuenta)?(xFalta(m.cuenta)?'cuenta pendiente de cargar':'tipo de cambio pendiente'):'cotización pendiente'):'';
     const sub=[m.nombre?nombreMeta(m.cuenta):'',bloq].filter(Boolean).join(' · ');
     const f=fechaDeMeta(m,MT), d=diasAFecha(f);
@@ -15518,7 +15597,8 @@ async function guardarMetas(mensaje, op) {
 let metaDlgModo='nueva', metaDlgId=null;
 function metaCuentasLibres(){
   const MT=state.metas||{fecha:META_FECHA_DEF,items:[]}, usadas=(MT.items||[]).map(m=>m.cuenta);
-  const fijas=Object.keys(METAS_CUENTAS).filter(c=>!usadas.includes(c)&&!ctaApagada(c)&&!sinUsoFV.has(c));
+  const sinBolsa=bolsaSinUso();   // (18-nov-2026) quien no tiene inversiones no ve "bolsa" entre las cuentas de una meta
+  const fijas=Object.keys(METAS_CUENTAS).filter(c=>!usadas.includes(c)&&!ctaApagada(c)&&!sinUsoFV.has(c)&&!(sinBolsa&&c==='stocks'));
   // lo de siempre primero (efectivo, bancos y las que agrego la persona); la bolsa y el patrimonio al final: no son lo que alguien nuevo busca
   const alFinal=c=>c==='stocks'||c==='patrimonio';
   const agregadas=CFG.multi?cuentasXActivas().map(([id])=>id).filter(id=>!usadas.includes(id)):[];
@@ -15594,6 +15674,13 @@ window.eliminarMeta = async function(id) {
   await guardarMetas('meta eliminada',{tipo:'quitar',id});
 };
 
+// (18-nov-2026, calificacion "como se ve") un porcentaje sin decimal de mas: 75% y no 75.0%; 62.7% se queda
+const pctCorto=v=>{ const r=Math.round(v*10)/10; return Number.isInteger(r)?String(r):r.toFixed(1); };
+// (18-nov-2026) lo que hace falta al mes para una meta: lo usan Metas (camino) y el cierre del Resumen, para que digan lo mismo.
+// Meses que quedan INCLUYENDO el actual (minimo 1): la fecha de la meta en su mes cuenta como un mes mas
+function mesesRestMeta(f){ const hoyD=new Date(), metaD=parseFechaLocal(f); return Math.max(1,(metaD.getFullYear()-hoyD.getFullYear())*12+(metaD.getMonth()-hoyD.getMonth())+1); }
+const ritmoMeta=(falta,f)=>Math.max(0,falta)/mesesRestMeta(f);
+const fechaCortaMeta=f=>parseFechaLocal(f).toLocaleDateString('es-MX',{day:'numeric',month:'short',year:'numeric'}).replace('.','');
 // proyeccion CONSERVADORA hacia cada meta, hasta SU fecha: solo aportaciones registradas (promedio de los
 // ultimos 3 meses completos, incluyendo meses en cero), sin contar rendimientos futuros
 function renderCamino(ctx) {
@@ -15616,15 +15703,17 @@ function renderCamino(ctx) {
   const fila=(nombre,actual,meta,prom,bloqueada,f)=>{
     // comparacion por fecha calendario: el propio dia de la meta todavia cuenta
     if(hoyLocal()>f) return `<div class="item-row"><div><div class="item-cat">${escapeHtml(nombre)}</div><div class="item-meta">la fecha de esta meta ya pasó — ponle otra con «editar»</div></div><span class="item-meta">—</span></div>`;
-    if(prom===null&&meta-actual>0) return `<div class="item-row"><div><div class="item-cat">🎯 ${escapeHtml(nombre)}</div><div class="item-meta">te faltan ${fmt(meta-actual)} · esta cuenta no lleva registro de aportaciones, no se puede proyectar</div></div></div>`;
+    // (18-nov-2026, calificacion "como se ve": aqui decia "no se puede proyectar" y el Resumen "necesitas $1,875/mes" para la misma meta)
+    // sin registro de aportaciones no hay ritmo que proyectar, pero lo que hace falta al mes sale de la MISMA cuenta que el Resumen
+    if(prom===null&&meta-actual>0&&!bloqueada) return `<div class="item-row"><div><div class="item-cat">🎯 ${escapeHtml(nombre)}</div><div class="item-meta">te faltan ${fmt(meta-actual)} · necesitas ${fmt(ritmoMeta(meta-actual,f))}/mes para llegar al ${fechaCortaMeta(f)}</div></div></div>`;
     if(bloqueada) return `<div class="item-row"><div><div class="item-cat">${escapeHtml(nombre)}</div><div class="item-meta">cotización pendiente — proyección no disponible</div></div><span class="item-meta">—</span></div>`;
     const falta=Math.max(0,meta-actual);
     if(falta<=0) return `<div class="item-row"><div><div class="item-cat">🏁 ${escapeHtml(nombre)}</div><div class="item-meta">meta lograda — todo lo demás es ventaja</div></div><div style="font-weight:600">${fmt(actual)}</div></div>`;
     const mesesFut=mesesHastaMeta(f);
     if(mesesFut<=0) return `<div class="item-row"><div><div class="item-cat">${escapeHtml(nombre)}</div><div class="item-meta">último mes: te faltan ${fmt(falta)} para la meta</div></div><span class="item-meta">—</span></div>`;
-    const proy=actual+prom*mesesFut, nece=falta/mesesFut, ok=proy>=meta-0.005;
+    const proy=actual+prom*mesesRestMeta(f), nece=ritmoMeta(falta,f), ok=proy>=meta-0.005;   // (18-nov, revision) proyeccion y aporte necesario con el MISMO contador de meses que el Resumen: si no, pedia "subir" a menos que el ritmo actual
     const promTxt=(prom<0?'−':'')+fmt(Math.abs(prom)); // signo manual: fmt pone el $ antes del -
-    const cuando=parseFechaLocal(f).toLocaleDateString('es-MX',{day:'numeric',month:'short',year:'numeric'}).replace('.','');
+    const cuando=fechaCortaMeta(f);
     return `<div class="item-row"><div><div class="item-cat">${ok?'✅':'🎯'} ${escapeHtml(nombre)}</div><div class="item-meta">${
       ok?('a tu ritmo (unos '+promTxt+'/mes) llegas al '+cuando+' con '+fmt(proy))
         :('a tu ritmo (unos '+promTxt+'/mes) llegarías al '+cuando+' con '+fmt(Math.max(0,proy))+' — sube tu aporte a '+fmt(nece)+'/mes')
@@ -15665,6 +15754,8 @@ function renderApartados() {
   const viejos=state.apartados.map(a=>
     `<div class="resumen-bar"><div class="bar-header"><span class="bar-label">${escapeHtml(a.nombre)}</span><span style="display:flex;align-items:center"><span class="bar-amt">${fmt(a.ahorrado)} / ${fmt(a.meta)}</span><button type="button" class="del-btn del-x" aria-label="borrar" onclick="eliminarApartado('${a.id}')">&times;</button></span></div>`+
     `<div class="bar-header" style="margin-top:4px"><span class="item-meta">no separa dinero: solo es un letrero</span><button type="button" class="del-btn" style="font-size:12px;color:var(--accent);padding:2px 0 2px 10px" onclick="pasarAFondo('${a.id}')">pasar a fondo</button></div></div>`).join('');
+  // (18-nov-2026, calificacion "como se ve") sin ningun fondo con meta ni apartados de antes, la seccion entera no sale (antes: vacia)
+  const sec=document.getElementById('metas-fondos-sec'); if(sec) sec.hidden=datosCargados&&!filas&&!viejos;
   // en la copia local (sin confirmar con el servidor) las metas no estan cargadas: no se afirma que no hay
   el.innerHTML=(filas||`<div class="empty-state">${datosCargados?(CFG.multi&&!state.perfil.fondoTab?'todavía no tienes metas de fondos':'ninguno de tus fondos tiene meta — pónsela en la pestaña fondo'):'cargando…'}</div>`)+
     (viejos?`<div class="section-title mt">apartados de antes</div>${viejos}`:'');
@@ -15744,7 +15835,7 @@ function renderLimite(){
     html+='<div style="margin-top:'+(html?'12':'0')+'px"><div class="bar-header"><span class="item-meta" style="color:var(--text)">'+escapeHtml(cat)+'</span>'+
       '<span class="item-meta"'+(x.nivel==='rojo'?' style="color:var(--red);font-weight:600"':'')+'>'+fmt(x.g)+' / '+fmt(x.L)+(x.resta<0?' · te pasaste por '+fmt(-x.resta):'')+'</span></div>'+barra(x,5)+'</div>'; });
   el.innerHTML='<div class="panel" style="padding:12px 16px;margin-bottom:12px">'+html+
-    '<div style="text-align:right;margin-top:6px"><button type="button" class="del-btn" style="font-size:12px;color:var(--accent);padding:2px 0 2px 10px" onclick="abrirLimite()">cambiar</button></div></div>';
+    '<div style="text-align:right;margin-top:6px"><button type="button" class="del-btn liga-acc" style="font-size:12px;color:var(--accent);padding:2px 0 2px 10px" onclick="abrirLimite()">cambiar</button></div></div>';
 }
 function saneaLimitesCat(a){
   // (4-nov-2026, Fundview) 'Educacion' y 'Educación' son la misma categoria: si hay un limite de cada una se queda el menor (como al juntar categorias)
@@ -16685,7 +16776,7 @@ function calcularCierre(start,end,modo) {
   const MT=state.metas||{fecha:META_FECHA_DEF,items:[]};
   if(esActual&&!esAno){
     const hoyD=new Date();
-    const mesesRestDe=f=>{ const metaD=parseFechaLocal(f); return Math.max(1,(metaD.getFullYear()-hoyD.getFullYear())*12+(metaD.getMonth()-hoyD.getMonth())+1); };
+    const mesesRestDe=mesesRestMeta;   // la misma cuenta que Metas (camino a tus metas)
     const posA=Object.entries(state.posiciones).filter(([k,p])=>p.acciones>0);
     let stVal=0, stCompleto=Number.isFinite(state.usdMxn);
     posA.forEach(([k,p])=>{ const mk=state.accionesMkt[k]; if(mk&&Number.isFinite(mk.precio)&&stCompleto) stVal+=p.acciones*mk.precio*state.usdMxn; else stCompleto=false; });
@@ -16787,18 +16878,24 @@ function promedioGastoMensual() {
   return vals.length?vals.reduce((a,b)=>a+b,0)/vals.length:0;
 }
 
+// (18-nov-2026) gastos fijos: el consejo del mes nunca propone recortarlos. Se compara sin acentos ni mayusculas ('Educacion' y 'Educación')
+const CATS_FIJAS=new Set(['casa','renta','colegiatura','colegiaturas','educacion','salud']);
+const esCatFija=c=>CATS_FIJAS.has(String(c||'').normalize('NFD').replace(/[̀-ͯ]/g,'').trim().toLowerCase());
 // texto corto (1 frase de veredicto + siguiente paso). TEXTO PLANO: quien lo pinte lo escapa
 function textoCoach(m) {
   if(m.gPct===null||!m.maduro) return null; // sin madurez no hay veredicto (seria ruido)
   const {gPct,aPct,falta20,tops,esActual,esAno,per,est}=m;
   const gOk=gPct<=est.gastoMax, gMed=gPct<=100, aOk=aPct>=est.ahorroObj;
-  const foco=tops.find(t=>t.inflada)||tops[0];
-  const cN=foco?foco.cat:'tus gastos grandes';
-  if(!gMed) return '⚠️ '+(esActual?'Vas gastando':'Gastaste')+' más de lo que '+(esActual?'ha ingresado':'ingresó')+' ('+gPct.toFixed(0)+'%). Prioridad: recorta '+cN+' y evita tapar el hueco con las tarjetas.';
-  if(gOk&&aOk) return '🎉 '+(esActual?('Este '+per+' va excelente'):('Fue un gran '+per))+': gastaste el '+gPct.toFixed(0)+'% de tus ingresos y aportaste el '+aPct.toFixed(0)+'% — muy buen ritmo de ahorro e inversión.'+(tops.find(t=>t.inflada)?' Solo cuida '+cN+', que va arriba de tu promedio.':' Sigue así y diciembre llega solo.');
+  // (18-nov-2026, calificacion "como se ve") nunca se propone recortar un gasto fijo (Casa, Renta, Colegiatura, Educacion, Salud):
+  // si la categoria mas cargada es una de esas se usa la siguiente, y si no queda ninguna no se propone recorte
+  const libres=tops.filter(t=>!esCatFija(t.cat));
+  const infl=libres.find(t=>t.inflada), foco=infl||libres[0];
+  const cN=foco?foco.cat:null;
+  if(!gMed) return '⚠️ '+(esActual?'Vas gastando':'Gastaste')+' más de lo que '+(esActual?'ha ingresado':'ingresó')+' ('+gPct.toFixed(0)+'%). Prioridad: '+(cN?'recorta '+cN+' y ':'')+'evita tapar el hueco con las tarjetas.';
+  if(gOk&&aOk) return '🎉 '+(esActual?('Este '+per+' va excelente'):('Fue un gran '+per))+': gastaste el '+gPct.toFixed(0)+'% de tus ingresos y aportaste el '+aPct.toFixed(0)+'% — muy buen ritmo de ahorro e inversión.'+(infl?' Solo cuida '+infl.cat+', que va arriba de tu promedio.':' Sigue así y diciembre llega solo.');
   if(gOk) return 'Buen control de gasto ('+gPct.toFixed(0)+'%). El siguiente paso es la aportación: '+(esActual?'llevas':'cerraste con')+' el '+Math.max(0,aPct).toFixed(0)+'% — '+(esActual?'te faltan ':'te faltaron ')+fmt(Math.max(0,falta20))+' para tu '+est.ahorroObj+'%.';
-  if(aOk) return 'Buen ritmo de aportación ('+aPct.toFixed(0)+'%). El gasto va algo cargado ('+gPct.toFixed(0)+'%): revisa '+cN+' para darte más margen.';
-  return (esAno?'Año apretado':'Mes apretado')+': gasto al '+gPct.toFixed(0)+'% y aportación al '+Math.max(0,aPct).toFixed(0)+'%. Empieza recortando '+cN+' y aparta aunque sea una parte de los '+fmt(Math.max(0,falta20))+' que faltan para tu '+est.ahorroObj+'%.';
+  if(aOk) return 'Buen ritmo de aportación ('+aPct.toFixed(0)+'%). El gasto va algo cargado ('+gPct.toFixed(0)+'%)'+(cN?': revisa '+cN+' para darte más margen.':'.');
+  return (esAno?'Año apretado':'Mes apretado')+': gasto al '+gPct.toFixed(0)+'% y aportación al '+Math.max(0,aPct).toFixed(0)+'%. '+(cN?'Empieza recortando '+cN+' y aparta':'Aparta')+' aunque sea una parte de los '+fmt(Math.max(0,falta20))+' que faltan para tu '+est.ahorroObj+'%.';
 }
 
 // analisis largo: varias frases, omitiendo las que no tengan datos suficientes
@@ -16858,16 +16955,21 @@ function cierreMesHTML(m,label,capturar) {
     // (el renglon de arriba, 'gasto del ingreso', ya la traia). La familia sigue con su emoji y sin la palabra
     // (4-nov-2026) el dia 4 de un mes, 0% aportado no es "por debajo": el mes apenas empieza. Un saldo inicial (el del asistente) no es una aportacion y no cuenta
     const pronto=CFG.multi&&esActual&&m.diaMes<=7&&aporte>=0;   // solo la primera semana; con retiros netos ya no es "falta tiempo"
-    fila(aPct>=est.ahorroObj?'✅':(aPct>=est.ahorroMin?'🟡':'⚠️'),'aportaste a ahorro e inversión',
-      (CFG.multi?(aPct>=est.ahorroObj?'buen ritmo de aportación':(aPct>=est.ahorroMin?'cerca de tu referencia':(pronto?'el mes apenas empieza':'por debajo de tu referencia')))+' · ':'')+'aportaciones netas registradas (savings, cajita y bolsa) · tu referencia: '+est.ahorroObj+'%',(aporte<0?'−':'')+Math.abs(aPct).toFixed(0)+'% · '+fmt(Math.abs(aporte)));
-    if(falta20>0.005) fila('💡',esActual?(pronto?('aún es pronto: para tu '+est.ahorroObj+'% de este '+per+' faltan '+fmt(falta20)):('te faltan '+fmt(falta20)+' para tu '+est.ahorroObj+'% este '+per)):('te faltaron '+fmt(falta20)+' para tu '+est.ahorroObj+'%'),
-      est.fuente,fmt(falta20));
+    // (18-nov-2026, calificacion "como se ve": el cierre repetia tres veces el 20% y hablaba de "aportaciones netas", savings,
+    // 50/30/20 y CONDUSEF) UN renglon de lo apartado, en palabras de diario. El 20% lo dice el consejo de arriba; si no hay
+    // consejo (mes que apenas empieza), lo dice este renglon, una sola vez. De donde sale la referencia sigue en el perfil
+    const faltaTxt=falta20>0.005?((esActual?'te faltan ':'te faltaron ')+fmt(falta20)+' para tu '+est.ahorroObj+'%'):'';
+    fila(aPct>=est.ahorroObj?'✅':(aPct>=est.ahorroMin?'🟡':'⚠️'),'apartaste para ahorrar o invertir',
+      [CFG.multi?(aPct>=est.ahorroObj?'buen ritmo de aportación':(aPct>=est.ahorroMin?'cerca de tu referencia':(pronto?'el mes apenas empieza':'por debajo de tu referencia'))):'',
+        'lo que pasaste a tus cajitas y tu bolsa, menos lo que sacaste', coach?'':faltaTxt].filter(Boolean).join(' · '),
+      (aporte<0?'−':'')+Math.abs(aPct).toFixed(0)+'% · '+fmt(Math.abs(aporte)));
   } else {
     fila('ℹ️','sin ingresos registrados este '+per,'los porcentajes del cierre se calculan sobre tus ingresos','');
     if(apHay(ap)){
-      if(aporte>0) fila('✅','aportaste a ahorro e inversión','aportaciones netas registradas',fmt(aporte));
-      else if(aporte<0) fila('⚠️','retiraste de ahorro/inversión','aportaciones netas registradas','−'+fmt(Math.abs(aporte)));
-      else fila('·','aportaciones netas en cero','aportaciones netas registradas',fmt(0));
+      const deQue='lo que pasaste a tus cajitas y tu bolsa, menos lo que sacaste';
+      if(aporte>0) fila('✅','apartaste para ahorrar o invertir',deQue,fmt(aporte));
+      else if(aporte<0) fila('⚠️','sacaste de tus ahorros o inversiones',deQue,fmt(-Math.abs(aporte)));
+      else fila('·','no apartaste para ahorrar este '+per,deQue,fmt(0));
     }
   }
   // comparativa vs el periodo anterior (el modelo ya alineo los dias si el mes va a medias)
@@ -16943,7 +17045,7 @@ function renderResumenCorto() {
     +'<div class="bar-header" style="margin-top:8px">'
     +'<span class="item-meta">'+(m.gPct!==null?(CFG.multi?('gasto '+m.gPct.toFixed(0)+'% de tus ingresos · aporte '+Math.max(0,m.aPct).toFixed(0)+'%'+(m.maduro?'':' · el mes sigue en curso')):('gasto '+m.gPct.toFixed(0)+'% · aporte '+Math.max(0,m.aPct).toFixed(0)+'%'+(m.maduro?'':' · parcial'))):'sin ingresos este mes')
     +(m.racha>=1?' · 🔥 '+(m.racha>=24?'24+':m.racha):'')+'</span>'
-    +'<button type="button" class="del-btn" style="font-size:12px;color:var(--accent);padding:2px 0 2px 10px" onclick="showPage(\'resumen\',true)">ver detalle</button></div>';
+    +'<button type="button" class="del-btn liga-acc" style="font-size:12px;color:var(--accent);padding:2px 0 2px 10px" onclick="showPage(\'resumen\',true)">ver detalle</button></div>';
 }
 
 // dibuja el cierre en un canvas propio (sin librerias) y lo comparte o descarga como PNG
@@ -17197,7 +17299,7 @@ function pintarGananciaMes() {
   const pendiente=hayBolsa&&u.plus===null&&!hayInteres&&!(u.divs>0.005);
   const notas=[];
   if(hayBolsa&&u.plus===null) notas.push(notaBolsaPendiente(u.motivo));
-  if(u.parcialInt) notas.push('parcial');
+  if(u.parcialInt) notas.push('desde tu último saldo');   // (18-nov-2026) antes "parcial": no decía de qué
   if(avisoTasaMifel()) notas.push('estimado');
   el.classList.toggle('neg',!pendiente&&neg);
   el.innerHTML=(pendiente?'<span>este mes: ganancia pendiente</span>'
@@ -17223,10 +17325,10 @@ function renderUtilidades(start,end) {
   const fila=(ico,tit,meta,val)=>filas.push(`<div class="item-row"><div><div class="item-cat">${ico} ${escapeHtml(tit)}</div><div class="item-meta">${escapeHtml(meta)}</div></div><div style="font-size:14px;font-weight:600">${escapeHtml(val)}</div></div>`);
   fila('🏦','intereses de tus cuentas',
     (listaY(CTAS_AHORRO.filter(k=>!CFG.multi||!ctaApagada(k)||(dias>0&&Math.abs(interesEnRango(k,start.getTime(),endC.getTime()))>=0.005)).map(k=>k==='cajita1'?'cajita NU':ctaReg(k).nombre+(ctaReg(k).ui&&ctaReg(k).ui.estimado?' (estimado)':'')).concat(ix.lista.map(r=>r.x.nombre)))||'tus cuentas con interés')+(hayFondoRes?' · descontando lo conciliado al fondo':'')+(avisoTasaMifel()?' · tasa de Mifel por confirmar':'')+(parcialInt?' · parcial: '+(hueco?'hay días sin historia en este periodo':hDentro?'sin historia antes del '+fechaRes(hDentro):'sin historia completa en este periodo'):''),(intereses>=0?'+':'−')+fmt(Math.abs(intereses)));
-  if(plus===null) fila('📈','plusvalía de tus acciones',motivo,'—');
-  else fila('📈','plusvalía de tus acciones','cambio de valor sin contar lo que aportaste'+(vFin.fecha?(' · al cierre del '+vFin.fecha):''),(plus>=0?'+':'−')+fmt(Math.abs(plus)));
+  if(plus===null) fila('📈','cambio de valor de tus acciones',motivo,'—');
+  else fila('📈','cambio de valor de tus acciones','cambio de valor sin contar lo que aportaste'+(vFin.fecha?(' · al cierre del '+vFin.fecha):''),(plus>=0?'+':'−')+fmt(Math.abs(plus)));
   fila('💵','dividendos cobrados',divs>0.005?'lo que te pagaron tus acciones, registrado como ingreso':'registra lo que te paguen como ingreso "Dividendos"','+'+fmt(divs));
-  fila(util>=0?'💰':'⚠️','utilidad total',plus===null?'intereses + dividendos (la plusvalía no se pudo calcular)':'intereses + plusvalía + dividendos',(util>=0?'+':'−')+fmt(Math.abs(util)));
+  fila(util>=0?'💰':'⚠️','utilidad total',plus===null?'intereses + dividendos (el cambio de valor de tus acciones no se pudo calcular)':'intereses + cambio de valor de tus acciones + dividendos',(util>=0?'+':'−')+fmt(Math.abs(util)));
   // 4) rendimiento sobre el capital, ponderando los flujos por el tiempo que estuvieron
   // dentro del periodo (Modified Dietz): un deposito de ayer no infla el porcentaje
   // el capital inicial de cada cuenta de interes sale del tramo que cubria el arranque del periodo
@@ -17263,14 +17365,14 @@ function renderUtilidades(start,end) {
     // anualizar periodos muy cortos daria numeros absurdos
     if(dias>=28&&1+r>0) txt+=' · ~'+((Math.pow(1+r,365/dias)-1)*100).toFixed(1)+'% anual';
     fila('%','rendimiento de tu capital','sobre '+fmt(capPond)+' invertidos en promedio (método Modified Dietz)',txt);
-  } else fila('%','rendimiento de tu capital',plus===null?'necesita la plusvalía para calcularse':'aún sin capital suficiente en el periodo','—');
+  } else fila('%','rendimiento de tu capital',plus===null?'necesita el cambio de valor de tus acciones':'aún sin capital suficiente en el periodo','—');
   // 5) comparativa: cuanto trabajo tu dinero vs lo que registraste como ingresos
   const enR=i=>{ if(!movValido(i)) return false; const t=msFechaMov(i.fecha); return t!==null&&t>=start.getTime()&&t<end.getTime(); };
   const ingresos=state.ingresos.filter(enR).reduce((s,i)=>s+i.monto,0);
   if(ingresos>0&&util>0) fila('⚖️','tu dinero vs tus ingresos',
     'por cada $100 de ingresos registrados, tu dinero generó '+fmt(util/ingresos*100),
     (util/ingresos*100).toFixed(1)+'%');
-  el.innerHTML=filas.join('')+'<div class="item-meta" style="text-align:center;padding-top:8px">los intereses se cuentan desde la fecha base de cada cuenta; la plusvalía usa cierres de mercado, no precios en vivo</div>';
+  el.innerHTML=filas.join('')+'<div class="item-meta" style="text-align:center;padding-top:8px">los intereses se cuentan desde la fecha base de cada cuenta; el valor de tus acciones usa cierres de mercado, no precios en vivo</div>';
 }
 
 function renderRendimientos(start, end, balance) {
@@ -17335,7 +17437,45 @@ function renderConfigCuentas() {
   if (!cont || !CUENTAS_CFG) return;
   if (cont.contains(document.activeElement)) return; // no borrarle lo que esta escribiendo
   const e = escapeHtml;
-  cont.innerHTML = Object.keys(SLOTS_CFG).map(k => {
+  // (18-nov-2026, solo Fundview; calificacion "como se ve": enseñaba "Mi banco · Siempre activa" y cuatro casillas apagadas a quien
+  // no las usa) a la vista solo las encendidas que la app no esconde (sinUsoFV, bolsaSinUso) y cualquiera con dinero o movimientos;
+  // las demas, detras de "Ver más cuentas". Todas siguen en la pagina (guardarCuentas las lee todas): solo cambia lo que se ve
+  const sinBolsa = CFG.multi && bolsaSinUso();
+  const aLaVista = k => {
+    if (!CFG.multi) return true;
+    const s = SLOTS_CFG[k], c = confCta(k);
+    if (k === 'stocks') return !sinBolsa;
+    if (Math.abs(saldoSlotCfg(k)) >= 0.005 || CTAS_FORZADAS.has(k) || slotConMovsCfg(k)) return true;
+    return (s.fijo || c.on) && !sinUsoFV.has(k);
+  };
+  const html = {vista: [], mas: []};
+  Object.keys(SLOTS_CFG).forEach(k => { (aLaVista(k) ? html.vista : html.mas).push(htmlSlotCfg(k, e)); });
+  cont.innerHTML = html.vista.join('') + (html.mas.length
+    ? '<button type="button" class="btn cfg-mas-btn" id="cuentas-config-mas-btn" aria-expanded="' + (cfgMasAbierto ? 'true' : 'false') + '">'
+      + (cfgMasAbierto ? 'Ocultar las demás cuentas' : 'Ver más cuentas (' + html.mas.length + ')') + '</button>'
+      + '<div id="cuentas-config-mas"' + (cfgMasAbierto ? '' : ' hidden') + '>' + html.mas.join('') + '</div>' : '');
+  if (!cont.dataset.escuchaMas) {
+    cont.dataset.escuchaMas = '1';
+    cont.addEventListener('click', ev => {
+      const b = ev.target.closest && ev.target.closest('#cuentas-config-mas-btn'); if (!b) return;
+      const caja = document.getElementById('cuentas-config-mas'); if (!caja) return;
+      cfgMasAbierto = caja.hidden; caja.hidden = !cfgMasAbierto;
+      b.setAttribute('aria-expanded', cfgMasAbierto ? 'true' : 'false');
+      b.textContent = cfgMasAbierto ? 'Ocultar las demás cuentas' : 'Ver más cuentas (' + caja.querySelectorAll('.cta-cfg').length + ')';
+    });
+  }
+}
+var cfgMasAbierto = false;   // var: renderConfigCuentas puede correr antes de llegar a esta linea
+// una cuenta fija con algun movimiento (aunque este apagada): nunca se esconde detras de "ver más"
+function slotConMovsCfg(k) {
+  if (k === 'tarjeta') return (state.tarjetaMovimientos || []).length > 0;
+  if (k === 'tarjetaRev') return (state.revTdcMovs || []).length > 0;
+  const toca = m => !!m && typeof m === 'object' && Object.values(m).some(v => v === k);
+  return [state.gastos, state.ingresos, state.transferencias, state.stocksOps, (state.fondo && state.fondo.movs) || [],
+    Object.values(state.personas || {}).flatMap(p => (p && p.movimientos) || [])].some(l => Array.isArray(l) && l.some(toca));
+}
+function htmlSlotCfg(k, e) {
+  {
     const s = SLOTS_CFG[k], c = confCta(k), saldo = saldoSlotCfg(k);
     const conDinero = !s.fijo && c.on && Math.abs(saldo) >= 0.005;
     const aviso = s.fijo ? 'siempre activa' : (conDinero ? 'tiene ' + fmt(saldo) + ': vacíala antes de apagarla'
@@ -17349,7 +17489,7 @@ function renderConfigCuentas() {
       + (c.on ? ' checked' : '') + (s.fijo ? ' disabled' : '') + '><span>' + e(TIPO_TXT[s.tipo] || s.tipo) + '</span></label><span class="item-meta">' + e(aviso) + '</span></div>'
       + '<div class="field"><label>cómo se llama</label><input type="text" id="cfg-nom-' + k + '" maxlength="24" value="' + e(c.nombre) + '" placeholder="' + e(s.nom) + '"></div>'
       + corte + '</div>';
-  }).join('');
+  }
 }
 window.guardarCuentas = async function() {
   if (!CUENTAS_CFG) return;
