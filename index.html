@@ -372,6 +372,10 @@ html[data-tema='grafito'] .fv-msg{color:var(--accent)}
 .cobro-dia{font-size:22px;font-weight:600;letter-spacing:-0.3px;margin:2px 0 8px}
 .cobro-sin{margin:0 0 10px;padding:9px 14px;border-radius:var(--rs);background:var(--bg3);border:0.5px solid var(--border2);font-size:12px;color:var(--muted)}
 #cobro-aviso{margin:0 0 14px;padding:12px 14px;border-radius:var(--rs);background:var(--bg3);border:0.5px solid var(--border2);font-size:13px;line-height:1.45}
+#perfil-sub-cobro.cobro-plegado .cobro-pagar{display:none}
+#cobro-desplegar{margin:0 0 14px}
+#cobro-aviso .cobro-aviso-acc{display:flex;flex-wrap:wrap;gap:0 18px}
+#cobro-aviso button[hidden]{display:none}
 #cobro-aviso button{display:block;background:none;border:0;padding:8px 0 0;min-height:44px;font:inherit;font-weight:600;color:var(--accent-dark);cursor:pointer;text-decoration:underline}
 html[data-tema='grafito'] #cobro-aviso button{color:var(--accent)}
 /* (12-nov-2026) "ya transferi" */
@@ -830,6 +834,12 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
 /* la x de borrar: area tactil de 44 px y separada del lapiz (antes ~24 px y pegada: errarle abria editar).
    Clase aparte porque .del-btn tambien se usa en links de texto ("actualizar", "ver detalle") */
 .del-btn.del-x{min-width:44px;min-height:44px;display:inline-flex;align-items:center;justify-content:center;padding:0;margin-left:6px}
+/* (18-nov-2026, sesion D) cada meta: su fecha a la izquierda; editar y quitar a la derecha, de 44 px */
+.meta-pie{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:2px}
+.meta-acc{display:flex;align-items:center;flex-shrink:0}
+.meta-fila .bar-header{gap:8px}.meta-fila .bar-label{min-width:0;overflow-wrap:anywhere}.meta-fila .bar-amt{flex-shrink:0}
+.meta-cuando{min-width:0;overflow-wrap:anywhere}
+.del-btn.meta-editar{font-size:12px;color:var(--accent-dark);min-height:44px;min-width:44px;padding:0 10px;display:inline-flex;align-items:center}
 /* Inicio: lo que gano tu dinero este mes, bajo la cifra grande (lleva al detalle del Resumen) */
 .ganancia-mes{display:inline-flex;flex-wrap:wrap;align-items:baseline;gap:4px 6px;margin-top:12px;padding:10px 14px;border-radius:999px;background:var(--bg3);border:0;font:inherit;font-size:14px;color:var(--text);cursor:pointer;min-height:44px;text-align:left;font-variant-numeric:tabular-nums}
 .ganancia-mes[hidden]{display:none}
@@ -1425,6 +1435,7 @@ html[data-tema='grafito'] .cal-d.hoy .cal-n{color:#14171a}
       <section data-borrar="oferta">
         <h2 tabindex="-1">Antes de borrar, llévate tus datos</h2>
         <p>Al borrar tu cuenta se elimina todo lo que anotaste y ya no se puede recuperar. Si quieres conservarlo, descárgalo ahora: el Excel es para leer tus datos y la copia técnica (JSON) es la copia completa.</p>
+        <p id="fv-borrar-cobro" hidden>Si pagaste tu suscripción, lo pagado no se devuelve al borrar tu cuenta, salvo lo que digan los términos.</p>
         <button type="button" class="btn" id="fv-btn-baja-xlsx" onclick="fvBorrarBaja('xlsx')">descargar mis datos para leerlos (Excel)</button>
         <button type="button" class="volver-btn" id="fv-btn-baja-json" style="display:block;margin-top:4px" onclick="fvBorrarBaja('json')">copia técnica completa (JSON)</button>
         <div class="fv-msg" id="fv-borrar-msg" role="status"></div>
@@ -1465,18 +1476,30 @@ html[data-tema='grafito'] .cal-d.hoy .cal-n{color:#14171a}
   <div id="perfil-sub-cobro" style="display:none">
     <div class="section-title">Tu suscripción</div>
     <div class="panel" id="cobro-estado"></div>
-    <div class="section-title">Cómo pagar</div>
-    <div class="panel" id="cobro-pago">
+    <!-- (18-nov-2026, sesion E) ya pagado y lejos del vencimiento, "Como pagar" y "Ya transferi" se pliegan detras de este boton -->
+    <button type="button" class="btn" id="cobro-desplegar" hidden aria-expanded="false" aria-controls="cobro-pago cobro-avisos-panel">Pagar otra vez o adelantar un pago</button>
+    <div class="section-title cobro-pagar">Cómo pagar</div>
+    <div class="panel cobro-pagar" id="cobro-pago">
       <p class="cobro-txt" id="cobro-precio"></p>
       <p class="cobro-txt">Es una transferencia desde tu banco. No se renueva sola: cada pago lo haces tú, cuando quieras.</p>
       <div id="cobro-cuenta"></div>
       <div id="cobro-concepto"></div>
+      <!-- (18-nov-2026, sesion E) el nombre del concepto se cambia aqui mismo; vive fuera de #cobro-concepto para que un repintado no lo borre -->
+      <form id="cobro-nombre-form" hidden novalidate>
+        <label class="cobro-campo" for="cobro-nombre-in">Tu nombre completo
+          <input type="text" id="cobro-nombre-in" maxlength="40" autocomplete="name" autocapitalize="words" aria-describedby="cobro-nombre-err"></label>
+        <p class="cobro-err" id="cobro-nombre-err" role="alert" hidden></p>
+        <div class="cobro-dos">
+          <button type="submit" class="btn" id="cobro-nombre-ok">Guardar</button>
+          <button type="button" class="btn" id="cobro-nombre-no">Cancelar</button>
+        </div>
+      </form>
       <div id="cobro-ref"></div>
       <p class="cobro-txt" id="cobro-factura" style="margin-top:10px"></p>
     </div>
     <!-- (12-nov-2026, plan-cobro) "ya transferi": la persona avisa que pago, con su captura; Beto lo confirma a mano -->
-    <div class="section-title">Ya transferí</div>
-    <div class="panel" id="cobro-avisos-panel">
+    <div class="section-title cobro-pagar">Ya transferí</div>
+    <div class="panel cobro-pagar" id="cobro-avisos-panel">
       <div id="cobro-avisos"></div>
       <button type="button" class="btn" id="cobro-ya-btn" aria-expanded="false" aria-controls="cobro-form">Ya transferí</button>
       <form id="cobro-form" hidden novalidate>
@@ -2180,9 +2203,9 @@ html[data-tema='grafito'] .cal-d.hoy .cal-n{color:#14171a}
   <div class="mt">
   <div class="inicio-grid">
   <div class="sec">
-    <div class="section-title">mi meta · fin de 2026</div>
+    <div class="section-title">mis metas</div>
     <div class="panel" id="metas-panel"><div class="empty-state">calculando...</div></div>
-    <div class="section-title mt">camino a diciembre</div>
+    <div class="section-title mt">camino a tus metas</div>
     <div class="panel" id="camino-panel"><div class="empty-state">calculando...</div></div>
   </div>
   <div class="sec">
@@ -2533,12 +2556,12 @@ html[data-tema='grafito'] .cal-d.hoy .cal-n{color:#14171a}
     <button type="button" class="volver-btn" style="margin-top:10px" onclick="cerrarAsistente()">ahora no</button>
   </div>
 </dialog>
-<!-- (4-nov-2026) Fundview: el dialogo de metas, en lugar de los prompt() de la familia (nuevaMeta / editarFechaMetas) -->
-<template id="fv-meta-plantilla">
+<!-- (4-nov-2026) el dialogo de metas, en lugar de los prompt(). (18-nov-2026, sesion D) para todas las carteras: cada meta con su nombre y su fecha -->
 <dialog class="desliza-dlg asis-dlg" id="meta-dlg" aria-labelledby="meta-tit">
   <div class="desliza-caja">
     <div class="modal-tit" id="meta-tit">nueva meta</div>
-    <div class="field" id="meta-campo-cuenta" style="margin-top:10px"><label for="meta-cuenta">¿en qué cuenta?</label><select id="meta-cuenta"></select></div>
+    <div class="field" style="margin-top:10px"><label for="meta-nombre">¿cómo le llamas? (opcional)</label><input type="text" id="meta-nombre" maxlength="40" autocomplete="off" placeholder="ej. viaje de fin de año"></div>
+    <div class="field" id="meta-campo-cuenta"><label for="meta-cuenta">¿en qué cuenta?</label><select id="meta-cuenta"></select></div>
     <div class="field" id="meta-campo-monto"><label for="meta-monto">cuánto quieres tener (en pesos)</label><input type="number" id="meta-monto" step="0.01" inputmode="decimal" placeholder="ej. 30000"></div>
     <div class="field" style="margin-top:10px"><label for="meta-fecha">¿para qué fecha?</label><input type="date" id="meta-fecha"></div>
     <div class="item-meta" id="meta-nota" style="margin-top:6px"></div>
@@ -2549,7 +2572,6 @@ html[data-tema='grafito'] .cal-d.hoy .cal-n{color:#14171a}
     </div>
   </div>
 </dialog>
-</template>
 <dialog class="desliza-dlg" id="desliza-dlg" role="alertdialog" aria-labelledby="desliza-tit" aria-describedby="desliza-txt">
   <div class="desliza-caja">
     <div class="modal-tit" id="desliza-tit"></div>
@@ -5587,7 +5609,6 @@ if (CFG.multi) {
   if (priv && pl('fv-perfil-privacidad')) priv.replaceChildren(pl('fv-perfil-privacidad').content.cloneNode(true));
   if (json && pl('fv-perfil-extra')) json.after(pl('fv-perfil-extra').content.cloneNode(true));
   if (pl('cx-nuevo-cajita') && pl('fv-cx-ret')) { pl('cx-nuevo-cajita').appendChild(pl('fv-cx-ret').content.cloneNode(true)); pl('cx-nuevo-ret-nota').textContent = NOTA_RET; }
-  if (pl('fv-meta-plantilla')) document.body.appendChild(pl('fv-meta-plantilla').content.cloneNode(true));
   if (pl('fv-borrar-plantilla')) {
     document.body.appendChild(pl('fv-borrar-plantilla').content.cloneNode(true));
     // Enter en un campo pulsa el boton principal de su paso
@@ -6163,7 +6184,7 @@ async function loadFromFirebase() {
         items=m.items.filter(i=>i&&typeof i.id==='string'&&(Object.hasOwn(METAS_CUENTAS,i.cuenta)||(CFG.multi&&esIdX(i.cuenta)))
           &&Number.isFinite(i.monto)&&i.monto>0)
           .filter(i=>!CFG.multi||idSeguro(i.id))   // (2-nov-2026) Fundview: eliminarMeta('id') lleva el id en el onclick
-          .map(i=>({id:i.id,cuenta:i.cuenta,monto:i.monto}));
+          .map(metaSanea);   // (18-nov-2026, sesion D) conserva el nombre y la fecha propia de cada meta
       } else {
         // MIGRACION del formato viejo (dos metas fijas) al de lista. Si el doc no existia,
         // arranca con las dos de siempre para no dejar la pestana vacia.
@@ -13751,7 +13772,7 @@ const AYUDA_BASE = [
     r:['Escribe tu máximo y toca "Guardar límite". En inicio ves cuánto llevas y te aviso al llegar a 50%, 75% y 90%, y si te pasas. Nunca te impide registrar nada. También puedes poner "Límites por categoría".'],
     claves:'limite limites gasto gastar maximo presupuesto tope aviso avisos alerta categoria mes paso pasas'},
   {id:'metas', g:'ver', p:'¿Cómo pongo una meta?', donde:'Metas', ir:'metas', boton:'ir a metas',
-    r:['Toca "+ Nueva meta", elige la cuenta (puede ser una que agregaste tú), escribe cuánto quieres tener y para qué fecha, y toca "Guardar". La fecha es la misma para todas tus metas y se cambia con "Cambiar fecha". La meta de un fondo se pone en su pestaña, con "+ Ponerle meta a este fondo".'],
+    r:['Toca "+ Nueva meta", elige la cuenta (puede ser una que agregaste tú), escribe cuánto quieres tener y para qué fecha, y toca "Guardar". Si quieres, ponle un nombre ("viaje", "coche"). Cada meta tiene su propia fecha; para cambiarla, o cambiar el nombre o el monto, toca "Editar" en esa meta. La meta de un fondo se pone en su pestaña, con "+ Ponerle meta a este fondo".'],
     claves:'meta metas objetivo objetivos llegar fecha ahorro'},
   {id:'privado', g:'ver', p:'¿Cómo oculto mis montos?', donde:'El ojo de la barra de arriba', ir:'ojo', boton:'enseñarme el ojo',
     r:['Toca el ojo en la barra de arriba y los montos se ocultan en la pantalla. Tócalo otra vez para verlos.'],
@@ -14073,7 +14094,9 @@ if (CFG.multi) {
 }
 // ── TU SUSCRIPCION (4-nov-2026, plan-abrir-a-todos §5) ── solo con CFG.cobro, que viene apagado: sin el, ni pestaña, ni aviso, ni lectura. Es transferencia a mano: no se bloquea a nadie, se avisa.
 // usuarios/<uid>/suscripcion/estado lo escribe SOLO mantenimiento\marcar-pago.mjs (reglas, nota 4d). Sin señal se ve la copia del aparato, marcada sin confirmar.
-const FV_COBRO_PLANES = {mensual: 'Mensual', anual: 'Anual'};
+const FV_COBRO_PLANES = {mensual: 'Mensual', anual: 'Anual', prueba: 'De prueba', cortesia: 'De cortesía'};
+// (18-nov-2026, sesion E) prueba y cortesia no son un pago: los avisos no dicen "recibimos tu pago" ni "tu pago vence"
+const fvCobroSinCosto = () => !!(fvCobro.d && (fvCobro.d.plan === 'prueba' || fvCobro.d.plan === 'cortesia'));
 const fvCobro = {cargado: false, desdeCache: false, existe: false, error: false, d: null, ref: null, leyoCache: false, inicio: 0, repinto: false};
 const FV_COBRO_DOC = () => doc(db, 'usuarios', CFG.uid, 'suscripcion', 'estado');
 // (4-nov-2026, revision) BANCO, TITULAR Y CLABE ya no viajan en CFG: el codigo de la pagina se ve sin cuenta ("ver codigo fuente") y el service worker lo deja guardado. Salen de config/cobro, que solo
@@ -14126,10 +14149,11 @@ function fvCobroPintarEstado() {
     return;
   }
   const dias = fvCobroDias(f), plan = FV_COBRO_PLANES[fvCobro.d.plan] || '';
-  const titulo = dias < 0 ? 'Venció el' : 'Pagado hasta el';
+  const sc = fvCobroSinCosto(), qui = sc ? 'Tu periodo sin costo' : 'Tu pago', vb = sc ? ['terminó', 'termina'] : ['venció', 'vence'];
+  const titulo = dias < 0 ? (sc ? 'Terminó el' : 'Venció el') : (sc ? 'Sin costo hasta el' : 'Pagado hasta el');
   let nota = '';
-  if (dias < 0) nota = 'Tu pago ya venció. ' + FV_COBRO_DESPUES;
-  else if (dias <= 7) nota = (dias === 0 ? 'Tu pago vence hoy. ' : dias === 1 ? 'Tu pago vence mañana. ' : 'Tu pago vence en ' + dias + ' días. ') + FV_COBRO_DESPUES;
+  if (dias < 0) nota = qui + ' ya ' + vb[0] + '. ' + FV_COBRO_DESPUES;
+  else if (dias <= 7) nota = (dias === 0 ? qui + ' ' + vb[1] + ' hoy. ' : dias === 1 ? qui + ' ' + vb[1] + ' mañana. ' : qui + ' ' + vb[1] + ' en ' + dias + ' días. ') + FV_COBRO_DESPUES;
   else nota = 'Antes de esa fecha te avisamos aquí. No se cobra nada solo.';
   caja.innerHTML = banda + (plan ? '<div class="cobro-etq">Plan ' + escapeHtml(plan.toLowerCase()) + '</div>' : '') +
     '<div class="cobro-etq" style="margin-top:6px">' + titulo + '</div><div class="cobro-dia">' + escapeHtml(fvCobroFechaTxt(f)) + '</div><p class="cobro-txt">' + escapeHtml(nota) + '</p>';
@@ -14156,27 +14180,77 @@ function fvCobroPintarPago() {
   // (12-nov-2026, Beto) en el concepto va el NOMBRE COMPLETO de quien tiene la cuenta, no la referencia: es lo que Beto ve en su banco junto al remitente
   const nom = fvNombreVisto(), con = document.getElementById('cobro-concepto');
   if (con) con.innerHTML = nom
-    ? fvCobroFila('Concepto: tu nombre completo', nom, 'concepto') + '<p class="cobro-txt" style="margin-top:10px">Escríbelo tal cual en el concepto de tu transferencia. Si no es tu nombre completo, cámbialo antes en tu perfil.</p>'
-    : '<p class="cobro-txt"><b>Antes de transferir, escribe tu nombre completo en tu perfil.</b> Es lo que va en el concepto: así sabemos que el pago es tuyo.</p>';
+    ? fvCobroFila('Concepto: tu nombre completo', nom, 'concepto') + '<p class="cobro-txt" style="margin-top:10px">Escríbelo tal cual en el concepto de tu transferencia. Si no es tu nombre completo, cámbialo aquí antes de transferir.</p><button type="button" class="volver-btn" data-cobro-nombre="1">Cambiar mi nombre</button>'
+    : '<p class="cobro-txt"><b>Antes de transferir, escribe tu nombre completo.</b> Es lo que va en el concepto: así sabemos que el pago es tuyo.</p><button type="button" class="volver-btn" data-cobro-nombre="1">Escribir mi nombre</button>';
   const caja = document.getElementById('cobro-ref');
   if (ref) caja.innerHTML = fvCobroFila('Tu referencia', ref, 'ref') + '<p class="cobro-txt" style="margin-top:10px">Si nos escribes por tu pago, dinos esta referencia. No lleva ningún dato tuyo.</p>';
   else caja.innerHTML = '<p class="cobro-txt">Tu referencia aparece cuando haya señal.</p>';
 }
+// (18-nov-2026, sesion E) en Inicio, un solo aviso a la vez, del mas urgente al menos: vence o vencio (de 7 dias antes a 7 despues), "recibimos tu pago"
+// (una vez por cada fecha confirmada) y "ya puedes pagar" (a quien nunca ha pagado, con su primer mes cumplido; "ahora no" lo esconde una semana).
+// Todo con lo que dice el servidor: con una copia sin confirmar no se avisa nada. Nunca bloquea
+const FV_COBRO_PRUEBA_DIAS = 30;   // el mes de prueba que se acordo con quienes ya usan la app (Beto, 16-nov)
+const FV_COBRO_LUEGO_DIAS = 7;
+// las marcas se guardan en el aparato y TAMBIEN en memoria: si localStorage falla (Safari privado, cuota), "Entendido" y "Ahora no" igual quitan el aviso en esta sesion.
+// Son del aparato: "salir" (limpiarAparatoFundview) las borra con el resto de las claves de la cuenta
+const fvCobroMem = {};
+const fvCobroLs = (k, v) => {
+  if (v !== undefined) { fvCobroMem[k] = v; try { localStorage.setItem(lsKey(k), v); } catch (e) {} return null; }
+  let x = null; try { x = localStorage.getItem(lsKey(k)); } catch (e) {}
+  return x !== null ? x : (Object.hasOwn(fvCobroMem, k) ? fvCobroMem[k] : null);
+};
+function fvCobroDiasCuenta() { const u = auth.currentUser, t = u && u.metadata ? Date.parse(u.metadata.creationTime) : NaN; return Number.isFinite(t) ? Math.floor((Date.now() - t) / 86400000) : null; }
+function fvCobroMasDias(f, n) { const d = parseFechaLocal(f); d.setDate(d.getDate() + n); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
 function fvCobroPintarAviso() {
   const a = document.getElementById('cobro-aviso');
   if (!a) return;
+  const ir = document.getElementById('cobro-aviso-ir'), otro = document.getElementById('cobro-aviso-otro');
+  const poner = (t, irTxt, otroTxt, modo) => { if (a.firstChild.textContent !== t) a.firstChild.textContent = t; ir.textContent = irTxt; otro.hidden = !otroTxt; otro.textContent = otroTxt || ''; a.dataset.modo = modo; a.hidden = false; };
   // (revision) con una copia del aparato sin confirmar no se avisa: la fecha pudo cambiar. El aviso sale cuando el servidor la confirma
-  if (fvCobro.desdeCache) { a.hidden = true; return; }
-  const f = fvCobroPagado();
-  // de 7 dias antes a 7 despues. Quien decidio no pagar no se queda con el aviso para siempre: lo sigue viendo en su pestaña
-  const dias = f ? fvCobroDias(f) : null;
-  if (dias === null || dias > 7 || dias < -7) { a.hidden = true; return; }
-  const txt = dias < 0 ? 'Tu pago venció el ' + fvCobroFechaTxt(f) + '.' : dias === 0 ? 'Tu pago vence hoy.' : dias === 1 ? 'Tu pago vence mañana.' : 'Tu pago vence en ' + dias + ' días, el ' + fvCobroFechaTxt(f) + '.';
-  a.firstChild.textContent = txt + ' La app sigue igual aunque no pagues.';
-  a.hidden = false;
+  if (fvCobro.desdeCache || !fvCobro.cargado || fvCobro.error) { a.hidden = true; return; }
+  const f = fvCobroPagado(), dias = f ? fvCobroDias(f) : null;
+  if (f && dias <= 7 && dias >= -7) {
+    const qui = fvCobroSinCosto() ? 'Tu periodo sin costo' : 'Tu pago', vb = fvCobroSinCosto() ? ['terminó', 'termina'] : ['venció', 'vence'];
+    const txt = dias < 0 ? qui + ' ' + vb[0] + ' el ' + fvCobroFechaTxt(f) + '.' : dias === 0 ? qui + ' ' + vb[1] + ' hoy.' : dias === 1 ? qui + ' ' + vb[1] + ' mañana.' : qui + ' ' + vb[1] + ' en ' + dias + ' días, el ' + fvCobroFechaTxt(f) + '.';
+    poner(txt + ' La app sigue igual aunque no pagues.', 'Ver mi suscripción', '', 'vence');
+    return;
+  }
+  if (f && dias > 7 && fvCobroLs('cobro-visto') !== f) {
+    const pl = fvCobro.d && fvCobro.d.plan, ft = fvCobroFechaTxt(f);
+    poner(pl === 'prueba' ? 'Tienes Fundview sin costo hasta el ' + ft + ', como prueba.' : pl === 'cortesia' ? 'Tu suscripción quedó cubierta hasta el ' + ft + ', sin costo para ti.' : 'Recibimos tu pago: quedó pagado hasta el ' + ft + '. Gracias.', 'Ver mi suscripción', 'Entendido', 'pagado');
+    return;
+  }
+  // quien nunca ha pagado (el servidor dice que no hay documento), sin un aviso de pago en revision, con su primer mes cumplido y sin "ahora no" vigente
+  const luego0 = fvCobroLs('cobro-luego'), luego = fvCobroFechaOk(luego0) ? luego0 : null, edad = fvCobroDiasCuenta();
+  // (revision) los avisos de pago tienen que venir del servidor: con una lista de la copia local se invitaria a pagar a quien ya transfirio
+  if (!f && !fvCobro.existe && fvPago.cargado && !fvPago.desdeCache && !fvPagoPendiente() && edad !== null && edad >= FV_COBRO_PRUEBA_DIAS && !(luego && fvCobroHoy() < luego)) {
+    poner('Ya puedes pagar tu suscripción: $' + Number(CFG.cobro.precioMes).toLocaleString('en-US') + ' al mes, por transferencia. Si Fundview te sirve, así lo mantienes. La app sigue igual aunque no pagues.', 'Ver cómo pagar', 'Ahora no', 'invitar');
+    return;
+  }
+  a.hidden = true;
+}
+// el boton secundario del aviso: "Entendido" (ya vio su pago) o "Ahora no" (una semana sin invitarlo)
+function fvCobroAvisoOtro() {
+  const a = document.getElementById('cobro-aviso'), f = fvCobroPagado();
+  if (a.dataset.modo === 'pagado' && f) fvCobroLs('cobro-visto', f);
+  if (a.dataset.modo === 'invitar') fvCobroLs('cobro-luego', fvCobroMasDias(fvCobroHoy(), FV_COBRO_LUEGO_DIAS));
+  fvCobroPintarAviso();
+  const t = document.getElementById('total-display'); if (a.hidden && t) { t.setAttribute('tabindex', '-1'); t.focus({preventScroll: true}); }
+}
+// (18-nov-2026, sesion E) ya pagado y lejos del vencimiento, "Como pagar" y "Ya transferi" se pliegan: la pestaña dice primero hasta cuando esta pagado.
+// Se despliegan con el boton, o solos si hay un aviso en revision, el formulario abierto o un pago que todavia no ha visto
+let fvCobroDesplegado = false;
+function fvCobroPlegar() {
+  const sec = document.getElementById('perfil-sub-cobro'), b = document.getElementById('cobro-desplegar'), form = document.getElementById('cobro-form');
+  if (!sec || !b) return;
+  const f = fvCobroPagado(), dias = f ? fvCobroDias(f) : null;
+  // solo cuando ya vio ESE pago (Entendido o Ver mi suscripcion): recien confirmado, la pestaña ensena su aviso Confirmado y su referencia
+  const plegar = !fvCobroDesplegado && !!f && dias > 7 && fvCobroLs('cobro-visto') === f && !fvCobro.desdeCache && fvPago.cargado && !fvPago.desdeCache && !fvPagoPendiente() && (!form || form.hidden);
+  sec.classList.toggle('cobro-plegado', plegar);
+  b.hidden = !plegar; b.setAttribute('aria-expanded', String(!plegar));
 }
 function fvCobroPintar() {
-  fvCobroPintarEstado(); fvCobroPintarPago(); fvCobroPintarAviso();
+  fvCobroPintarEstado(); fvCobroPintarPago(); fvCobroPintarAviso(); fvCobroPlegar();
   if (fvCobroCargando() && !fvCobro.repinto) { fvCobro.repinto = true; setTimeout(() => { fvCobro.repinto = false; fvCobroPintar(); }, 8100); }
   if (!fvCobro.ref && CFG.uid) fvReferencia(CFG.uid).then(r => { fvCobro.ref = r; fvCobroPintarPago(); }).catch(() => {});
   // abrio sin señal y el listener no ha dicho nada: lo que haya en la copia del aparato
@@ -14248,7 +14322,7 @@ const fvPagoMes = ms => new Date(ms).toISOString().slice(0, 7);
 const fvPagoIdsLibres = (mes, usados) => { const u = new Set(usados || []), l = []; for (let k = 1; k <= FV_PAGOS_MES; k++) if (!u.has(mes + '-' + k)) l.push(mes + '-' + k); return l; };
 // </fv-pago-puras>
 const FV_PAGOS_COL = () => collection(db, 'usuarios', CFG.uid, 'pagos');
-const fvPago = {lista: [], cargado: false, error: false, img: null, enviando: false};
+const fvPago = {lista: [], cargado: false, error: false, desdeCache: false, img: null, enviando: false};
 const fvPagoPlazo = (p, ms) => Promise.race([p, new Promise((_, no) => setTimeout(() => no(Object.assign(new Error('plazo'), {code: 'fv/plazo'})), ms))]);
 const fvPagoAhora = () => { try { return new Intl.DateTimeFormat('en-GB', {timeZone: 'America/Mexico_City', hour: '2-digit', minute: '2-digit', hourCycle: 'h23'}).format(new Date()); } catch (e) { const d = new Date(); return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0'); } };
 // Storage solo se baja cuando hace falta (mandar un aviso o borrar la cuenta con capturas): nadie mas paga su peso
@@ -14293,7 +14367,7 @@ function fvPagoPintarLista() {
 }
 function fvPagosEscuchar() {
   return onSnapshot(query(FV_PAGOS_COL(), orderBy('creado', 'desc'), limit(10)), {includeMetadataChanges: true}, snap => {
-    fvPago.lista = snap.docs.map(d => ({...d.data(), id: d.id, hp: d.metadata.hasPendingWrites})); fvPago.cargado = true; fvPago.error = false; fvPagoPintarLista(); fvCobroPintarEstado();
+    fvPago.lista = snap.docs.map(d => ({...d.data(), id: d.id, hp: d.metadata.hasPendingWrites})); fvPago.cargado = true; fvPago.error = false; fvPago.desdeCache = snap.metadata.fromCache; fvPagoPintarLista(); fvCobroPintarEstado(); fvCobroPintarAviso(); fvCobroPlegar();
   }, () => { fvPago.error = true; fvPagoPintarLista(); });
 }
 // solo cuenta el que el servidor ya tiene: uno en cola (hp) no es "recibido"
@@ -14416,10 +14490,21 @@ if (CFG.multi && CFG.cobro) {
     b.addEventListener('click', () => perfilSub('cobro')); tabs.appendChild(b);
     const a = document.createElement('div'); a.id = 'cobro-aviso'; a.hidden = true; a.setAttribute('role', 'status');
     a.appendChild(document.createElement('span'));
-    const ir = document.createElement('button'); ir.type = 'button'; ir.textContent = 'Ver mi suscripción';
-    ir.addEventListener('click', () => { showPage('perfil'); perfilSub('cobro'); });
-    a.appendChild(ir); ayEl('page-inicio').prepend(a);
+    const acc = document.createElement('div'); acc.className = 'cobro-aviso-acc';
+    const ir = document.createElement('button'); ir.type = 'button'; ir.id = 'cobro-aviso-ir'; ir.textContent = 'Ver mi suscripción';
+    // (QA) quien llega desde "recibimos tu pago" quiere ver ese pago: en esta visita la pestaña no se pliega (se ve "Confirmado" y la referencia)
+    ir.addEventListener('click', () => { const f = fvCobroPagado(); if (a.dataset.modo === 'pagado' && f) { fvCobroDesplegado = true; fvCobroLs('cobro-visto', f); } showPage('perfil'); perfilSub('cobro'); fvCobroPintarAviso(); });
+    const otro = document.createElement('button'); otro.type = 'button'; otro.id = 'cobro-aviso-otro'; otro.hidden = true;
+    otro.addEventListener('click', fvCobroAvisoOtro);
+    acc.append(ir, otro); a.appendChild(acc); ayEl('page-inicio').prepend(a);
+    // (18-nov-2026, sesion E) borrar la cuenta dice que lo pagado no se devuelve (terminos del 16-nov)
+    { const bc = ayEl('fv-borrar-cobro'); if (bc) bc.hidden = false; }
+    ayEl('cobro-desplegar').addEventListener('click', () => { fvCobroDesplegado = true; fvCobroPlegar(); const t = ayEl('cobro-pago'); if (t) { t.setAttribute('tabindex', '-1'); t.focus(); } });
+    const nf = ayEl('cobro-nombre-form');
+    ayEl('cobro-nombre-no').addEventListener('click', () => { nf.hidden = true; const b = document.querySelector('[data-cobro-nombre]'); if (b) b.focus(); });
+    nf.addEventListener('submit', fvCobroGuardarNombre);
     ayEl('perfil-sub-cobro').addEventListener('click', async e => {
+      if (e.target.closest('[data-cobro-nombre]')) { const i = ayEl('cobro-nombre-in'); i.value = fvNombreVisto() || ''; ayEl('cobro-nombre-err').hidden = true; i.removeAttribute('aria-invalid'); nf.hidden = false; i.focus(); return; }
       const c = e.target.closest('[data-cobro-copiar]'); if (!c) return;
       const txt = c.dataset.cobroCopiar === 'clabe' ? (fvCobroDatos.d ? fvCobroDatos.d.clabe : '') : c.closest('.cobro-fila').querySelector('.cobro-val').textContent, est = ayEl('cobro-estado-sr');
       if (!txt) return;
@@ -14445,6 +14530,28 @@ if (CFG.multi && CFG.cobro) {
     fvPagoPintarLista();
     fvCobroPintar();
   }
+}
+// (18-nov-2026, sesion E) el nombre del concepto, desde la pestaña: misma regla que crear la cuenta y "editar mis datos" (fvNormNombre),
+// a <NS>/perfil y a la cuenta de Auth. Sin señal no se intenta (setDoc esperaria al servidor sin fin)
+let fvCobroNombreGuardando = false;
+async function fvCobroGuardarNombre(e) {
+  e.preventDefault();
+  if (fvCobroNombreGuardando) return;
+  const i = document.getElementById('cobro-nombre-in'), err = document.getElementById('cobro-nombre-err'), b = document.getElementById('cobro-nombre-ok');
+  const mal = t => { err.textContent = t; err.hidden = false; i.setAttribute('aria-invalid', 'true'); i.focus(); };
+  const nom = fvNormNombre(i.value);
+  if (!nom) return mal('Escribe tu nombre solo con letras (hasta 40).');
+  if (!/\s/.test(nom)) return mal('Escribe tu nombre completo, con apellido: es lo que va en el concepto.');
+  if (navigator.onLine === false || cargaDesdeCache) return mal('Sin conexión: tu nombre se puede cambiar cuando haya señal.');
+  fvCobroNombreGuardando = true; b.disabled = true; i.removeAttribute('aria-invalid'); err.hidden = true;
+  try {
+    const okp = await Promise.race([guardarPerfil({nombre: nom}, 'Nombre guardado'), new Promise(r => setTimeout(() => r(false), 10000))]);
+    if (!okp) return mal('No se pudo guardar: revisa tu conexión e inténtalo otra vez.');
+    await fvPonerNombreAuth(auth.currentUser, nom);
+    document.getElementById('cobro-nombre-form').hidden = true;
+    fvCobroPintarPago();
+    const bt = document.querySelector('[data-cobro-nombre]'); if (bt) bt.focus();
+  } finally { fvCobroNombreGuardando = false; b.disabled = false; }
 }
 // La copia completa lleva tambien la suscripcion, si la hay. Sin señal, o con unas reglas que aun no la dejan leer, sale sin ella: eso no debe impedir que alguien se lleve sus datos
 async function fvCobroParaExportar() {
@@ -15229,56 +15336,78 @@ function valorMeta(cuenta, ctx) {
 }
 function metaBloqueada(cuenta, ctx) { if(esIdX(cuenta)) return xFalta(cuenta) || xSinTc(cuenta); return (cuenta==='stocks' || (CFG.multi && cuenta==='patrimonio')) && ctx.stocksPendiente; }
 let metasCtxUlt=null;   // el ctx de la ultima pintada: el dialogo de metas lo usa para decir cuanto hay hoy en cada cuenta
+// (18-nov-2026, sesion D) cada meta lleva su nombre (opcional) y SU fecha. La fecha del documento queda de respaldo: la usan las metas de antes
+// (sin fecha propia) y la siguen escribiendo las versiones viejas abiertas. Crear una meta ya no la toca: antes una meta nueva le movia la fecha
+// a las demas. Una version vieja de la FAMILIA reescribe la lista sin nombre ni fecha propia (vuelven a la fecha del documento): no pierde metas
+const NOMBRE_META_MAX=40;
+function metaNombreLimpio(v){
+  return typeof v==='string' ? v.replace(/[\u0000-\u001f\u007f-\u009f\u200b-\u200f\u202a-\u202e\u2060-\u2064\ufeff]/g,'').replace(/\s+/g,' ').trim().slice(0,NOMBRE_META_MAX) : '';
+}
+function metaSanea(i){
+  const o={id:i.id,cuenta:i.cuenta,monto:i.monto};
+  const n=metaNombreLimpio(i.nombre); if(n) o.nombre=n;
+  if(typeof i.fecha==='string'&&fechaCalendarioValida(i.fecha)) o.fecha=i.fecha;
+  return o;
+}
+const fechaDeMeta=(m,MT)=>(m&&m.fecha)||((MT||state.metas||{}).fecha)||META_FECHA_DEF;
+const tituloMeta=m=>m.nombre||nombreMeta(m.cuenta);
+// la fecha que propone una meta nueva: el 31 de diciembre que viene (en diciembre, el del año siguiente)
+const metaFechaNueva=()=>{ const d=new Date(); return (d.getFullYear()+(d.getMonth()===11?1:0))+'-12-31'; };
+const diasAFecha=f=>Math.round((parseFechaLocal(f).getTime()-parseFechaLocal(hoyLocal()).getTime())/86400000);
+const fechaMetaLarga=f=>parseFechaLocal(f).toLocaleDateString('es-MX',{day:'numeric',month:'long',year:'numeric'});
 function renderMetas(ctx) {
   metasCtxUlt=ctx;
   const el=document.getElementById('metas-panel'); if(!el) return;
   const MT=state.metas||{fecha:META_FECHA_DEF,items:[]};
-  const dias=Math.ceil((parseFechaLocal(MT.fecha).getTime()-parseFechaLocal(hoyLocal()).getTime())/86400000);
-  const fFin=parseFechaLocal(MT.fecha).toLocaleDateString('es-MX',CFG.multi?{day:'numeric',month:'long',year:'numeric'}:{day:'numeric',month:'long'});
-  const fila=(nombre,sub,actual,meta,id,pend)=>{
-    const pct=pend?0:(meta>0?actual/meta*100:0);
-    const faltan=meta-actual;
+  const fila=m=>{
+    const pend=esIdX(m.cuenta)&&metaBloqueada(m.cuenta,ctx), actual=valorMeta(m.cuenta,ctx), meta=m.monto;
+    const pct=pend?0:(meta>0?actual/meta*100:0), faltan=meta-actual;
     // la barra se recorta a 100% pero el texto muestra el avance real
     const txt=pend?'Aún no se puede medir':faltan>0
       ?`te faltan ${fmt(faltan)} · llevas ${pct.toFixed(1)}% de la meta`
       :`meta superada por ${fmt(-faltan)} · ${pct.toFixed(1)}%`;
-    return `<div class="resumen-bar"><div class="bar-header"><span class="bar-label">${escapeHtml(nombre)}</span><span><span class="bar-amt" style="color:var(--accent-dark)">${pend?'$—':fmt(actual)} / ${fmt(meta)}</span>${id?`<button type="button" class="del-btn del-x" aria-label="borrar" onclick="eliminarMeta('${id}')">&times;</button>`:''}</span></div>`+
+    const bloq=metaBloqueada(m.cuenta,ctx)?(esIdX(m.cuenta)?(xFalta(m.cuenta)?'cuenta pendiente de cargar':'tipo de cambio pendiente'):'cotización pendiente'):'';
+    const sub=[m.nombre?nombreMeta(m.cuenta):'',bloq].filter(Boolean).join(' · ');
+    const f=fechaDeMeta(m,MT), d=diasAFecha(f);
+    const cuando=d>1?'quedan '+d+' días · para el '+fechaMetaLarga(f):d===1?'queda 1 día · para el '+fechaMetaLarga(f):d===0?'hoy es el día de tu meta':'la fecha ya pasó: era el '+fechaMetaLarga(f);
+    const tit=tituloMeta(m);
+    return `<div class="resumen-bar meta-fila"><div class="bar-header"><span class="bar-label">${escapeHtml(tit)}</span><span class="bar-amt" style="color:var(--accent-dark)">${pend?'$—':fmt(actual)} / ${fmt(meta)}</span></div>`+
       `<div class="bar-track" style="height:6px"><div class="bar-fill" style="width:${Math.max(0,Math.min(100,pct)).toFixed(1)}%"></div></div>`+
-      `<div class="item-meta" style="margin-top:4px">${txt}${sub?' · '+sub:''}</div></div>`;
+      `<div class="item-meta" style="margin-top:4px">${txt}${sub?' · '+escapeHtml(sub):''}</div>`+
+      `<div class="meta-pie"><span class="item-meta meta-cuando">${cuando}</span><span class="meta-acc">`+
+      `<button type="button" class="del-btn meta-editar" aria-label="editar la meta ${escapeHtml(tit)}" onclick="editarMeta(${escapeHtml(JSON.stringify(String(m.id)))})">editar</button>`+
+      `<button type="button" class="del-btn del-x" aria-label="quitar la meta ${escapeHtml(tit)}" onclick="eliminarMeta(${escapeHtml(JSON.stringify(String(m.id)))})">&times;</button></span></div></div>`;
   };
   const items=(MT.items||[]);
-  const cuerpo = items.length
-    ? items.map(m=>fila(nombreMeta(m.cuenta),
-        metaBloqueada(m.cuenta,ctx)?(esIdX(m.cuenta)?(xFalta(m.cuenta)?'cuenta pendiente de cargar':'tipo de cambio pendiente'):'cotización pendiente'):'',
-        valorMeta(m.cuenta,ctx), m.monto, m.id, esIdX(m.cuenta)&&metaBloqueada(m.cuenta,ctx))).join('')
-    : '<div class="empty-state">todavía no tienes metas — crea la primera</div>';
-  // (3-nov-2026) en Fundview, sin metas no hay fecha que contar: se ve al crear la primera
-  el.innerHTML=(CFG.multi&&!items.length?'':`<div class="bar-header" style="margin-bottom:10px"><span class="item-meta">${dias>0?('quedan '+dias+' días para el '+fFin):'la fecha ya pasó'}</span>`+
-    `<button type="button" class="del-btn" style="font-size:12px;color:var(--accent);padding:2px 0 2px 10px" onclick="editarFechaMetas()">cambiar fecha</button></div>`)+
-    cuerpo+
+  el.innerHTML=(items.length?items.map(fila).join(''):'<div class="empty-state">todavía no tienes metas — crea la primera</div>')+
     '<button type="button" class="btn" style="margin-top:12px" onclick="nuevaMeta()">+ nueva meta</button>';
   renderCamino(ctx);
 }
 
-// metas: se crean, se borran y comparten una fecha objetivo. Viven en cartera/metas
+// metas: se crean, se editan y se quitan. Viven en <NS>/metas = {fecha (respaldo), items:[{id, cuenta, monto, nombre?, fecha?}]}
 let metasGuardando=false, metasUltimoError='';
-// (4-nov-2026, Fundview) `metas` no esta en vivo: un setDoc completo con la lista en memoria pisaba la meta que otro aparato acababa de
-// crear, y sin señal no resolvia nunca (boton y metasGuardando colgados). Aqui se relee <NS>/metas del servidor DENTRO de una transaccion y
-// se aplica solo lo que esta persona hizo (alta, cambio de fecha o quitar) sobre esa lista. Un alta con el id ya presente es exito (respuesta
-// perdida y reintento); una cuenta que ya tiene meta en el servidor se rechaza. Sin señal falla al instante, como guardarMetaFondo.
+// (4-nov-2026) `metas` no esta en vivo: un setDoc completo con la lista en memoria pisaba la meta que otro aparato acababa de crear, y sin
+// señal no resolvia nunca. Aqui se relee <NS>/metas del servidor DENTRO de una transaccion y se aplica solo lo que esta persona hizo (alta,
+// editar o quitar) sobre esa lista; los demas renglones se escriben tal como llegaron (con lo que una version mas nueva les haya puesto).
+// Un alta con el id ya presente es exito (respuesta perdida y reintento); una cuenta que ya tiene meta en el servidor se rechaza.
+// Sin señal falla al instante. (18-nov-2026) desde la sesion D, tambien la familia (antes hacia setDoc de la lista entera)
 async function metasEnServidor(op) {
   const ref=doc(db,NS,'metas');
   return Promise.race([runTransaction(db, async tx=>{
     const sn=await tx.get(ref), d=sn.exists()?(sn.data()||{}):{};
-    let fecha=(typeof d.fecha==='string'&&fechaCalendarioValida(d.fecha))?d.fecha:((state.metas&&state.metas.fecha)||META_FECHA_DEF);
+    const fecha=(typeof d.fecha==='string'&&fechaCalendarioValida(d.fecha))?d.fecha:((state.metas&&state.metas.fecha)||META_FECHA_DEF);
     // un doc sin lista (formato viejo o inexistente) parte de lo que la persona ve, que sale de ese mismo estado
     const items=Array.isArray(d.items)?d.items.slice():((state.metas&&state.metas.items)||[]).slice();
     if(op.tipo==='alta'){
       if(items.some(i=>i&&i.id===op.item.id)) return {fecha,items};
       if(items.some(i=>i&&i.cuenta===op.item.cuenta)) return {fecha,items,error:'Ya tienes una meta para esa cuenta: quítala primero si quieres otra.'};
-      items.push(op.item); fecha=op.fecha||fecha;
-    } else if(op.tipo==='fecha') {
-      fecha=op.fecha;
+      items.push(op.item);
+    } else if(op.tipo==='editar') {
+      const k=items.findIndex(i=>i&&i.id===op.id);
+      if(k<0) return {fecha,items,error:'Esa meta ya no existe: quizá la quitaste en otro aparato.'};
+      const n={...items[k],monto:op.monto,fecha:op.fecha};
+      if(op.nombre) n.nombre=op.nombre; else delete n.nombre;
+      items[k]=n;
     } else if(op.tipo==='quitar') {
       const quedan=items.filter(i=>!(i&&i.id===op.id));
       if(quedan.length===items.length) return {fecha,items};   // otro aparato ya la quito
@@ -15290,27 +15419,20 @@ async function metasEnServidor(op) {
 }
 // la misma limpieza que la carga (cuentas que existen, montos validos, ids seguros): lo que se guarda y lo que se ve no se separan
 function metasNormalizadas(r) {
-  return {fecha:r.fecha, items:(r.items||[]).filter(i=>i&&typeof i.id==='string'&&(Object.hasOwn(METAS_CUENTAS,i.cuenta)||esIdX(i.cuenta))
-    &&Number.isFinite(i.monto)&&i.monto>0&&idSeguro(i.id)).map(i=>({id:i.id,cuenta:i.cuenta,monto:i.monto}))};
+  return {fecha:r.fecha, items:(r.items||[]).filter(i=>i&&typeof i.id==='string'&&(Object.hasOwn(METAS_CUENTAS,i.cuenta)||(CFG.multi&&esIdX(i.cuenta)))
+    &&Number.isFinite(i.monto)&&i.monto>0&&(!CFG.multi||idSeguro(i.id))).map(metaSanea)};
 }
-async function guardarMetas(nuevo, mensaje, op) {
-  if(metasGuardando){ showToast('espera: se están guardando las metas'); return false; }
+async function guardarMetas(mensaje, op) {
+  if(metasGuardando){ metasUltimoError='Espera: se están guardando tus metas.'; showToast('espera: se están guardando las metas'); return false; }
   metasGuardando=true; metasUltimoError='';
   try{
     if(!datosCargados) throw new Error('datos no cargados');
-    if(CFG.multi&&op){
-      if(navigator.onLine===false||cargaDesdeCache){ metasUltimoError='Sin conexión: tus metas se guardan cuando haya señal.'; showToast('no se pudo guardar — revisa tu conexión'); return false; }
-      const r=await metasEnServidor(op);
-      state.metas=metasNormalizadas(r);   // lo que quedo en el servidor, no lo que habia en memoria
-      setSyncDot('ok'); render();
-      if(r.error){ metasUltimoError=r.error; return false; }
-      showToast(mensaje);
-      return true;
-    }
-    // items:[] explicito para que Firestore borre el formato viejo {savings,stocks}
-    await setDoc(doc(db,NS,'metas'),{fecha:nuevo.fecha,items:nuevo.items});
-    state.metas=nuevo; // solo tras confirmar la escritura
-    setSyncDot('ok'); render(); showToast(mensaje);
+    if(navigator.onLine===false||cargaDesdeCache){ metasUltimoError='Sin conexión: tus metas se guardan cuando haya señal.'; showToast('no se pudo guardar — revisa tu conexión'); return false; }
+    const r=await metasEnServidor(op);
+    state.metas=metasNormalizadas(r);   // lo que quedo en el servidor, no lo que habia en memoria
+    setSyncDot('ok'); render();
+    if(r.error){ metasUltimoError=r.error; return false; }
+    showToast(mensaje);
     return true;
   }catch(e){
     console.error('guardarMetas',e); setSyncDot('err');
@@ -15318,115 +15440,97 @@ async function guardarMetas(nuevo, mensaje, op) {
     return false;
   }finally{ metasGuardando=false; }
 }
-window.nuevaMeta = async function() {
-  if(CFG.multi) return abrirMetaDlg('nueva');
-  const MT=state.metas||{fecha:META_FECHA_DEF,items:[]};
-  const usadas=(MT.items||[]).map(m=>m.cuenta);
-  const libres=Object.keys(METAS_CUENTAS).filter(c=>!usadas.includes(c)&&!ctaApagada(c));
-  if(!libres.length){ showToast('ya tienes una meta para cada cuenta'); return; }
-  // se listan numeradas: en el celular escribir el numero es mas facil que el nombre
-  const menu=libres.map((c,i)=>(i+1)+'. '+METAS_CUENTAS[c]).join('\n');
-  const cRaw=prompt('¿Para qué cuenta es la meta? escribe el número:\n\n'+menu);
-  if(cRaw===null) return;
-  const idx=parseInt(cRaw.trim(),10);
-  if(!Number.isInteger(idx)||idx<1||idx>libres.length){ showToast('escribe un número de la lista'); return; }
-  const cuenta=libres[idx-1];
-  const mRaw=prompt('¿Cuánto quieres llegar a tener en '+METAS_CUENTAS[cuenta]+'?');
-  if(mRaw===null) return;
-  const t=mRaw.trim();
-  if(!/^\d+(\.\d{1,2})?$/.test(t)){ showToast('monto no válido'); return; }
-  const monto=Math.round(parseFloat(t)*100)/100;
-  if(!Number.isFinite(monto)||monto<=0){ showToast('el monto debe ser mayor a cero'); return; }
-  const items=[...(MT.items||[]),{id:(crypto.randomUUID?crypto.randomUUID():String(Date.now())+Math.random().toString(36).slice(2)),cuenta,monto}];
-  await guardarMetas({fecha:MT.fecha,items},'meta de '+METAS_CUENTAS[cuenta]+' creada');
-};
-// (4-nov-2026, Fundview) el dialogo de metas: la cuenta se elige de las cuentas de verdad de la persona (las fijas encendidas y las que agrego,
-// con lo que hay hoy en cada una), el monto es en pesos y la fecha se ve y se puede cambiar. Un prompt() ya devolvio null en silencio una vez y
-// la regla del proyecto es no agregar mas. La fecha es UNA para todas las metas (asi viene el doc): el dialogo lo dice.
-let metaDlgModo='nueva';
+// (4-nov-2026) el dialogo de metas: la cuenta se elige de las cuentas de verdad de la persona (las fijas encendidas y, en Fundview, las que
+// agrego, con lo que hay hoy en cada una), el monto es en pesos y la fecha se ve y se puede cambiar. (18-nov-2026) para todas las carteras:
+// ya no hay prompt() en metas
+let metaDlgModo='nueva', metaDlgId=null;
 function metaCuentasLibres(){
   const MT=state.metas||{fecha:META_FECHA_DEF,items:[]}, usadas=(MT.items||[]).map(m=>m.cuenta);
   const fijas=Object.keys(METAS_CUENTAS).filter(c=>!usadas.includes(c)&&!ctaApagada(c)&&!sinUsoFV.has(c));
   // lo de siempre primero (efectivo, bancos y las que agrego la persona); la bolsa y el patrimonio al final: no son lo que alguien nuevo busca
   const alFinal=c=>c==='stocks'||c==='patrimonio';
-  return [...fijas.filter(c=>!alFinal(c)),...cuentasXActivas().map(([id])=>id).filter(id=>!usadas.includes(id)),...fijas.filter(alFinal)];
+  const agregadas=CFG.multi?cuentasXActivas().map(([id])=>id).filter(id=>!usadas.includes(id)):[];
+  return [...fijas.filter(c=>!alFinal(c)),...agregadas,...fijas.filter(alFinal)];
 }
-function abrirMetaDlg(modo){
+function abrirMetaDlg(modo,id){
   const d=document.getElementById('meta-dlg'); if(!d) return;
-  const $=id=>document.getElementById(id), MT=state.metas||{fecha:META_FECHA_DEF,items:[]};
-  metaDlgModo=modo;
-  const libres=metaCuentasLibres();
+  const $=x=>document.getElementById(x), MT=state.metas||{fecha:META_FECHA_DEF,items:[]};
+  const m=modo==='editar'?(MT.items||[]).find(x=>x.id===id):null;
+  if(modo==='editar'&&!m){ showToast('esa meta ya no existe'); return; }
+  const libres=modo==='nueva'?metaCuentasLibres():[];
   if(modo==='nueva'&&!libres.length){ showToast('ya tienes una meta para cada cuenta'); return; }
-  $('meta-tit').textContent=modo==='nueva'?'Nueva meta':'Fecha de tus metas';   // solo Fundview: va capitalizado desde aqui
-  $('meta-campo-cuenta').hidden=$('meta-campo-monto').hidden=modo!=='nueva';
+  metaDlgModo=modo; metaDlgId=m?m.id:null;
+  $('meta-tit').textContent=modo==='nueva'?(CFG.multi?'Nueva meta':'nueva meta'):(CFG.multi?'Editar meta':'editar meta');
+  $('meta-campo-cuenta').hidden=modo!=='nueva';
   const sel=$('meta-cuenta'); sel.textContent='';
   libres.forEach(c=>{ const o=document.createElement('option'); o.value=c;
     const bloq=metaBloqueada(c,metasCtxUlt||{}), v=valorMeta(c,metasCtxUlt||{stocks:0,patrimonio:0});
     o.textContent=nombreMeta(c)+' · '+(bloq?'valor pendiente':'hoy '+fmt(v)); sel.appendChild(o); });
-  $('meta-monto').value='';
-  // la fecha de las metas que ya existe; si ya paso (o no hay), el 31 de diciembre que viene
-  $('meta-fecha').value=(MT.fecha&&MT.fecha>=hoyLocal())?MT.fecha:META_FECHA_DEF;
+  $('meta-nombre').value=m?(m.nombre||''):'';
+  // en modo privado el monto de una meta no se enseña ni dentro del campo: vacío al guardar = se queda el que tiene
+  $('meta-monto').value=(m&&!modoPrivado)?String(m.monto):'';
+  $('meta-monto').placeholder=(m&&modoPrivado)?(CFG.multi?'Oculto: escribe uno nuevo o déjalo vacío':'oculto: escribe uno nuevo o déjalo vacío'):'ej. 30000';
+  // una meta nueva propone el 31 de diciembre que viene; al editar se ve SU fecha, aunque ya haya pasado (guardar pide una que venga)
+  const fm=m?fechaDeMeta(m,MT):'', vencida=!!m&&fm<hoyLocal();
+  // una meta vencida no se guarda con su fecha vieja: se propone el 31 de diciembre que viene y la nota lo dice
+  $('meta-fecha').value=m&&!vencida?fm:metaFechaNueva();
   $('meta-fecha').min=hoyLocal();
-  $('meta-nota').textContent=(MT.items||[]).length?'La fecha es la misma para todas tus metas: si la cambias aquí, cambia en todas.':'';
+  const notaV=vencida?(CFG.multi?'Su fecha ya pasó (era el '+fechaMetaLarga(fm)+'): elige una nueva para guardarla. ':'su fecha ya pasó (era el '+fechaMetaLarga(fm)+'): elige una nueva para guardarla. '):'';
+  $('meta-nota').textContent=m?notaV+(vencida?'L':(CFG.multi?'L':'l'))+'a cuenta de una meta no se cambia: si quieres otra, quita esta y crea una nueva.':'';
   $('meta-error').textContent='';
   $('meta-guardar').disabled=false;
   if(!d.open) d.showModal();
 }
-fvGlobal.cerrarMetaDlg=()=>{ const d=document.getElementById('meta-dlg'); if(d&&d.open) d.close(); };
-fvGlobal.guardarMetaDlg=async function(){
-  const $=id=>document.getElementById(id), err=t=>{ $('meta-error').textContent=t; };
+window.nuevaMeta=()=>abrirMetaDlg('nueva');
+window.editarMeta=id=>abrirMetaDlg('editar',id);
+window.cerrarMetaDlg=()=>{ const d=document.getElementById('meta-dlg'); if(d&&d.open) d.close(); };
+window.guardarMetaDlg=async function(){
+  const $=x=>document.getElementById(x), err=t=>{ $('meta-error').textContent=t; };
   err('');
-  const MT=state.metas||{fecha:META_FECHA_DEF,items:[]};
   const fecha=($('meta-fecha').value||'').trim();
   // una fecha vacia NO se vuelve "hoy": se pide
-  if(!fechaCalendarioValida(fecha)){ err('Elige la fecha de tu meta.'); return; }
-  if(fecha<hoyLocal()){ err('Esa fecha ya pasó: elige una que venga.'); return; }
-  let items=MT.items||[], mensaje='fecha actualizada';
+  if(!fechaCalendarioValida(fecha)){ err(CFG.multi?'Elige la fecha de tu meta.':'elige la fecha de tu meta.'); return; }
+  if(fecha<hoyLocal()){ err(CFG.multi?'Esa fecha ya pasó: elige una que venga.':'esa fecha ya pasó: elige una que venga.'); return; }
+  const nombre=metaNombreLimpio($('meta-nombre').value);
+  let t=($('meta-monto').value||'').trim();
+  if(!t&&metaDlgModo==='editar'&&modoPrivado){ const ya=((state.metas||{}).items||[]).find(x=>x.id===metaDlgId); if(ya) t=String(ya.monto); }
+  if(!/^[0-9]+([.][0-9]{1,2})?$/.test(t)){ err(CFG.multi?'Escribe cuánto quieres tener, en pesos y sin comas, por ejemplo 30000.':'escribe cuánto quieres tener, en pesos y sin comas, por ejemplo 30000.'); return; }
+  const monto=Math.round(parseFloat(t)*100)/100;
+  if(!Number.isFinite(monto)||monto<=0){ err(CFG.multi?'El monto debe ser mayor a cero.':'el monto debe ser mayor a cero.'); return; }
+  let op, mensaje;
   if(metaDlgModo==='nueva'){
-    const cuenta=$('meta-cuenta').value, t=($('meta-monto').value||'').trim();
-    if(!metaCuentasLibres().includes(cuenta)){ err('Elige una de tus cuentas.'); return; }
-    if(!/^[0-9]+([.][0-9]{1,2})?$/.test(t)){ err('Escribe cuánto quieres tener, en pesos y sin comas, por ejemplo 30000.'); return; }
-    const monto=Math.round(parseFloat(t)*100)/100;
-    if(!Number.isFinite(monto)||monto<=0){ err('El monto debe ser mayor a cero.'); return; }
-    items=[...items,{id:(crypto.randomUUID?crypto.randomUUID():String(Date.now())+Math.random().toString(36).slice(2)),cuenta,monto}];
-    mensaje='meta de '+nombreMeta(cuenta)+' creada';
+    const cuenta=$('meta-cuenta').value;
+    if(!metaCuentasLibres().includes(cuenta)){ err(CFG.multi?'Elige una de tus cuentas.':'elige una de tus cuentas.'); return; }
+    const item={id:(crypto.randomUUID?crypto.randomUUID():String(Date.now())+Math.random().toString(36).slice(2)),cuenta,monto,fecha};
+    if(nombre) item.nombre=nombre;
+    op={tipo:'alta',item}; mensaje=nombre?'meta «'+nombre+'» creada':'meta de '+nombreMeta(cuenta)+' creada';
+  } else {
+    op={tipo:'editar',id:metaDlgId,nombre,monto,fecha}; mensaje='meta actualizada';
   }
   const b=$('meta-guardar'); b.disabled=true;
-  const nuevoItem=metaDlgModo==='nueva'?items[items.length-1]:null;
-  const bien=await guardarMetas({fecha,items},mensaje,nuevoItem?{tipo:'alta',item:nuevoItem,fecha}:{tipo:'fecha',fecha});
+  const bien=await guardarMetas(mensaje,op);
   b.disabled=false;
-  if(bien) cerrarMetaDlg(); else err(metasUltimoError||'No se pudo guardar: revisa tu conexión e inténtalo otra vez.');
+  if(bien) cerrarMetaDlg(); else err(metasUltimoError||(CFG.multi?'No se pudo guardar: revisa tu conexión e inténtalo otra vez.':'no se pudo guardar: revisa tu conexión e inténtalo otra vez.'));
 };
 window.eliminarMeta = async function(id) {
   const MT=state.metas||{fecha:META_FECHA_DEF,items:[]};
   const m=(MT.items||[]).find(x=>x.id===id); if(!m) return;
-  if(!(await confirmarDeslizando({titulo:'¿Quitar la meta?', texto:'¿Quitar la meta de '+nombreMeta(m.cuenta)+'? No borra tu dinero, solo deja de seguirla.', verbo:'quitar'}))) return;
+  const tit=tituloMeta(m);
+  if(!(await confirmarDeslizando({titulo:'¿Quitar la meta?', texto:'¿Quitar la meta '+(m.nombre?'«'+tit+'»':'de '+tit)+'? No borra tu dinero, solo deja de seguirla.', verbo:'quitar'}))) return;
   const MT2=state.metas||{fecha:META_FECHA_DEF,items:[]};
   if(!(MT2.items||[]).some(x=>x.id===id)){ showToast('esa meta ya no existe'); return; }
-  await guardarMetas({fecha:MT2.fecha,items:(MT2.items||[]).filter(x=>x.id!==id)},'meta eliminada',{tipo:'quitar',id});
-};
-window.editarFechaMetas = async function() {
-  if(CFG.multi) return abrirMetaDlg('fecha');
-  const MT=state.metas||{fecha:META_FECHA_DEF,items:[]};
-  const fRaw=prompt('¿Para qué fecha quieres lograrlas? (formato 2026-12-31)',MT.fecha);
-  if(fRaw===null) return;
-  const fecha=fRaw.trim();
-  if(!fechaCalendarioValida(fecha)){ showToast('fecha no válida, usa el formato 2026-12-31'); return; }
-  if(fecha<hoyLocal()){ showToast('esa fecha ya pasó'); return; }
-  await guardarMetas({fecha,items:MT.items||[]},'fecha actualizada');
+  await guardarMetas('meta eliminada',{tipo:'quitar',id});
 };
 
-// proyeccion CONSERVADORA hacia la meta: solo aportaciones registradas (promedio de los
+// proyeccion CONSERVADORA hacia cada meta, hasta SU fecha: solo aportaciones registradas (promedio de los
 // ultimos 3 meses completos, incluyendo meses en cero), sin contar rendimientos futuros
 function renderCamino(ctx) {
   const MT=state.metas||{fecha:META_FECHA_DEF,items:[]};
   const el=document.getElementById('camino-panel'); if(!el) return;
   if(!(MT.items||[]).length){ el.innerHTML='<div class="empty-state">crea una meta y aquí aparece si vas a tiempo</div>'; return; }
-  const hoyD=new Date(), metaD=parseFechaLocal(MT.fecha);
-  // comparacion por fecha calendario: el propio 31-dic todavia cuenta como ultimo dia
-  if(hoyLocal()>MT.fecha){ el.innerHTML='<div class="empty-state">la fecha de tus metas ya pasó — hora de fijar las siguientes</div>'; return; }
+  const hoyD=new Date();
   // meses COMPLETOS que faltan despues del actual (los aportes del mes en curso ya estan en el saldo)
-  const mesesFut=Math.max(0,(metaD.getFullYear()-hoyD.getFullYear())*12+(metaD.getMonth()-hoyD.getMonth()));
+  const mesesHastaMeta=f=>{ const metaD=parseFechaLocal(f); return Math.max(0,(metaD.getFullYear()-hoyD.getFullYear())*12+(metaD.getMonth()-hoyD.getMonth())); };
   // promedio de aportacion de los ultimos 3 meses, por cuenta proyectable
   const suma={}, huboOpRef={v:false};
   METAS_PROYECTABLES.forEach(c=>{ suma[c]=0; });
@@ -15437,26 +15541,30 @@ function renderCamino(ctx) {
     METAS_PROYECTABLES.forEach(c=>{ suma[c]+=(ap[c]||0); if(ap[c]) huboOpRef.v=true; });
   }
   const huboOp=huboOpRef.v;
-  const fila=(nombre,actual,meta,prom,bloqueada)=>{
+  const fila=(nombre,actual,meta,prom,bloqueada,f)=>{
+    // comparacion por fecha calendario: el propio dia de la meta todavia cuenta
+    if(hoyLocal()>f) return `<div class="item-row"><div><div class="item-cat">${escapeHtml(nombre)}</div><div class="item-meta">la fecha de esta meta ya pasó — ponle otra con «editar»</div></div><span class="item-meta">—</span></div>`;
     if(prom===null&&meta-actual>0) return `<div class="item-row"><div><div class="item-cat">🎯 ${escapeHtml(nombre)}</div><div class="item-meta">te faltan ${fmt(meta-actual)} · esta cuenta no lleva registro de aportaciones, no se puede proyectar</div></div></div>`;
     if(bloqueada) return `<div class="item-row"><div><div class="item-cat">${escapeHtml(nombre)}</div><div class="item-meta">cotización pendiente — proyección no disponible</div></div><span class="item-meta">—</span></div>`;
     const falta=Math.max(0,meta-actual);
     if(falta<=0) return `<div class="item-row"><div><div class="item-cat">🏁 ${escapeHtml(nombre)}</div><div class="item-meta">meta lograda — todo lo demás es ventaja</div></div><div style="font-weight:600">${fmt(actual)}</div></div>`;
+    const mesesFut=mesesHastaMeta(f);
     if(mesesFut<=0) return `<div class="item-row"><div><div class="item-cat">${escapeHtml(nombre)}</div><div class="item-meta">último mes: te faltan ${fmt(falta)} para la meta</div></div><span class="item-meta">—</span></div>`;
     const proy=actual+prom*mesesFut, nece=falta/mesesFut, ok=proy>=meta-0.005;
     const promTxt=(prom<0?'−':'')+fmt(Math.abs(prom)); // signo manual: fmt pone el $ antes del -
+    const cuando=parseFechaLocal(f).toLocaleDateString('es-MX',{day:'numeric',month:'short',year:'numeric'}).replace('.','');
     return `<div class="item-row"><div><div class="item-cat">${ok?'✅':'🎯'} ${escapeHtml(nombre)}</div><div class="item-meta">${
-      ok?('a tu ritmo (unos '+promTxt+'/mes) llegas a diciembre con '+fmt(proy))
-        :('a tu ritmo (unos '+promTxt+'/mes) llegarías a '+fmt(Math.max(0,proy))+' — sube tu aporte a '+fmt(nece)+'/mes')
+      ok?('a tu ritmo (unos '+promTxt+'/mes) llegas al '+cuando+' con '+fmt(proy))
+        :('a tu ritmo (unos '+promTxt+'/mes) llegarías al '+cuando+' con '+fmt(Math.max(0,proy))+' — sube tu aporte a '+fmt(nece)+'/mes')
     }</div></div></div>`;
   };
   el.innerHTML=(MT.items||[]).map(m=>{
-      const nom=nombreMeta(m.cuenta);
+      const nom=tituloMeta(m), f=fechaDeMeta(m,MT);
       const actual=valorMeta(m.cuenta,ctx);
       if(esIdX(m.cuenta)&&metaBloqueada(m.cuenta,ctx)) return `<div class="item-row"><div><div class="item-cat">${escapeHtml(nom)}</div><div class="item-meta">valor pendiente — proyección no disponible</div></div><span class="item-meta">—</span></div>`;
       // solo se proyecta lo que sabemos medir; el resto se muestra sin proyeccion
       const proyectable=METAS_PROYECTABLES.includes(m.cuenta);
-      return fila(nom,actual,m.monto,proyectable?suma[m.cuenta]/3:null,metaBloqueada(m.cuenta,ctx));
+      return fila(nom,actual,m.monto,proyectable?suma[m.cuenta]/3:null,metaBloqueada(m.cuenta,ctx),f);
     }).join('')+
     `<div class="item-meta" style="text-align:center;padding-top:8px">${huboOp
       ?'proyección conservadora: solo tus aportaciones, sin contar rendimientos'
@@ -16497,13 +16605,13 @@ function calcularCierre(start,end,modo) {
     if(hayPrev) comp={mes:MESES[prevIni.getMonth()],parcial:!!esActual,
       dG:pg>0?(totalG-pg)/pg*100:null, dI:pi>0?(totalI-pi)/pi*100:null, prevG:pg, prevI:pi};
   }
-  // metas de diciembre: tras la fecha meta ya no se calcula ritmo, se informa el resultado
+  // metas: tras la fecha de una meta ya no se calcula su ritmo, se informa el resultado.
+  // (18-nov-2026, sesion D) cada meta con SU fecha: vencida y meses que quedan van por meta; metas.vencida = ya pasaron TODAS
   let metas=null;
   const MT=state.metas||{fecha:META_FECHA_DEF,items:[]};
   if(esActual&&!esAno){
-    const metaPaso=hoyLocal()>MT.fecha;
-    const hoyD=new Date(), metaD=parseFechaLocal(MT.fecha);
-    const mesesRest=Math.max(1,(metaD.getFullYear()-hoyD.getFullYear())*12+(metaD.getMonth()-hoyD.getMonth())+1);
+    const hoyD=new Date();
+    const mesesRestDe=f=>{ const metaD=parseFechaLocal(f); return Math.max(1,(metaD.getFullYear()-hoyD.getFullYear())*12+(metaD.getMonth()-hoyD.getMonth())+1); };
     const posA=Object.entries(state.posiciones).filter(([k,p])=>p.acciones>0);
     let stVal=0, stCompleto=Number.isFinite(state.usdMxn);
     posA.forEach(([k,p])=>{ const mk=state.accionesMkt[k]; if(mk&&Number.isFinite(mk.precio)&&stCompleto) stVal+=p.acciones*mk.precio*state.usdMxn; else stCompleto=false; });
@@ -16514,12 +16622,15 @@ function calcularCierre(start,end,modo) {
     // una entrada por meta: el coach las recorre en vez de hablar de dos cuentas fijas
     const lista=(MT.items||[]).map(m=>({
       nombre:nombreMeta(m.cuenta),
+      ...(m.nombre?{nombre:m.nombre,nombreFrase:m.nombre}:{}),   // la meta con nombre se dice por su nombre (Fundview arma nombreFrase justo arriba: esto lo pisa)
+      vencida:hoyLocal()>fechaDeMeta(m,MT),
+      mesesRest:mesesRestDe(fechaDeMeta(m,MT)),
       falta:Math.max(0,m.monto-valorMeta(m.cuenta,ctxM)),
       medible:!metaBloqueada(m.cuenta,ctxM),
       // aporte del periodo: solo existe para las cuentas que aportacionesEnRango sabe medir
       aporte:METAS_PROYECTABLES.includes(m.cuenta)?(ap[m.cuenta]||0):undefined
     }));
-    metas={vencida:metaPaso,mesesRest,lista};
+    metas={vencida:lista.length>0&&lista.every(m=>m.vencida),lista};
   }
   // "maduro": con menos de 15 dias corridos un veredicto seria ruido. Los consumidores
   // deciden que mostrar; el cierre de Resumen igual ensena las cifras, marcadas como parciales
@@ -16640,10 +16751,15 @@ function textoAnalisis(m) {
   }
   if(metas&&!metas.vencida){
     const frases=[];
-    (metas.lista||[]).filter(m=>m.medible&&m.falta>0).slice(0,3).forEach((m,i)=>{
-      frases.push((i===0?'para '+m.nombre+' necesitas ':'y para '+m.nombre+' ')+fmt(m.falta/metas.mesesRest)+' al mes'+(i===0?(' durante los '+metas.mesesRest+' meses que quedan'):''));
+    const vivas=(metas.lista||[]).filter(m=>!m.vencida);
+    vivas.filter(m=>m.medible&&m.falta>0).slice(0,3).forEach((m,i)=>{
+      frases.push((i===0?'para '+m.nombre+' necesitas ':'y para '+m.nombre+' ')+fmt(m.falta/m.mesesRest)+' al mes'+(m.mesesRest===1?' en el mes que queda':' durante los '+m.mesesRest+' meses que quedan'));
     });
-    if((metas.lista||[]).length&&(metas.lista||[]).every(m=>!m.medible||m.falta<=0)) frases.push('vas al corriente con todas tus metas');
+    const vencPend=(metas.lista||[]).filter(m=>m.vencida&&m.medible&&m.falta>0);
+    // "todas" solo si no hay una vencida pendiente ni una viva que no se pudo medir (sin tipo de cambio o sin cotizacion)
+    const medibles=vivas.filter(m=>m.medible);
+    if(medibles.length&&medibles.every(m=>m.falta<=0)) frases.push(vencPend.length||medibles.length<vivas.length?'vas al corriente con las metas vigentes que se pueden medir':'vas al corriente con todas tus metas');
+    if(vencPend.length) frases.push('la fecha de '+vencPend.slice(0,3).map(m=>m.nombre).join(', ')+' ya pasó: toca revisarla');
     if(frases.length) p.push('Rumbo a tu meta: '+frases.join(', ')+'.');
   } else if(metas&&metas.vencida) p.push('La fecha de tus metas ya pasó: toca revisar el resultado y fijar las siguientes.');
   // un mes YA CERRADO se cuenta en pasado: 'llevas' y 'no la rompas' son consejo de hoy,
@@ -16698,12 +16814,12 @@ function cierreMesHTML(m,label,capturar) {
     if(t.inflada){ ico='📈'; meta+=' · arriba de tu promedio ('+fmt(t.prom)+'/mes)'+(esActual?' y el mes no termina':''); }
     fila(ico,t.cat,meta,fmt(t.amt));
   });
-  // ritmo hacia las metas de diciembre (el modelo ya decidio si aplica y si hay cotizaciones)
+  // ritmo hacia cada meta, hasta su fecha (el modelo ya decidio si aplica y si hay cotizaciones)
   if(metas&&!metas.vencida){
     // una linea por meta que aun no se logra. El "llevas" solo aplica a las cuentas
     // cuyas aportaciones sabemos medir; en las demas se omite para no inventar un dato
-    (metas.lista||[]).filter(m2=>m2.medible&&m2.falta>0).forEach(m2=>{
-      const ritmo=m2.falta/metas.mesesRest;
+    (metas.lista||[]).filter(m2=>!m2.vencida&&m2.medible&&m2.falta>0).forEach(m2=>{
+      const ritmo=m2.falta/m2.mesesRest;
       const llev=Number.isFinite(m2.aporte)?(' · este '+per+' llevas '+fmt(m2.aporte)):'';
       // (4-nov-2026, Fundview) igual que arriba: ✅ (lleva el ritmo) contra 🎯 (todavia no) se dice con palabras cuando ya hay aportaciones medidas
       fila((Number.isFinite(m2.aporte)&&m2.aporte>=ritmo-0.005)?'✅':'🎯','ritmo meta '+m2.nombre,
