@@ -519,6 +519,13 @@ html[data-tema='grafito'] .tabs{--sombra-scroll:rgba(255,255,255,.16)}
 .btn.inicio-accion svg{width:18px;height:18px;flex-shrink:0}
 .btn.inicio-accion:hover{filter:brightness(1.08)}
 html[data-tema='grafito'] .btn.inicio-accion{background:var(--accent);border-color:var(--accent);color:#14171a}
+/* (18-nov-2026) "lo que debes" del Resumen: --red-txt por lo mismo que #total-deuda; lo que te deben va en --text (aparte, sin color) */
+#res-debes .debes-amt{font-size:14px;font-weight:600;color:var(--red-txt);white-space:nowrap;font-variant-numeric:tabular-nums}
+#res-debes .debes-cero{font-size:14px;font-weight:600;color:var(--text);white-space:nowrap;font-variant-numeric:tabular-nums}
+#res-debes .debes-total .item-cat{font-size:15px;font-weight:650}#res-debes .debes-total .debes-amt{font-size:20px}
+#res-debes .debes-sub{display:flex;justify-content:space-between;gap:12px;font-size:12px;font-weight:600;color:var(--muted);margin-top:14px;padding-bottom:2px;font-variant-numeric:tabular-nums}
+#res-debes .debes-aparte{border-top:1px solid var(--border2);padding-top:12px}
+#res-debes .item-row{gap:12px}#res-debes .item-row>div{min-width:0;overflow-wrap:anywhere}#res-debes .debes-nota{margin-top:4px}
 /* (7-nov-2026) lo que debes en tarjetas bajo el total. --red da 3.85 a 4.5:1 sobre el fondo de los temas claros; --red-txt (#a8392b) da 5.0:1 o mas, y en grafito es --red (5.0:1 o mas) */
 .total-deuda{font-size:13px;font-weight:600;color:var(--red-txt);margin-top:6px;line-height:1.4}
 
@@ -2466,6 +2473,8 @@ html[data-tema='grafito'] .cal-d.hoy .cal-n{color:#14171a}
     </div>
     <div class="section-title" id="cierre-title">cierre del mes</div>
     <div class="panel" id="res-cierre" style="margin-bottom:16px"></div>
+    <div class="section-title" id="debes-title">lo que debes</div>
+    <div class="panel" id="res-debes" style="margin-bottom:16px"></div>
     <div class="summary-grid">
     <div class="sec" data-cuenta="stocks">
     <div class="section-title chart-titulo"><span>inversiones en bolsa · evolución</span><div id="gbm-modos"></div></div>
@@ -8852,8 +8861,10 @@ function render() {
   const neto=total+saldoDeudas-(state.tarjetaDeuda||0)-(state.revTdcDeuda||0);
   // desglose en un toque, de 'tu dinero' al neto renglon por renglon (antes era una sola linea que
   // no se podia cuadrar a simple vista). Solo cifras de fmt y textos fijos: nada del usuario
+  // (18-nov-2026, sesion H) la deuda de tarjetas sale de aqui UNA vez: #total-deuda y "lo que debes" del Resumen dicen la misma cifra
+  const tdcInicio=(state.tarjetaDeuda||0)+(state.revTdcDeuda||0);
   { const ps=Object.values(state.personas||{}), teDeben=ps.reduce((a,p)=>a+Math.max(0,p.saldo||0),0), debes=ps.reduce((a,p)=>a+Math.max(0,-(p.saldo||0)),0);
-    const tdc=(state.tarjetaDeuda||0)+(state.revTdcDeuda||0);
+    const tdc=tdcInicio;
     const f=(t,v,cls)=>'<div class="dg-fila'+(cls?' '+cls:'')+'"><span>'+t+'</span><span>'+v+'</span></div>';
     document.getElementById('neto-display').innerHTML=f(fondoTot>0?'tu dinero (sin el fondo)':'tus cuentas',fmt(total))
       +(Math.abs(cxTot.mxn)>0.005||cxTot.pendiente?f(Object.values(state.cuentasX||{}).some(x=>x.moneda!=='MXN')?'incluye las cuentas que agregaste (con otra moneda)':'incluye las cuentas que agregaste',cxTot.pendiente?'≈ '+fmt(cxTot.mxn)+' (falta un tipo de cambio)':(Object.values(state.cuentasX||{}).some(x=>x.moneda!=='MXN')?'≈ ':'')+fmt(cxTot.mxn)):'')
@@ -8869,7 +8880,8 @@ function render() {
   refrescarGananciaMes();
   // (28-oct-2026) una cartera recien creada abre sola el asistente, una vez por sesion (nunca con datos de la cache)
   if(!asisAuto&&datosCargados&&!cargaDesdeCache&&esCarteraNueva()&&!asisYaHecho()){ asisAuto=true; refrescar(()=>abrirAsistente()); }
-  totalesInicio={fisico:totalFisico, tuyo:total, neto, listo:true, bolsaPend, bolsaParcial:bolsaPend&&stocksConPrecio>0};
+  totalesInicio={fisico:totalFisico, tuyo:total, neto, tdc:tdcInicio, listo:true, bolsaPend, bolsaParcial:bolsaPend&&stocksConPrecio>0};
+  try { renderDebes(); } catch(e) { console.error('lo que debes',e); }
   refrescar(aplicarVisibilidadFondo);
   // lo apartado se resta POR CUENTA: en Savings reduce 'ahorro', en MXN reduce 'disponible'
   renderDistribucion(sumaGrupo('ahorro',true)+cxTot.ahorro, nvdaVal, sumaGrupo('disponible',true)+cxTot.mxn-cxTot.ahorro, tdcDep, posAbiertas.length>0&&!stocksCompleto);
@@ -9402,7 +9414,7 @@ function sumaGrupo(g, sinFondo) { return ctasGrupo(g).reduce((s, c) => s + getSa
 const depositoTdc = () => !ctaApagada('revTdcDep') && Number.isFinite(state.revTdcDeposito) ? state.revTdcDeposito : 0;
 function patrimonioFisico(bolsa) { return sumaGrupo('ahorro')+sumaGrupo('disponible')+bolsa+depositoTdc()+totalCuentasX().mxn; }
 // totales que calcula render(): la pestaña del fondo los reusa en vez de repetir la formula
-let totalesInicio = {fisico:0, tuyo:0, neto:0, listo:false, bolsaPend:false, bolsaParcial:false};
+let totalesInicio = {fisico:0, tuyo:0, neto:0, tdc:0, listo:false, bolsaPend:false, bolsaParcial:false};
 // lo que se concilio al fondo como rendimiento en un periodo: no es rendimiento TUYO
 function rendFondoEnRango(start, end) {
   const a = start.getTime(), b = end.getTime();
@@ -17128,6 +17140,66 @@ function totalesPeriodo(start,end) {
   const ingresos=state.ingresos.filter(enRango);
   const totalG=gastos.reduce((s,i)=>s+i.monto,0), totalI=ingresos.reduce((s,i)=>s+i.monto,0);
   return {gastos,ingresos,totalG,totalI,balance:totalI-totalG};
+}
+// ── LO QUE DEBES (18-nov-2026, sesion H del plan "todo a 8", version chica) ──
+// Solo lectura y con lo que ya existe: tarjetas (la MISMA cifra de #total-deuda, totalesInicio.tdc) y personas.
+// Lo que te deben va aparte: no se resta ni se suma a lo que debes. La frase compara contra "tu dinero" de Inicio
+// (totalesInicio.tuyo, sin el fondo), igual que "si las pagas hoy te quedan". Con la bolsa sin precio o con la copia
+// local sin confirmar no se afirma la frase. Todo monto va por fmt (modo privado). Cero escrituras.
+function proxCorteKey(corte) {
+  const hoy=hoyLocal(), hy=+hoy.slice(0,4), hm=+hoy.slice(5,7)-1;
+  const este=calDiaDeCorte(corte,hy,hm), sig=new Date(hy,hm+1,1);
+  return este>hoy?este:calDiaDeCorte(corte,sig.getFullYear(),sig.getMonth());   // (revision) igual que Inicio (diasParaCorte): el dia del corte ya cuenta hacia el mes siguiente
+}
+function datosDebes() {
+  const T=totalesInicio||{};
+  const tarjetas=[['tarjeta',CORTE_TJ,state.tarjetaDeuda],['tarjetaRev',CORTE_TJREV,state.revTdcDeuda]]
+    .map(([id,corte,d])=>({id, nombre:CUENTAS[id]||'tarjeta', corte:proxCorteKey(corte), deuda:Number(d)||0}))
+    .filter(t=>!ctaApagada(t.id)||Math.abs(t.deuda)>0.005);   // apagada sin deuda: no sale (con deuda si: sigue contando en Inicio)
+  const ps=Object.values(state.personas||{}).filter(p=>p&&Number.isFinite(p.saldo));
+  const aPersonas=ps.filter(p=>p.saldo<-0.005).map(p=>({nombre:p.nombre||'', monto:-p.saldo})).sort((a,b)=>b.monto-a.monto);
+  const teDeben=ps.filter(p=>p.saldo>0.005).map(p=>({nombre:p.nombre||'', monto:p.saldo})).sort((a,b)=>b.monto-a.monto);
+  const tdc=Number.isFinite(T.tdc)?T.tdc:(state.tarjetaDeuda||0)+(state.revTdcDeuda||0);
+  const personas=aPersonas.reduce((s,p)=>s+p.monto,0);
+  const total=Math.max(0,tdc)+personas;
+  return {tarjetas, tdc, aPersonas, personas, teDeben, teDebenTot:teDeben.reduce((s,p)=>s+p.monto,0), total, resto:(T.tuyo||0)-total,
+    seguro:!!T.listo&&datosCargados&&!cargaDesdeCache, bolsaPend:!!T.bolsaPend};
+}
+function renderDebes() {
+  const el=document.getElementById('res-debes'); if(!el) return;
+  if(!totalesInicio.listo){ el.innerHTML=''; return; }
+  const d=datosDebes(), f=k=>parseFechaLocal(k).toLocaleDateString('es-MX',{day:'numeric',month:'short'});
+  const nota=d.seguro?'':'<div class="item-meta debes-nota">copia local, sin confirmar</div>';
+  const fila=(cat,meta,monto,cls)=>'<div class="item-row"><div><div class="item-cat">'+cat+'</div>'+(meta?'<div class="item-meta">'+meta+'</div>':'')+'</div><span class="'+cls+'">'+monto+'</span></div>';
+  const conTdc=d.tarjetas.some(t=>Math.abs(t.deuda)>0.005);
+  if(d.total<0.005&&!conTdc&&!d.teDeben.length){
+    el.innerHTML='<div class="empty-state debes-nada">'+(d.seguro?'no debes nada en tarjetas ni a personas':'en tu copia local no debes nada en tarjetas ni a personas')+'</div>'+nota;
+    return;
+  }
+  let h='';
+  // la frase: debes mas de lo que tienes, o lo que te queda si pagas todo hoy (solo con datos del servidor y la bolsa valuada)
+  let frase='';
+  if(d.total>0.005&&d.seguro&&!d.bolsaPend&&(totalesInicio.tuyo||0)<-0.005) frase='';   // (revision) con el fondo sincronizando, tu dinero puede ser negativo un instante: no se afirma nada
+  else if(d.total>0.005&&d.seguro&&!d.bolsaPend) frase=d.resto>-0.005?'si pagas todo hoy te quedan '+fmt(Math.max(0,d.resto)):'debes '+fmt(-d.resto)+' más de lo que tienes';
+  else if(d.total>0.005&&d.seguro&&d.bolsaPend) frase='falta el precio de tu bolsa: no se compara con lo que tienes';
+  h+='<div class="item-row debes-total"><div><div class="item-cat">debes en total</div>'+(frase?'<div class="item-meta" id="debes-frase">'+frase+'</div>':'')+'</div><span class="'+(d.total>0.005?'debes-amt':'debes-cero')+'" id="debes-total">'+fmt(d.total)+'</span></div>';
+  if(d.tarjetas.length){
+    h+='<div class="debes-sub"><span>tarjetas de crédito</span><span id="debes-tdc">'+fmt(Math.max(0,d.tdc))+'</span></div>';
+    d.tarjetas.forEach(t=>{
+      const meta='próximo corte: '+f(t.corte)+(t.deuda<-0.005?' · saldo a favor':'');
+      h+=fila(escapeHtml(t.nombre),meta,t.deuda<-0.005?'+'+fmt(-t.deuda):fmt(t.deuda),t.deuda>0.005?'debes-amt':'debes-cero');
+    });
+  }
+  if(d.aPersonas.length){
+    h+='<div class="debes-sub"><span>a personas</span><span id="debes-personas">'+fmt(d.personas)+'</span></div>';
+    d.aPersonas.forEach(p=>{ h+=fila(escapeHtml(p.nombre),'le debes',fmt(p.monto),'debes-amt'); });
+  }
+  if(d.teDeben.length){
+    h+='<div class="debes-sub debes-aparte"><span>te deben, aparte</span><span id="debes-te-deben">'+fmt(d.teDebenTot)+'</span></div>'
+      +'<div class="item-meta debes-nota">no se resta ni se suma a lo que debes</div>';
+    d.teDeben.forEach(p=>{ h+=fila(escapeHtml(p.nombre),'te debe',fmt(p.monto),'debes-cero'); });
+  }
+  el.innerHTML=h+nota;
 }
 function renderResumen() {
   const {start,end,label}=rangoResumen();
