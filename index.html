@@ -526,6 +526,49 @@ html[data-tema='grafito'] .btn.inicio-accion{background:var(--accent);border-col
 #res-debes .debes-sub{display:flex;justify-content:space-between;gap:12px;font-size:12px;font-weight:600;color:var(--muted);margin-top:14px;padding-bottom:2px;font-variant-numeric:tabular-nums}
 #res-debes .debes-aparte{border-top:1px solid var(--border2);padding-top:12px}
 #res-debes .item-row{gap:12px}#res-debes .item-row>div{min-width:0;overflow-wrap:anywhere}#res-debes .debes-nota{margin-top:4px}
+/* (18-nov-2026) donde recortar, deudas con grupos e interes, creditos y subcategorias */
+#res-recortar .rc-barra{display:flex;height:12px;border-radius:6px;overflow:hidden;background:var(--bg3);margin:2px 0 10px}
+.rc-seg{display:block;height:100%}.rc-seg+.rc-seg{border-left:2px solid var(--bg2s)}
+.rc-fija{background:var(--muted)}.rc-ajustable{background:var(--accent);opacity:.55}.rc-bajar{background:var(--accent)}
+.rc-punto{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:7px;vertical-align:baseline}
+#res-recortar .item-row{gap:12px}#res-recortar .item-row>div{min-width:0;overflow-wrap:anywhere}
+.rc-cats{font-size:12px;color:var(--muted);margin-top:2px;overflow-wrap:anywhere}
+.rc-val{display:flex;flex-direction:column;align-items:flex-end;font-size:14px;font-weight:600;white-space:nowrap;font-variant-numeric:tabular-nums}
+.rc-val .item-meta{font-weight:400}
+#res-recortar .rc-resto{border-top:1px solid var(--border2);margin-top:4px}#res-recortar .rc-resto .item-cat{font-weight:650}
+#res-recortar .debes-amt{font-weight:600;color:var(--red-txt);white-space:nowrap;font-variant-numeric:tabular-nums}
+.rc-nota{margin-top:8px}
+.rc-hechos{margin-top:12px;padding:12px 14px;border-radius:var(--rs);background:var(--bg3);border:1px solid var(--border2)}
+.rc-hechos-tit{font-size:12px;font-weight:650;color:var(--muted);margin-bottom:6px}
+.rc-hecho{font-size:13.5px;line-height:1.5;margin:0 0 6px}.rc-hecho:last-child{margin-bottom:0}
+.rc-tipos-btn{margin-top:12px}
+.cat-tipo-fila{display:flex;align-items:center;gap:8px;margin-top:6px}.cat-tipo-fila select{min-height:44px;font-size:14px;max-width:100%}
+.cat-subs{flex:1 0 100%;padding:8px 0 4px}
+.g-lista{margin:6px 0}.g-chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px}
+.g-chip{display:inline-flex;align-items:center;gap:2px;background:var(--bg3);border:1px solid var(--border2);border-radius:999px;padding:0 2px 0 12px;font-size:13px;max-width:100%}
+.g-chip-t{overflow-wrap:anywhere}
+.g-chip-x{min-width:44px;min-height:44px;border:0;background:none;color:var(--muted);font-size:18px;cursor:pointer;border-radius:999px;font-family:inherit}
+.g-chip-x:hover{color:var(--red-txt)}
+.g-lista-alta{display:flex;gap:8px;align-items:stretch}.g-lista-alta input{flex:1;min-width:0;min-height:44px}
+.g-lista-alta .cat-act,.cat-subs>.cat-act{min-height:44px;padding:0 14px}
+.g-nota{margin:2px 0 10px;line-height:1.45}.g-lista-vacia{margin-bottom:8px}
+.g-editar-lista,.g-ajustes-btn,.g-cr-quitar{display:inline-block;min-height:44px;line-height:44px;padding:0 4px}
+.g-grupo-tit{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;font-size:12px;font-weight:650;color:var(--muted);margin:16px 2px 6px;font-variant-numeric:tabular-nums}
+.g-grupo-n{color:var(--text);font-size:13px;overflow-wrap:anywhere}
+.g-grupos-ed{margin:12px 2px 4px}.g-grupos-ed summary{cursor:pointer;color:var(--accent);font-size:13px;min-height:44px;display:flex;align-items:center}
+.g-ajustes{background:var(--bg3);border-radius:var(--rs);padding:12px;margin:6px 0 12px}
+.g-tasa-fila{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.g-interes{margin:2px 0 4px;line-height:1.45}
+.g-subdeuda{display:inline-flex;flex-wrap:wrap;gap:6px;align-items:center}.g-subdeuda select{min-height:44px}.g-subdeuda .cat-act{min-height:44px;padding:0 12px}
+.g-subdeuda-e{margin-left:4px;vertical-align:middle}
+.g-credito{padding:12px 0;border-bottom:1px solid var(--border)}.g-credito:last-of-type{border-bottom:0}
+.g-credito .item-row{gap:12px;border:0;padding-bottom:4px}.g-credito .item-row>div{min-width:0;overflow-wrap:anywhere}
+.g-credito .debes-amt{font-size:15px;font-weight:650;color:var(--red-txt);white-space:nowrap;font-variant-numeric:tabular-nums}
+.g-cr-linea{margin:3px 0;line-height:1.45}.g-cr-pagar{margin-top:10px}
+.g-pagar{background:var(--bg3);border-radius:var(--rs);padding:12px;margin-top:10px}
+.g-cr-previa{margin:4px 0 10px;font-weight:600;color:var(--text)}
+.g-cr-alta{margin-top:10px}
+.mov-sub{font-weight:400;color:var(--muted)}
 /* (7-nov-2026) lo que debes en tarjetas bajo el total. --red da 3.85 a 4.5:1 sobre el fondo de los temas claros; --red-txt (#a8392b) da 5.0:1 o mas, y en grafito es --red (5.0:1 o mas) */
 .total-deuda{font-size:13px;font-weight:600;color:var(--red-txt);margin-top:6px;line-height:1.4}
 
@@ -1827,6 +1870,7 @@ html[data-tema='grafito'] .cal-d.hoy .cal-n{color:#14171a}
       <div class="field"><label>categoría</label>
         <select id="gasto-cat" onchange="handleCatChange('gasto',this)"></select>
       </div>
+      <div class="field" id="gasto-sub-field" hidden><label for="gasto-sub">subcategoría (opcional)</label><select id="gasto-sub"></select></div>
       <div class="field"><label>monto</label><input type="number" id="gasto-monto" placeholder="ej. 150" step="1" inputmode="decimal" oninput="pintarAyudaMontoX('gasto')"></div>
       <div class="item-meta" id="gasto-x-ayuda" hidden style="margin:-4px 0 10px"></div>
       <div class="field"><label>nota (opcional)</label><input type="text" id="gasto-nota" maxlength="200" placeholder="ej. taquería"></div>
@@ -1844,6 +1888,7 @@ html[data-tema='grafito'] .cal-d.hoy .cal-n{color:#14171a}
       <div class="field"><label>categoría</label>
         <select id="ingreso-cat" onchange="handleCatChange('ingreso',this)"></select>
       </div>
+      <div class="field" id="ingreso-sub-field" hidden><label for="ingreso-sub">subcategoría (opcional)</label><select id="ingreso-sub"></select></div>
       <div class="field"><label>monto</label><input type="number" id="ingreso-monto" placeholder="ej. 5000" step="1" inputmode="decimal" oninput="pintarAyudaMontoX('ingreso')"></div>
       <div class="item-meta" id="ingreso-x-ayuda" hidden style="margin:-4px 0 10px"></div>
       <div class="field"><label>nota (opcional)</label><input type="text" id="ingreso-nota" maxlength="200" placeholder="ej. pago proyecto"></div>
@@ -2274,6 +2319,24 @@ html[data-tema='grafito'] .cal-d.hoy .cal-n{color:#14171a}
       <div style="font-size:12px;color:var(--muted);margin-top:4px" id="deuda-grand-sub">—</div>
     </div>
     <div id="personas-container"></div>
+    <div class="section-title" id="creditos-title">préstamos y créditos</div>
+    <div class="panel" id="creditos-panel">
+      <div id="creditos-lista"></div>
+      <details class="acc g-cr-alta" id="cr-alta"><summary><div><div class="acc-tit">agregar un préstamo o una compra a plazos</div><div class="acc-sub">préstamo del banco, hipoteca, auto o crédito de tienda</div></div></summary><div class="acc-body">
+        <div class="field"><label for="cr-tipo">qué es</label><select id="cr-tipo" onchange="pintarCatsCredito()"><option value="tienda">compré a plazos o a crédito en una tienda</option><option value="prestamo">un préstamo (banco, nómina, personal)</option><option value="hipoteca">una hipoteca</option><option value="auto">un crédito de auto</option></select></div>
+        <div class="field"><label for="cr-nombre">nombre</label><input type="text" id="cr-nombre" maxlength="40" placeholder="ej. colchón"></div>
+        <div class="field"><label for="cr-monto">cuánto debías al empezar</label><input type="number" id="cr-monto" step="0.01" inputmode="decimal" placeholder="precio de contado o lo que te prestaron" oninput="previaCredito()"></div>
+        <div class="g-tasa-fila"><div class="field"><label for="cr-pago">pago</label><input type="number" id="cr-pago" step="0.01" inputmode="decimal" placeholder="ej. 88.89" oninput="previaCredito()"></div>
+        <div class="field"><label for="cr-cada">cada</label><select id="cr-cada" onchange="previaCredito()"><option value="mensual">mes</option><option value="quincenal">quincena</option><option value="semanal">semana</option></select></div></div>
+        <div class="g-tasa-fila"><div class="field"><label for="cr-n">número de pagos</label><input type="number" id="cr-n" step="1" min="1" inputmode="numeric" placeholder="ej. 18" oninput="previaCredito()"></div>
+        <div class="field"><label for="cr-tasa">tasa al año (opcional)</label><input type="number" id="cr-tasa" step="0.01" min="0" inputmode="decimal" placeholder="la del contrato" oninput="previaCredito()"></div></div>
+        <div class="field"><label for="cr-primero">fecha del primer pago que falta</label><input type="date" id="cr-primero"></div>
+        <div class="field"><label for="cr-cat">cada pago se anota como gasto en</label><select id="cr-cat"></select></div>
+        <div class="item-meta g-nota">con dos de estos tres (pago, número de pagos, tasa) se calcula lo demás. Si ya llevas tiempo pagando, pon lo que debes hoy y los pagos que te faltan</div>
+        <div class="item-meta g-cr-previa" id="cr-previa" role="status" aria-live="polite" hidden></div>
+        <button type="button" class="btn btn-purple" onclick="agregarCredito(this)">agregar</button>
+      </div></details>
+    </div>
     <div class="section-title">registrar movimiento</div>
     <div class="panel">
       <div class="field"><label>persona</label>
@@ -2288,6 +2351,7 @@ html[data-tema='grafito'] .cal-d.hoy .cal-n{color:#14171a}
           <option>Gas</option><option>Salud</option><option>Eventos</option>
           <option>Pago recibido</option><option>Otros</option>
         </select>
+        <button type="button" class="ticket-gal g-editar-lista" onclick="irSubcatsDeuda()">cambiar subcategorías</button>
       </div>
       <div class="field"><label>tipo</label>
         <div class="type-toggle">
@@ -2473,6 +2537,8 @@ html[data-tema='grafito'] .cal-d.hoy .cal-n{color:#14171a}
     </div>
     <div class="section-title" id="cierre-title">cierre del mes</div>
     <div class="panel" id="res-cierre" style="margin-bottom:16px"></div>
+    <div class="section-title" id="recortar-title">¿a dónde se va tu ingreso?</div>
+    <div class="panel" id="res-recortar" style="margin-bottom:16px"></div>
     <div class="section-title" id="debes-title">lo que debes</div>
     <div class="panel" id="res-debes" style="margin-bottom:16px"></div>
     <div class="summary-grid">
@@ -2544,6 +2610,7 @@ html[data-tema='grafito'] .cal-d.hoy .cal-n{color:#14171a}
     <div class="item-meta" id="edit-mov-efecto" aria-live="polite" hidden style="margin:-4px 0 10px"></div>
     <div class="field"><label for="edit-mov-fecha">fecha</label><input type="date" id="edit-mov-fecha" data-hasta-hoy style="font-size:16px" oninput="pintarEfectoEdit()" onchange="pintarEfectoEdit()"></div>
     <div class="field"><label for="edit-mov-cat">categoría</label><select id="edit-mov-cat" onchange="pintarEfectoEdit()"></select></div>
+    <div class="field" id="edit-mov-subcat-field" hidden><label for="edit-mov-subcat">subcategoría</label><select id="edit-mov-subcat"></select></div>
     <div class="field"><label for="edit-mov-nota">nota</label><input type="text" id="edit-mov-nota" maxlength="200" placeholder="opcional" oninput="pintarEfectoEdit()"></div>
     <button type="button" class="btn btn-purple" id="edit-mov-btn" onclick="guardarEdicionMov()">guardar cambios</button>
     <button type="button" class="btn" style="margin-top:8px" onclick="cerrarEdicionMov()">cancelar</button>
@@ -2622,7 +2689,7 @@ html[data-tema='grafito'] .cal-d.hoy .cal-n{color:#14171a}
 
 <script type="module">
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
-import { getFirestore, initializeFirestore, persistentLocalCache, persistentMultipleTabManager, doc, getDoc, getDocFromCache, getDocsFromCache, setDoc, updateDoc, collection, getDocs, query, orderBy, where, limit, writeBatch, runTransaction, getDocsFromServer, onSnapshot, getDocFromServer, serverTimestamp, terminate, clearIndexedDbPersistence, waitForPendingWrites, deleteDoc } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+import { getFirestore, initializeFirestore, persistentLocalCache, persistentMultipleTabManager, doc, getDoc, getDocFromCache, getDocsFromCache, setDoc, updateDoc, collection, getDocs, query, orderBy, where, limit, writeBatch, runTransaction, getDocsFromServer, onSnapshot, getDocFromServer, serverTimestamp, terminate, clearIndexedDbPersistence, waitForPendingWrites, deleteDoc, deleteField } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
 import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, getIdTokenResult, createUserWithEmailAndPassword, sendEmailVerification, sendPasswordResetEmail, reload, multiFactor, TotpMultiFactorGenerator, getMultiFactorResolver, reauthenticateWithCredential, EmailAuthProvider, deleteUser, RecaptchaVerifier, PhoneAuthProvider, PhoneMultiFactorGenerator, updateProfile, verifyPasswordResetCode, confirmPasswordReset, applyActionCode, checkActionCode } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
 
 // Fundview trae su propio proyecto en CFG.firebase; las carteras de la familia usan este
@@ -5254,10 +5321,10 @@ window.doLogout = async function() {
 // reglas ya no dejan crear nada (registrado), asi que desde ahi los datos solo bajan: ni otro aparato, ni una pestaña
 // vieja, ni una escritura en cola los recrean. Si se corta, puedeEntrar lo retoma sin preguntar (ver 'borrando'); sin
 // usuarios/<uid>, 'fv:borrando' en el aparato dice que era un borrado y no una cuenta sin invitacion.
-// Lo unico que hay bajo usuarios/<uid>: las colecciones de los C_* y estos documentos de cartera, los MISMOS 17 de
+// Lo unico que hay bajo usuarios/<uid>: las colecciones de los C_* y estos documentos de cartera, los MISMOS 19 de
 // docCartera() en fundview-app\firestore.rules (armar.mjs falla si no coinciden con las reglas o con el codigo).
 const FV_DOCS_CARTERA = ['apartados', 'categorias', 'cuentas', 'cuentasX', 'fondo', 'historial', 'mercado', 'metas', 'metasFondos',
-  'perfil', 'personas', 'posiciones', 'saldos', 'suscripciones', 'tarjeta', 'tarjetaRev', 'tickers'];
+  'perfil', 'personas', 'posiciones', 'saldos', 'suscripciones', 'tarjeta', 'tarjetaRev', 'tickers', 'clasificacion', 'creditos'];
 const FV_BORRA_A_LA_VEZ = 8;      // de a uno y no en lotes: las reglas topan los accesos por lote (20) y esto no gana nada con ellos
 const FV_BORRA_PAGINA = 200;
 const FV_BORRA_PLAZO = 20000;     // con caché persistente, un delete sin señal nunca contesta: a los 20 s se dice y se reintenta
@@ -5825,6 +5892,735 @@ const PERSONAS_DEFAULT = {};
 // un tope null (sin banda) se guarda como 0, que modeloComp lee como "sin tope"
 const defBanda = (id, k) => { const v = REG_CUENTAS.find(c => c.id === id).comp.def[k]; return v == null ? 0 : v; };
 // ── STATE ─────────────────────────────────────────────────────
+// ── GEORGETTE (18-nov-2026, noche): donde recortar, prestamo con interes y deudas de fuera ──
+// Funciones PURAS entre <g-puras> y </g-puras>: no leen state ni el DOM, test-georgette.mjs las corre en Node.
+// <g-puras>
+// tipo de cada categoria de gasto: fija (renta, colegiatura), ajustable (comida, transporte, salud) o se puede bajar
+// (salidas, ropa, suscripciones). La persona lo cambia en Movimientos > categorias; sin eleccion, el de fabrica por nombre
+// y lo que no se reconoce queda como ajustable (ni se presume fijo ni se ofrece para bajar)
+const TIPOS_CAT = ['fija', 'ajustable', 'bajar'];
+const TIPO_CAT_TXT = {fija: 'gastos fijos', ajustable: 'necesarios, se pueden ajustar', bajar: 'se pueden bajar'};
+const TIPO_DEF_FIJA = ['casa', 'renta', 'hipoteca', 'colegiatura', 'colegiaturas', 'educacion', 'seguro', 'seguros', 'intereses',
+  'luz', 'agua', 'gas', 'internet', 'telefono', 'credito', 'creditos', 'prestamo', 'prestamos', 'mensualidad', 'mensualidades', 'mantenimiento'];
+const TIPO_DEF_BAJAR = ['salidas', 'entretenimiento', 'ropa', 'viajes', 'regalos', 'suscripciones', 'restaurantes', 'antojos',
+  'comida fuera', 'compras', 'hobbies', 'juegos', 'fiestas', 'bares', 'cafe', 'cafes', 'apuestas'];
+// CONDUSEF: lo ideal es que tus deudas no pasen del 30% de tu ingreso; el limite, 35 a 40% (Usuario Inteligente, abril 2024)
+const DEUDA_PCT_IDEAL = 30, DEUDA_PCT_LIMITE = 40;
+function normTxtG(s) { return String(s == null ? '' : s).normalize('NFD').replace(/\p{M}/gu, '').trim().toLowerCase(); }
+function tipoCatDe(cat, tipos) {
+  const t = tipos && Object.prototype.hasOwnProperty.call(tipos, cat) ? tipos[cat] : null;
+  if (TIPOS_CAT.includes(t)) return t;
+  const n = normTxtG(cat);
+  if (TIPO_DEF_FIJA.includes(n)) return 'fija';
+  if (TIPO_DEF_BAJAR.includes(n)) return 'bajar';
+  return 'ajustable';
+}
+// o = {gastos:[{cat,monto}], ingreso, promedios:{cat:promedio de 3 meses o null}, tipos, pagosDeuda, intereses}
+// Devuelve las sumas por tipo (cuadran con el total de gastos) y los hechos para cuando no alcanza. No decide nada
+function calcRecortar(o) {
+  const por = {fija: 0, ajustable: 0, bajar: 0}, porCat = Object.create(null);
+  (o.gastos || []).forEach(g => {
+    const m = Number(g && g.monto); if (!Number.isFinite(m)) return;
+    por[tipoCatDe(g.cat, o.tipos)] += m; porCat[g.cat] = (porCat[g.cat] || 0) + m;
+  });
+  const totalG = por.fija + por.ajustable + por.bajar;
+  const ingreso = Number(o.ingreso) > 0 ? Number(o.ingreso) : 0;
+  const falta = ingreso > 0 ? totalG - ingreso : null;   // > 0: gastas mas de lo que entra
+  const bajar = Object.keys(porCat).filter(c => tipoCatDe(c, o.tipos) === 'bajar').map(c => {
+    const prom = o.promedios && Number.isFinite(o.promedios[c]) && o.promedios[c] > 0 ? o.promedios[c] : null;
+    return {cat: c, amt: porCat[c], prom, sobre: prom === null ? null : porCat[c] - prom};
+  });
+  // primero lo que va arriba de su promedio (de mas a menos), luego el resto por monto
+  bajar.sort((a, b) => ((b.sobre > 0.005) - (a.sobre > 0.005)) || ((b.sobre || 0) - (a.sobre || 0)) || (b.amt - a.amt));
+  const pagos = Number(o.pagosDeuda) > 0 ? Number(o.pagosDeuda) : 0;
+  const deudaPct = ingreso > 0 && pagos > 0 ? pagos / ingreso * 100 : null;
+  const intereses = Number(o.intereses) > 0 ? Number(o.intereses) : 0;
+  const noAlcanza = (falta !== null && falta > 0.005) || (deudaPct !== null && deudaPct > DEUDA_PCT_IDEAL);
+  return {por, totalG, ingreso, falta, bajar, pagos, deudaPct, intereses, noAlcanza};
+}
+// los hechos, en texto plano y sin "deberias": quien los pinte los escapa. fmt llega de fuera (modo privado)
+// Cada frase EMPIEZA con palabras de la app (en Fundview la primera letra va en mayuscula por CSS)
+function hechosRecortar(r, fmt, esActual, periodo) {
+  const h = [], per = periodo === 'ano' ? 'este año' : 'este mes';
+  if (r.falta !== null && r.falta > 0.005)
+    h.push(per + (esActual ? ' llevas ' : ' gastaste ') + fmt(r.falta) + ' más de lo que ' + (esActual ? 'ha entrado' : 'entró'));
+  if (r.deudaPct !== null)
+    h.push('tus pagos de préstamos y créditos se llevan el ' + Math.round(r.deudaPct) + '% de tu ingreso · CONDUSEF pone lo sano en ' + DEUDA_PCT_IDEAL
+      + '% y el límite entre 35 y ' + DEUDA_PCT_LIMITE + '%');
+  if (r.intereses > 0.005) h.push('en intereses ' + (esActual ? 'llevas ' : 'pagaste ') + fmt(r.intereses));
+  r.bajar.filter(b => b.sobre !== null && b.sobre > 0.005).slice(0, 3).forEach(b => {
+    let t = 'en ' + b.cat + ' ' + (esActual ? 'llevas ' : 'gastaste ') + fmt(b.amt) + ' y tu promedio de 3 meses es ' + fmt(b.prom);
+    if (r.falta !== null && r.falta > 0.005) {
+      const sin = r.falta - b.sobre;
+      t += sin > 0.005 ? ' · si quedara en tu promedio, te faltarían ' + fmt(sin) + ' y no ' + fmt(r.falta) : ' · con tu promedio ahí, te alcanzaría';
+    }
+    h.push(t);
+  });
+  return h;
+}
+
+// ── interes de una persona (prestamo con tasa) ──
+// tasa = {pct, per:'mes'|'anio', desde:dia}. dias = numeros de dia (dias desde 1970, hora local), nunca ms.
+// Interes SIMPLE sobre el capital, dia por dia desde la fecha de la tasa; mensual = pct/30 al dia, anual = pct/365.
+// Un abono (signo contrario a lo que se debe) cubre primero el interes y luego el capital, como un banco.
+// El saldo guardado no cambia de significado: es la suma de lo que entro y salio. Lo que se debe de verdad es
+// saldo + interes generado. Se calcula al mostrar y NUNCA se escribe.
+// movs = [{dia, v}] con v firmado (+ me deben mas, - me pagaron o yo debo). saldo = el de la persona (puede traer un
+// ajuste viejo que no esta en los movimientos: se aplica al principio)
+function interesPersona(saldo, movs, tasa, hoyDia) {
+  if (!tasa || !(Number(tasa.pct) > 0) || !Number.isFinite(tasa.desdeDia)) return null;
+  const rDia = (tasa.per === 'mes' ? Number(tasa.pct) / 30 : Number(tasa.pct) / 365) / 100;
+  const ord = (movs || []).filter(m => m && Number.isFinite(m.dia) && Number.isFinite(m.v)).slice().sort((a, b) => a.dia - b.dia);
+  const suma = ord.reduce((s, m) => s + m.v, 0);
+  let C = (Number(saldo) || 0) - suma, I = 0, gen = 0, cobrado = 0, t = ord.length ? ord[0].dia : tasa.desdeDia;
+  const acum = hasta => {
+    const de = Math.max(t, tasa.desdeDia);
+    if (hasta > de) { const g = C * rDia * (hasta - de); I += g; gen += g; }
+    if (hasta > t) t = hasta;
+  };
+  ord.forEach(m => {
+    acum(m.dia);
+    const D = C + I;
+    if (Math.abs(D) > 0.005 && Math.sign(m.v) === -Math.sign(D)) {
+      let resta = Math.abs(m.v);
+      if (Math.sign(I) === Math.sign(D) && Math.abs(I) > 0) {
+        const aI = Math.min(resta, Math.abs(I)); I -= Math.sign(I) * aI; cobrado += aI; resta -= aI;
+      }
+      C += Math.sign(m.v) * resta;
+    } else C += m.v;
+  });
+  acum(hoyDia);
+  const r2 = x => Math.round(x * 100) / 100;
+  return {capital: r2(C), interes: r2(I), total: r2(C + I), generado: r2(gen), interesPagado: r2(cobrado)};
+}
+
+// ── creditos y compras a plazos (deudas de fuera) ──
+// P = lo que se debe al empezar (precio de contado o monto prestado), r = tasa por periodo, A = pago por periodo, n = pagos.
+// Con tres se saca el cuarto. Cifras del colchon (plan del 12-nov): 18 pagos de 88.89 por 1,000 -> 5.50% al mes
+const PERIODOS_ANO = {semanal: 52, quincenal: 24, mensual: 12};
+function pagoDe(P, r, n) { if (!(n > 0)) return null; return r > 1e-12 ? P * r / (1 - Math.pow(1 + r, -n)) : P / n; }
+function nPagosDe(P, r, A) {
+  if (!(A > 0) || !(P > 0)) return null;
+  if (r <= 1e-12) return Math.ceil(P / A - 1e-9);
+  if (A <= P * r + 1e-9) return Infinity;   // el pago no alcanza ni para el interes: nunca se termina de pagar
+  return Math.ceil(-Math.log(1 - r * P / A) / Math.log(1 + r) - 1e-9);
+}
+// tasa por periodo que hace que n pagos de A valgan P hoy (biseccion). A*n <= P: 0 (no hay interes)
+function tasaDe(P, A, n) {
+  if (!(P > 0) || !(A > 0) || !(n > 0)) return null;
+  if (A * n <= P + 0.005) return 0;
+  let lo = 0, hi = 1;
+  const vp = r => A * (1 - Math.pow(1 + r, -n)) / r;
+  while (vp(hi) > P && hi < 64) hi *= 2;
+  for (let i = 0; i < 200; i++) { const mid = (lo + hi) / 2; if (vp(mid) > P) lo = mid; else hi = mid; }
+  return (lo + hi) / 2;
+}
+// lo que se debe de capital despues de k pagos (nunca negativo)
+function saldoTrasPagos(P, r, A, k) {
+  if (!(k > 0)) return P;
+  const s = r > 1e-12 ? P * Math.pow(1 + r, k) - A * (Math.pow(1 + r, k) - 1) / r : P - A * k;
+  return s > 0.005 ? s : 0;
+}
+// c = {monto, pago, n, tasaAnual (nominal, % al ano: la del contrato), cada}. Devuelve el plan completo o {error}
+function planCredito(c) {
+  const k = Object.prototype.hasOwnProperty.call(PERIODOS_ANO, c.cada) ? PERIODOS_ANO[c.cada] : 12;
+  const P = Number(c.monto), A0 = Number(c.pago), n0 = Number(c.n), ta = Number(c.tasaAnual);
+  if (!(P > 0)) return {error: 'falta lo que debes o lo que costaba'};
+  const conTasa = Number.isFinite(ta) && c.tasaAnual !== null && c.tasaAnual !== '' && ta >= 0;
+  let r, A, n;
+  if (A0 > 0 && n0 > 0) { A = A0; n = Math.round(n0); r = tasaDe(P, A, n); }
+  else if (A0 > 0 && conTasa) { r = ta / 100 / k; A = A0; n = nPagosDe(P, r, A); if (n === Infinity) return {error: 'con esa tasa, ese pago no alcanza ni para los intereses: la deuda no bajaría nunca'}; }
+  else if (n0 > 0 && conTasa) { r = ta / 100 / k; n = Math.round(n0); A = pagoDe(P, r, n); }
+  else return {error: 'faltan datos: pon el pago y el número de pagos, o uno de ellos y la tasa'};
+  if (!(n > 0) || !(A > 0) || r === null) return {error: 'esos datos no cuadran'};
+  const total = A * n, intereses = total - P;
+  return {P, A, n, r, k, total, intereses, pctCosto: intereses / P * 100,
+    anualEfectiva: (Math.pow(1 + r, k) - 1) * 100, anualSimple: r * k * 100,
+    tasaContrato: conTasa ? ta : null, difiere: conTasa && A0 > 0 && n0 > 0 && Math.abs(r * k * 100 - ta) > 0.5};
+}
+// partes del pago numero k+1 (k ya hechos): cuanto es interes y cuanto capital
+function partesPago(plan, k) {
+  const s = saldoTrasPagos(plan.P, plan.r, plan.A, k);
+  const interes = Math.min(plan.A, s * plan.r);
+  return {interes: Math.round(interes * 100) / 100, capital: Math.round((plan.A - interes) * 100) / 100, saldoAntes: s};
+}
+// fecha (AAAA-MM-DD) del pago numero i (0 = el primero)
+function fechaPagoCredito(primero, cada, i) {
+  const [y, m, d] = String(primero).split('-').map(Number);
+  if (!y || !m || !d) return null;
+  const pad = x => String(x).padStart(2, '0');
+  if (cada === 'semanal' || cada === 'quincenal') {
+    const f = new Date(y, m - 1, d + i * (cada === 'semanal' ? 7 : 15));
+    return f.getFullYear() + '-' + pad(f.getMonth() + 1) + '-' + pad(f.getDate());
+  }
+  const mm = m - 1 + i, yy = y + Math.floor(mm / 12), mes = ((mm % 12) + 12) % 12;
+  const ult = new Date(yy, mes + 1, 0).getDate();   // 31 en un mes de 30: el ultimo dia
+  return yy + '-' + pad(mes + 1) + '-' + pad(Math.min(d, ult));
+}
+// </g-puras>
+
+// ── CLASIFICACION (18-nov-2026, noche, lo de Georgette): <NS>/clasificacion ──
+// Documento PROPIO, escrito siempre con merge por campo. NUNCA dentro de categorias: txCatalogo escribe ese documento entero
+// sin merge (en esta version y en las viejas) y borraria todo esto. Guarda: el tipo de cada categoria de gasto (donde
+// recortar), las subcategorias opcionales de gastos e ingresos, las subcategorias de deudas y los grupos de personas
+const GRUPOS_DEF = ['Familia', 'Amigos', 'Trabajo', 'Otros'];
+const SUBCATS_DEUDA_DEF = ['Prestamo', 'Comidas', 'Escuela', 'Gas', 'Salud', 'Eventos', 'Pago recibido', 'Otros'];
+function txtCortoG(s, max) { return typeof s === 'string' ? s.replace(/[\p{Cc}\p{Cf}]/gu, '').replace(/\s+/g, ' ').trim().slice(0, max) : ''; }
+function listaTxtG(a, max, maxLen) {
+  if (!Array.isArray(a)) return null;
+  const out = [];
+  a.forEach(x => { const t = txtCortoG(x, maxLen); if (t && !out.some(o => normTxtG(o) === normTxtG(t))) out.push(t); });
+  return out.slice(0, max);
+}
+function saneaClasif(d) {
+  d = d && typeof d === 'object' ? d : {};
+  const tipos = Object.create(null);
+  if (d.tiposCat && typeof d.tiposCat === 'object' && !Array.isArray(d.tiposCat))
+    Object.keys(d.tiposCat).slice(0, 500).forEach(k => { if (TIPOS_CAT.includes(d.tiposCat[k])) tipos[k] = d.tiposCat[k]; });
+  const subs = o => {
+    const r = Object.create(null);
+    if (o && typeof o === 'object' && !Array.isArray(o))
+      Object.keys(o).slice(0, 500).forEach(k => { const l = listaTxtG(o[k], 40, 40); if (l && l.length) r[k] = l; });
+    return r;
+  };
+  const g = listaTxtG(d.gruposPersona, 30, 30), cd = listaTxtG(d.catsDeuda, 60, 40);
+  return {tiposCat: tipos, subsGasto: subs(d.subsGasto), subsIngreso: subs(d.subsIngreso),
+    gruposPersona: g && g.length ? g : [...GRUPOS_DEF], catsDeuda: cd && cd.length ? cd : [...SUBCATS_DEUDA_DEF]};
+}
+// escribe con merge y falla al instante sin señal (como guardarMetaFondo): una escritura en cola no es un cambio hecho
+async function guardarMergeG(nombre, datos) {
+  if (!datosCargados) throw new Error('datos no cargados');
+  if (navigator.onLine === false || cargaDesdeCache) throw new Error('sin conexión');
+  try {
+    await Promise.race([setDoc(doc(db, NS, nombre), datos, {merge: true}),
+      new Promise((_, no) => setTimeout(() => no(new Error('tiempo agotado')), 15000))]);
+    setSyncDot('ok');
+  } catch (e) { setSyncDot('err'); throw e; }
+}
+const msgSinGuardarG = e => (e && /sin conexi/.test(e.message)) ? 'sin señal no se puede guardar: inténtalo cuando vuelva' : 'no se pudo guardar — revisa tu conexión';
+const subsDe = (tipo, cat) => { const m = (tipo === 'gasto' ? state.clasif.subsGasto : state.clasif.subsIngreso) || {}; return Object.prototype.hasOwnProperty.call(m, cat) && Array.isArray(m[cat]) ? m[cat] : []; };
+// al renombrar o juntar una categoria su tipo y sus subcategorias la siguen; al quitarla se van. Si el destino ya tenia
+// tipo, se queda el suyo; las subcategorias se juntan
+async function moverClasifCat(tipo, A, B) {
+  const campoSubs = tipo === 'gasto' ? 'subsGasto' : 'subsIngreso';
+  const cl = state.clasif, datos = {}, subsA = (cl[campoSubs] || {})[A];
+  if (subsA || (B && subsDe(tipo, B).length)) {
+    datos[campoSubs] = {[A]: deleteField()};
+    if (B && subsA) datos[campoSubs][B] = listaTxtG([...subsDe(tipo, B), ...subsA], 40, 40);
+  }
+  if (tipo === 'gasto' && Object.prototype.hasOwnProperty.call(cl.tiposCat, A)) {
+    datos.tiposCat = {[A]: deleteField()};
+    if (B && !Object.prototype.hasOwnProperty.call(cl.tiposCat, B)) datos.tiposCat[B] = cl.tiposCat[A];
+  }
+  if (!Object.keys(datos).length) return;
+  try {
+    await guardarMergeG('clasificacion', datos);
+    if (datos[campoSubs]) { const n = {...cl[campoSubs]}; if (B && subsA) n[B] = datos[campoSubs][B]; delete n[A]; cl[campoSubs] = n; }
+    if (datos.tiposCat) { const n = {...cl.tiposCat}; if (datos.tiposCat[B]) n[B] = datos.tiposCat[B]; delete n[A]; cl.tiposCat = n; }
+  } catch (e) { console.error('moverClasifCat', e); showToast('la categoría se movió, pero su tipo y subcategorías no: ' + msgSinGuardarG(e)); }
+}
+window.cambiarTipoCat = async function(sel) {
+  const cat = sel.dataset.cat, t = sel.value;
+  if (!cat || !TIPOS_CAT.includes(t)) return;
+  const antes = tipoCatDe(cat, state.clasif.tiposCat);
+  sel.disabled = true;
+  try {
+    await guardarMergeG('clasificacion', {tiposCat: {[cat]: t}});
+    state.clasif.tiposCat = {...state.clasif.tiposCat, [cat]: t};
+    showToast('listo: ' + cat + ' · ' + TIPO_CAT_TXT[t]);
+    refrescar(renderResumen);
+  } catch (e) { console.error('cambiarTipoCat', e); sel.value = antes; showToast(msgSinGuardarG(e)); }
+  finally { sel.disabled = false; }
+};
+// lista simple (subcategorias de un gasto o ingreso, subcategorias de deudas, grupos): agregar y quitar. Quitar NO toca los
+// movimientos que ya la llevan: siguen diciendo su subcategoria (es una etiqueta). Renombrar no existe a proposito
+// Transaccion: relee cartera/clasificacion del SERVIDOR y agrega o quita UN elemento sobre lo leido (op 'agregar'|'quitar'), asi
+// otro aparato no se pisa y una carga fallida no reemplaza la lista real con la de fabrica. Devuelve {lista} o {error}
+async function cambiarListaG(campo, clave, op, valor) {
+  if (!datosCargados) throw new Error('datos no cargados');
+  if (navigator.onLine === false || cargaDesdeCache) throw new Error('sin conexión');
+  const ref = doc(db, NS, 'clasificacion'), maxN = campo === 'gruposPersona' ? 30 : (campo === 'catsDeuda' ? 60 : 40), maxL = campo === 'gruposPersona' ? 30 : 40;
+  let res;
+  try {
+    res = await Promise.race([runTransaction(db, async tx => {
+      const s = await tx.get(ref), cur = saneaClasif(s.exists() ? s.data() : null);
+      const m = cur[campo], act = clave ? (Object.prototype.hasOwnProperty.call(m, clave) ? m[clave] : []) : m;
+      let nueva;
+      if (op === 'agregar') {
+        if (act.some(x => normTxtG(x) === normTxtG(valor))) nueva = act;
+        else if (act.length >= maxN) return {error: 'la lista ya está llena'};
+        else nueva = listaTxtG([...act, valor], maxN, maxL);
+      } else {
+        nueva = act.filter(x => x !== valor);
+        if (!clave && !nueva.length) return {error: 'tiene que quedar al menos una'};
+      }
+      tx.set(ref, clave ? {[campo]: {[clave]: nueva.length ? nueva : deleteField()}} : {[campo]: nueva}, {merge: true});
+      return {lista: nueva};
+    }), new Promise((_, no) => setTimeout(() => no(new Error('tiempo agotado')), 15000))]);
+    setSyncDot('ok');
+  } catch (e) { setSyncDot('err'); throw e; }
+  if (res.error) return res;
+  if (clave) { const n = {...state.clasif[campo]}; if (res.lista.length) n[clave] = res.lista; else delete n[clave]; state.clasif[campo] = n; }
+  else state.clasif[campo] = res.lista;
+  return res;
+}
+// editores de lista: data-lista = 'subsGasto|<cat>', 'subsIngreso|<cat>', 'catsDeuda', 'gruposPersona'
+function editorListaHTML(lista, items, ayuda) {
+  const k = escapeHtml(lista);
+  return '<div class="g-lista" data-lista="' + k + '">'
+    + (items.length ? '<div class="g-chips">' + items.map((s, i) => '<span class="g-chip"><span class="g-chip-t">' + escapeHtml(s) + '</span>'
+      + '<button type="button" class="g-chip-x" aria-label="quitar ' + escapeHtml(s) + '" data-lista="' + k + '" data-i="' + i + '" onclick="quitarDeListaG(this)">&times;</button></span>').join('') + '</div>'
+      : '<div class="item-meta g-lista-vacia">todavía no tienes ninguna</div>')
+    + '<div class="g-lista-alta"><input type="text" maxlength="40" aria-label="nueva" placeholder="' + escapeHtml(ayuda) + '">'
+    + '<button type="button" class="cat-act pri" data-lista="' + k + '" onclick="agregarAListaG(this)">agregar</button></div></div>';
+}
+function leerListaG(lista) {
+  const [campo, ...resto] = String(lista).split('|'), clave = resto.join('|') || null;
+  if (!['subsGasto', 'subsIngreso', 'catsDeuda', 'gruposPersona'].includes(campo)) return null;
+  const mp = state.clasif[campo] || {};
+  const actual = clave ? (Object.prototype.hasOwnProperty.call(mp, clave) && Array.isArray(mp[clave]) ? mp[clave] : []) : (state.clasif[campo] || []);
+  return {campo, clave, actual: [...actual]};
+}
+let listaGOcupado = false;
+window.agregarAListaG = async function(btn) {
+  if (listaGOcupado) return;
+  const L = leerListaG(btn.dataset.lista); if (!L) return;
+  const inp = btn.parentElement.querySelector('input'), t = txtCortoG(inp && inp.value, 40);
+  if (!t) { if (inp) inp.focus(); return; }
+  if (L.actual.some(x => normTxtG(x) === normTxtG(t))) { showToast('ya está en la lista'); return; }
+  const max = L.campo === 'gruposPersona' ? 30 : (L.campo === 'catsDeuda' ? 60 : 40);
+  if (L.actual.length >= max) { showToast('la lista ya está llena'); return; }
+  listaGOcupado = true; btn.disabled = true;
+  try {
+    const r = await cambiarListaG(L.campo, L.clave, 'agregar', t);
+    if (r.error) showToast(r.error);
+    else { if (inp) inp.value = ''; showToast('agregada: ' + t); repintarListasG(); }
+  }
+  catch (e) { console.error('agregarAListaG', e); showToast(msgSinGuardarG(e)); }
+  finally { listaGOcupado = false; btn.disabled = false; }
+};
+window.quitarDeListaG = async function(btn) {
+  if (listaGOcupado) return;
+  const L = leerListaG(btn.dataset.lista); if (!L) return;
+  const s = L.actual[Number(btn.dataset.i)]; if (s === undefined) return;
+  if ((L.campo === 'catsDeuda' || L.campo === 'gruposPersona') && L.actual.length <= 1) { showToast('tiene que quedar al menos una'); return; }
+  listaGOcupado = true; btn.disabled = true;
+  try {
+    const r = await cambiarListaG(L.campo, L.clave, 'quitar', s);
+    if (r.error) { showToast(r.error); btn.disabled = false; }
+    else { showToast('quitada: ' + s + ' · lo que ya la tenía la conserva'); repintarListasG(); }
+  }
+  catch (e) { console.error('quitarDeListaG', e); showToast(msgSinGuardarG(e)); btn.disabled = false; }
+  finally { listaGOcupado = false; }
+};
+function repintarListasG() {
+  if (movSubActual === 'cats') renderCategorias();
+  pintarSubSel('gasto'); pintarSubSel('ingreso'); pintarSubcatsDeuda();
+  if (document.getElementById('page-deudas')) renderDeudas();
+}
+// el select de subcategoria de la forma de registrar: solo se ve si la categoria elegida tiene subcategorias
+function pintarSubSel(tipo) {
+  const sel = document.getElementById(tipo + '-sub'), wrap = document.getElementById(tipo + '-sub-field'), cat = (document.getElementById(tipo + '-cat') || {}).value;
+  if (!sel || !wrap) return;
+  const subs = subsDe(tipo, cat), antes = sel.value, firma = JSON.stringify([cat, subs]);
+  if (sel.dataset.firma === firma) return;   // misma categoria y misma lista: no se rehace (conserva lo elegido)
+  sel.dataset.firma = firma;
+  wrap.hidden = !subs.length;
+  sel.innerHTML = '<option value="">sin subcategoría</option>' + subs.map(s => '<option value="' + escapeHtml(s) + '">' + escapeHtml(s) + '</option>').join('');
+  sel.value = subs.includes(antes) ? antes : '';
+}
+function subElegida(tipo) {
+  const sel = document.getElementById(tipo + '-sub'), wrap = document.getElementById(tipo + '-sub-field');
+  return sel && wrap && !wrap.hidden && sel.value ? sel.value : '';
+}
+function pintarSubcatsDeuda() {
+  const sel = document.getElementById('deuda-subcat'); if (!sel) return;
+  const lista = state.clasif.catsDeuda, antes = sel.value;
+  sel.innerHTML = lista.map(s => '<option value="' + escapeHtml(s) + '">' + escapeHtml(s) + '</option>').join('');
+  if (lista.includes(antes)) sel.value = antes;
+}
+
+// ── DONDE RECORTAR: "¿a donde se va tu ingreso?" en el Resumen (mes y año) ──
+// Solo lectura y solo hechos: suma los gastos del periodo por tipo (cuadra con el total del Resumen), lo compara con lo que
+// entro y, cuando no alcanza o las deudas pasan de 30%, dice que categorias que se pueden bajar van arriba de su promedio.
+// Los pagos de prestamos y creditos van en una linea APARTE (el % contra CONDUSEF); los pagos de tarjeta no entran: un gasto
+// con tarjeta ya cuenta el dia del cargo, y sumar tambien su pago lo contaria dos veces
+function promediosCat3(start) {
+  const claves = [];
+  for (let i = 1; i <= 3; i++) { const d = new Date(start.getFullYear(), start.getMonth() - i, 1); claves.push(d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0')); }
+  const por = Object.create(null);
+  (state.gastos || []).forEach(g => {
+    if (!movValido(g)) return;
+    const i = claves.indexOf(mesLocalDe(g.fecha)); if (i < 0) return;
+    (por[g.cat] = por[g.cat] || [0, 0, 0])[i] += g.monto;
+  });
+  const out = {};
+  Object.keys(por).forEach(c => { const v = por[c].filter(x => x > 0); out[c] = v.length >= 2 ? v.reduce((a, b) => a + b, 0) / v.length : null; });
+  return out;
+}
+// servicio de deuda = solo los pagos de prestamos y creditos (gastos con credito). Pagar la tarjeta al corte es consumo que
+// ya conto el dia del cargo y no es servicio de deuda: no entra al % contra CONDUSEF
+function pagosDeudaEnRango(start, end, gastos) {
+  return gastos.reduce((s, g) => s + (g.credito ? g.monto : 0), 0);
+}
+function interesesEnGastos(gastos) {
+  return gastos.reduce((s, g) => s + (normTxtG(g.cat) === 'intereses' ? g.monto : (Number(g.interes) > 0 ? Math.min(Number(g.interes), g.monto) : 0)), 0);
+}
+function renderRecortar(start, end, modo) {
+  const el = document.getElementById('res-recortar'), tit = document.getElementById('recortar-title');
+  if (!el || !tit) return;
+  const con = modo === 'mes' || modo === 'ano';
+  tit.style.display = el.style.display = con ? '' : 'none';
+  if (!con) { el.innerHTML = ''; return; }
+  const {gastos, totalI} = totalesPeriodo(start, end);
+  if (!gastos.length) { el.innerHTML = '<div class="empty-state">sin gastos en este periodo</div>'; return; }
+  const ahora = Date.now(), esActual = ahora >= start.getTime() && ahora < end.getTime();
+  const r = calcRecortar({gastos, ingreso: totalI, promedios: modo === 'mes' ? promediosCat3(start) : {},
+    tipos: state.clasif.tiposCat, pagosDeuda: pagosDeudaEnRango(start, end, gastos), intereses: interesesEnGastos(gastos)});
+  const pct = v => r.ingreso > 0 ? Math.round(v / r.ingreso * 100) + '% de lo que entró' : '';
+  const catsDe = t => { const s = new Set(); gastos.forEach(g => { if (tipoCatDe(g.cat, state.clasif.tiposCat) === t) s.add(g.cat); }); return [...s]; };
+  // barra apilada contra lo que entro (o contra el gasto, si no hubo ingresos)
+  const base = Math.max(r.ingreso, r.totalG) || 1;
+  const seg = t => r.por[t] > 0.005 ? '<span class="rc-seg rc-' + t + '" style="width:' + (r.por[t] / base * 100).toFixed(2) + '%"></span>' : '';
+  let h = '<div class="rc-barra" aria-hidden="true">' + seg('fija') + seg('ajustable') + seg('bajar') + '</div>';
+  TIPOS_CAT.forEach(t => {
+    if (!(r.por[t] > 0.005)) return;
+    const cs = catsDe(t);
+    h += '<div class="item-row rc-tipo"><div><div class="item-cat"><span class="rc-punto rc-' + t + '"></span>' + TIPO_CAT_TXT[t] + '</div>'
+      + '<div class="rc-cats">' + cs.slice(0, 6).map(escapeHtml).join(' · ') + (cs.length > 6 ? ' · +' + (cs.length - 6) : '') + '</div></div>'
+      + '<div class="rc-val"><span>' + fmt(r.por[t]) + '</span>' + (r.ingreso > 0 ? '<span class="item-meta">' + pct(r.por[t]) + '</span>' : '') + '</div></div>';
+  });
+  if (r.falta !== null)
+    h += '<div class="item-row rc-resto"><div class="item-cat">' + (r.falta > 0.005 ? (esActual ? 'llevas gastado más de lo que entró' : 'gastaste más de lo que entró') : (esActual ? 'te queda de lo que entró' : 'te quedó de lo que entró'))
+      + '</div><span class="' + (r.falta > 0.005 ? 'debes-amt' : '') + '">' + fmt(Math.abs(r.falta)) + '</span></div>';
+  else h += '<div class="item-meta rc-nota">sin ingresos registrados en este periodo: no se puede comparar con lo que entró</div>';
+  if (r.noAlcanza) {
+    const hs = hechosRecortar(r, fmt, esActual, modo);
+    if (hs.length) h += '<div class="rc-hechos" role="note"><div class="rc-hechos-tit">cuando no alcanza, esto es lo que dicen tus números</div>' + hs.map(t => '<p class="rc-hecho">' + escapeHtml(t) + '</p>').join('') + '</div>';
+  } else if (r.deudaPct !== null) h += '<div class="item-meta rc-nota">tus pagos de préstamos y créditos se llevan el ' + Math.round(r.deudaPct) + '% de tu ingreso (lo sano es hasta ' + DEUDA_PCT_IDEAL + '%)</div>';
+  h += '<button type="button" class="btn rc-tipos-btn" onclick="irTiposCat()">cambiar qué gastos son fijos o se pueden bajar</button>';
+  el.innerHTML = h;
+}
+// (18-nov-2026) lo unico que un alta acepta de 'extra' ademas de la suscripcion: subcategoria (etiqueta) y, en el pago de un
+// credito, su id y la parte de interes de ese pago. Nunca monto, cuenta ni categoria
+function aplicarExtraG(mov, extra) {
+  if (!extra || typeof extra !== 'object') return;
+  const sub = txtCortoG(extra.sub, 40); if (sub) mov.sub = sub;
+  if (typeof extra.credito === 'string' && /^cr_[a-z0-9]{6,20}$/.test(extra.credito)) {
+    mov.credito = extra.credito;
+    const i = Number(extra.interes);
+    if (Number.isFinite(i) && i > 0 && i <= mov.monto) mov.interes = Math.round(i * 100) / 100;
+  }
+}
+window.irSubcatsDeuda = function() {
+  showPage('movimientos'); window.movSub('cats');
+  const p = document.getElementById('cats-deuda-admin'); if (p) try { p.scrollIntoView({block: 'center'}); const i = p.querySelector('input'); if (i) i.focus(); } catch (e) {}
+};
+// la subcategoria se repinta al cambiar la categoria (forma de registrar y de editar)
+['gasto', 'ingreso'].forEach(t => { const s = document.getElementById(t + '-cat'); if (s) s.addEventListener('change', () => pintarSubSel(t)); });
+{ const s = document.getElementById('edit-mov-cat'); if (s) s.addEventListener('change', () => pintarSubEdit()); }
+function pintarSubEdit(actual) {
+  const wrap = document.getElementById('edit-mov-subcat-field'), sel = document.getElementById('edit-mov-subcat');
+  if (!wrap || !sel || !editMov) return;
+  const cat = (document.getElementById('edit-mov-cat') || {}).value, subs = subsDe(editMov.tipo, cat);
+  const v = actual !== undefined ? actual : sel.value;
+  const ops = [...subs]; if (v && !ops.includes(v)) ops.unshift(v);
+  wrap.hidden = !ops.length;
+  sel.innerHTML = '<option value="">sin subcategoría</option>' + ops.map(s => '<option value="' + escapeHtml(s) + '">' + escapeHtml(s) + (subs.includes(s) ? '' : ' (anterior)') + '</option>').join('');
+  sel.value = ops.includes(v) ? v : '';
+}
+// ── DEUDAS CON PERSONAS: grupos e interes (18-nov-2026, lo de Georgette) ──
+// grupo y tasa viven DENTRO de cada persona (cartera/personas, data.<clave>.grupo y .tasa). txDinero escribe la persona con
+// merge ({nombre, saldo, movimientos}), en esta version y en las viejas, asi que no los borra. El interes NUNCA se escribe:
+// se calcula al mostrar con interesPersona (tramo por tramo, sobre el capital) y el saldo guardado sigue siendo la suma de
+// lo que entro y salio
+function diaNumG(fecha) {
+  const k = typeof fecha === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(fecha) ? fecha : diaLocalMov(fecha);
+  if (!k || !/^\d{4}-\d{2}-\d{2}$/.test(k)) return NaN;
+  return Date.UTC(+k.slice(0, 4), +k.slice(5, 7) - 1, +k.slice(8, 10)) / 86400000;
+}
+function saneaTasa(t) {
+  if (!t || typeof t !== 'object') return null;
+  const pct = Number(t.pct);
+  if (!Number.isFinite(pct) || pct <= 0 || pct > 100) return null;
+  if (t.per !== 'mes' && t.per !== 'anio') return null;
+  if (typeof t.desde !== 'string' || !esFechaReal(t.desde)) return null;
+  return {pct, per: t.per, desde: t.desde, desdeDia: diaNumG(t.desde)};
+}
+function interesDe(p) {
+  const t = p && saneaTasa(p.tasa); if (!t) return null;
+  const movs = (p.movimientos || []).map(m => ({dia: diaNumG(m && m.fecha), v: ((DEUDA_TIPOS[m && m.tipo] || {deuda: 0}).deuda) * nFin(m && m.monto)}))
+    .filter(x => Number.isFinite(x.dia) && x.v);
+  return interesPersona(nFin(p.saldo), movs, t, diaNumG(hoyLocal()));
+}
+// LO QUE SE DEBE con esa persona: con tasa, capital + interes; sin tasa, el saldo de siempre
+function saldoP(p) { const r = interesDe(p); return r ? r.total : (Number(p && p.saldo) || 0); }
+function grupoDe(p) {
+  const gs = state.clasif.gruposPersona, g = p && typeof p.grupo === 'string' ? p.grupo : '';
+  if (g && gs.includes(g)) return g;
+  return gs.find(x => normTxtG(x) === 'otros') || gs[gs.length - 1];
+}
+const tasaTxt = t => String(t.pct).replace(/\.0+$/, '') + '% ' + (t.per === 'mes' ? 'mensual' : 'anual') + ' desde el ' + parseFechaLocal(t.desde).toLocaleDateString('es-MX', {day: 'numeric', month: 'short', year: 'numeric'});
+let ajustesPersonaAbierto = null, subDeudaEdit = null, personaGOcupado = false;
+window.abrirAjustesPersona = function(key, ev) { if (ev) ev.stopPropagation(); ajustesPersonaAbierto = ajustesPersonaAbierto === key ? null : key; renderDeudas(); const d = document.getElementById('d-' + key); if (d) d.classList.add('open'); };
+// (18-nov-2026) prestamos, creditos y la tasa de una persona: en Fundview esperan los terminos que los mencionen (armar.mjs --creditos)
+const CON_CREDITOS = !CFG.multi || CFG.creditos === true;
+function ajustesPersonaHTML(key, p) {
+  const k = escapeHtml(key), t = saneaTasa(p.tasa), gs = state.clasif.gruposPersona, g = grupoDe(p);
+  if (!CON_CREDITOS) return '<div class="g-ajustes" onclick="event.stopPropagation()">'
+    + '<div class="field"><label for="g-grupo-' + k + '">grupo</label><select id="g-grupo-' + k + '">' + gs.map(x => '<option value="' + escapeHtml(x) + '"' + (x === g ? ' selected' : '') + '>' + escapeHtml(x) + '</option>').join('') + '</select></div>'
+    + '<button type="button" class="btn btn-purple" onclick="guardarAjustesPersona(\'' + k + '\',this)">guardar</button></div>';
+  return '<div class="g-ajustes" onclick="event.stopPropagation()">'
+    + '<div class="field"><label for="g-grupo-' + k + '">grupo</label><select id="g-grupo-' + k + '">' + gs.map(x => '<option value="' + escapeHtml(x) + '"' + (x === g ? ' selected' : '') + '>' + escapeHtml(x) + '</option>').join('') + '</select></div>'
+    + '<div class="field"><label><input type="checkbox" id="g-contasa-' + k + '"' + (t ? ' checked' : '') + ' onchange="document.getElementById(\'g-tasa-' + k + '\').hidden=!this.checked"><span>cobra o paga interés</span></label></div>'
+    + '<div id="g-tasa-' + k + '"' + (t ? '' : ' hidden') + '>'
+    + '<div class="g-tasa-fila"><div class="field"><label for="g-pct-' + k + '">tasa (%)</label><input type="number" id="g-pct-' + k + '" step="0.01" min="0" inputmode="decimal" placeholder="ej. 2" value="' + (t ? t.pct : '') + '"></div>'
+    + '<div class="field"><label for="g-per-' + k + '">cada</label><select id="g-per-' + k + '"><option value="mes"' + (!t || t.per === 'mes' ? ' selected' : '') + '>mes</option><option value="anio"' + (t && t.per === 'anio' ? ' selected' : '') + '>año</option></select></div></div>'
+    + '<div class="field"><label for="g-desde-' + k + '">desde</label><input type="date" id="g-desde-' + k + '" data-hasta-hoy value="' + (t ? t.desde : hoyLocal()) + '"></div>'
+    + '<div class="item-meta g-nota">interés simple sobre lo que se debe, día por día. Un pago cubre primero el interés y luego lo prestado. No mueve ninguna cuenta: solo cambia lo que se debe</div></div>'
+    + '<button type="button" class="btn btn-purple" onclick="guardarAjustesPersona(\'' + k + '\',this)">guardar</button></div>';
+}
+window.guardarAjustesPersona = async function(key, btn) {
+  if (personaGOcupado) return;
+  const p = (state.personas || {})[key]; if (!p) { showToast('esa persona ya no existe — recarga la app'); return; }
+  const grupo = (document.getElementById('g-grupo-' + key) || {}).value || '';
+  const con = !!(document.getElementById('g-contasa-' + key) || {}).checked;
+  let tasa = null;
+  if (con) {
+    const pct = Number((document.getElementById('g-pct-' + key) || {}).value);
+    const per = (document.getElementById('g-per-' + key) || {}).value;
+    const desdeEl = document.getElementById('g-desde-' + key), desde = desdeEl ? desdeEl.value : '';
+    if (!Number.isFinite(pct) || pct <= 0 || pct > 100) { showToast('pon una tasa entre 0 y 100'); return; }
+    if (!desde || !esFechaReal(desde) || desde > hoyLocal()) { showToast('elige desde cuándo corre el interés (hoy o antes)'); return; }
+    tasa = {pct: Math.round(pct * 10000) / 10000, per: per === 'anio' ? 'anio' : 'mes', desde};
+  }
+  // una tasa que se quita con interes ya cobrado: ese dinero queda como pago de mas (se dice antes)
+  const r = interesDe(p);
+  if (CON_CREDITOS && !tasa && r && r.interesPagado > 0.005 && !(await confirmarDeslizando({titulo: '¿Quitar el interés?', texto: 'Ya te pagó ' + fmt(r.interesPagado) + ' de interés. Sin la tasa, ese dinero cuenta como si te hubiera pagado de más.', verbo: 'quitar'}))) return;
+  personaGOcupado = true; btn.disabled = true;
+  try {
+    // sin creditos (Fundview hasta sus terminos) solo se toca el grupo: nunca se borra una tasa que esta pantalla no enseña
+    if (!datosCargados) throw new Error('datos no cargados');
+    if (navigator.onLine === false || cargaDesdeCache) throw new Error('sin conexión');
+    // transaccion: si otro aparato borro a la persona no se crea una fantasma con solo grupo y tasa
+    const refP = doc(db, NS, 'personas');
+    let rp;
+    try {
+      rp = await Promise.race([runTransaction(db, async tx => {
+        const s = await tx.get(refP), d = s.exists() ? s.data() || {} : {};
+        if (!(d.data && typeof d.data === 'object' && Object.prototype.hasOwnProperty.call(d.data, key) && d.data[key] && typeof d.data[key] === 'object')) return {error: 'esa persona ya no existe — recarga la app'};
+        tx.set(refP, {data: {[key]: CON_CREDITOS ? {grupo, tasa: tasa || deleteField()} : {grupo}}}, {merge: true});
+        return {ok: true};
+      }), new Promise((_, no) => setTimeout(() => no(new Error('tiempo agotado')), 15000))]);
+      setSyncDot('ok');
+    } catch (e) { setSyncDot('err'); throw e; }
+    if (rp.error) { showToast(rp.error); return; }
+    const q = {...state.personas[key], grupo}; if (CON_CREDITOS) { if (tasa) q.tasa = tasa; else delete q.tasa; }
+    state.personas[key] = q; ajustesPersonaAbierto = null;
+    showToast('listo'); refrescar(renderDeudas, render);
+  } catch (e) { console.error('guardarAjustesPersona', e); showToast(msgSinGuardarG(e)); }
+  finally { personaGOcupado = false; btn.disabled = false; }
+};
+// la subcategoria de un movimiento de deuda ya anotado: transaccion sobre ESA persona, que solo cambia ese campo
+window.editarSubDeuda = function(key, id, ev) { if (ev) ev.stopPropagation(); subDeudaEdit = {key, id}; renderDeudas(); const d = document.getElementById('d-' + key); if (d) d.classList.add('open'); const s = document.getElementById('g-subdeuda-sel'); if (s) s.focus(); };
+window.cancelarSubDeuda = function(ev) { if (ev) ev.stopPropagation(); const k = subDeudaEdit && subDeudaEdit.key; subDeudaEdit = null; renderDeudas(); const d = k && document.getElementById('d-' + k); if (d) d.classList.add('open'); };
+window.guardarSubDeuda = async function(ev) {
+  if (ev) ev.stopPropagation();
+  if (!subDeudaEdit || personaGOcupado) return;
+  const {key, id} = subDeudaEdit, sub = txtCortoG((document.getElementById('g-subdeuda-sel') || {}).value, 40);
+  const m0 = (((state.personas || {})[key] || {}).movimientos || []).find(x => x && x.id === id);
+  if (!m0 || !sub) return;
+  if (sub === m0.subcat) { window.cancelarSubDeuda(); return; }
+  if (navigator.onLine === false || cargaDesdeCache) { showToast('sin señal no se puede guardar: inténtalo cuando vuelva'); return; }
+  personaGOcupado = true;
+  try {
+    const ref = doc(db, NS, 'personas');
+    const res = await runTransaction(db, async tx => {
+      const s = await tx.get(ref), d = s.exists() ? s.data() || {} : {}, p = d.data && d.data[key];
+      if (!p || !Array.isArray(p.movimientos)) return {error: 'esa persona ya no existe'};
+      const i = p.movimientos.findIndex(x => x && x.id === id);
+      if (i < 0) return {error: 'ese movimiento ya no existe'};
+      if (p.movimientos[i].subcat !== m0.subcat) return {error: 'ese movimiento cambió en otro aparato: revisa y vuelve a intentar'};
+      const movs = p.movimientos.slice(); movs[i] = {...movs[i], subcat: sub};
+      tx.set(ref, {data: {[key]: {movimientos: movs}}}, {merge: true});
+      return {ok: true, movs};
+    });
+    if (res.error) { showToast(res.error); return; }
+    state.personas[key] = personaSegura({...state.personas[key], movimientos: res.movs}, key);
+    subDeudaEdit = null; showToast('subcategoría cambiada'); setSyncDot('ok');
+    renderDeudas(); const dd = document.getElementById('d-' + key); if (dd) dd.classList.add('open');
+  } catch (e) { console.error('guardarSubDeuda', e); setSyncDot('err'); showToast('no se pudo guardar — revisa tu conexión'); }
+  finally { personaGOcupado = false; }
+};
+
+// ── PRESTAMOS Y CREDITOS: las deudas de fuera (18-nov-2026, lo de Georgette y "cuesta $1,000 pero te costo $1,600") ──
+// <NS>/creditos = {lista:{cr_<id>:{tipo, nombre, monto, pago, cada, n, tasaAnual|null, primero:'AAAA-MM-DD', cat, creado}}}, con merge
+// por credito. Cada pago es un GASTO NORMAL (altaGasto/altaMovX) con credito:<id> e interes (la parte de interes de ese pago):
+// borrar, editar y "ya-existe" ya funcionan y txDinero no cambia. Sin señal NO: la bandeja no lleva credito ni interes, asi que pagarCredito pide señal. Los pagos hechos se cuentan de esos
+// gastos (no se guardan aparte), y lo que se debe hoy sale de ahi: es aproximado (la tienda o el banco pueden cobrar otro
+// monto para liquidar), y se dice. No incluye compras a meses con TARJETA: esas ya estan dentro de la deuda de la tarjeta
+const TIPOS_CREDITO = {tienda: 'compra a plazos o crédito de tienda', prestamo: 'préstamo', hipoteca: 'hipoteca', auto: 'crédito de auto'};
+const CADA_TXT = {semanal: ['semanal', 'semanales', 'a la semana'], quincenal: ['quincenal', 'quincenales', 'a la quincena'], mensual: ['mensual', 'mensuales', 'al mes']};
+const esIdCredito = id => typeof id === 'string' && /^cr_[a-z0-9]{6,20}$/.test(id);
+function saneaCreditos(d) {
+  const out = {}, l = d && d.lista && typeof d.lista === 'object' && !Array.isArray(d.lista) ? d.lista : {};
+  Object.keys(l).slice(0, 100).forEach(id => {
+    const c = l[id]; if (!esIdCredito(id) || !c || typeof c !== 'object') return;
+    const x = {tipo: Object.prototype.hasOwnProperty.call(TIPOS_CREDITO, c.tipo) ? c.tipo : 'prestamo', nombre: txtCortoG(c.nombre, 40) || 'crédito', monto: Number(c.monto), pago: Number(c.pago),
+      n: Number(c.n), cada: Object.prototype.hasOwnProperty.call(CADA_TXT, c.cada) ? c.cada : 'mensual', tasaAnual: Number.isFinite(Number(c.tasaAnual)) && c.tasaAnual !== null ? Number(c.tasaAnual) : null,
+      primero: typeof c.primero === 'string' && esFechaReal(c.primero) ? c.primero : '', cat: txtCortoG(c.cat, 60) || 'Otros', creado: typeof c.creado === 'string' ? c.creado : ''};
+    if (!(x.monto > 0) || !(x.pago > 0) || !(x.n > 0)) return;
+    out[id] = x;
+  });
+  return out;
+}
+const pagosDeCredito = id => (state.gastos || []).filter(g => g && g.credito === id && movValido(g));
+// el estado de un credito: su plan, cuantos pagos lleva y lo que se debe hoy de capital
+function estadoCredito(id) {
+  const c = state.creditos[id]; if (!c) return null;
+  const plan = planCredito({monto: c.monto, pago: c.pago, n: c.n, tasaAnual: c.tasaAnual, cada: c.cada});
+  if (plan.error) return {c, error: plan.error};
+  const k = Math.min(pagosDeCredito(id).length, plan.n);
+  const debe = k >= plan.n ? 0 : saldoTrasPagos(plan.P, plan.r, plan.A, k);
+  return {c, plan, k, debe: Math.round(debe * 100) / 100, prox: k < plan.n && c.primero ? fechaPagoCredito(c.primero, c.cada, k) : null};
+}
+function deudaCreditos() { return Object.keys(state.creditos || {}).reduce((s, id) => { const e = estadoCredito(id); return s + (e && !e.error ? e.debe : 0); }, 0); }
+let creditoPagando = null, creditoOcupado = false, creditoIntento = null;   // creditoIntento = {id, firma} del ultimo alta que fallo
+function fuentesCredito() { return susFuentes(); }
+function creditoTarjetaHTML(id) {
+  const e = estadoCredito(id); if (!e) return '';
+  const c = e.c, k = escapeHtml(id), nom = escapeHtml(c.nombre);
+  if (e.error) return '<div class="g-credito"><div class="item-cat">' + nom + '</div><div class="item-meta">' + escapeHtml(e.error) + '</div>'
+    + '<button type="button" class="cat-act" onclick="borrarCredito(\'' + k + '\')">quitar</button></div>';
+  const p = e.plan, cada = CADA_TXT[c.cada];
+  const lineas = [];
+  lineas.push(p.n + ' pagos ' + cada[1] + ' de ' + fmt(p.A));
+  if (p.intereses > 0.005)
+    lineas.push((c.tipo === 'tienda' ? 'de contado costaba ' : 'debías ') + fmt(p.P) + ' · vas a pagar ' + fmt(p.total) + ': ' + fmt(p.intereses)
+      + ' son intereses, el ' + Math.round(p.pctCosto) + '% de lo que ' + (c.tipo === 'tienda' ? 'costaba' : 'debías'));
+  else lineas.push('no te cobran intereses: pagas lo mismo que ' + (c.tipo === 'tienda' ? 'costaba' : 'debías'));
+  if (p.r > 1e-9) lineas.push('equivale a ' + (p.r * 100).toFixed(2) + '% ' + cada[2] + ', unos ' + Math.round(p.anualEfectiva) + '% al año contando intereses sobre intereses');
+  if (p.difiere) lineas.push('con estos pagos tu tasa real sale de ' + p.anualSimple.toFixed(1) + '% al año, distinta de la del contrato (' + p.tasaContrato + '%): pueden venir seguros o comisiones dentro del pago');
+  lineas.push(e.k >= p.n ? 'ya hiciste los ' + p.n + ' pagos' : 'llevas ' + e.k + ' de ' + p.n + ' pagos · te faltan ' + (p.n - e.k) + ' · hoy debes unos ' + fmt(e.debe) + ' de lo prestado');
+  if (e.prox) lineas.push('el siguiente pago toca el ' + parseFechaLocal(e.prox).toLocaleDateString('es-MX', {day: 'numeric', month: 'short', year: 'numeric'}));
+  let pagar = '';
+  if (e.k < p.n) {
+    if (creditoPagando === id) {
+      const partes = partesPago(p, e.k), fs = fuentesCredito();
+      pagar = '<div class="g-pagar" onclick="event.stopPropagation()">'
+        + '<div class="field"><label for="g-cr-cta">pagado con</label><select id="g-cr-cta"><option value="">' + TXT_ELIGE_CUENTA + '</option>'
+        + fs.map(f => '<option value="' + escapeHtml(f) + '">' + escapeHtml(susCuenta(f)) + '</option>').join('') + '</select></div>'
+        + '<div class="field"><label for="g-cr-monto">monto</label><input type="number" id="g-cr-monto" step="0.01" inputmode="decimal" value="' + (modoPrivado ? '' : c2(p.A)) + '" placeholder="' + (modoPrivado ? 'el monto del pago' : '') + '"></div>'
+        + '<div class="field"><label for="g-cr-fecha">fecha (si no la eliges, es hoy)</label><input type="date" id="g-cr-fecha" data-hasta-hoy></div>'
+        + '<div class="item-meta g-nota">se anota como gasto en ' + escapeHtml(c.cat) + (partes.interes > 0.005 ? ' · de este pago, unos ' + fmt(partes.interes) + ' son interés' : '') + '</div>'
+        + '<button type="button" class="btn btn-purple" id="g-cr-btn" onclick="pagarCredito(\'' + k + '\')">anotar el pago ' + (e.k + 1) + '</button>'
+        + '<button type="button" class="btn" style="margin-top:8px" onclick="abrirPagoCredito(null)">cancelar</button></div>';
+    } else pagar = '<button type="button" class="btn g-cr-pagar" onclick="abrirPagoCredito(\'' + k + '\')">ya hice el pago ' + (e.k + 1) + '</button>';
+  }
+  return '<div class="g-credito" id="cr-' + k + '"><div class="item-row"><div><div class="item-cat">' + nom + '</div><div class="item-meta g-cr-tipo">' + TIPOS_CREDITO[c.tipo] + '</div></div>'
+    + '<span class="debes-amt">' + fmt(e.debe) + '</span></div>'
+    + lineas.map(t => '<div class="item-meta g-cr-linea">' + escapeHtml(t) + '</div>').join('') + pagar
+    + '<button type="button" class="ticket-gal g-cr-quitar" onclick="borrarCredito(\'' + k + '\')">quitar este crédito</button></div>';
+}
+function renderCreditos() {
+  const el = document.getElementById('creditos-lista'); if (!el) return;
+  const pan = document.getElementById('creditos-panel'), tit = document.getElementById('creditos-title');
+  if (pan) pan.hidden = !CON_CREDITOS; if (tit) tit.hidden = !CON_CREDITOS;
+  if (!CON_CREDITOS) { el.innerHTML = ''; return; }
+  const ids = Object.keys(state.creditos || {}).sort((a, b) => String(state.creditos[a].creado).localeCompare(String(state.creditos[b].creado)));
+  el.innerHTML = ids.length ? ids.map(creditoTarjetaHTML).join('')
+    : '<div class="item-meta g-nota">aquí van tus préstamos del banco, tu hipoteca, tu crédito de auto y lo que compraste a plazos en una tienda. Lo que compraste a meses con tu tarjeta ya está en la deuda de la tarjeta</div>';
+  pintarCatsCredito();
+}
+function pintarCatsCredito() {
+  const s = document.getElementById('cr-cat'); if (!s) return;
+  const antes = s.value, cats = state.catsGasto || [];
+  s.innerHTML = cats.map(c => '<option value="' + escapeHtml(c) + '">' + escapeHtml(c) + '</option>').join('');
+  if (cats.includes(antes)) s.value = antes;
+  else { const t = (document.getElementById('cr-tipo') || {}).value, pref = t === 'hipoteca' ? ['casa', 'renta'] : t === 'auto' ? ['transporte'] : ['otros'];
+    const hit = cats.find(c => pref.includes(normTxtG(c))); if (hit) s.value = hit; }
+}
+window.pintarCatsCredito = pintarCatsCredito;   // la llama el select de la forma de alta
+window.abrirPagoCredito = function(id) { creditoPagando = id; renderCreditos(); const s = document.getElementById('g-cr-cta'); if (s) s.focus(); };
+// lo que dice la forma de alta mientras se escribe: cuanto vas a pagar y cuanto es interes
+function leerFormCredito() {
+  const v = id => (document.getElementById(id) || {}).value;
+  const num = id => { const x = String(v(id) || '').trim(); return x === '' ? null : Number(x); };
+  return {tipo: v('cr-tipo'), nombre: txtCortoG(v('cr-nombre'), 40), monto: num('cr-monto'), pago: num('cr-pago'), n: num('cr-n'),
+    cada: v('cr-cada'), tasaAnual: num('cr-tasa'), primero: v('cr-primero'), cat: v('cr-cat')};
+}
+window.previaCredito = function() {
+  const out = document.getElementById('cr-previa'); if (!out) return;
+  const f = leerFormCredito();
+  if (!(f.monto > 0) || ((f.pago > 0) + (f.n > 0) + (f.tasaAnual !== null && f.tasaAnual >= 0)) < 2) { out.textContent = ''; out.hidden = true; return; }
+  const p = planCredito(f); out.hidden = false;
+  if (p.error) { out.textContent = p.error; return; }
+  out.textContent = p.n + ' pagos de ' + fmt(p.A) + ' · vas a pagar ' + fmt(p.total) + (p.intereses > 0.005 ? ': ' + fmt(p.intereses) + ' de intereses (' + Math.round(p.pctCosto) + '% más)' + (p.r > 1e-9 ? ' · unos ' + Math.round(p.anualEfectiva) + '% al año' : '') : ', sin intereses');
+};
+window.agregarCredito = async function(btn) {
+  if (creditoOcupado) return;
+  const f = leerFormCredito();
+  if (!f.nombre) { showToast('ponle un nombre (ej. colchón, hipoteca)'); return; }
+  if (!(f.monto > 0)) { showToast('pon cuánto debías al empezar'); return; }
+  if (!f.primero || !esFechaReal(f.primero)) { showToast('elige la fecha del primer pago que falta'); return; }
+  const p = planCredito(f);
+  if (p.error) { showToast(p.error); return; }
+  if (p.n > 600) { showToast('son demasiados pagos: revisa los datos'); return; }
+  if (Object.keys(state.creditos || {}).length >= 100) { showToast('ya tienes 100 créditos anotados'); return; }
+  const c = {tipo: TIPOS_CREDITO[f.tipo] ? f.tipo : 'prestamo', nombre: f.nombre, monto: c2(f.monto), pago: c2(p.A), n: p.n, cada: CADA_TXT[f.cada] ? f.cada : 'mensual',
+    tasaAnual: f.tasaAnual !== null && f.tasaAnual >= 0 ? f.tasaAnual : null, primero: f.primero, cat: f.cat || 'Otros', creado: new Date().toISOString()};
+  // si un intento fallo (p. ej. "tiempo agotado") la escritura pudo llegar despues: el siguiente intento con los MISMOS datos
+  // reusa el id y la sobreescribe en vez de duplicar el credito
+  const firma = JSON.stringify({...c, creado: undefined});
+  const id = creditoIntento && creditoIntento.firma === firma ? creditoIntento.id : 'cr_' + Math.random().toString(36).slice(2, 12).padEnd(8, '0');
+  creditoOcupado = true; btn.disabled = true;
+  try {
+    await guardarMergeG('creditos', {lista: {[id]: c}});
+    creditoIntento = null;
+    state.creditos = {...state.creditos, [id]: c};
+    ['cr-nombre', 'cr-monto', 'cr-pago', 'cr-n', 'cr-tasa', 'cr-primero'].forEach(i => { const x = document.getElementById(i); if (x) x.value = ''; });
+    window.previaCredito();
+    const d = document.getElementById('cr-alta'); if (d) d.open = false;
+    showToast('crédito anotado'); refrescar(renderCreditos, render);
+  } catch (e) { creditoIntento = {id, firma}; console.error('agregarCredito', e); showToast(msgSinGuardarG(e)); }
+  finally { creditoOcupado = false; btn.disabled = false; }
+};
+window.borrarCredito = async function(id) {
+  const c = (state.creditos || {})[id]; if (!c || creditoOcupado) return;
+  const n = pagosDeCredito(id).length;
+  if (!(await confirmarDeslizando({titulo: '¿Quitar el crédito?', texto: 'Quitar "' + c.nombre + '" de tus créditos.' + (n ? ' Los ' + n + ' pagos que anotaste se quedan como gastos.' : ''), verbo: 'quitar'}))) return;
+  creditoOcupado = true;
+  try {
+    await guardarMergeG('creditos', {lista: {[id]: deleteField()}});
+    const x = {...state.creditos}; delete x[id]; state.creditos = x;
+    showToast('crédito quitado'); refrescar(renderCreditos, render);
+  } catch (e) { console.error('borrarCredito', e); showToast(msgSinGuardarG(e)); }
+  finally { creditoOcupado = false; }
+};
+// un pago es un gasto normal con credito:<id>: el dinero sale de la cuenta como cualquier gasto. Sin señal NO se anota (la bandeja no lleva credito)
+window.pagarCredito = async function(id) {
+  // la bandeja sin señal no lleva credito ni interes: un pago asi se guardaria como un gasto suelto y el credito no avanzaria
+  if (hayQueGuardarEnTelefono()) { showToast('sin señal no se puede anotar el pago de un crédito: inténtalo cuando vuelva'); return; }
+  const e = estadoCredito(id); if (!e || e.error || e.k >= e.plan.n) { showToast('ese crédito ya no tiene pagos pendientes'); creditoPagando = null; renderCreditos(); return; }
+  const cuenta = (document.getElementById('g-cr-cta') || {}).value;
+  if (!cuenta) { faltaCuenta('g-cr-cta', 'Elige de dónde salió el dinero'); return; }
+  if (!fuentesCredito().includes(cuenta)) { showToast('esa cuenta ya no está disponible: elige otra'); return; }
+  if (!montoValido('g-cr-monto')) return;
+  const monto = parseFloat(document.getElementById('g-cr-monto').value);
+  const fecha = fechaMovOpcional('g-cr-fecha'); if (fecha === null) return;
+  const partes = partesPago(e.plan, e.k);
+  const extra = {credito: id, interes: Math.min(partes.interes, monto)};
+  const nota = e.c.nombre + ' · pago ' + (e.k + 1) + ' de ' + e.plan.n;
+  const btn = document.getElementById('g-cr-btn');
+  const ok = esIdX(cuenta) ? await altaMovX('gasto', e.c.cat, monto, nota, cuenta, btn, fecha, extra) : await altaGasto(e.c.cat, monto, nota, cuenta, btn, fecha, extra);
+  if (ok) { creditoPagando = null; refrescar(renderCreditos, render); }
+};
+
+window.irTiposCat = function() {
+  showPage('movimientos'); window.movSub('cats');
+  const p = document.getElementById('cats-admin-panel'); if (p) try { p.scrollIntoView({block: 'start'}); } catch (e) {}
+};
+
 let state = {
   nuCajita1Base:0, nuCajita1Fecha:hoyLocal(), nuCajita1Tasa:13,
   // bandas de saldo: tasa normal hasta el tope, tasaExc sobre el excedente; ret =
@@ -5862,6 +6658,10 @@ let state = {
   // (28-oct-2026) meta de cada fondo {fid:{objetivo, fecha:'AAAA-MM'|''}}: doc aparte (cartera/metasFondos) porque
   // cartera/fondo se reescribe entero y una version vieja borraria lo que no conoce
   metasFondos:{},
+  // (18-nov-2026) tipos de categoria, subcategorias y grupos (cartera/clasificacion, con merge por campo)
+  clasif:saneaClasif(null),
+  // (18-nov-2026) prestamos, hipoteca y compras a plazos (cartera/creditos, con merge por credito)
+  creditos:{},
   // fondo de la universidad: dinero APARTADO dentro de las cuentas reales (ver saneaFondo)
   fondo:{saldosPorCuenta:{}, movs:[]},
   // perfil para el estandar personalizado (vacio = estandar generico, no bloquea nada)
@@ -5921,6 +6721,8 @@ async function pintarDesdeCache() {
   const sinTarjeta = ctaApagada('tarjeta');
   if (r.some((x,i) => x.status !== 'fulfilled' && !(i === 1 && sinTarjeta))) return false;
   const [sD,tD,trvD,pD,cD,hD,mD,fD,gS,iS,trS,opS,rS,xD] = r.map(x => x.value);
+  try { const cl = await getDocFromCache(doc(db,NS,'clasificacion')); state.clasif = saneaClasif(cl.exists() ? cl.data() : null); } catch (e) {}   // (18-nov-2026) opcional
+  try { const crd = await getDocFromCache(doc(db,NS,'creditos')); state.creditos = saneaCreditos(crd.exists() ? crd.data() : null); } catch (e) {}
   // sin saldos, personas o tarjeta no alcanza para una pantalla coherente: pintar
   // personas vacio enseñaria los PERSONAS_DEFAULT del codigo como si fueran deudas reales
   // (3-nov-2026) Fundview: PERSONAS_DEFAULT esta vacio y una cuenta nueva con solo cuentas agregadas nunca crea saldos ni personas. Si la
@@ -6056,7 +6858,7 @@ async function loadFromFirebase() {
       sDoc, mDoc, pDoc, perDoc, tDoc,
       trvDoc, hDoc, aDoc, mtDoc, cDoc, tkDoc, fDoc,
       gSnap, iSnap, trSnap, opSnap
-    , rendSnap, cxDoc, mfDoc] = await Promise.all([
+    , rendSnap, cxDoc, mfDoc, clDoc, crDoc] = await Promise.all([
       getDoc(doc(db,NS,'saldos')),
       getDoc(doc(db,NS,'mercado')),
       getDoc(doc(db,NS,'personas')),
@@ -6078,6 +6880,10 @@ async function loadFromFirebase() {
       getDoc(docCX()),
       // la meta es de pantalla: si esta lectura falla (doc nunca cacheado y sin señal) no tumba toda la carga
       getDoc(doc(db,NS,'metasFondos')).catch(()=>null),
+      // (18-nov-2026) tipos, subcategorias y grupos: de pantalla, si falla no tumba la carga (se quedan los de fabrica)
+      getDoc(doc(db,NS,'clasificacion')).catch(()=>null),
+      // creditos SI entran a 'vino del servidor' (cambian lo que debes); si la lectura falla, se quedan los que habia
+      getDoc(doc(db,NS,'creditos')).catch(()=>null),
     ]);
     if (CFG.multi && fvBorrado.activo) return false;   // empezo a borrarse mientras leia: de aqui abajo se siembra y se escribe
     // si los datos vinieron de la cache local (red caida o lentisima) NO se corren
@@ -6086,9 +6892,11 @@ async function loadFromFirebase() {
     // (15-oct-2026) "vino del servidor" se certifica con TODAS las lecturas, no solo con saldos:
     // cualquiera que salga de la cache (gastos, ingresos, personas...) deja el estado sin confirmar
     const desdeCache = [sDoc, mDoc, pDoc, perDoc, tDoc, trvDoc, hDoc, aDoc, mtDoc, cDoc, tkDoc, fDoc,
-      gSnap, iSnap, trSnap, opSnap, rendSnap, cxDoc, mfDoc].some(s => !!(s && s.metadata && s.metadata.fromCache));
+      gSnap, iSnap, trSnap, opSnap, rendSnap, cxDoc, mfDoc, clDoc, crDoc].some(s => !!(s && s.metadata && s.metadata.fromCache));
     cargaDesdeCache = desdeCache;
     state.metasFondos = saneaMetasFondos(mfDoc && mfDoc.exists() ? mfDoc.data() : null);
+    if (clDoc) state.clasif = saneaClasif(clDoc.exists() ? clDoc.data() : null);
+    if (crDoc) state.creditos = saneaCreditos(crDoc.exists() ? crDoc.data() : null);
     state.cuentasX = saneaCX(cxDoc.exists() ? cxDoc.data() : null);
     // el fondo se carga SIEMPRE, exista o no: sin el, inicio pintaria el dinero apartado como tuyo
     state.fondo = saneaFondo(fDoc.exists() ? fDoc.data() : null);
@@ -7451,10 +8259,19 @@ function renderCategorias() {
       acc.push('<button type="button" class="cat-act" data-t="' + tipo + '" data-i="' + i + '" data-a="renombrar" onclick="catAccion(this)">renombrar</button>');
       acc.push('<button type="button" class="cat-act" data-t="' + tipo + '" data-i="' + i + '" data-a="juntar" onclick="catAccion(this)">juntar con...</button>');
       if (!e.n && e.enLista) acc.push('<button type="button" class="cat-act" data-t="' + tipo + '" data-i="' + i + '" data-a="quitar" onclick="catAccion(this)">quitar</button>');
+      // (18-nov-2026) subcategorias opcionales y, en gastos, el tipo (donde recortar)
+      const nSubs = subsDe(tipo, e.nombre).length;
+      acc.push('<button type="button" class="cat-act" data-t="' + tipo + '" data-i="' + i + '" data-a="subs" onclick="catAccion(this)">subcategorías' + (nSubs ? ' (' + nSubs + ')' : '') + '</button>');
+      const tSel = tipo === 'gasto' ? (() => { const t = tipoCatDe(e.nombre, state.clasif.tiposCat), id = 'cat-tipo-' + i;
+        return '<div class="cat-tipo-fila"><label for="' + id + '" class="item-meta">tipo</label><select id="' + id + '" class="cat-tipo" data-cat="' + escapeHtml(e.nombre) + '" onchange="cambiarTipoCat(this)">'
+          + TIPOS_CAT.map(x => '<option value="' + x + '"' + (x === t ? ' selected' : '') + '>' + TIPO_CAT_TXT[x] + '</option>').join('') + '</select></div>'; })() : '';
+      const subsEd = (catEditando && catEditando.tipo === tipo && catEditando.nombre === e.nombre && catEditando.modo === 'subs')
+        ? '<div class="cat-subs">' + editorListaHTML((tipo === 'gasto' ? 'subsGasto|' : 'subsIngreso|') + e.nombre, subsDe(tipo, e.nombre), tipo === 'gasto' ? 'ej. súper' : 'ej. bono')
+          + '<button type="button" class="cat-act" data-a="cancelar" onclick="catAccion(this)">cerrar</button></div>' : '';
       return '<div class="cat-fila"><div class="cat-fila-info">'
         + '<div class="item-cat">' + escapeHtml(e.nombre) + '</div>'
-        + '<div class="item-meta">' + meta + badges + '</div>'
-        + '</div><div class="cat-fila-acc">' + acc.join('') + '</div></div>';
+        + '<div class="item-meta">' + meta + badges + '</div>' + tSel
+        + '</div><div class="cat-fila-acc">' + acc.join('') + '</div>' + subsEd + '</div>';
     }).join('');
     // el alta tambien se captura en la fila, sin prompt(): prompt() ya mordio una vez
     // (el boton de nueva persona) y ademas se ve como aviso del navegador, no como la app
@@ -7476,7 +8293,9 @@ function renderCategorias() {
       + '</div>';
   };
   el.outerHTML = '<div id="cats-admin-panel">' + bloque('gasto', 'de gastos')
-    + '<div style="height:14px"></div>' + bloque('ingreso', 'de ingresos') + '</div>';
+    + '<div style="height:14px"></div>' + bloque('ingreso', 'de ingresos')
+    + '<div style="height:14px"></div><div class="section-title" style="margin-top:0">de deudas</div><div class="panel" id="cats-deuda-admin">'
+    + '<div class="item-meta g-nota">las que eliges al anotar un préstamo o un pago con una persona</div>' + editorListaHTML('catsDeuda', state.clasif.catsDeuda, 'ej. renta') + '</div></div>';
 }
 window.catAccion = async function(btn) {
   if (catOcupado) return;
@@ -7499,6 +8318,8 @@ window.catAccion = async function(btn) {
   const e = (catsPintadas[tipo] || [])[Number(btn.dataset.i)];
   if (!e) { renderCategorias(); return; }
   if (a === 'renombrar' || a === 'juntar') { catEditando = {tipo, nombre: e.nombre, modo: a}; renderCategorias(); return; }
+  if (a === 'subs') { catEditando = {tipo, nombre: e.nombre, modo: 'subs'}; renderCategorias();
+    const inp = document.querySelector('.cat-subs input'); if (inp) inp.focus(); return; }
   if (a === 'adoptar') {
     catOcupado = true;
     const r = await txCatalogo((g,i) => { const arr = tipo==='gasto'?g:i; if (!arr.some(c => c===e.nombre)) arr.push(e.nombre); return {gasto:g, ingreso:i}; });
@@ -7523,7 +8344,7 @@ window.catAccion = async function(btn) {
     if (usados !== 0) { catOcupado = false; showToast(usados > 0 ? 'esa categoría ya tiene movimientos: júntala con otra' : 'no se pudo comprobar — revisa tu conexión'); renderCategorias(); return; }
     const r = await txCatalogo((g,i) => { const arr = tipo==='gasto'?g:i; const k = arr.findIndex(c => c===e.nombre); if (k>=0) arr.splice(k,1); return {gasto:g, ingreso:i}; });
     catOcupado = false;
-    if (r && r.error) showToast(r.error); else { showToast('categoría quitada'); if (tipo === 'gasto') await moverLimiteCat(e.nombre, null); }
+    if (r && r.error) showToast(r.error); else { showToast('categoría quitada'); if (tipo === 'gasto') await moverLimiteCat(e.nombre, null); await moverClasifCat(tipo, e.nombre, null); }
     renderCategorias(); return;
   }
   if (a === 'okRenombrar' || a === 'okJuntar') {
@@ -7560,6 +8381,7 @@ window.catAccion = async function(btn) {
     catch(err2) { console.error('catAccion reclasificar', err2); showToast('no se pudo completar — revisa tu conexión'); }
     catOcupado = false; catEditando = null;
     if (ok && tipo === 'gasto') await moverLimiteCat(A, B);   // el limite de la categoria la sigue
+    if (ok) await moverClasifCat(tipo, A, B);   // (18-nov-2026) su tipo y sus subcategorias tambien
     rerenderTodo();
     if (movSubActual === 'cats') renderCategorias();
     return ok;
@@ -8714,6 +9536,7 @@ function render() {
   try { refrescarSinUso(); } catch(e) { console.error('sin uso',e); }
   try { refrescarBolsa(); } catch(e) { console.error('bolsa sin uso',e); }
   if (CFG.multi) { try { fvPintarHola(); } catch(e) { console.error('hola',e); } }
+  try { pintarSubSel('gasto'); pintarSubSel('ingreso'); } catch(e) { console.error('subcategorias',e); }
   try { pintarPagoTotal(); } catch(e) { console.error('pagar todo',e); }
   // (21-oct-2026, Roberto) las tarjetas de inicio muestran solo lo TUYO: el fondo se ve en su pestaña
   // (28-oct-2026) y tampoco el interes que genero el fondo sin registrar (fondoEnCuenta)
@@ -8857,19 +9680,20 @@ function render() {
     if(nt){ nt.hidden=!bolsaPend; nt.textContent=stocksConPrecio>0?'Falta el precio de parte de tu bolsa: cuando llegue, se suma a este total':'Falta el precio de tu bolsa: cuando llegue, se suma a este total'; }
     if(bolsaPend&&totLbl) totLbl.textContent+=stocksConPrecio>0?' · falta el precio de parte de tu bolsa':' · sin tu bolsa'; }
   // neto = activos + lo que me deben (o menos lo que debo) - deudas de tarjetas
-  const saldoDeudas=Object.values(state.personas||{}).reduce((s,p)=>s+(p.saldo||0),0);
-  const neto=total+saldoDeudas-(state.tarjetaDeuda||0)-(state.revTdcDeuda||0);
+  const saldoDeudas=Object.values(state.personas||{}).reduce((s,p)=>s+saldoP(p),0);   // (18-nov-2026) con su interes, si tiene tasa
+  const credTot=deudaCreditos();   // (18-nov-2026) lo que debes de prestamos y creditos (capital de hoy, aproximado)
+  const neto=total+saldoDeudas-(state.tarjetaDeuda||0)-(state.revTdcDeuda||0)-credTot;
   // desglose en un toque, de 'tu dinero' al neto renglon por renglon (antes era una sola linea que
   // no se podia cuadrar a simple vista). Solo cifras de fmt y textos fijos: nada del usuario
   // (18-nov-2026, sesion H) la deuda de tarjetas sale de aqui UNA vez: #total-deuda y "lo que debes" del Resumen dicen la misma cifra
   const tdcInicio=(state.tarjetaDeuda||0)+(state.revTdcDeuda||0);
-  { const ps=Object.values(state.personas||{}), teDeben=ps.reduce((a,p)=>a+Math.max(0,p.saldo||0),0), debes=ps.reduce((a,p)=>a+Math.max(0,-(p.saldo||0)),0);
+  { const ps=Object.values(state.personas||{}), teDeben=ps.reduce((a,p)=>a+Math.max(0,saldoP(p)),0), debes=ps.reduce((a,p)=>a+Math.max(0,-saldoP(p)),0);
     const tdc=tdcInicio;
     const f=(t,v,cls)=>'<div class="dg-fila'+(cls?' '+cls:'')+'"><span>'+t+'</span><span>'+v+'</span></div>';
     document.getElementById('neto-display').innerHTML=f(fondoTot>0?'tu dinero (sin el fondo)':'tus cuentas',fmt(total))
       +(Math.abs(cxTot.mxn)>0.005||cxTot.pendiente?f(Object.values(state.cuentasX||{}).some(x=>x.moneda!=='MXN')?'incluye las cuentas que agregaste (con otra moneda)':'incluye las cuentas que agregaste',cxTot.pendiente?'≈ '+fmt(cxTot.mxn)+' (falta un tipo de cambio)':(Object.values(state.cuentasX||{}).some(x=>x.moneda!=='MXN')?'≈ ':'')+fmt(cxTot.mxn)):'')
       +(teDeben>0.005?f('te deben','+'+fmt(teDeben)):'')+(debes>0.005?f('tú debes','−'+fmt(debes)):'')
-      +(Math.abs(tdc)>0.005?f(tdc>0?'tarjetas de crédito':'saldo a favor en tarjetas',(tdc>0?'−':'+')+fmt(Math.abs(tdc))):'')+(bolsaPend?f('tu bolsa',stocksConPrecio>0?'Falta el precio de parte':'Precio pendiente'):'')+f(bolsaPend?(stocksConPrecio>0?'patrimonio neto, falta el precio de parte de tu bolsa':'patrimonio neto, sin tu bolsa'):'patrimonio neto',fmt(neto),'dg-total')
+      +(Math.abs(tdc)>0.005?f(tdc>0?'tarjetas de crédito':'saldo a favor en tarjetas',(tdc>0?'−':'+')+fmt(Math.abs(tdc))):'')+(credTot>0.005?f('préstamos y créditos','−'+fmt(credTot)):'')+(bolsaPend?f('tu bolsa',stocksConPrecio>0?'Falta el precio de parte':'Precio pendiente'):'')+f(bolsaPend?(stocksConPrecio>0?'patrimonio neto, falta el precio de parte de tu bolsa':'patrimonio neto, sin tu bolsa'):'patrimonio neto',fmt(neto),'dg-total')
       +(fondoTot>0?f(listaFondos().length>1?'tus fondos, aparte':'fondo de la universidad, aparte',fmt(fondoTot+fondoGenerado())+(fondoGenerado()>0.005?' (≈'+fmt(fondoGenerado())+' de interés estimado)':'')):'');
     // (7-nov-2026, Pico) lo que debes en tarjetas, en rojo bajo el total: la misma tdc del desglose. El numero grande no cambia
     const td=document.getElementById('total-deuda');
@@ -9790,8 +10614,9 @@ async function altaMovX(tipo, cat, montoOrig, nota, cuentaId, btn, fecha, extra)
                montoOrig:mo, moneda:x.moneda, tc, tcFecha:x.moneda === 'MXN' ? hoyLocal() : state.fx.fecha};   // en pesos puede no haber state.fx
   // solo ese campo se acepta de 'extra': nunca pisa monto, cuenta ni categoria
   if (esGasto && extra && typeof extra.suscripcion === 'string') mov.suscripcion = extra.suscripcion.slice(0, 24);
+  aplicarExtraG(mov, esGasto ? extra : (extra && {sub: extra.sub}));   // (18-nov-2026)
   // el pago de una suscripcion NO va a la bandeja (su id fijo depende de lo que diga el servidor ese dia), igual que en altaGasto
-  const aTelefono = !idFijo && !mov.suscripcion;
+  const aTelefono = !idFijo && !mov.suscripcion && !mov.credito;   // igual que altaGasto
   // sin señal: a la bandeja con el tipo de cambio ya fijado (el comando es inmutable)
   if (aTelefono && hayQueGuardarEnTelefono()) return guardarEnTelefonoConCandado(tipo, ref.id, mov, false, btn, uidCaptura);
   const plan = planAltaX(ref, mov, esGasto);
@@ -10316,6 +11141,9 @@ async function guardarEnTelefono(tipo, id, mov, dudoso, uidCaptura) {
              // Misma B_VERSION a proposito: una version vieja de la app no conoce la cuenta x_ y lo deja
              // "para revisar" sin mover dinero; los comandos viejos (sin fx) siguen subiendo igual
              fx: Number.isFinite(mov.montoOrig) ? {montoOrig:mov.montoOrig, moneda:mov.moneda, tc:mov.tc, tcFecha:mov.tcFecha} : null};
+  // (18-nov-2026) la subcategoria viaja por la bandeja. Campo opcional: no sube B_VERSION; una version vieja de la app lo ignora
+  // y sube el movimiento sin subcategoria. credito/interes NO viajan: el pago de un credito exige señal (ver pagarCredito)
+  if (typeof mov.sub === 'string' && mov.sub) c.sub = mov.sub;
   try { await guardarComando(c); }
   catch(e) {
     if (e && e.name === 'ConstraintError') { showToast('ese movimiento ya estaba guardado en tu teléfono'); return true; }
@@ -10391,6 +11219,7 @@ async function subirComando(c) {
   const mov = esGasto ? {cat:c.cat, monto:c2(c.monto), nota:c.nota || '', fuente:c.cuenta, fecha:c.fecha, creado:c.creado}
                       : {cat:c.cat, monto:c2(c.monto), nota:c.nota || '', destino:c.cuenta, fecha:c.fecha, creado:c.creado};
   if (fx) Object.assign(mov, {montoOrig:c2(fx.montoOrig), moneda:fx.moneda, tc:fx.tc, tcFecha:fx.tcFecha});
+  const sub = txtCortoG(c.sub, 40); if (sub) mov.sub = sub;   // (18-nov-2026) opcional: solo si es texto no vacio
   const plan = fx ? planAltaX(ref, mov, esGasto) : esGasto ? planAltaGasto(ref, mov) : planAltaIngreso(ref, mov);
   plan.requerirAusentes = [ref];
   let res;
@@ -10626,9 +11455,11 @@ async function altaGasto(cat,monto,nota,fuente,btn,fecha,extra) {
   // vinculo con la suscripcion que lo origino: asi 'ya se pago este mes' no se adivina.
   // Solo se acepta ESE campo: 'extra' nunca puede pisar monto, cuenta ni categoria.
   if(extra&&typeof extra.suscripcion==='string') gasto.suscripcion=extra.suscripcion.slice(0,24);
+  // (18-nov-2026) subcategoria opcional y el pago de un credito (lo que es interes de ese pago): etiquetas, nunca dinero
+  aplicarExtraG(gasto,extra);
   // (15-oct-2026) sin senal se guarda en el telefono con su id ya fijado y sube despues. Los
   // pagos de suscripcion NO: su id fijo por mes depende de lo que diga el servidor ese dia.
-  const aTelefono=!idFijo&&!gasto.suscripcion;
+  const aTelefono=!idFijo&&!gasto.suscripcion&&!gasto.credito;   // el pago de un credito no va a la bandeja (no lleva credito)
   if(aTelefono&&hayQueGuardarEnTelefono()) return guardarEnTelefonoConCandado('gasto',ref.id,gasto,false,btn,uidCaptura);
   // el gasto YA OCURRIO en la vida real: si el saldo registrado no alcanza se avisa,
   // pero no se bloquea — perder el registro es peor que quedar en rojo. El limite de
@@ -10671,15 +11502,15 @@ window.registrarGasto = async function() {
   // (20-oct-2026) una cuenta en otra moneda va por su propio camino (plan.fx), nunca por deltas
   const ok=esIdX(state.fuenteGasto) ? await altaMovX('gasto',
     document.getElementById('gasto-cat').value, parseFloat(document.getElementById('gasto-monto').value),
-    document.getElementById('gasto-nota').value.trim(), state.fuenteGasto, document.getElementById('gasto-btn'), fecha)
+    document.getElementById('gasto-nota').value.trim(), state.fuenteGasto, document.getElementById('gasto-btn'), fecha, {sub:subElegida('gasto')})
   : await altaGasto(
     document.getElementById('gasto-cat').value,
     parseFloat(document.getElementById('gasto-monto').value),
     document.getElementById('gasto-nota').value.trim(),
     state.fuenteGasto,
-    document.getElementById('gasto-btn'),fecha);
+    document.getElementById('gasto-btn'),fecha,{sub:subElegida('gasto')});
   if(ok) palomita('gasto-btn');
-  if(ok){ ['gasto-monto','gasto-nota','gasto-fecha'].forEach(id=>document.getElementById(id).value=''); window.setFuente(''); ticketQuitarMarcas(); ticketGen++; }
+  if(ok){ ['gasto-monto','gasto-nota','gasto-fecha'].forEach(id=>document.getElementById(id).value=''); window.setFuente(''); ticketQuitarMarcas(); ticketGen++; const sg=document.getElementById('gasto-sub'); if(sg) sg.value=''; }
 };
 // <ticket-puras> (7-nov-2026) Foto del ticket: del texto que da el lector a {monto, fecha, comercio, confianza}. Funciones puras, sin DOM ni red:
 // test-ticket.mjs las corre en Node. Regla: ante la duda NO se llena (monto null); un monto mal leido que la persona no revise es peor que un campo vacio.
@@ -11326,7 +12157,7 @@ function renglonMov(m) {
   const marca=it.pendiente===true?' · atajo: pendiente de aplicar':(it.porAtajo===true&&it.aplicadoSaldo===false?' · atajo: rechazado (no afectó saldos)':'');
   // (17-nov-2026) sin la fecha: el dia va en el encabezado (en la lista y en el dia del calendario); la nota solo si hay
   const meta=[it.nota?escapeHtml(it.nota):'',cuenta].filter(Boolean).join(' · ')+marca;
-  return`<div class="item-row mov-row"><div><div class="item-cat">${escapeHtml(catFV(it.cat))}</div><div class="item-meta">${meta}</div></div><div class="mov-amt ${esGasto?'item-amt-neg':'item-amt-pos'}">${esGasto?'−':'+'}${fmtMov(it)}</div><div class="mov-acc">${edit}${del}</div></div>`;
+  return`<div class="item-row mov-row"><div><div class="item-cat">${escapeHtml(catFV(it.cat))}${it.sub?'<span class="mov-sub"> · '+escapeHtml(String(it.sub))+'</span>':''}</div><div class="item-meta">${meta}</div></div><div class="mov-amt ${esGasto?'item-amt-neg':'item-amt-pos'}">${esGasto?'−':'+'}${fmtMov(it)}</div><div class="mov-acc">${edit}${del}</div></div>`;
 }
 function renderMovimientos() {
   const c=document.getElementById('movimientos-historial');
@@ -11632,7 +12463,7 @@ window.editarMovimiento = function(tipo, id) {
   const campo = campoCuentaDe(tipo);
   // visto = lo que ESTA pantalla leyo al abrir (valores crudos, sin normalizar): al guardar solo se
   // mandan los campos que el usuario cambio respecto a esto, y el servidor verifica que no cambiaron
-  editMov={tipo,id,cuenta:it[campo],opener:document.activeElement,visto:{monto:it.monto,[campo]:it[campo],cat:it.cat,nota:it.nota,fecha:it.fecha}};
+  editMov={tipo,id,cuenta:it[campo],opener:document.activeElement,visto:{monto:it.monto,[campo]:it[campo],cat:it.cat,nota:it.nota,fecha:it.fecha,sub:it.sub}};
   const cats = (tipo==='gasto'?state.catsGasto:state.catsIngreso)||[];
   // si su categoria ya no esta en la lista (renombrada o borrada) se antepone, para
   // no perderla en silencio al abrir el select
@@ -11642,6 +12473,7 @@ window.editarMovimiento = function(tipo, id) {
     +cats.map(c=>`<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join('');
   sel.value=it.cat;
   document.getElementById('edit-mov-nota').value=it.nota||'';
+  pintarSubEdit(typeof it.sub==='string'?it.sub:'');   // (18-nov-2026)
   document.getElementById('edit-mov-monto').value=String(c2(nFin(it.monto)));
   document.getElementById('edit-mov-fecha').value=diaLocalMov(it.fecha);
   document.getElementById('edit-mov-tit').textContent='editar '+tipo;
@@ -11823,7 +12655,9 @@ window.guardarEdicionMov = async function() {
   const cambiaCat = cat!==visto.cat;
   const cambiaNota = nota!==(visto.nota||'');
   const cambiaFecha = fecha!==visto.fecha;
-  if(!cambiaDinero && !cambiaFecha && !cambiaCat && !cambiaNota){ window.cerrarEdicionMov(); return; } // sin cambios
+  const subF=document.getElementById('edit-mov-subcat-field'), sub=subF&&!subF.hidden?(document.getElementById('edit-mov-subcat')||{}).value||'':(visto.sub||'');
+  const cambiaSub = sub!==(visto.sub||'');
+  if(!cambiaDinero && !cambiaFecha && !cambiaCat && !cambiaNota && !cambiaSub){ window.cerrarEdicionMov(); return; } // sin cambios
   const btn=document.getElementById('edit-mov-btn');
   if(!cambiaDinero){
     // sin dinero: transaccion LIGERA (leer, comparar lo que el usuario vio, escribir solo lo cambiado).
@@ -11832,6 +12666,7 @@ window.guardarEdicionMov = async function() {
     if(cambiaCat){ campos.cat=cat; previos.cat=visto.cat; }
     if(cambiaNota){ campos.nota=nota; previos.nota=visto.nota; }
     if(cambiaFecha){ campos.fecha=fecha; previos.fecha=visto.fecha; }
+    if(cambiaSub){ campos.sub=sub; previos.sub=visto.sub; }
     const refL=doc(db, tipo==='gasto'?C_GASTOS:C_INGRESOS, id);
     let r=null, errL=null;
     editandoMov=true; btn.disabled=true;
@@ -11894,6 +12729,7 @@ window.guardarEdicionMov = async function() {
   if(cambiaCat){ datos.cat=cat; iguales.cat=visto.cat; }
   if(cambiaNota){ datos.nota=nota; iguales.nota=visto.nota; }
   if(cambiaFecha){ datos.fecha=fecha; iguales.fecha=visto.fecha; }
+  if(cambiaSub){ datos.sub=sub; iguales.sub=visto.sub; }
   const plan={permitirNegativo:true, permitirDeudaNegativa:true,
     movEditar:{ref, signo: tipo==='gasto'?1:-1, antes:{slot:slotDinero(ctaVieja), monto:m1}, despues:{slot:slotDinero(cuenta), monto:m2}, datos},
     verificarIguales:[{ref, campos:iguales}]};
@@ -11938,7 +12774,7 @@ window.guardarEdicionMov = async function() {
 
 // ── INGRESOS ──────────────────────────────────────────────────
 // nucleo compartido (mismo esquema que altaGasto): formulario normal + registro rapido
-async function altaIngreso(cat,monto,nota,destino,btn,fecha) {
+async function altaIngreso(cat,monto,nota,destino,btn,fecha,extra) {
   if(!Number.isFinite(monto)||monto<=0){showToast('ingresa un monto válido');return false;}
   if(!DESTINOS_INGRESO.includes(destino)){showToast('destino no válido');return false;}
   if(dineroOcupado){showToast('espera, hay otra operación en curso');return false;}
@@ -11946,6 +12782,7 @@ async function altaIngreso(cat,monto,nota,destino,btn,fecha) {
   const ref=doc(collection(db,C_INGRESOS));
   const creado=new Date().toISOString();
   const ingreso={cat,monto:m,nota,destino,fecha:fecha||creado,creado};
+  aplicarExtraG(ingreso,extra&&{sub:extra.sub});
   const uidCaptura=uidActual(); // ver altaGasto
   // (15-oct-2026) sin senal, a la bandeja del telefono (ver altaGasto)
   if(hayQueGuardarEnTelefono()) return guardarEnTelefonoConCandado('ingreso',ref.id,ingreso,false,btn,uidCaptura);
@@ -11977,15 +12814,15 @@ window.registrarIngreso = async function() {
   const fecha=fechaMovOpcional('ingreso-fecha'); if(fecha===null) return;
   const ok=esIdX(state.destinoIngreso) ? await altaMovX('ingreso',
     document.getElementById('ingreso-cat').value, parseFloat(document.getElementById('ingreso-monto').value),
-    document.getElementById('ingreso-nota').value.trim(), state.destinoIngreso, document.getElementById('ingreso-btn'), fecha)
+    document.getElementById('ingreso-nota').value.trim(), state.destinoIngreso, document.getElementById('ingreso-btn'), fecha, {sub:subElegida('ingreso')})
   : await altaIngreso(
     document.getElementById('ingreso-cat').value,
     parseFloat(document.getElementById('ingreso-monto').value),
     document.getElementById('ingreso-nota').value.trim(),
     state.destinoIngreso,
-    document.getElementById('ingreso-btn'),fecha);
+    document.getElementById('ingreso-btn'),fecha,{sub:subElegida('ingreso')});
   if(ok) palomita('ingreso-btn');
-  if(ok){ ['ingreso-monto','ingreso-nota','ingreso-fecha'].forEach(id=>document.getElementById(id).value=''); window.setDestinoIngreso(''); }
+  if(ok){ ['ingreso-monto','ingreso-nota','ingreso-fecha'].forEach(id=>document.getElementById(id).value=''); window.setDestinoIngreso(''); const si=document.getElementById('ingreso-sub'); if(si) si.value=''; }
 };
 
 window.eliminarIngreso = async function(id) {
@@ -12099,7 +12936,7 @@ window.confirmarNuevaPersona = async function() {
   if(err){ console.error('confirmarNuevaPersona',err); showToast(msgFalloDinero()); return; }
   if(res.error){ showToast(res.error); return; }
   // -- post-commit: SOLO aqui se cierra --
-  state.personas[key]=personaSegura(res.persona,key);
+  state.personas[key]=personaSegura({...state.personas[key],...res.persona},key);
   document.getElementById('persona-back').classList.add('hidden');
   refrescar(renderPersonaSelect,renderDeudas);
   const sel=document.getElementById('deuda-persona');
@@ -12168,7 +13005,7 @@ window.registrarDeuda = async function() {
   if(res.error){ showToast(res.error); return; }
   // -- post-commit --
   aplicarRes(res);
-  state.personas[persona]=personaSegura(res.persona,persona); // saldo y movimientos canonicos de esa persona
+  state.personas[persona]=personaSegura({...state.personas[persona],...res.persona},persona); // saldo y movimientos canonicos de esa persona
   ['deuda-monto','deuda-nota','deuda-fecha','deuda-cuenta'].forEach(id=>document.getElementById(id).value='');
   // el saldo de la persona afecta el patrimonio neto aunque la cuenta sea externo
   refrescar(renderDeudas,render);
@@ -12176,15 +13013,19 @@ window.registrarDeuda = async function() {
 };
 
 function renderDeudas() {
+  pintarSubcatsDeuda();
+  try { renderCreditos(); } catch(e) { console.error('creditos',e); }
   const personas=state.personas;
-  let gt=0; Object.values(personas).forEach(p=>gt+=p.saldo);
+  // (18-nov-2026) lo que se debe con cada persona: con tasa lleva su interes (saldoP); sin tasa, su saldo de siempre
+  const sal=Object.fromEntries(Object.entries(personas).map(([k,p])=>[k,saldoP(p)]));
+  let gt=0; Object.values(sal).forEach(v=>gt+=v);
   const gtEl=document.getElementById('deuda-grand-total');
   gtEl.textContent=fmt(Math.abs(gt)); gtEl.className='amount '+(gt>=0?'pos':'neg');
   // el grande es el NETO; abajo, las dos partes que lo forman (antes 'te deben en total' mostraba el neto)
-  const teDeben=Object.values(personas).reduce((a,p)=>a+Math.max(0,p.saldo||0),0), debes=Object.values(personas).reduce((a,p)=>a+Math.max(0,-(p.saldo||0)),0);
+  const teDeben=Object.values(sal).reduce((a,v)=>a+Math.max(0,v),0), debes=Object.values(sal).reduce((a,v)=>a+Math.max(0,-v),0);
   document.getElementById('deuda-grand-sub').textContent=(gt>=0?'a tu favor':'en tu contra')+' · te deben '+fmt(teDeben)+' · tú debes '+fmt(debes);
-  document.getElementById('personas-container').innerHTML=Object.entries(personas).map(([key,p])=>{
-    const isPos=p.saldo>=0;
+  const tarjeta=([key,p])=>{
+    const s=sal[key], isPos=s>=0, it=interesDe(p), t=saneaTasa(p.tasa);
     const movs=p.movimientos.slice().sort((a,b)=>(String(b.fecha||'')+'|'+String(b.creado||'')).localeCompare(String(a.fecha||'')+'|'+String(a.creado||''))).map(m=>{
       const fecha=fmtFechaMov(m.fecha,{day:'numeric',month:'short',year:'numeric'});
       const isNeg=(DEUDA_TIPOS[m.tipo]||{deuda:-1}).deuda<0;
@@ -12196,10 +13037,30 @@ function renderDeudas() {
       const meta=[escapeHtml(m.nota||''),fecha,cuentaTxt].filter(Boolean).join(' · ');
       // solo los movimientos nuevos (v:2 con id y cuenta registrada) se pueden eliminar con reversion completa
       const del=(m.id&&m.v===2)?`<button type="button" class="del-btn del-x" aria-label="borrar" onclick="eliminarDeuda('${key}','${m.id}')">&times;</button>`:'';
-      return`<div class="item-row"><div><div class="item-cat">${escapeHtml(m.subcat)}</div><div class="item-meta">${meta}</div></div><div style="display:flex;align-items:center"><div class="${isNeg?'item-amt-neg':'item-amt-pos'}">${isNeg?'-':'+'}${fmt(m.monto)}</div>${del}</div></div>`;
+      // (18-nov-2026) la subcategoria de un movimiento ya anotado se puede cambiar (solo esa etiqueta: nada de dinero)
+      const editando=m.id&&subDeudaEdit&&subDeudaEdit.key===key&&subDeudaEdit.id===m.id;
+      const lista=state.clasif.catsDeuda, ops=lista.includes(m.subcat)?lista:[m.subcat,...lista];
+      const cat=editando
+        ?'<span class="g-subdeuda" onclick="event.stopPropagation()"><select id="g-subdeuda-sel" aria-label="subcategoría">'+ops.map(x=>'<option value="'+escapeHtml(x)+'"'+(x===m.subcat?' selected':'')+'>'+escapeHtml(x)+'</option>').join('')+'</select>'
+          +'<button type="button" class="cat-act pri" onclick="guardarSubDeuda(event)">guardar</button><button type="button" class="cat-act" onclick="cancelarSubDeuda(event)">cancelar</button></span>'
+        :escapeHtml(m.subcat)+(m.id?`<button type="button" class="edit-btn g-subdeuda-e" title="cambiar subcategoría" aria-label="cambiar subcategoría" onclick="editarSubDeuda('${key}','${escapeHtml(m.id)}',event)">${ICONO_EDITAR}</button>`:'');
+      return`<div class="item-row"><div><div class="item-cat">${cat}</div><div class="item-meta">${meta}</div></div><div style="display:flex;align-items:center"><div class="${isNeg?'item-amt-neg':'item-amt-pos'}">${isNeg?'-':'+'}${fmt(m.monto)}</div>${del}</div></div>`;
     }).join('');
-    return`<div class="deuda-person"><div class="deuda-header" role="button" tabindex="0" onclick="toggleDeuda('d-${key}')"><div><div class="deuda-name">${escapeHtml(p.nombre)}</div><div class="deuda-sub">${isPos?'te debe':'le debes'}</div></div><div class="deuda-total ${isPos?'pos':'neg'}">${fmt(Math.abs(p.saldo))}</div></div><div class="deuda-detail" id="d-${key}">${excelPanelHTML(key)}${movs||'<div class="empty-state" style="padding:12px 0">sin movimientos</div>'}</div></div>`;
-  }).join('');
+    const intTxt=it&&t?'<div class="item-meta g-interes">'+(Math.abs(it.capital)>0.005||Math.abs(it.interes)>0.005
+        ?((it.total>=0?'te debe ':'le debes ')+fmt(Math.abs(it.capital))+' de lo prestado y '+fmt(Math.abs(it.interes))+' de interés')
+        :'ya está al corriente')+' · '+tasaTxt(t)+(it.interesPagado>0.005?' · de interés ya se pagó '+fmt(it.interesPagado):'')+'</div>':'';
+    const aj=ajustesPersonaAbierto===key?ajustesPersonaHTML(key,p):'';
+    return`<div class="deuda-person"><div class="deuda-header" role="button" tabindex="0" onclick="toggleDeuda('d-${key}')"><div><div class="deuda-name">${escapeHtml(p.nombre)}</div><div class="deuda-sub">${isPos?'te debe':'le debes'}${t?' · con interés':''}</div></div><div class="deuda-total ${isPos?'pos':'neg'}">${fmt(Math.abs(s))}</div></div><div class="deuda-detail" id="d-${key}">${intTxt}<button type="button" class="ticket-gal g-ajustes-btn" aria-expanded="${ajustesPersonaAbierto===key}" onclick="abrirAjustesPersona('${key}',event)">${CON_CREDITOS?'grupo e interés':'grupo'}</button>${aj}${excelPanelHTML(key)}${movs||'<div class="empty-state" style="padding:12px 0">sin movimientos</div>'}</div></div>`;
+  };
+  // (18-nov-2026) por grupo, en el orden de la lista; un solo grupo en uso no lleva encabezado
+  const porGrupo=new Map(); state.clasif.gruposPersona.forEach(g=>porGrupo.set(g,[]));
+  Object.entries(personas).forEach(e=>{ const g=grupoDe(e[1]); if(!porGrupo.has(g)) porGrupo.set(g,[]); porGrupo.get(g).push(e); });
+  const usados=[...porGrupo.entries()].filter(([,l])=>l.length);
+  document.getElementById('personas-container').innerHTML=(usados.length>1
+    ?usados.map(([g,l])=>{ const td=l.reduce((a,[k])=>a+Math.max(0,sal[k]),0), db=l.reduce((a,[k])=>a+Math.max(0,-sal[k]),0);
+        return '<div class="g-grupo-tit"><span class="g-grupo-n">'+escapeHtml(g)+'</span><span class="g-grupo-t">'+[td>0.005?'te deben '+fmt(td):'',db>0.005?'le debes '+fmt(db):''].filter(Boolean).join(' · ')+'</span></div>'+l.map(tarjeta).join(''); }).join('')
+    :usados.flatMap(([,l])=>l).map(tarjeta).join(''))
+    +(Object.keys(personas).length?'<details class="g-grupos-ed"><summary>editar grupos</summary>'+editorListaHTML('gruposPersona',state.clasif.gruposPersona,'ej. vecinos')+'</details>':'');
 }
 window.toggleDeuda=id=>document.getElementById(id).classList.toggle('open');
 
@@ -12368,7 +13229,7 @@ window.eliminarDeuda = async function(personaKey, movId) {
   if(res.error){ showToast(res.error); return; }
   // -- post-commit --
   aplicarRes(res);
-  state.personas[personaKey]=personaSegura(res.persona,personaKey);
+  state.personas[personaKey]=personaSegura({...state.personas[personaKey],...res.persona},personaKey);
   refrescar(renderDeudas,render);
   // como en eliminarGasto: si la tarjeta ya se habia pagado, puede quedar con saldo a favor; se dice
   const aFavorDeuda=(res.tarjeta&&res.tarjeta.deuda<0)||(res.tdcRev&&res.tdcRev.deuda<0);
@@ -15433,7 +16294,7 @@ window.exportarMisDatos = async function() {
       // (20-oct-2026) cuentas en otra moneda (saldo en SU moneda) y el tipo de cambio usado
       cuentasOtraMoneda:state.cuentasX, tipoDeCambio:state.fx,
       // (2-nov-2026, sesion 3) en Fundview la copia completa es completa: es lo ultimo que se lleva antes de borrar la cuenta
-      ...(CFG.multi ? {rendimientos:state.rendimientos, metas:state.metas, metasFondos:state.metasFondos, suscripciones:susExport, cuentasFijas:CUENTAS_CFG, suscripcionFundview:cobroExport} : {})
+      ...(CFG.multi ? {rendimientos:state.rendimientos, metas:state.metas, metasFondos:state.metasFondos, suscripciones:susExport, cuentasFijas:CUENTAS_CFG, suscripcionFundview:cobroExport, clasificacion:state.clasif, creditos:state.creditos} : {})
     };
     const blob=new Blob([JSON.stringify(datos,null,2)],{type:'application/json'});
     const url=URL.createObjectURL(blob);
@@ -16892,7 +17753,7 @@ function promedioGastoMensual() {
 
 // (18-nov-2026) gastos fijos: el consejo del mes nunca propone recortarlos. Se compara sin acentos ni mayusculas ('Educacion' y 'Educación')
 const CATS_FIJAS=new Set(['casa','renta','colegiatura','colegiaturas','educacion','salud']);
-const esCatFija=c=>CATS_FIJAS.has(String(c||'').normalize('NFD').replace(/[̀-ͯ]/g,'').trim().toLowerCase());
+const esCatFija=c=>CATS_FIJAS.has(String(c||'').normalize('NFD').replace(/[̀-ͯ]/g,'').trim().toLowerCase())||tipoCatDe(c,state.clasif.tiposCat)==='fija';
 // texto corto (1 frase de veredicto + siguiente paso). TEXTO PLANO: quien lo pinte lo escapa
 function textoCoach(m) {
   if(m.gPct===null||!m.maduro) return null; // sin madurez no hay veredicto (seria ruido)
@@ -16900,14 +17761,17 @@ function textoCoach(m) {
   const gOk=gPct<=est.gastoMax, gMed=gPct<=100, aOk=aPct>=est.ahorroObj;
   // (18-nov-2026, calificacion "como se ve") nunca se propone recortar un gasto fijo (Casa, Renta, Colegiatura, Educacion, Salud):
   // si la categoria mas cargada es una de esas se usa la siguiente, y si no queda ninguna no se propone recorte
-  const libres=tops.filter(t=>!esCatFija(t.cat));
-  const infl=libres.find(t=>t.inflada), foco=infl||libres[0];
+  const libres=tops.filter(t=>!esCatFija(t.cat)&&tipoCatDe(t.cat,state.clasif.tiposCat)!=='fija');
+  // (18-nov-2026) primero lo que la persona marco como que se puede bajar
+  const bajables=libres.filter(t=>tipoCatDe(t.cat,state.clasif.tiposCat)==='bajar');
+  const infl=bajables.find(t=>t.inflada)||libres.find(t=>t.inflada), foco=infl||bajables[0]||libres[0];
+  const focoTxt=foco?(foco.cat+' ('+fmt(foco.amt)+(foco.prom?', tu promedio es '+fmt(foco.prom):'')+')'):'';
   const cN=foco?foco.cat:null;
-  if(!gMed) return '⚠️ '+(esActual?'Vas gastando':'Gastaste')+' más de lo que '+(esActual?'ha ingresado':'ingresó')+' ('+gPct.toFixed(0)+'%). Prioridad: '+(cN?'recorta '+cN+' y ':'')+'evita tapar el hueco con las tarjetas.';
+  if(!gMed) return '⚠️ '+(esActual?'Vas gastando':'Gastaste')+' más de lo que '+(esActual?'ha ingresado':'ingresó')+' ('+gPct.toFixed(0)+'%). '+(cN?'Donde más se fue: '+focoTxt+'. ':'')+'Si el hueco se cubre con tarjeta, genera intereses.';
   if(gOk&&aOk) return '🎉 '+(esActual?('Este '+per+' va excelente'):('Fue un gran '+per))+': gastaste el '+gPct.toFixed(0)+'% de tus ingresos y aportaste el '+aPct.toFixed(0)+'% — muy buen ritmo de ahorro e inversión.'+(infl?' Solo cuida '+infl.cat+', que va arriba de tu promedio.':' Sigue así y diciembre llega solo.');
   if(gOk) return 'Buen control de gasto ('+gPct.toFixed(0)+'%). El siguiente paso es la aportación: '+(esActual?'llevas':'cerraste con')+' el '+Math.max(0,aPct).toFixed(0)+'% — '+(esActual?'te faltan ':'te faltaron ')+fmt(Math.max(0,falta20))+' para tu '+est.ahorroObj+'%.';
-  if(aOk) return 'Buen ritmo de aportación ('+aPct.toFixed(0)+'%). El gasto va algo cargado ('+gPct.toFixed(0)+'%)'+(cN?': revisa '+cN+' para darte más margen.':'.');
-  return (esAno?'Año apretado':'Mes apretado')+': gasto al '+gPct.toFixed(0)+'% y aportación al '+Math.max(0,aPct).toFixed(0)+'%. '+(cN?'Empieza recortando '+cN+' y aparta':'Aparta')+' aunque sea una parte de los '+fmt(Math.max(0,falta20))+' que faltan para tu '+est.ahorroObj+'%.';
+  if(aOk) return 'Buen ritmo de aportación ('+aPct.toFixed(0)+'%). El gasto va algo cargado ('+gPct.toFixed(0)+'%)'+(cN?': donde más se va es '+focoTxt+'.':'.');
+  return (esAno?'Año apretado':'Mes apretado')+': gasto al '+gPct.toFixed(0)+'% y aportación al '+Math.max(0,aPct).toFixed(0)+'%. '+(cN?'Lo que más pesa de lo que se puede mover es '+focoTxt+'. ':'')+'Para tu '+est.ahorroObj+'% faltan '+fmt(Math.max(0,falta20))+'.';
 }
 
 // analisis largo: varias frases, omitiendo las que no tengan datos suficientes
@@ -17156,13 +18020,15 @@ function datosDebes() {
   const tarjetas=[['tarjeta',CORTE_TJ,state.tarjetaDeuda],['tarjetaRev',CORTE_TJREV,state.revTdcDeuda]]
     .map(([id,corte,d])=>({id, nombre:CUENTAS[id]||'tarjeta', corte:proxCorteKey(corte), deuda:Number(d)||0}))
     .filter(t=>!ctaApagada(t.id)||Math.abs(t.deuda)>0.005);   // apagada sin deuda: no sale (con deuda si: sigue contando en Inicio)
-  const ps=Object.values(state.personas||{}).filter(p=>p&&Number.isFinite(p.saldo));
-  const aPersonas=ps.filter(p=>p.saldo<-0.005).map(p=>({nombre:p.nombre||'', monto:-p.saldo})).sort((a,b)=>b.monto-a.monto);
-  const teDeben=ps.filter(p=>p.saldo>0.005).map(p=>({nombre:p.nombre||'', monto:p.saldo})).sort((a,b)=>b.monto-a.monto);
+  const ps=Object.values(state.personas||{}).filter(p=>p&&Number.isFinite(p.saldo)).map(p=>({nombre:p.nombre||'', s:saldoP(p)}));   // (18-nov-2026) con su interes
+  const aPersonas=ps.filter(p=>p.s<-0.005).map(p=>({nombre:p.nombre, monto:-p.s})).sort((a,b)=>b.monto-a.monto);
+  const teDeben=ps.filter(p=>p.s>0.005).map(p=>({nombre:p.nombre, monto:p.s})).sort((a,b)=>b.monto-a.monto);
   const tdc=Number.isFinite(T.tdc)?T.tdc:(state.tarjetaDeuda||0)+(state.revTdcDeuda||0);
   const personas=aPersonas.reduce((s,p)=>s+p.monto,0);
-  const total=Math.max(0,tdc)+personas;
-  return {tarjetas, tdc, aPersonas, personas, teDeben, teDebenTot:teDeben.reduce((s,p)=>s+p.monto,0), total, resto:(T.tuyo||0)-total,
+  const creditos=Object.keys(state.creditos||{}).map(id=>estadoCredito(id)).filter(e=>e&&!e.error&&e.debe>0.005).map(e=>({nombre:e.c.nombre, monto:e.debe, prox:e.prox}));
+  const credTot=creditos.reduce((s,c)=>s+c.monto,0);
+  const total=Math.max(0,tdc)+personas+credTot;
+  return {tarjetas, tdc, aPersonas, personas, creditos, credTot, teDeben, teDebenTot:teDeben.reduce((s,p)=>s+p.monto,0), total, resto:(T.tuyo||0)-total,
     seguro:!!T.listo&&datosCargados&&!cargaDesdeCache, bolsaPend:!!T.bolsaPend};
 }
 function renderDebes() {
@@ -17193,6 +18059,10 @@ function renderDebes() {
   if(d.aPersonas.length){
     h+='<div class="debes-sub"><span>a personas</span><span id="debes-personas">'+fmt(d.personas)+'</span></div>';
     d.aPersonas.forEach(p=>{ h+=fila(escapeHtml(p.nombre),'le debes',fmt(p.monto),'debes-amt'); });
+  }
+  if(d.creditos.length){
+    h+='<div class="debes-sub"><span>préstamos y créditos</span><span id="debes-creditos">'+fmt(d.credTot)+'</span></div>';
+    d.creditos.forEach(c=>{ h+=fila(escapeHtml(c.nombre),'lo que debes hoy, aproximado'+(c.prox?' · siguiente pago: '+f(c.prox):''),fmt(c.monto),'debes-amt'); });
   }
   if(d.teDeben.length){
     h+='<div class="debes-sub debes-aparte"><span>te deben, aparte</span><span id="debes-te-deben">'+fmt(d.teDebenTot)+'</span></div>'
@@ -17230,6 +18100,7 @@ function renderResumen() {
   document.getElementById('res-pie-ingresos').innerHTML=pieChart(sortedI);
   document.getElementById('resumen-ingresos-cats').innerHTML=sortedI.length?sortedI.map(([cat,amt])=>`<div class="resumen-bar${catsAbiertas.has('i|'+cat)?' abierta':''}" data-k="i|${escapeHtml(cat)}" onclick="toggleCatDesglose(this,event)" title="ver los movimientos de esta categoría"><div class="bar-header" role="button" tabindex="0"><span class="bar-label">${escapeHtml(cat)} <span class="bar-n">${ingresos.filter(i=>i.cat===cat).length}</span></span><span class="bar-amt pos">${fmt(amt)}<span class="bar-chev">&#9662;</span></span></div><div class="bar-track"><div class="bar-fill bar-fill-green" style="width:${(amt/maxI*100).toFixed(1)}%"></div></div>${desgloseCatHTML(ingresos.filter(i=>i.cat===cat),'pos',catsAbiertas.has('i|'+cat))}</div>`).join(''):'<div class="empty-state">sin ingresos en este periodo</div>';
 
+  try { renderRecortar(start, end, state.resPeriodo); } catch (e) { console.error('recortar', e); }
   renderRendimientos(start, end, balance);
   renderUtilidades(start, end);
   renderGBMResumen();
