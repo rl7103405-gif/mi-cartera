@@ -1184,7 +1184,7 @@ html[data-tema='grafito'] .cal-d.hoy .cal-n{color:#14171a}
 .cal-d.max{border:1.5px solid var(--red-txt)}
 .cal-d.max .cal-a.g{font-weight:700}
 .cal-d.viene.g1,.cal-d.viene.g2,.cal-d.viene.g3,.cal-d.viene.g4{border-style:dashed;border-color:var(--accent)}
-.cal-d[aria-pressed="true"]{box-shadow:0 0 0 2px var(--text)}
+.cal-d[aria-pressed="true"]{box-shadow:0 0 0 2px var(--accent-dark)}   /* (19-nov-2026) el dia elegido, con el verde de la app */
 .cal-corte{font-size:10.5px;line-height:1.2;color:var(--text);background:var(--bg3);border-radius:4px;padding:0 3px;letter-spacing:0.01em}
 .cal-pt{width:6px;height:6px;border-radius:50%;background:var(--muted);margin-top:3px;flex:0 0 6px}
 #mov-cal{--cal-ambar:#b7791f;--cg1:7%;--cg2:12%;--cg3:18%;--cg4:25%}html[data-tema='grafito'] #mov-cal{--cal-ambar:#e0a84b;--cg1:14%;--cg2:22%;--cg3:32%;--cg4:42%}
@@ -1208,7 +1208,8 @@ html[data-tema='grafito'] .cal-d.hoy .cal-n{color:#14171a}
 .cal-det-tit{font-size:14px;font-weight:600;margin-bottom:2px}
 .cal-nota{font-size:12px;color:var(--muted);line-height:1.5}
 .cal-det-res{font-size:12px;color:var(--muted);padding-bottom:4px}
-#cal-venir{margin:0 0 10px}
+#cal-venir{margin:0 0 10px;padding:10px 14px;border-radius:12px;background:var(--bg3);color:var(--text);line-height:1.45}   /* (19-nov-2026, se ve) un dato, no un texto suelto entre tarjetas */
+#cal-venir:empty,#cal-venir[hidden]{display:none}
 .cal-ag-m{font-weight:600;font-variant-numeric:tabular-nums;flex-shrink:0;padding-left:10px}
 .cal-ag .item-cat{overflow-wrap:anywhere}
 .cal-ir{min-height:44px;margin-top:6px}
@@ -1217,7 +1218,19 @@ html[data-tema='grafito'] .cal-d.hoy .cal-n{color:#14171a}
 .cal-mes .month-label{flex:1;text-align:center}
 .cal-mes .month-nav{min-width:44px;min-height:44px}
 .cal-mes{margin-bottom:10px;gap:4px}
-#cal-filtro .type-opt{min-width:calc(33% - 4px)}
+/* (19-nov-2026, se ve) el filtro es secundario: pastillas chicas como las de Resumen (.chart-modo), debajo del mes; el mes manda */
+#cal-filtro{display:flex;justify-content:center;gap:6px;margin:-2px 0 10px;background:none;border:0;padding:0;box-shadow:none}
+#cal-filtro .type-opt{flex:0 0 auto;min-width:0;min-height:44px;padding:0;background:none;border:0;box-shadow:none;display:flex;align-items:center;font:inherit}
+#cal-filtro .type-opt::before{content:none}
+#cal-filtro .type-opt{font-size:12px;font-weight:500;color:var(--muted)}
+#cal-filtro .type-opt>span{display:block;padding:6px 14px;border-radius:999px;background:var(--bg3);border:0.5px solid var(--border);line-height:1.2}
+#cal-filtro .type-opt.active>span{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600}
+html[data-tema='grafito'] #cal-filtro .type-opt.active>span{color:#14171a}
+#cal-filtro .type-opt:focus-visible{outline:none}
+#cal-filtro .type-opt:focus-visible>span{outline:2px solid var(--accent);outline-offset:2px}
+#mov-cal .cal-mes{order:-2}
+#cal-filtro{order:-1}
+.cal-mes .month-label{font-size:18px;font-weight:600;letter-spacing:-0.01em}
 @media(max-width:400px){.cal-a{font-size:10.5px}.cal-corte{font-size:9px}}
 /* (7-nov-2026) pestaña propia. En el teléfono, una columna en el orden de siempre (cifras, rejilla, detalle): la caja
    .cal-lado no cuenta para el acomodo (display:contents) y el orden lo pone `order`. En escritorio, la rejilla a la
@@ -1937,7 +1950,7 @@ html[data-tema='grafito'] .cal-d.hoy .cal-n{color:#14171a}
     </div>
     <div class="row2" style="gap:8px">
       <button class="btn btn-red" id="tarjeta-cargo-btn" onclick="registrarTarjeta('cargo')" style="margin-top:0">+ cargo</button>
-      <button class="btn btn-green" id="tarjeta-pago-btn" onclick="registrarTarjeta('pago')" style="margin-top:0">- pagué</button>
+      <button class="btn btn-green" id="tarjeta-pago-btn" onclick="registrarTarjeta('pago')" style="margin-top:0">− pagué</button>
     </div>
     <!-- (17-nov-2026) para que es cada camino de una compra con tarjeta: gasto con "pagado con" o "+ cargo" -->
     <div class="item-meta nota-cargo" style="line-height:1.5;margin-top:10px">Una compra nueva va en "gasto", con tu tarjeta en "pagado con". "+ cargo" solo sube lo que debes, sin contar como gasto: sirve para anotar lo que ya debías.</div>
@@ -1972,7 +1985,7 @@ html[data-tema='grafito'] .cal-d.hoy .cal-n{color:#14171a}
     </div>
     <div class="row2" style="gap:8px">
       <button class="btn btn-red" id="tarjeta-rev-cargo-btn" onclick="registrarTarjetaRev('cargo')" style="margin-top:0">+ cargo</button>
-      <button class="btn btn-green" id="tarjeta-rev-pago-btn" onclick="registrarTarjetaRev('pago')" style="margin-top:0">- pagué</button>
+      <button class="btn btn-green" id="tarjeta-rev-pago-btn" onclick="registrarTarjetaRev('pago')" style="margin-top:0">− pagué</button>
     </div>
     <!-- (17-nov-2026) para que es cada camino de una compra con tarjeta: gasto con "pagado con" o "+ cargo" -->
     <div class="item-meta nota-cargo" style="line-height:1.5;margin-top:10px">Una compra nueva va en "gasto", con tu tarjeta en "pagado con". "+ cargo" solo sube lo que debes, sin contar como gasto: sirve para anotar lo que ya debías.</div>
@@ -2051,9 +2064,9 @@ html[data-tema='grafito'] .cal-d.hoy .cal-n{color:#14171a}
   <div class="section-title">calendario</div>
   <div id="mov-cal">
     <div class="type-toggle" id="cal-filtro" role="group" aria-label="qué ver en el calendario">
-      <button type="button" class="type-opt active" aria-pressed="true" onclick="setCalFiltro('todo')">todo</button>
-      <button type="button" class="type-opt" aria-pressed="false" onclick="setCalFiltro('fueron')">ya fueron</button>
-      <button type="button" class="type-opt" aria-pressed="false" onclick="setCalFiltro('vienen')">vienen</button>
+      <button type="button" class="type-opt active" aria-pressed="true" onclick="setCalFiltro('todo')"><span>todo</span></button>
+      <button type="button" class="type-opt" aria-pressed="false" onclick="setCalFiltro('fueron')"><span>ya fueron</span></button>
+      <button type="button" class="type-opt" aria-pressed="false" onclick="setCalFiltro('vienen')"><span>vienen</span></button>
     </div>
     <div class="month-selector cal-mes">
       <button type="button" class="month-nav" aria-label="mes anterior" onclick="cambiarCalMes(-1)">&#8249;</button>
@@ -2067,7 +2080,6 @@ html[data-tema='grafito'] .cal-d.hoy .cal-n{color:#14171a}
         <tbody id="cal-cuerpo"></tbody>
       </table>
       <div class="cal-ley">
-        <div class="cal-ley-g"><i class="i-g">$</i>gastado</div>
         <div class="cal-ley-esc"><span>menos</span><i class="i-g1"></i><i class="i-g2"></i><i class="i-g3"></i><i class="i-g4"></i><span>más gastado</span></div>
         <div class="cal-ley-max"><i class="i-max"></i>día de más gasto</div>
         <div><i class="i-v"></i>por venir</div>
@@ -2979,7 +2991,7 @@ const ctasGrupo=g=>REG_CUENTAS.filter(c=>c.grupo===g).map(c=>c.id);
 // podria medir). 'patrimonio' es el total de todo.
 // (31-oct-2026) nombres del registro (ya renombrados por cartera); sin las cuentas apagadas
 const METAS_CUENTAS=Object.fromEntries(Object.entries({revSavings:'', mifel:'', stocks:'invertido en bolsa', efectivo:'',
-  nu:'', cajita1:'', revolut:'', patrimonio:'patrimonio total'})
+  nu:'', cajita1:'', revolut:'', patrimonio:'todo tu dinero'})   // (20-nov-2026) antes "patrimonio total": para una contadora patrimonio es activos menos deudas, y aqui no se restan
   .map(([k,v])=>[k, v || REG_CUENTAS.find(c=>c.id===k).nombre]));
 // de esas, las unicas cuyas APORTACIONES sabemos medir (aportacionesEnRango): solo estas
 // se pueden proyectar en "el camino"; el resto se muestra sin proyeccion
@@ -6576,7 +6588,7 @@ function renderCreditos() {
   if (!CON_CREDITOS) { el.innerHTML = ''; return; }
   const ids = Object.keys(state.creditos || {}).sort((a, b) => String(state.creditos[a].creado).localeCompare(String(state.creditos[b].creado)));
   el.innerHTML = ids.length ? ids.map(creditoTarjetaHTML).join('')
-    : '<div class="item-meta g-nota">aquí van tus préstamos del banco, tu hipoteca, tu crédito de auto y lo que compraste a plazos en una tienda. Lo que compraste a meses con tu tarjeta ya está en la deuda de la tarjeta</div>';
+    : '<div class="item-meta g-nota">aquí van tus préstamos del banco, tu hipoteca, tu crédito de auto y lo que compraste a plazos en una tienda. Lo que compraste a meses con tu tarjeta se anota como gasto, con tu tarjeta en «pagado con» y la casilla «la compré a meses»: tu tarjeta lo carga mes a mes.</div>';
   pintarCatsCredito();
 }
 function pintarCatsCredito() {
@@ -8148,6 +8160,8 @@ function fijarDeudasTj() {
   state.revTdcDeuda = c2(nFin(state.revTdcDeudaG) + mesesCargadoTotal(state.revTdcMeses, CORTE_TJREV, hoy));
 }
 const mesesDe = k => k === 'tarjetaRev' ? state.revTdcMeses : state.tarjetaMeses;
+// (20-nov-2026, calificacion de Marcela) UNA cifra para "a meses, falta por cargar": la usan Inicio (desglose y linea roja), lo que debes del Resumen y Perfil
+const mesesFaltaTodo = () => c2(mesesFaltaTotal(state.tarjetaMeses, CORTE_TJ, hoyLocal()) + mesesFaltaTotal(state.revTdcMeses, CORTE_TJREV, hoyLocal()));
 const corteDeTj = k => k === 'tarjetaRev' ? CORTE_TJREV : CORTE_TJ;
 // un fallo pintando la pantalla NO debe reportarse como "no se guardo": ya se guardo
 function refrescar(...fns) { for (const f of fns) { try { f(); } catch(e) { console.error('render',e); } } }
@@ -9849,7 +9863,8 @@ function render() {
   // neto = activos + lo que me deben (o menos lo que debo) - deudas de tarjetas
   const saldoDeudas=Object.values(state.personas||{}).reduce((s,p)=>s+saldoP(p),0);   // (18-nov-2026) con su interes, si tiene tasa
   const credTot=deudaCreditos();   // (18-nov-2026) lo que debes de prestamos y creditos (capital de hoy, aproximado)
-  const neto=total+saldoDeudas-(state.tarjetaDeuda||0)-(state.revTdcDeuda||0)-credTot;
+  const msFalta=mesesFaltaTodo();   // (20-nov-2026) compras a meses: lo que aun no se carga tambien lo debes (Marcela: el neto salia con el signo contrario al del Resumen)
+  const neto=total+saldoDeudas-(state.tarjetaDeuda||0)-(state.revTdcDeuda||0)-credTot-msFalta;
   // desglose en un toque, de 'tu dinero' al neto renglon por renglon (antes era una sola linea que
   // no se podia cuadrar a simple vista). Solo cifras de fmt y textos fijos: nada del usuario
   // (18-nov-2026, sesion H) la deuda de tarjetas sale de aqui UNA vez: #total-deuda y "lo que debes" del Resumen dicen la misma cifra
@@ -9860,14 +9875,16 @@ function render() {
     document.getElementById('neto-display').innerHTML=f(fondoTot>0?'tu dinero (sin el fondo)':'tus cuentas',fmt(total))
       +(Math.abs(cxTot.mxn)>0.005||cxTot.pendiente?f(Object.values(state.cuentasX||{}).some(x=>x.moneda!=='MXN')?'incluye las cuentas que agregaste (con otra moneda)':'incluye las cuentas que agregaste',cxTot.pendiente?'≈ '+fmt(cxTot.mxn)+' (falta un tipo de cambio)':(Object.values(state.cuentasX||{}).some(x=>x.moneda!=='MXN')?'≈ ':'')+fmt(cxTot.mxn)):'')
       +(teDeben>0.005?f('te deben','+'+fmt(teDeben)):'')+(debes>0.005?f('tú debes','−'+fmt(debes)):'')
-      +(Math.abs(tdc)>0.005?f(tdc>0?'tarjetas de crédito':'saldo a favor en tarjetas',(tdc>0?'−':'+')+fmt(Math.abs(tdc))):'')+(credTot>0.005?f('préstamos y créditos','−'+fmt(credTot)):'')+(bolsaPend?f('tu bolsa',stocksConPrecio>0?'Falta el precio de parte':'Precio pendiente'):'')+f(bolsaPend?(stocksConPrecio>0?'patrimonio neto, falta el precio de parte de tu bolsa':'patrimonio neto, sin tu bolsa'):'patrimonio neto',fmt(neto),'dg-total')
+      +(Math.abs(tdc)>0.005?f(tdc>0?'tarjetas de crédito':'saldo a favor en tarjetas',(tdc>0?'−':'+')+fmt(Math.abs(tdc))):'')+(msFalta>0.005?f('compras a meses, por cargar','−'+fmt(msFalta)):'')+(credTot>0.005?f('préstamos y créditos','−'+fmt(credTot)):'')+(bolsaPend?f('tu bolsa',stocksConPrecio>0?'Falta el precio de parte':'Precio pendiente'):'')+f(bolsaPend?(stocksConPrecio>0?'patrimonio neto, falta el precio de parte de tu bolsa':'patrimonio neto, sin tu bolsa'):'patrimonio neto',fmt(neto),'dg-total')
       +(fondoTot>0?f(listaFondos().length>1?'tus fondos, aparte':'fondo de la universidad, aparte',fmt(fondoTot+fondoGenerado())+(fondoGenerado()>0.005?' (≈'+fmt(fondoGenerado())+' de interés estimado)':'')):'');
     // (7-nov-2026, Pico) lo que debes en tarjetas, en rojo bajo el total: la misma tdc del desglose. El numero grande no cambia
     const td=document.getElementById('total-deuda');
     // si debes mas de lo que tienes no se escribe "$-500": se dice cuanto faltaria
     const sinTdc=total-tdc;
     // con la bolsa sin precio el total esta incompleto: lo que "te queda" seria falso, solo se dice lo que debes
-    if(td){ td.hidden=!(tdc>0.005); td.textContent=tdc>0.005?'debes '+fmt(tdc)+' en tarjetas'+(bolsaPend?'':' · '+(sinTdc>-0.005?'si las pagas hoy te quedan '+fmt(Math.max(0,sinTdc)):'para pagarlas te faltarían '+fmt(-sinTdc))):''; } }
+    if(td){ td.hidden=!(tdc>0.005)&&!(msFalta>0.005);
+      td.textContent=tdc>0.005?'debes '+fmt(tdc)+' en tarjetas'+(msFalta>0.005?' y '+fmt(msFalta)+' a meses por cargar':'')+(bolsaPend?'':' · '+(sinTdc>-0.005?'si las pagas hoy te quedan '+fmt(Math.max(0,sinTdc)):'para pagarlas te faltarían '+fmt(-sinTdc))+(msFalta>0.005?' (sin lo que falta cargar)':''))
+        :(msFalta>0.005?'debes '+fmt(msFalta)+' a meses por cargar en tus tarjetas':''); } }
   refrescarGananciaMes();
   // (28-oct-2026) una cartera recien creada abre sola el asistente, una vez por sesion (nunca con datos de la cache)
   if(!asisAuto&&datosCargados&&!cargaDesdeCache&&esCarteraNueva()&&!asisYaHecho()){ asisAuto=true; refrescar(()=>abrirAsistente()); }
@@ -13311,12 +13328,14 @@ function renderDeudas() {
   const personas=state.personas;
   // (18-nov-2026) lo que se debe con cada persona: con tasa lleva su interes (saldoP); sin tasa, su saldo de siempre
   const sal=Object.fromEntries(Object.entries(personas).map(([k,p])=>[k,saldoP(p)]));
-  let gt=0; Object.values(sal).forEach(v=>gt+=v);
+  // (20-nov-2026, Marcela) los prestamos y creditos estan en esta misma pantalla: el balance y "tu debes" los cuentan (decia $0.00 sobre un prestamo de $42,000)
+  const credD=deudaCreditos();
+  let gt=-credD; Object.values(sal).forEach(v=>gt+=v);
   const gtEl=document.getElementById('deuda-grand-total');
   gtEl.textContent=fmt(Math.abs(gt)); gtEl.className='amount '+(gt>=0?'pos':'neg');
   // el grande es el NETO; abajo, las dos partes que lo forman (antes 'te deben en total' mostraba el neto)
-  const teDeben=Object.values(sal).reduce((a,v)=>a+Math.max(0,v),0), debes=Object.values(sal).reduce((a,v)=>a+Math.max(0,-v),0);
-  document.getElementById('deuda-grand-sub').textContent=(gt>=0?'a tu favor':'en tu contra')+' · te deben '+fmt(teDeben)+' · tú debes '+fmt(debes);
+  const teDeben=Object.values(sal).reduce((a,v)=>a+Math.max(0,v),0), debes=Object.values(sal).reduce((a,v)=>a+Math.max(0,-v),0)+credD;
+  document.getElementById('deuda-grand-sub').textContent=(gt>=0?'a tu favor':'en tu contra')+' · te deben '+fmt(teDeben)+' · tú debes '+fmt(debes)+(credD>0.005?' (con préstamos y créditos; tus tarjetas van aparte)':'');
   const tarjeta=([key,p])=>{
     const s=sal[key], isPos=s>=0, it=interesDe(p), t=saneaTasa(p.tasa);
     const movs=p.movimientos.slice().sort((a,b)=>(String(b.fecha||'')+'|'+String(b.creado||'')).localeCompare(String(a.fecha||'')+'|'+String(a.creado||''))).map(m=>{
@@ -14978,6 +14997,16 @@ const AYUDA_BASE = [
   {id:'gasto', g:'anotar', p:'¿Cómo registro un gasto?', donde:'Movimientos › Registrar › Gasto', ir:'gasto', boton:'ir a registrar un gasto',
     r:['Elige la categoría, escribe el monto y en "Pagado con" elige de dónde salió el dinero; si pagaste con tarjeta, elige tu tarjeta. Termina con "Registrar gasto". Si dejas la fecha vacía, queda con la de hoy.'],
     claves:'gasto gastos gaste gastar compra compras compre pague pago salida gasolina gasolinera super supermercado despensa comida mandado'},
+  // (20-nov-2026, calificacion de Marcela) lo nuevo del 18 y 19-nov no tenia respuesta: compras a meses, prestamos y la quincena en el calendario
+  {id:'meses', g:'anotar', p:'¿Cómo van las mensualidades a meses?', donde:'Movimientos › Registrar › Gasto', ir:'gasto', boton:'ir a registrar un gasto',
+    r:['Anótala como gasto: en "Pagado con" elige tu tarjeta y marca "La compré a meses". Pon los meses y, si tiene intereses, la mensualidad; antes de registrar te dice cuánto te cuesta.', 'Cuenta como gasto completo ese día; tu tarjeta sube mes a mes, en cada corte. Si la traías de antes, usa "Anotar una compra a meses que ya traías" en tu tarjeta.'],
+    claves:'meses msi mensualidad mensualidades diferido diferida'},
+  {id:'prestamo', g:'anotar', p:'¿Cómo anoto un préstamo o un crédito?', donde:'Deudas', ir:'deudas', boton:'ir a deudas', soloCreditos:true,
+    r:['En Deudas, en préstamos y créditos: cuánto te prestaron, el pago, cada cuándo y la tasa (con tres de esos datos la app saca el cuarto).', 'Cada pago se anota como gasto, con su parte de interés. Lo que debes hoy sale ahí y en lo que debes del Resumen. Lo que compraste a meses con tu tarjeta va como gasto.'],
+    claves:'prestamo prestamos credito creditos hipoteca hipotecario financiamiento'},
+  {id:'cal-ingresos', g:'ver', p:'Mi quincena no sale en el calendario', donde:'Calendario', ir:'calendario', boton:'ir al calendario',
+    r:['El calendario pinta en cada día lo que gastaste y lo que viene (suscripciones y cortes). Lo que te entró sale arriba, en "Ingresos" del mes, y cada ingreso con su fecha en Movimientos.'],
+    claves:'quincena quincenas sueldo'},
   {id:'ingreso', g:'anotar', p:'¿Cómo registro un ingreso?', donde:'Movimientos › Registrar › Ingreso', ir:'ingreso', boton:'ir a registrar un ingreso',
     r:['Elige "Ingreso", la categoría y el monto, y en "Entra a" elige la cuenta. Termina con "Registrar ingreso". Si dejas la fecha vacía, queda con la de hoy.'],
     claves:'ingreso ingresos sueldo salario nomina quincena entrada cobre deposito recibi me pagaron trabajo'},
@@ -15000,11 +15029,11 @@ const AYUDA_BASE = [
     r:['Toca "+ Persona" para agregarla, elige "Me deben", "Me pagaron", "Yo debo" o "Le pagué", escribe el monto y toca "Registrar". Aquí se anota lo que debes o te deben entre personas.'],
     claves:'deuda deudas debo deben debe prestamo prestar preste prestaron presto amigo persona pagaron hermana hermano hijo hija mama papa familia'},
   {id:'tarjeta', g:'anotar', p:'¿Cómo anoto lo de mi tarjeta de crédito?', donde:'Movimientos › Registrar › Tarjeta', ir:'tarjeta', boton:'ir a mi tarjeta',
-    r:['Primero agrégala: en "Mis cuentas", en "Agregar una cuenta", elige el tipo "Tarjeta de crédito". Mientras no la tengas no sale la opción "Tarjeta". Una compra con tarjeta se registra como gasto: en "Pagado con" elige tu tarjeta. Para anotar que la pagaste, en la opción "Tarjeta" toca "- Pagué" y elige de dónde salió el dinero. "+ Cargo" sube lo que debes, pero no cuenta como gasto.'],
+    r:['Primero agrégala: en "Mis cuentas", en "Agregar una cuenta", elige el tipo "Tarjeta de crédito". Mientras no la tengas no sale la opción "Tarjeta". Una compra con tarjeta se registra como gasto: en "Pagado con" elige tu tarjeta. Para anotar que la pagaste, en la opción "Tarjeta" toca "− Pagué" y elige de dónde salió el dinero. "+ Cargo" sube lo que debes, pero no cuenta como gasto.'],
     claves:'tarjeta tarjetas credito tdc cargo pague pagar corte deuda compra pago meses'},
 
   {id:'deuda-tarjeta', g:'anotar', p:'¿Cómo anoto lo que debo en mi tarjeta, o su saldo?', donde:'Movimientos › Registrar › Tarjeta', ir:'tarjeta', boton:'ir a mi tarjeta',
-    r:['Con tu tarjeta encendida, en "Tarjeta" escribe lo que debes hoy en "Monto" y toca "+ Cargo": sube lo que debes, pero no cuenta como gasto. Cada compra nueva la registras como gasto, con tu tarjeta en "Pagado con". Cuando la pagues, toca "- Pagué" y elige de dónde salió el dinero.'],
+    r:['Con tu tarjeta encendida, en "Tarjeta" escribe lo que debes hoy en "Monto" y toca "+ Cargo": sube lo que debes, pero no cuenta como gasto. Cada compra nueva la registras como gasto, con tu tarjeta en "Pagado con". Cuando la pagues, toca "− Pagué" y elige de dónde salió el dinero.'],
     claves:'deuda deudas debo debes deben saldo tarjeta tarjetas credito tdc adeudo pongo poner anoto anotar'},
   {id:'saldo', g:'cuentas', p:'¿Cómo actualizo un saldo?', donde:'Inicio › Actualizar saldos', ir:'saldos', boton:'ir a actualizar saldos',
     r:['Escribe solo lo que cambió y toca "Guardar". Las cuentas que tú agregaste salen ahí mismo, en una lista: toca la que quieras y usa "Guardar saldo" en su tarjeta.'],
@@ -15102,6 +15131,11 @@ const AYUDA_BASE = [
     claves:'cuesta costo precio gratis cobran cobrar pagar mensualidad invitacion invitar'},
 ];
 // con el SMS apagado (fvSmsActivo): fuera lo que solo vale con SMS y cada pregunta con su texto de sinSms. Una sola vez, antes de la primera busqueda
+// (20-nov-2026) sin prestamos prendidos (Fundview sin CFG.creditos) su respuesta no se ofrece. Aparte de ayudaSinSms: corre con o sin SMS
+function ayudaSinCreditos() {
+  for (let i = AYUDA_BASE.length - 1; i >= 0; i--) if (AYUDA_BASE[i].soloCreditos) AYUDA_BASE.splice(i, 1);
+  ayIndice = null;
+}
 function ayudaSinSms() {
   for (let i = AYUDA_BASE.length - 1; i >= 0; i--) {
     const e = AYUDA_BASE[i];
@@ -15124,7 +15158,9 @@ const AYUDA_ESCALAR = [
     '|\\b(perd\\w*|rob\\w*|cambi\\w*|nuevo|nueva)\\b.*\\b(mi|de|otro) (numero|chip)\\b|\\bya no tengo (ese|mi|el) (numero|chip)\\b')},
   {razon:'cuenta', re:/\bperd\w* (mi |la |el )?(cuenta|acceso)\b|\bno (puedo|pude|me deja\w*) (entrar|acceder|iniciar|ingresar)\b|\b(hack|jack|haque)\w*|\b(alguien|otra persona)\b.*\b(entro|entrado|metio|usa|uso)\b|\b(robaron|bloquearon|suspendieron|cerraron) (mi |la )?(cuenta|contrasena)\b|\bbloque\w*|\bfraude\b|\bestafa\w*|\brecuperar (mi |la )?cuenta\b/},
   // en esta se prefiere de mas: si alguien cree que perdio un dato, un "como se hace" no le sirve, y de mas solo cuesta un correo
-  {razon:'cuadra', re:/\bno (me )?(sale|salen|da|dan|aparece|aparecen|esta|estan) (bien|correct\w*)\b|\b(saldo|total|monto|interes\w*|rendimiento\w*|ganancia\w*|tipo de cambio)\b.*\b(mal|mala|malos|malas|incorrect\w*|equivocad\w*|raro)\b|\b(me )?falta\w* (dinero|lana|plata|saldo|un (cargo|gasto|movimiento|pago|ingreso)|una transferencia)\b|\bdesaparec\w*|\bse (perdio|perdieron|borro|borraron)\b|\bperd(i|io|imos|ieron|ido|ida|idos|idas)\b(?! (mi |la |el )?(contrasena|clave|password|cuenta|acceso)\b)|\bno (me )?aparece\w*|\b(ya|y) no estan?\b|\bno esta (mi|el|la|un|una)\b|\bno (se )?(guard|registr|sum)\w*|\bno (me )?(genera|calcula|actualiza)\w*|\bqued\w* en (cero|0)\b|\bse duplic\w*|\bduplicad\w*|\bse repitio\b|\bme cobraron\b|\bme cobr\w* (de mas|dos veces|otra vez|doble)\b|\bno reconozco\b/},
+  {razon:'cuadra', re:/^(?!(?=.*\bcalendario\b)(?=.*\b(quincena\w*|sueldo\w*|ingreso\w*|nomina)\b)(?!.*\b(borr\w*|perd\w*|desaparec\w*|duplic\w*|repit\w*|falt\w*|doble|otra vez|de mas|ya no esta\w*|y no esta\w*|aparecio|mal|mala|malos|malas|incorrect\w*|equivocad\w*|guard\w*|registr\w*|cobr\w*)\b)).*?(?:\bno (me )?(sale|salen|da|dan|aparece|aparecen|esta|estan) (bien|correct\w*)\b|\b(saldo|total|monto|interes\w*|rendimiento\w*|ganancia\w*|tipo de cambio)\b.*\b(mal|mala|malos|malas|incorrect\w*|equivocad\w*|raro)\b|\b(me )?falta\w* (dinero|lana|plata|saldo|un (cargo|gasto|movimiento|pago|ingreso)|una transferencia)\b|\bdesaparec\w*|\bse (perdio|perdieron|borro|borraron)\b|\bperd(i|io|imos|ieron|ido|ida|idos|idas)\b(?! (mi |la |el )?(contrasena|clave|password|cuenta|acceso)\b)|\bno (me )?aparece\w*|\b(ya|y) no estan?\b|\bno esta (mi|el|la|un|una)\b|\bno (se )?(guard|registr|sum)\w*|\bno (me )?(genera|calcula|actualiza)\w*|\bqued\w* en (cero|0)\b|\bse duplic\w*|\bduplicad\w*|\bse repitio\b|\bme cobraron\b|\bme cobr\w* (de mas|dos veces|otra vez|doble)\b|\bno reconozco\b)/},
+  // (20-nov-2026, QA) una quincena o un ingreso que salio doble, falto o ya no esta es dato perdido aunque la regla de arriba no tenga esas palabras
+  {razon:'cuadra', re:/(?=.*\b(quincena\w*|sueldo\w*|ingreso\w*|nomina)\b)(?=.*\b(doble|otra vez|de mas|falt\w*|aparecio|ya no esta\w*|y no esta\w*)\b)/},
   {razon:'falla', re:/\bfalla\w*|\bfallo\b|\bbug\b|\bno carga\w*|\bno abre\b|\bno guarda\w*|\bno me deja\b|\bse (cerro|traba\w*|trabo|congel\w*)\b|\best[aá] lent[ao]\b|\bmuy lent[ao]\b|\b(sale|salio|marca|aparece|da) (un )?error\b|^(tengo )?(un )?error$|^(tengo )?(un )?problema$/},
   {razon:'contacto', re:/\bhablar con\b|\bsoporte\b|\bcontact\w*|\batencion a\b|\b(su|tu) correo\b|\bescribirles\b/},
   {razon:'impuestos', re:/\bimpuesto\w*|\bsat\b|\bisr\b|\biva\b|\bdeclar(ar|o|acion\w*)\b|\bfactur\w*|\brfc\b|\bretenc\w*|\bretien\w*|\bdeduc\w*|\bhacienda\b/},
@@ -15133,6 +15169,10 @@ const AYUDA_ESCALAR = [
 ];
 // frases que por si solas ya dicen de que se habla, aunque sus palabras sean de las vacias
 const AYUDA_DIRECTAS = [[/\bagreg\w* (un |otro |mi )?banco\b/, 'agregar'],
+  // (20-nov-2026) compras a meses y la quincena en el calendario (calificacion de Marcela)
+  [/\bmsi\b|\bmeses sin intereses\b|\bcompras? a meses\b|^(?!.*\b(meta|metas|juntar|ahorrar)\b).*\bcompr\w*\b.*\ba meses\b|(?=.*\b(a|en) \d{1,2} meses\b)(?=.*\b(compr\w*|tarjeta|mensualidad\w*|intereses)\b)(?!.*\b(meta|metas|juntar|ahorrar|app|fundview|cuesta)\b)/, 'meses'],
+  [/^(?!.*\btarjeta\w*\b)(?!.*\b(hermano|hermana|amigo|amiga|prim[oa]s?|mama|papa|hijo|hija|novi[oa]|tio|tia|vecin\w*|le (di|preste|prestamos))\b)(?=.*\b(prestamo|credito)s?\b.*\b(banco|nomina|auto|carro|coche|personal|hipotecari\w*)\b|.*\bhipoteca\b)/, 'prestamo'],
+  [/^(?!.*\b(borr\w*|perd\w*|desaparec\w*|duplic\w*|repit\w*|falt\w*|doble|otra vez|de mas|ya no esta\w*|y no esta\w*|aparecio|mal|mala|malos|malas|incorrect\w*|equivocad\w*|registr\w*|cobr\w*)\b)(?=.*\b(quincena\w*|sueldo\w*|ingreso\w*|nomina)\b.*\bcalendario\b|.*\bcalendario\b.*\b(quincena\w*|sueldo\w*|ingreso\w*|nomina)\b)/, 'cal-ingresos'],
   // "que me cobran este mes", "pagos que vienen": lo que viene en el calendario, no lo que cuesta Fundview (sin la palabra Fundview/app/usar)
   [/^(?!.*\b(fundview|app|aplicacion|usar|usarla|usarlo)\b)(?=.*\b(cobran|cobros?|cargos?|pagos?)\b)(?=.*\b(este mes|del mes|vienen|viene|proximos?|toca|tocan|vendran)\b)/, 'calendario'],
   // "cierro mi cuenta" o "salir de mi cuenta y borrarla" es borrar la cuenta, no cerrar sesion; con la palabra "sesion" sigue siendo salir
@@ -15233,7 +15273,7 @@ function buscarAyuda(q, parcial) {
     if (r.siUso === false && AYUDA_USO.test(n)) continue;
     return {tipo: 'escalar', razon: r.razon, texto: AYUDA_RAZON[r.razon] || ''};
   }
-  for (const [re, id] of AYUDA_DIRECTAS) if (re.test(n)) return {tipo: 'respuesta', ids: [id]};
+  for (const [re, id] of AYUDA_DIRECTAS) if (re.test(n) && AYUDA_BASE.some(e => e.id === id)) return {tipo: 'respuesta', ids: [id]};   // (20-nov-2026) una respuesta quitada (soloSms, soloCreditos) no se ofrece
   if (AYUDA_NO_ES.test(n)) return {tipo: 'sin', texto: AYUDA_RAZON.sin};
   const ts = [...new Set(ayTokens(q))];   // "pasa" y "paso" son la misma raiz: no cuentan doble
   if (!ts.length) return {tipo: 'vacio'};
@@ -15382,6 +15422,7 @@ if (CFG.multi) {
   const pl = ayEl('fv-ayuda-plantilla'), hueco = ayEl('perfil-sub-cuentas'), tabs = ayEl('perfil-subtabs');
   if (pl && hueco && tabs) {
     if (!fvSmsActivo()) ayudaSinSms();
+    if (!CON_CREDITOS) ayudaSinCreditos();
     hueco.after(pl.content.cloneNode(true));
     const b = document.createElement('button'); b.type = 'button'; b.className = 'stab'; b.id = 'ptab-ayuda'; b.textContent = 'ayuda';
     b.addEventListener('click', () => perfilSub('ayuda')); tabs.appendChild(b);
@@ -16130,7 +16171,7 @@ function renderFondo() {
     kpi('fondo', fmt(F + G), F > 0 ? (G > 0.005 ? 'apartado ' + fmt(F) + ' + ≈' + fmt(G) + ' de interés generado (estimado hasta que registres el abono)' : 'dentro de tus cuentas, separado de tu dinero disponible') : 'todavía no hay dinero apartado', true) +
     kpi('tu dinero', T.listo ? fmt(T.tuyo) : '—', 'lo tuyo, sin el fondo' + faltaBolsa) +
     kpi('patrimonio completo', T.listo ? fmt(T.fisico) : '—', (fondos.length > 1 ? 'tu dinero + todos tus fondos' : 'tu dinero + el fondo') + faltaBolsa) +
-    kpi('neto completo', T.listo ? fmt(T.neto + Ftot + Gtot) : '—', 'suma lo que te deben y resta tus tarjetas' + faltaBolsa) +
+    kpi('neto completo', T.listo ? fmt(T.neto + Ftot + Gtot) : '—', 'suma lo que te deben y resta tus tarjetas, compras a meses y préstamos' + faltaBolsa) +
     kpi('rinde al mes', estMes > 0.005 ? '≈' + fmt(estMes) : '—', 'estimado: el interés que agrega el fondo' +
       (apartadoDe('mifel') > 0 && state.mifelVigencia ? ' · supone que Mifel sigue al ' + state.mifelTasa + '% después del ' + state.mifelVigencia : '')) +
     kpi('ha generado', fmt(rendRegistradoFondo(FA) + G), 'en total: ' + fmt(rendRegistradoFondo(FA)) + ' de abonos registrados' + (G > 0.005 ? ' + ≈' + fmt(G) + ' estimado' : '') + ' · no entra a tu resumen', true) +
@@ -16545,7 +16586,7 @@ window.exportarMisDatosExcel = async function() {
     resumen.addRow(['al ' + new Date().toLocaleDateString('es-MX', {day: 'numeric', month: 'long', year: 'numeric'})]).font = {color: {argb: 'FF6B7B72'}};
     resumen.addRow([]);
     encabezado(resumen.addRow(['hoy', 'monto', '']));
-    [['tu dinero (sin los fondos)', T.tuyo], ['tus fondos', T.listo ? fT : null], ['patrimonio completo', T.fisico], ['neto (con lo que te deben y tus tarjetas)', Number.isFinite(T.neto) ? T.neto + fT : null]]
+    [['tu dinero (sin los fondos)', T.tuyo], ['tus fondos', T.listo ? fT : null], ['patrimonio completo', T.fisico], ['neto (con lo que te deben, tus tarjetas, compras a meses y préstamos)', Number.isFinite(T.neto) ? T.neto + fT : null]]
       .forEach(([l, v]) => { const r = resumen.addRow([l, Number.isFinite(v) ? c2(v) : 'sin calcular']); r.getCell(2).numFmt = MON; });
     // (4-nov-2026, Fundview) con acciones sin precio los tres totales de arriba que llevan la bolsa salen incompletos: la portada lo dice
     if (T.listo && T.bolsaPend) { const r = resumen.addRow([T.bolsaParcial ? 'Ojo: falta el precio de parte de tu bolsa, así que el patrimonio completo y el neto salen sin ese valor.' : 'Ojo: falta el precio de tu bolsa, así que el patrimonio completo y el neto salen sin ella.']); r.font = {italic: true, color: {argb: 'FF9A3B2E'}}; }
@@ -18322,7 +18363,7 @@ function datosDebes() {
   const personas=aPersonas.reduce((s,p)=>s+p.monto,0);
   const creditos=Object.keys(state.creditos||{}).map(id=>estadoCredito(id)).filter(e=>e&&!e.error&&e.debe>0.005).map(e=>({nombre:e.c.nombre, monto:e.debe, prox:e.prox}));
   const credTot=creditos.reduce((s,c)=>s+c.monto,0);
-  const mesesFalta=c2(tarjetas.reduce((s,t)=>s+t.falta,0));   // (19-nov-2026) compras a meses: lo que todavia no se carga a la tarjeta
+  const mesesFalta=mesesFaltaTodo();   // (20-nov-2026) la misma cifra que Inicio (sin diferencias de centavos por redondeo)
   const total=Math.max(0,tdc)+mesesFalta+personas+credTot;
   return {tarjetas, tdc, mesesFalta, aPersonas, personas, creditos, credTot, teDeben, teDebenTot:teDeben.reduce((s,p)=>s+p.monto,0), total, resto:(T.tuyo||0)-total,
     seguro:!!T.listo&&datosCargados&&!cargaDesdeCache, bolsaPend:!!T.bolsaPend};
@@ -18342,7 +18383,7 @@ function renderDebes() {
   // la frase: debes mas de lo que tienes, o lo que te queda si pagas todo hoy (solo con datos del servidor y la bolsa valuada)
   let frase='';
   if(d.total>0.005&&d.seguro&&!d.bolsaPend&&(totalesInicio.tuyo||0)<-0.005) frase='';   // (revision) con el fondo sincronizando, tu dinero puede ser negativo un instante: no se afirma nada
-  else if(d.total>0.005&&d.seguro&&!d.bolsaPend) frase=d.resto>-0.005?'si pagas todo hoy te quedan '+fmt(Math.max(0,d.resto)):'debes '+fmt(-d.resto)+' más de lo que tienes';
+  else if(d.total>0.005&&d.seguro&&!d.bolsaPend) frase=(d.resto>-0.005?'si pagas todo hoy te quedan '+fmt(Math.max(0,d.resto)):'debes '+fmt(-d.resto)+' más de lo que tienes')+(d.teDebenTot>0.005?', sin contar lo que te deben':'');   // (20-nov-2026) el neto de Inicio si lo cuenta
   else if(d.total>0.005&&d.seguro&&d.bolsaPend) frase='falta el precio de tu bolsa: no se compara con lo que tienes';
   h+='<div class="item-row debes-total"><div><div class="item-cat">debes en total</div>'+(frase?'<div class="item-meta" id="debes-frase">'+frase+'</div>':'')+'</div><span class="'+(d.total>0.005?'debes-amt':'debes-cero')+'" id="debes-total">'+fmt(d.total)+'</span></div>';
   if(d.tarjetas.length){
@@ -18725,7 +18766,12 @@ function htmlSlotCfg(k, e) {
   {
     const s = SLOTS_CFG[k], c = confCta(k), saldo = saldoSlotCfg(k);
     const conDinero = !s.fijo && c.on && Math.abs(saldo) >= 0.005;
-    const aviso = s.fijo ? 'siempre activa' : (conDinero ? 'tiene ' + fmt(saldo) + ': vacíala antes de apagarla'
+    // (20-nov-2026, Marcela) una tarjeta no "tiene" dinero: se dice lo que debes y lo que falta por cargar de sus compras a meses
+    const esTj = k === 'tarjeta' || (k === 'tarjetaRev' && !tdcGarantizada());
+    const avisoTj = () => { const dd = nFin(k === 'tarjeta' ? state.tarjetaDeuda : state.revTdcDeuda), ff = mesesFaltaTotal(mesesDe(k), corteDeTj(k), hoyLocal());
+      if (!(Math.abs(dd) > 0.005) && !(ff > 0.005)) return 'tiene ' + fmt(saldo) + ': vacíala antes de apagarla';   // (revision) p. ej. un deposito sobrante: sin cifra de deuda no se arma una frase vacia
+      return (dd > 0.005 ? 'debes ' + fmt(dd) : dd < -0.005 ? 'tiene ' + fmt(-dd) + ' a tu favor' : '') + (ff > 0.005 ? (dd > 0.005 || dd < -0.005 ? ' y ' : '') + fmt(ff) + ' de compras a meses por cargar' : '') + ': antes de apagarla tiene que quedar en cero'; };
+    const aviso = s.fijo ? 'siempre activa' : (conDinero ? (esTj ? avisoTj() : 'tiene ' + fmt(saldo) + ': vacíala antes de apagarla')
       : (!c.on && CTAS_FORZADAS.has(k) ? 'apagada, pero tiene ' + fmt(saldo) + ': sigue a la vista hasta que la vacíes' : ''));
     const corte = s.tipo === 'tarjeta' ? '<div class="row2" style="gap:8px;margin-top:8px"><div class="field"><label>día de corte</label>'
       + '<input type="number" id="cfg-corte-' + k + '" min="1" max="31" step="1" value="' + c.corte + '" inputmode="numeric"></div>'
