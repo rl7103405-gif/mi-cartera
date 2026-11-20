@@ -637,6 +637,13 @@ html[data-tema='grafito'] .btn.inicio-accion{background:var(--accent);border-col
 .tip-line{stroke:var(--border2)}.tip-dot{stroke:var(--bg2s)}
 .field{margin-bottom:10px}
 .field label,.field .lbl-cuenta{font-size:12px;color:var(--muted);display:block;margin-bottom:4px}
+/* (19-nov-2026) compras a meses */
+.field label.meses-check{display:flex;gap:10px;align-items:center;font-size:14px;color:var(--text);cursor:pointer;min-height:44px;margin:0}
+.field .meses-check input{width:20px;height:20px;margin:0;padding:0;flex-shrink:0;accent-color:var(--accent);-webkit-appearance:auto;appearance:auto;background:none;border:0}   /* le gana a .field input (100% y sin apariencia) */
+.meses-lista{margin-top:12px}
+.meses-tit{display:flex;justify-content:space-between;gap:12px;font-size:12px;color:var(--muted);margin:4px 0 2px}
+.meses-bar{height:6px;border-radius:3px;background:var(--bg3);overflow:hidden;margin-top:6px}
+.meses-bar>span{display:block;height:100%;background:var(--accent)}
 .field input,.field select{width:100%;background:var(--bg3);border:0.5px solid var(--border2);border-radius:var(--rs);padding:11px 14px;color:var(--text);font-size:15px;outline:none;-webkit-appearance:none;appearance:none}
 .field input:focus{border-color:var(--purple)}
 .field select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23777' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;padding-right:32px}
@@ -1730,6 +1737,7 @@ html[data-tema='grafito'] .cal-d.hoy .cal-n{color:#14171a}
       <div class="corte-bar"><div class="corte-fill" id="corte-fill" style="width:0%"></div></div>
       <div class="card-detail" id="tarjeta-detail" style="border-top-color:rgba(255,255,255,0.1);margin-top:14px;padding-top:14px">
         <div class="detail-row"><span class="detail-label" style="color:rgba(255,255,255,0.5)">días para corte</span><span class="detail-val" id="tarjeta-dias">—</span></div>
+        <div class="detail-row" hidden><span class="detail-label" style="color:rgba(255,255,255,0.5)">compras a meses, falta por cargar</span><span class="detail-val" id="tarjeta-meses-falta">—</span></div>
         <div class="detail-row"><span class="detail-label" style="color:rgba(255,255,255,0.5)">último movimiento</span><span class="detail-val" id="tarjeta-ultimo">—</span></div>
       </div>
     </div>
@@ -1743,6 +1751,7 @@ html[data-tema='grafito'] .cal-d.hoy .cal-n{color:#14171a}
         <div class="detail-row"><span class="detail-label" style="color:rgba(255,255,255,0.5)">depósito en garantía (congelado)</span><span class="detail-val" id="tarjeta-rev-dep">$—</span></div>
         <div class="detail-row"><span class="detail-label" style="color:rgba(255,255,255,0.5)">retirable ahora</span><span class="detail-val" id="tarjeta-rev-retirable">$—</span></div>
         <div class="detail-row"><span class="detail-label" style="color:rgba(255,255,255,0.5)">días para corte</span><span class="detail-val" id="tarjeta-rev-dias">—</span></div>
+        <div class="detail-row" hidden><span class="detail-label" style="color:rgba(255,255,255,0.5)">compras a meses, falta por cargar</span><span class="detail-val" id="tarjeta-rev-meses-falta">—</span></div>
         <div class="detail-row"><span class="detail-label" style="color:rgba(255,255,255,0.5)">pago límite del último corte</span><span class="detail-val" id="tarjeta-rev-pago-limite">—</span></div>
         <div class="detail-row"><span class="detail-label" style="color:rgba(255,255,255,0.5)">último movimiento</span><span class="detail-val" id="tarjeta-rev-ultimo">—</span></div>
       </div>
@@ -1871,14 +1880,25 @@ html[data-tema='grafito'] .cal-d.hoy .cal-n{color:#14171a}
         <select id="gasto-cat" onchange="handleCatChange('gasto',this)"></select>
       </div>
       <div class="field" id="gasto-sub-field" hidden><label for="gasto-sub">subcategoría (opcional)</label><select id="gasto-sub"></select></div>
-      <div class="field"><label>monto</label><input type="number" id="gasto-monto" placeholder="ej. 150" step="1" inputmode="decimal" oninput="pintarAyudaMontoX('gasto')"></div>
+      <div class="field"><label>monto</label><input type="number" id="gasto-monto" placeholder="ej. 150" step="1" inputmode="decimal" oninput="pintarAyudaMontoX('gasto');pintarMesesGasto()"></div>
       <div class="item-meta" id="gasto-x-ayuda" hidden style="margin:-4px 0 10px"></div>
       <div class="field"><label>nota (opcional)</label><input type="text" id="gasto-nota" maxlength="200" placeholder="ej. taquería"></div>
-      <div class="field"><label>fecha (si no la eliges, es hoy)</label><input type="date" id="gasto-fecha" data-hasta-hoy></div>
+      <div class="field"><label>fecha (si no la eliges, es hoy)</label><input type="date" id="gasto-fecha" data-hasta-hoy onchange="pintarMesesGasto()"></div>
       <div class="field"><label>pagado con</label>
         <div class="type-toggle" id="gasto-fuente-toggle"><!-- botones: pintarListasCuentas() --></div>
         <!-- (20-oct-2026) cuentas en otra moneda: se pintan solas (pintarFuentesX) -->
         <div class="type-toggle" id="gasto-fuente-x" hidden style="margin-top:6px"></div>
+      </div>
+      <!-- (19-nov-2026) compra a meses: solo con una tarjeta en "pagado con". El gasto es lo que de verdad cuesta; la deuda sube mes a mes -->
+      <div class="field" id="gasto-meses-field" hidden>
+        <label class="meses-check"><input type="checkbox" id="gasto-meses-on" onchange="pintarMesesGasto()"><span>la compré a meses</span></label>
+        <div id="gasto-meses-det" hidden>
+          <div class="row2" style="gap:8px">
+            <div class="field"><label for="gasto-meses-n">¿a cuántos meses?</label><input type="number" id="gasto-meses-n" min="2" max="48" step="1" inputmode="numeric" placeholder="ej. 12" oninput="pintarMesesGasto()"></div>
+            <div class="field"><label for="gasto-meses-mens">mensualidad</label><input type="number" id="gasto-meses-mens" step="0.01" inputmode="decimal" placeholder="solo con intereses" oninput="pintarMesesGasto()"></div>
+          </div>
+          <div class="item-meta" id="gasto-meses-res" aria-live="polite"></div>
+        </div>
       </div>
       <button class="btn btn-purple" id="gasto-btn" onclick="registrarGasto()">registrar gasto</button>
     </div>
@@ -1921,6 +1941,18 @@ html[data-tema='grafito'] .cal-d.hoy .cal-n{color:#14171a}
     </div>
     <!-- (17-nov-2026) para que es cada camino de una compra con tarjeta: gasto con "pagado con" o "+ cargo" -->
     <div class="item-meta nota-cargo" style="line-height:1.5;margin-top:10px">Una compra nueva va en "gasto", con tu tarjeta en "pagado con". "+ cargo" solo sube lo que debes, sin contar como gasto: sirve para anotar lo que ya debías.</div>
+    <!-- (19-nov-2026) compras a meses de esta tarjeta: la lista se pinta sola (pintarMesesTarjeta); "ya la traía" no cuenta como gasto -->
+    <div class="meses-lista" id="meses-lista-nu"></div>
+    <details class="meses-traia">
+      <summary class="cal-liga">anotar una compra a meses que ya traías</summary>
+      <div class="item-meta" style="line-height:1.5;margin:6px 0 10px">Para lo que compraste a meses antes de usar la app. No cuenta como gasto: solo anota las mensualidades que todavía no te cargan; lo que ya te cargaron va en lo que debes.</div>
+      <div class="field"><label for="ms-nota-nu">qué compraste</label><input type="text" id="ms-nota-nu" maxlength="200" placeholder="ej. pantalla"></div>
+      <div class="row2" style="gap:8px">
+        <div class="field"><label for="ms-mens-nu">mensualidad</label><input type="number" id="ms-mens-nu" step="0.01" inputmode="decimal" placeholder="ej. 500"></div>
+        <div class="field"><label for="ms-faltan-nu">¿cuántas te faltan?</label><input type="number" id="ms-faltan-nu" min="1" max="48" step="1" inputmode="numeric" placeholder="ej. 8"></div>
+      </div>
+      <button type="button" class="btn" id="ms-btn-nu" onclick="anotarMesesTraia('tarjeta')">anotar compra a meses</button>
+    </details>
   </div>
   </div>
   </details>
@@ -1944,6 +1976,18 @@ html[data-tema='grafito'] .cal-d.hoy .cal-n{color:#14171a}
     </div>
     <!-- (17-nov-2026) para que es cada camino de una compra con tarjeta: gasto con "pagado con" o "+ cargo" -->
     <div class="item-meta nota-cargo" style="line-height:1.5;margin-top:10px">Una compra nueva va en "gasto", con tu tarjeta en "pagado con". "+ cargo" solo sube lo que debes, sin contar como gasto: sirve para anotar lo que ya debías.</div>
+    <!-- (19-nov-2026) compras a meses de esta tarjeta: la lista se pinta sola (pintarMesesTarjeta); "ya la traía" no cuenta como gasto -->
+    <div class="meses-lista" id="meses-lista-rev"></div>
+    <details class="meses-traia">
+      <summary class="cal-liga">anotar una compra a meses que ya traías</summary>
+      <div class="item-meta" style="line-height:1.5;margin:6px 0 10px">Para lo que compraste a meses antes de usar la app. No cuenta como gasto: solo anota las mensualidades que todavía no te cargan; lo que ya te cargaron va en lo que debes.</div>
+      <div class="field"><label for="ms-nota-rev">qué compraste</label><input type="text" id="ms-nota-rev" maxlength="200" placeholder="ej. pantalla"></div>
+      <div class="row2" style="gap:8px">
+        <div class="field"><label for="ms-mens-rev">mensualidad</label><input type="number" id="ms-mens-rev" step="0.01" inputmode="decimal" placeholder="ej. 500"></div>
+        <div class="field"><label for="ms-faltan-rev">¿cuántas te faltan?</label><input type="number" id="ms-faltan-rev" min="1" max="48" step="1" inputmode="numeric" placeholder="ej. 8"></div>
+      </div>
+      <button type="button" class="btn" id="ms-btn-rev" onclick="anotarMesesTraia('tarjetaRev')">anotar compra a meses</button>
+    </details>
   </div>
   </div>
   </details>
@@ -4215,8 +4259,11 @@ fvGlobal.fvElegirFactor = tipo => {
 fvGlobal.fvCodReenviar = () => { if (fvSms.ctx && fvSmsFalta(fvSms.ctx.quien) === 0) { fvErr('codigo', ''); return fvSmsReenviar(fvSms.ctx); } };
 // version de terminos que se acepta al crear la cuenta y al volver a pedirlos (usuarios/<uid>.terminos). Formato AAAA-MM o AAAA-MM-DD: se comparan como texto.
 // Al cambiar el texto de copias\fundview-legal.html: subir FV_TERMINOS y reescribir FV_TERMINOS_CAMBIOS. Lo dice la pantalla "Actualizamos los términos y el aviso"
-const FV_TERMINOS = '2026-11-16';
+const FV_TERMINOS = '2026-11-19';
 const FV_TERMINOS_CAMBIOS = [
+  // 19-nov-2026: prestamos, creditos, compras a meses y la tasa de un prestamo a una persona (documentos\plan-de-codeo\terminos-creditos-2026-11-19.md)
+  'Ahora puedes anotar tus préstamos, tu hipoteca, tu crédito de auto, compras a plazos, tus compras a meses con tarjeta y el interés de un préstamo a una persona. Son datos financieros y se tratan igual que el resto de lo que anotas: confidenciales, solo para prestarte el servicio.',
+  'Si aceptaste antes del 16 de noviembre, también cambió esto:',
   // 16-nov-2026: los terminos pasan a ser la adaptacion del contrato de prestacion de servicios (se cobra un servicio, no una licencia del programa).
   // Tras la revision: el resumen nombra cada cambio que toca derechos u obligaciones, no solo los titulares
   'Los términos ahora están escritos como un contrato de prestación de servicios: lo que contratas es el servicio de organizar y dar seguimiento a tus finanzas personales, con acompañamiento para usarlo, que se presta por medio de la app.',
@@ -6636,6 +6683,8 @@ let state = {
   reporto:0, efectivoGBM:0,
   revMXN:0, revSavingsBase:0, revSavingsFecha:'', revSavingsTasa:15, revNvdaShares:0,
   tarjetaDeuda:0, tarjetaMovimientos:[],
+  // (19-nov-2026) tarjetaDeuda/revTdcDeuda = lo que debes HOY: la deuda guardada (…DeudaG) + las mensualidades ya cargadas de sus compras a meses (fijarDeudasTj)
+  tarjetaDeudaG:0, revTdcDeudaG:0, tarjetaMeses:[], revTdcMeses:[],
   // TDC Revolut garantizada: limite de credito = deposito de garantia 1:1 (rango $250-$75,000)
   revTdcDeuda:0, revTdcDeposito:0, revTdcMovs:[],
   ivvPrecio:154, ivvVar:null, ivvHistory:[],
@@ -6741,12 +6790,15 @@ async function pintarDesdeCache() {
       else if (Array.isArray(state[k]) && Array.isArray(v)) state[k] = v;
     });
     if (tD && tD.exists()) { const t = tD.data();
-      if (Number.isFinite(t.deuda)) state.tarjetaDeuda = t.deuda;
+      if (Number.isFinite(t.deuda)) state.tarjetaDeudaG = t.deuda;
+      state.tarjetaMeses = saneaMeses(t.meses);
       state.tarjetaMovimientos = Array.isArray(t.movimientos) ? t.movimientos : []; }
     if (trvD.exists()) { const t = trvD.data();
-      if (Number.isFinite(t.deuda)) state.revTdcDeuda = t.deuda;
+      if (Number.isFinite(t.deuda)) state.revTdcDeudaG = t.deuda;
+      state.revTdcMeses = saneaMeses(t.meses);
       if (Number.isFinite(t.deposito)) state.revTdcDeposito = t.deposito;
       state.revTdcMovs = Array.isArray(t.movimientos) ? t.movimientos : []; }
+    fijarDeudasTj();
     if (pD.exists()) {
       const raw = pD.data().data;
       // formato viejo (array) no se intenta migrar aqui: eso lo hace la carga del
@@ -7017,16 +7069,18 @@ async function loadFromFirebase() {
         notasInversion:(typeof pf.notasInversion==='string')?pf.notasInversion.slice(0,1500):'',
         foto:(typeof pf.foto==='string'&&/^data:image\/(?:jpeg|png);base64,[A-Za-z0-9+/]+={0,2}$/.test(pf.foto)&&pf.foto.length<900000)?pf.foto:''};
     }
-    if (tDoc.exists()) { state.tarjetaDeuda = Number.isFinite(tDoc.data().deuda) ? tDoc.data().deuda : state.tarjetaDeuda; state.tarjetaMovimientos = Array.isArray(tDoc.data().movimientos) ? tDoc.data().movimientos : []; }
+    if (tDoc.exists()) { state.tarjetaDeudaG = Number.isFinite(tDoc.data().deuda) ? tDoc.data().deuda : state.tarjetaDeudaG; state.tarjetaMeses = saneaMeses(tDoc.data().meses); state.tarjetaMovimientos = Array.isArray(tDoc.data().movimientos) ? tDoc.data().movimientos : []; }
     // TDC Revolut: {deuda, deposito, movimientos} viven JUNTOS en su doc (el deposito NO va
     // en saldos: un cliente viejo con setDoc completo de saldosPayload lo borraria)
     if (trvDoc.exists()) {
       const tv = trvDoc.data();
-      if (Number.isFinite(tv.deuda)) state.revTdcDeuda = tv.deuda;
+      if (Number.isFinite(tv.deuda)) state.revTdcDeudaG = tv.deuda;
+      state.revTdcMeses = saneaMeses(tv.meses);
       if (Number.isFinite(tv.deposito)) state.revTdcDeposito = tv.deposito;
       state.revTdcMovs = Array.isArray(tv.movimientos) ? tv.movimientos.filter(m=>m&&(m.tipo==='cargo'||m.tipo==='pago')
         &&Number.isFinite(m.monto)&&m.monto>0&&typeof m.fecha==='string') : [];
     }
+    fijarDeudasTj();   // (19-nov-2026) con o sin documentos de tarjetas: la deuda de hoy incluye las mensualidades ya cargadas
     if (hDoc.exists()) state.snapshots = Array.isArray(hDoc.data().snapshots) ? hDoc.data().snapshots : [];
     if (aDoc.exists() && Array.isArray(aDoc.data().items)) {
       // normalizacion por item: se descartan elementos corruptos (id/nombre/montos invalidos)
@@ -7134,6 +7188,9 @@ async function procesarPendientesAtajo() {
       let tarjetaDeuda=(tSnap.exists()&&Number.isFinite(tSnap.data().deuda))?tSnap.data().deuda:0;
       let revTdcDeuda=(trvSnap.exists()&&Number.isFinite(trvSnap.data().deuda))?trvSnap.data().deuda:0;
       const revTdcDeposito=(trvSnap.exists()&&Number.isFinite(trvSnap.data().deposito))?trvSnap.data().deposito:state.revTdcDeposito;
+      // (19-nov-2026, revision) una compra a meses ocupa el limite completo, como en txDinero
+      const msRevAt=trvSnap.exists()?saneaMeses(trvSnap.data().meses):[], hoyAt=hoyLocal();
+      const usadoMsAt=mesesCargadoTotal(msRevAt,CORTE_TJREV,hoyAt)+mesesFaltaTotal(msRevAt,CORTE_TJREV,hoyAt);
       let cambioCuentas=false, cambioTarjeta=false, cambioTarjetaRev=false;
       const estados=[];
       // fase de LECTURA (en paralelo, todas ANTES de cualquier escritura, como exige la transaccion):
@@ -7158,7 +7215,7 @@ async function procesarPendientesAtajo() {
           &&listas.includes(cta)&&Number.isFinite(Date.parse(d.fecha));
         // TDC Revolut: limite = deposito; aqui SI se valida contra los valores canonicos
         // (este es el unico flujo genuinamente concurrente); si excede, se rechaza
-        if(valido&&cta==='tarjetaRev'&&tdcGarantizada()&&Math.round((Math.max(0,revTdcDeuda)+d.monto)*100)>Math.round(revTdcDeposito*100)) valido=false;
+        if(valido&&cta==='tarjetaRev'&&tdcGarantizada()&&Math.round((Math.max(0,revTdcDeuda+usadoMsAt)+d.monto)*100)>Math.round(revTdcDeposito*100)) valido=false;
         if(valido&&tipo==='gasto'){
           const campoAt=CAMPO_SIMPLE[cta];
           if(campoAt&&apAt[cta]&&Math.round((cuentas[campoAt]-d.monto)*100)<Math.round(apAt[cta]*100)) valido=false;
@@ -7192,8 +7249,9 @@ async function procesarPendientesAtajo() {
     if(resultado.cambioCuentas){
       Object.assign(state,resultado.cuentas);
     }
-    if(resultado.cambioTarjeta) state.tarjetaDeuda=resultado.tarjetaDeuda;
-    if(resultado.cambioTarjetaRev) state.revTdcDeuda=resultado.revTdcDeuda;
+    if(resultado.cambioTarjeta) state.tarjetaDeudaG=resultado.tarjetaDeuda;
+    if(resultado.cambioTarjetaRev) state.revTdcDeudaG=resultado.revTdcDeuda;
+    fijarDeudasTj();
   }catch(e){ console.error('procesarPendientesAtajo',e); resumen.error=true; }
   return resumen;
 }
@@ -7221,14 +7279,18 @@ function aplicarSaldosRemotos(d) {
 }
 function aplicarTarjetaRemota(d) {
   if(!d) return;
-  if(Number.isFinite(d.deuda)) state.tarjetaDeuda=d.deuda;
+  if(Number.isFinite(d.deuda)) state.tarjetaDeudaG=d.deuda;
+  state.tarjetaMeses=saneaMeses(d.meses);
   if(Array.isArray(d.movimientos)) state.tarjetaMovimientos=d.movimientos;
+  fijarDeudasTj();
 }
 function aplicarTarjetaRevRemota(d) {
   if(!d) return;
-  if(Number.isFinite(d.deuda)) state.revTdcDeuda=d.deuda;
+  if(Number.isFinite(d.deuda)) state.revTdcDeudaG=d.deuda;
+  state.revTdcMeses=saneaMeses(d.meses);
   if(Number.isFinite(d.deposito)) state.revTdcDeposito=d.deposito;
   if(Array.isArray(d.movimientos)) state.revTdcMovs=d.movimientos;
+  fijarDeudasTj();
 }
 function aplicarPersonasRemotas(d) {
   const raw=d&&d.data;
@@ -7313,6 +7375,60 @@ function desuscribir() { unsubs.forEach(u=>{ try{ u(); }catch(e){} }); unsubs=[]
 const nFin = (v,d=0) => Number.isFinite(v) ? v : d;   // lo que llegue corrupto vale 0
 const c2   = n => Math.round(n*100)/100;              // corta el ruido de punto flotante
 const cent = n => Math.round(n*100);                  // comparaciones exactas, en centavos
+// <meses-puras> COMPRAS A MESES CON TARJETA (19-nov-2026, opcion A). La compra es UN gasto por lo que de
+// verdad cuesta (mensualidad x meses) el dia que se hace; la deuda de la tarjeta sube mensualidad por mensualidad en cada
+// corte. Regla que no se rompe: la mensualidad NUNCA se escribe, se calcula al mostrar. Cada compra vive en `meses` del
+// documento de SU tarjeta (`<NS>/tarjeta` o `<NS>/tarjetaRev`) = [{id, nota, n, total, mensualidad, precio, primero:'AAAA-MM',
+// gasto (id del gasto o null si ya la traias), creado}]. Lo que debes en la tarjeta = `deuda` guardada + lo ya cargado.
+// Funciones puras: test-meses.mjs las corre en Node.
+const MESES_N_MAX = 48, MESES_MAX = 240;   // las terminadas se quedan en la lista: sin ellas lo ya cargado desapareceria de la deuda
+const mesesR2 = v => Math.round(v * 100) / 100;
+function mesesMesSuma(ym, k) { const d = new Date(+ym.slice(0, 4), +ym.slice(5, 7) - 1 + k, 1); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0'); }
+// el dia de corte de un mes 'AAAA-MM' (31 en febrero = el ultimo dia, como el calendario)
+function mesesCorteDe(ym, corte) { const ult = new Date(+ym.slice(0, 4), +ym.slice(5, 7), 0).getDate(); return ym + '-' + String(Math.min(corte, ult)).padStart(2, '0'); }
+// la primera mensualidad cae en el primer corte DESPUES de la fecha: el dia del corte ya cuenta al siguiente, como Inicio
+function mesesPrimero(fecha, corte) { const ym = String(fecha).slice(0, 7); return mesesCorteDe(ym, corte) > String(fecha).slice(0, 10) ? ym : mesesMesSuma(ym, 1); }
+// cuantas mensualidades ya se cargaron a la tarjeta a la fecha `hoy` ('AAAA-MM-DD'): las de cortes que ya pasaron o son hoy
+function mesesCargadas(it, corte, hoy) { let k = 0; while (k < it.n && mesesCorteDe(mesesMesSuma(it.primero, k), corte) <= hoy) k++; return k; }
+// lo cargado tras k mensualidades: la ultima ajusta los centavos para que todas sumen exacto el total
+const mesesMonto = (it, k) => k >= it.n ? it.total : mesesR2(it.mensualidad * k);
+function mesesEstado(it, corte, hoy) {
+  const k = mesesCargadas(it, corte, hoy), cargado = mesesMonto(it, k), falta = mesesR2(it.total - cargado);
+  return {k, cargado, falta, quedan: it.n - k, pct: it.total > 0 ? Math.round(cargado / it.total * 100) : 0,
+    prox: k < it.n ? mesesCorteDe(mesesMesSuma(it.primero, k), corte) : null, proxMonto: k < it.n ? mesesR2(mesesMonto(it, k + 1) - cargado) : 0};
+}
+const mesesCargadoTotal = (lista, corte, hoy) => mesesR2((lista || []).reduce((s, it) => s + mesesEstado(it, corte, hoy).cargado, 0));
+const mesesFaltaTotal = (lista, corte, hoy) => mesesR2((lista || []).reduce((s, it) => s + mesesEstado(it, corte, hoy).falta, 0));
+// lo que entra a la tarjeta en el corte de un dia dado (para el calendario)
+function mesesEnCorte(lista, corte, dia) {
+  return (lista || []).flatMap(it => { const k = mesesCargadas(it, corte, dia); if (!k || mesesCorteDe(mesesMesSuma(it.primero, k - 1), corte) !== dia) return [];
+    return [{it, num: k, monto: mesesR2(mesesMonto(it, k) - mesesMonto(it, k - 1))}]; });
+}
+// el plan de una compra: precio, meses y, con intereses, la mensualidad que cobra el banco. Devuelve {total, mensualidad, interes} o {error}
+function mesesPlan(precio, n, mensualidad) {
+  if (!(Number.isFinite(precio) && precio > 0)) return {error: 'ingresa un monto válido'};
+  if (!(Number.isInteger(n) && n >= 2 && n <= MESES_N_MAX)) return {error: 'los meses van de 2 a ' + MESES_N_MAX};
+  const p = mesesR2(precio);
+  if (mensualidad == null) { const m = Math.ceil(Math.round(p * 100) / n) / 100; /* en centavos enteros: en flotantes salia un centavo de mas */ if (mesesR2(m * (n - 1)) >= p) return {error: 'ese monto es muy chico para ' + n + ' meses'}; return {total: p, mensualidad: m, interes: 0}; }
+  if (!(Number.isFinite(mensualidad) && mensualidad > 0)) return {error: 'escribe la mensualidad que te cobra el banco'};
+  const m = mesesR2(mensualidad), total = mesesR2(m * n);
+  if (total < p - 0.005) return {error: n + ' mensualidades de ' + m.toFixed(2) + ' dan menos que el precio: revisa la mensualidad'};
+  return {total, mensualidad: m, interes: mesesR2(total - p)};
+}
+// lo que se acepta del servidor: una compra danada no se cuenta (mejor que inventar deuda)
+function saneaMeses(raw) {
+  if (!Array.isArray(raw)) return [];
+  return raw.filter(it => it && typeof it === 'object' && /^ms_[A-Za-z0-9_-]{6,40}$/.test(String(it.id))
+    && Number.isInteger(it.n) && it.n >= 1 && it.n <= MESES_N_MAX && Number.isFinite(it.total) && it.total > 0
+    && Number.isFinite(it.mensualidad) && it.mensualidad > 0 && mesesR2(it.mensualidad * (it.n - 1)) < it.total + 0.005
+    && /^\d{4}-(0[1-9]|1[0-2])$/.test(String(it.primero)))
+    .slice(0, MESES_MAX)
+    .map(it => ({id: it.id, n: it.n, total: mesesR2(it.total), mensualidad: mesesR2(it.mensualidad), primero: it.primero,
+      precio: Number.isFinite(it.precio) && it.precio > 0 ? mesesR2(it.precio) : mesesR2(it.total),
+      nota: typeof it.nota === 'string' ? it.nota.slice(0, 200) : '', gasto: typeof it.gasto === 'string' ? it.gasto.slice(0, 64) : null,
+      creado: typeof it.creado === 'string' ? it.creado : ''}));
+}
+// </meses-puras>
 // ── CUENTAS EN OTRA MONEDA (20-oct-2026, sesion 0 del plan) ──────────────────────
 // Cuentas que la persona agrega sola (nombre, moneda, tipo), como en Revolut. Viven en
 // <NS>/cuentasX, APARTE de saldos: una version vieja de la app no las conoce y no las pisa.
@@ -7526,8 +7642,12 @@ async function txDinero(plan) {
   const cristal    = plan.cristalizar || [];
   const usaSaldos  = slotsSal.length > 0 || Object.keys(absolutos).length > 0 || cristal.length > 0 || !!plan.fondo;
   const usaDep     = deltasPlan.revTdcDep !== undefined || plan.tdcRevDeposito !== undefined;
-  const usaTarjeta = plan.tarjetaDelta !== undefined || !!plan.tarjetaMovAdd || !!plan.tarjetaMovDelId;
-  const usaTdcRev  = plan.tdcRevDelta !== undefined || !!plan.tdcRevMovAdd || !!plan.tdcRevMovDelId || usaDep;
+  // (19-nov-2026) compras a meses: plan.mesesAdd = {k, item} y plan.mesesDel = {k, id}, k = 'tarjeta' | 'tarjetaRev'
+  const msA = plan.mesesAdd || null, msD = plan.mesesDel || null;
+  if ((msA && !['tarjeta','tarjetaRev'].includes(msA.k)) || (msD && !['tarjeta','tarjetaRev'].includes(msD.k))) throw new Error('compra a meses sin tarjeta');
+  const usaMeses = k => (msA && msA.k === k) || (msD && msD.k === k);
+  const usaTarjeta = plan.tarjetaDelta !== undefined || !!plan.tarjetaMovAdd || !!plan.tarjetaMovDelId || usaMeses('tarjeta');
+  const usaTdcRev  = plan.tdcRevDelta !== undefined || !!plan.tdcRevMovAdd || !!plan.tdcRevMovDelId || usaDep || usaMeses('tarjetaRev');
   const usaPersona = !!plan.persona;
   const mb = plan.movBorrar || null;
   const me = plan.movEditar || null;
@@ -7586,7 +7706,9 @@ async function txDinero(plan) {
         const movs = deUnaPersona ? (((d.data || {})[deUnaPersona] || {}).movimientos) : d.movimientos;
         return Array.isArray(movs) && movs.some(m => m && m.id === id);
       };
-      if ((plan.tarjetaMovAdd && traeId(tSnap, plan.tarjetaMovAdd.id)) ||
+      const traeMeses = (snap, id) => !!(snap && snap.exists() && Array.isArray((snap.data() || {}).meses) && snap.data().meses.some(x => x && x.id === id));
+      if ((msA && msA.item && traeMeses(msA.k === 'tarjeta' ? tSnap : rSnap, msA.item.id)) ||
+          (plan.tarjetaMovAdd && traeId(tSnap, plan.tarjetaMovAdd.id)) ||
           (plan.tdcRevMovAdd && traeId(rSnap, plan.tdcRevMovAdd.id)) ||
           (plan.persona && plan.persona.movAdd && traeId(pSnap, plan.persona.movAdd.id, plan.persona.key)))
         return {error:'ese movimiento ya estaba registrado', codigo:'ya-existe'};
@@ -7617,6 +7739,9 @@ async function txDinero(plan) {
         // lo que manda es SU documento: si otro dispositivo lo dejo pendiente o rechazado,
         // ese movimiento nunca fue dinero y borrarlo no debe mover nada
         aplicaMov = !movSinEfecto(mbSnap.data());
+        // (19-nov-2026) un gasto a meses no sube la deuda al registrarse: al borrarlo se quita SU compra, nunca se baja la deuda por el total
+        const msG = mbSnap.data().meses;
+        if (msG && aplicaMov && !(msD && msD.id === msG)) return {error:'ese gasto es una compra a meses: recarga la app y vuelve a borrarlo'};
         if (aplicaMov && mb.slot) deltas[mb.slot] = c2(nFin(deltas[mb.slot]) + mb.signo * mb.monto);
       }
       // el movimiento a EDITAR: mismo criterio. Se revierte lo que el documento del servidor
@@ -7627,6 +7752,7 @@ async function txDinero(plan) {
         // monto o cuenta lo dejaria sin efecto para siempre. movEditar solo se usa para cambios de dinero.
         if (meSnap.data().porAtajo === true && meSnap.data().aplicadoSaldo === false)
           return {error:'fue rechazado por el Atajo: bórralo y regístralo de nuevo'};
+        if (meSnap.data().meses) return {error:'una compra a meses solo se edita en categoría, nota y fecha: para cambiar el monto o la tarjeta, bórrala y regístrala de nuevo'};
         aplicaMov = !movSinEfecto(meSnap.data());
         if (aplicaMov) {
           if (me.antes.slot)  deltas[me.antes.slot]   = c2(nFin(deltas[me.antes.slot])   + me.signo * nFin(me.antes.monto));
@@ -7853,14 +7979,34 @@ async function txDinero(plan) {
                    ...(crudo && Array.isArray(crudo.fondos) ? {fondos: crudo.fondos} : {})};   // la lista de fondos se conserva tal cual
         }
       }
+      // (19-nov-2026) la lista de compras a meses de una tarjeta tras este plan, y lo ya cargado con ella
+      const corteMs = k => typeof CORTE_TJ !== 'undefined' ? (k === 'tarjetaRev' ? CORTE_TJREV : CORTE_TJ) : (k === 'tarjetaRev' ? 30 : 18);
+      const mesesNuevos = (k, d) => {
+        let lista = Array.isArray(d.meses) ? d.meses : [], cambio = false;
+        if (msD && msD.k === k) {
+          if (!lista.some(x => x && x.id === msD.id)) return {error:'esa compra a meses ya la quitó alguien más — recarga la app'};
+          lista = lista.filter(x => !(x && x.id === msD.id)); cambio = true;
+        }
+        if (msA && msA.k === k) {
+          if (saneaMeses([msA.item]).length !== 1) return {error:'compra a meses no válida'};
+          if (saneaMeses(lista).length >= MESES_MAX) return {error:'máximo ' + MESES_MAX + ' compras a meses por tarjeta'};
+          lista = [msA.item, ...lista]; cambio = true;
+        }
+        const ok = saneaMeses(lista);
+        return {lista, cambio, cargado: mesesCargadoTotal(ok, corteMs(k), hoy), falta: mesesFaltaTotal(ok, corteMs(k), hoy)};
+      };
+      let tjMeses = null, rvMeses = null;
       // tarjeta NU
       let tarjeta = null;
       if (usaTarjeta) {
         const tj = (tSnap && tSnap.exists()) ? tSnap.data() : {};
         const deuda = c2(nFin(tj.deuda) + tjDelta);
+        const mz = mesesNuevos('tarjeta', tj); if (mz.error) return mz;
+        tjMeses = mz.lista;
         // borrar un cargo puede dejar la tarjeta con saldo a FAVOR: eso se avisa, no se
         // bloquea (permitirDeudaNegativa). Un PAGO mayor a la deuda si se rechaza.
-        if (tjDelta < 0 && plan.permitirDeudaNegativa !== true && cent(deuda) < 0)
+        // (19-nov-2026) la deuda real es la guardada + las mensualidades ya cargadas de sus compras a meses
+        if (tjDelta < 0 && plan.permitirDeudaNegativa !== true && cent(deuda + mz.cargado) < 0)
           return {error:'el pago excede la deuda de la tarjeta'};
         let movs = Array.isArray(tj.movimientos) ? tj.movimientos : [];
         if (plan.tarjetaMovDelId) {
@@ -7869,21 +8015,24 @@ async function txDinero(plan) {
           movs = movs.filter(m => !(m && m.id === plan.tarjetaMovDelId));
         }
         if (plan.tarjetaMovAdd) movs = [plan.tarjetaMovAdd, ...movs];
-        tarjeta = {deuda, movimientos: movs};
+        tarjeta = {deuda, movimientos: movs, ...(mz.cambio ? {meses: mz.lista} : {})};
       }
       // TDC Revolut: deuda, deposito y movimientos viven JUNTOS en cartera/tarjetaRev
       let tdcRev = null;
       if (usaTdcRev) {
         const tv = (rSnap && rSnap.exists()) ? rSnap.data() : {};
         const deuda = c2(nFin(tv.deuda) + trDelta);
-        if (trDelta < 0 && plan.permitirDeudaNegativa !== true && cent(deuda) < 0)
+        const mz = mesesNuevos('tarjetaRev', tv); if (mz.error) return mz;
+        rvMeses = mz.lista;
+        if (trDelta < 0 && plan.permitirDeudaNegativa !== true && cent(deuda + mz.cargado) < 0)
           return {error:'el pago excede la deuda de la TDC Revolut'};
         const depBase = nFin(tv.deposito, nFin(state.revTdcDeposito));
         const deposito = plan.tdcRevDeposito !== undefined
           ? c2(plan.tdcRevDeposito)                                        // captura manual
           : c2(depBase + (deltas.revTdcDep !== undefined ? deltas.revTdcDep : 0));
-        // el limite es el deposito: un cargo no puede dejar la deuda por encima
-        if (tdcGarantizada() && cent(deuda) > cent(deposito))
+        // el limite es el deposito: un cargo no puede dejar la deuda por encima. Una compra a meses ocupa el limite completo
+        // (lo cargado y lo que falta), como en el banco; se revisa cuando la operacion sube lo usado o mueve el deposito (bajar deuda nunca se bloquea)
+        if (tdcGarantizada() && (trDelta > 0 || (msA && msA.k === 'tarjetaRev') || usaDep) && cent(deuda + mz.cargado + mz.falta) > cent(deposito))
           return {error:'excede el límite de la TDC Revolut'};
         if (deltas.revTdcDep !== undefined && deltas.revTdcDep < 0 && cent(deposito) < 0)
           return {error:'saldo insuficiente en el depósito de la TDC Revolut'};
@@ -7901,7 +8050,7 @@ async function txDinero(plan) {
           movs = movs.filter(m => !(m && m.id === plan.tdcRevMovDelId));
         }
         if (plan.tdcRevMovAdd) movs = [plan.tdcRevMovAdd, ...movs];
-        tdcRev = {deuda, deposito, movimientos: movs};
+        tdcRev = {deuda, deposito, movimientos: movs, ...(mz.cambio ? {meses: mz.lista} : {})};
       }
       // personas (deudas)
       let persona = null;
@@ -7946,7 +8095,7 @@ async function txDinero(plan) {
       for (const c of (plan.crear||[])) tx.set(c.ref, c.data);
       for (const r of (plan.borrar||[])) tx.delete(r);
       for (const t of tramos) tx.set(t.ref, t.data);
-      return {ok:true, saldos:saldosFinales, campos, tarjeta, tdcRev, persona, fondo,
+      return {ok:true, saldos:saldosFinales, campos, tarjeta, tdcRev, persona, fondo, tarjetaMeses: tjMeses, tdcRevMeses: rvMeses,
               cx: Object.keys(cxCambios).length ? cxCambios : null,
               tramos: tramos.map(t => ({id:t.ref.id || null, ...t.data})),
               movAplicaba: mb ? !movSinEfecto(mbSnap.data()) : me ? !movSinEfecto(meSnap.data()) : undefined,
@@ -7984,12 +8133,22 @@ function aplicarRes(res) {
     const baseFecha = new Set(REG_CUENTAS.flatMap(c => c.comp ? [c.comp.base, c.comp.fecha] : []));
     [...CAMPOS_SALDO_NUM, ...CAMPOS_SALDO_TXT].forEach(k => { if (!baseFecha.has(k) && cp[k] !== undefined) state[k] = cp[k]; });
   }
-  if (res.tarjeta) { state.tarjetaDeuda = res.tarjeta.deuda; state.tarjetaMovimientos = res.tarjeta.movimientos; }
+  if (res.tarjeta) { state.tarjetaDeudaG = res.tarjeta.deuda; state.tarjetaMovimientos = res.tarjeta.movimientos; if (res.tarjetaMeses) state.tarjetaMeses = saneaMeses(res.tarjetaMeses); }
   if (res.fondo)   state.fondo = saneaFondo(res.fondo);
   if (res.cx)      state.cuentasX = {...(state.cuentasX||{}), ...res.cx};
-  if (res.tdcRev)  { state.revTdcDeuda = res.tdcRev.deuda; state.revTdcDeposito = res.tdcRev.deposito; state.revTdcMovs = res.tdcRev.movimientos; }
+  if (res.tdcRev)  { state.revTdcDeudaG = res.tdcRev.deuda; state.revTdcDeposito = res.tdcRev.deposito; state.revTdcMovs = res.tdcRev.movimientos; if (res.tdcRevMeses) state.revTdcMeses = saneaMeses(res.tdcRevMeses); }
+  if (res.tarjeta || res.tdcRev) fijarDeudasTj();
   if (Array.isArray(res.tramos) && res.tramos.length) state.rendimientos = [...(state.rendimientos||[]), ...res.tramos];
 }
+// (19-nov-2026) lo que debes HOY en cada tarjeta = la deuda guardada + las mensualidades de sus compras a meses que ya cayeron en un corte.
+// Se recalcula en cada llegada del servidor y en cada render(): un corte que pasa con la app abierta sube la deuda sin escribir nada
+function fijarDeudasTj() {
+  const hoy = hoyLocal();
+  state.tarjetaDeuda = c2(nFin(state.tarjetaDeudaG) + mesesCargadoTotal(state.tarjetaMeses, CORTE_TJ, hoy));
+  state.revTdcDeuda = c2(nFin(state.revTdcDeudaG) + mesesCargadoTotal(state.revTdcMeses, CORTE_TJREV, hoy));
+}
+const mesesDe = k => k === 'tarjetaRev' ? state.revTdcMeses : state.tarjetaMeses;
+const corteDeTj = k => k === 'tarjetaRev' ? CORTE_TJREV : CORTE_TJ;
 // un fallo pintando la pantalla NO debe reportarse como "no se guardo": ya se guardo
 function refrescar(...fns) { for (const f of fns) { try { f(); } catch(e) { console.error('render',e); } } }
 const nuevoId = () => (crypto.randomUUID?crypto.randomUUID():String(Date.now())+Math.random().toString(36).slice(2));
@@ -8004,7 +8163,7 @@ function saldosPayload() {
 // de saldos. Para fijar un saldo a mano se usa txDinero({absolutos:{...}}), que escribe
 // solo los campos capturados y no pisa lo que otro dispositivo haya registrado.
 function tarjetaRevPayload() {
-  return {deuda:state.revTdcDeuda, deposito:state.revTdcDeposito, movimientos:state.revTdcMovs};
+  return {deuda:state.revTdcDeudaG, deudaHoy:state.revTdcDeuda, deposito:state.revTdcDeposito, movimientos:state.revTdcMovs, meses:state.revTdcMeses};
 }
 async function saveApartados() {
   if (!datosCargados) throw new Error('datos no cargados');
@@ -9165,7 +9324,7 @@ window.setMovTipo = t => {
 // (20-oct-2026) las cuentas en otra moneda tienen su propia fila de botones (data-cx: NO data-cta, que las copias
 // con cuentas configurables usan para esconder lo que no es una de sus cuentas fijas): se marca la elegida en las dos
 window.setFuente = f => { state.fuenteGasto=f; if(f) quitarFaltaCuenta('gasto-fuente-toggle'); document.querySelectorAll('#gasto-fuente-toggle .type-opt').forEach(el=>el.classList.toggle('active',el.dataset.cuenta===f));
-  document.querySelectorAll('#gasto-fuente-x .type-opt').forEach(el=>el.classList.toggle('active',el.dataset.cx===f)); pintarAyudaMontoX('gasto'); };
+  document.querySelectorAll('#gasto-fuente-x .type-opt').forEach(el=>el.classList.toggle('active',el.dataset.cx===f)); pintarAyudaMontoX('gasto'); window.pintarMesesGasto(); };
 window.setDestinoIngreso = f => { state.destinoIngreso=f; if(f) quitarFaltaCuenta('ingreso-destino-toggle'); document.querySelectorAll('#ingreso-destino-toggle .type-opt').forEach(el=>el.classList.toggle('active',el.dataset.cuenta===f));
   document.querySelectorAll('#ingreso-destino-x .type-opt').forEach(el=>el.classList.toggle('active',el.dataset.cx===f)); pintarAyudaMontoX('ingreso'); };
 window.setTipoDeuda = t => { state.tipoDeuda=t; ['cargo','pago','debo','pague'].forEach(id=>document.getElementById('tipo-'+id).classList.toggle('active',id===t)); ajustarCuentasDeuda(); };
@@ -9533,6 +9692,7 @@ window.pagarTotal=k=>{
   const f=document.getElementById(c.fuente); if(f) f.focus();
 };
 function render() {
+  try { fijarDeudasTj(); pintarMesesTarjeta(); } catch(e) { console.error('meses',e); }   // (19-nov-2026) una mensualidad que cae con la app abierta
   try { refrescarSinUso(); } catch(e) { console.error('sin uso',e); }
   try { refrescarBolsa(); } catch(e) { console.error('bolsa sin uso',e); }
   if (CFG.multi) { try { fvPintarHola(); } catch(e) { console.error('hola',e); } }
@@ -9624,6 +9784,12 @@ function render() {
     nvdaVarEl.className='card-change '+(v>=0?'pos':'neg');
   } else { nvdaVarEl.textContent='—'; nvdaVarEl.className='card-change neu'; }
 
+  // (19-nov-2026) lo que falta por cargar de sus compras a meses: va aparte, nunca dentro de "deuda actual"
+  [['tarjeta','tarjeta-meses-falta'],['tarjetaRev','tarjeta-rev-meses-falta']].forEach(([k,id])=>{
+    const el=document.getElementById(id); if(!el) return;
+    const falta=mesesFaltaTotal(mesesDe(k),corteDeTj(k),hoyLocal()), n=mesesDe(k).filter(it=>mesesEstado(it,corteDeTj(k),hoyLocal()).falta>0.005).length;
+    el.textContent=fmt(falta)+(n>1?' · '+n+' compras':''); el.closest('.detail-row').hidden=!(falta>0.005);
+  });
   // Tarjeta
   document.getElementById('tarjeta-display').textContent=state.tarjetaDeuda<0?('−'+fmt(Math.abs(state.tarjetaDeuda))):fmt(state.tarjetaDeuda);
   const dias=diasParaCorte();
@@ -9639,7 +9805,8 @@ function render() {
 
   // TDC Revolut: limite = deposito 1:1; deudaUsada defensiva (un borrado puede dejar saldo a favor)
   const tdcDep=depositoTdc();
-  const tdcDeudaUsada=Math.max(0,state.revTdcDeuda||0);
+  // una compra a meses ocupa el limite completo: lo que falta por cargar tambien esta usado (19-nov-2026)
+  const tdcDeudaUsada=Math.max(0,(state.revTdcDeuda||0)+mesesFaltaTotal(state.revTdcMeses,CORTE_TJREV,hoyLocal()));
   const tdcDisponible=Math.max(0,Math.min(tdcDep,tdcDep-tdcDeudaUsada));
   const tdcRetirable=Math.max(0,Math.min(tdcDep-250,tdcDep-tdcDeudaUsada));
   document.getElementById('tarjeta-rev-display').textContent=state.revTdcDeuda<0?('−'+fmt(Math.abs(state.revTdcDeuda))):fmt(state.revTdcDeuda);
@@ -9911,6 +10078,77 @@ window.registrarTarjeta = async function(tipo) {
   showToast(tipo==='cargo'?'+'+fmt(m)+' a la tarjeta':'pago de '+fmt(m)+' registrado');
 };
 
+// ── COMPRAS A MESES EN LA PANTALLA (19-nov-2026) ──
+// el renglon de una compra: cuantas van, cuanto se ha cargado y cuanto falta. "Cargado" (no "pagado"): la app no sabe que pago cubre que
+function mesesTexto(it, e) {
+  const f = e.prox ? parseFechaLocal(e.prox).toLocaleDateString('es-MX', {day:'numeric', month:'short'}) : '';
+  return e.k + ' de ' + it.n + ' cargadas · ' + e.pct + '% · ' + (e.quedan ? (e.quedan === 1 ? 'queda 1 mes' : 'quedan ' + e.quedan + ' meses') + (f ? ' · siguiente: ' + fmt(e.proxMonto) + ' el ' + f : '') : 'terminada')
+    + (it.total - it.precio > 0.005 ? ' · costó ' + fmt(it.total) + ' por algo de ' + fmt(it.precio) : '');
+}
+function pintarMesesTarjeta() {
+  [['tarjeta', 'nu'], ['tarjetaRev', 'rev']].forEach(([k, suf]) => {
+    const el = document.getElementById('meses-lista-' + suf); if (!el) return;
+    const hoy = hoyLocal(), lista = mesesDe(k).map(it => ({it, e: mesesEstado(it, corteDeTj(k), hoy)}));
+    const activas = lista.filter(x => x.e.falta > 0.005), hechas = lista.filter(x => x.e.falta <= 0.005);
+    // (19-nov-2026, revision) su gasto ya no existe (lo borro una version vieja de la app en otro aparato): se puede quitar aqui. Solo con datos del servidor
+    const huerfana = it => !!it.gasto && datosCargados && !cargaDesdeCache && !state.gastos.some(g => g.id === it.gasto);
+    if (!lista.length) { el.innerHTML = ''; return; }
+    const fila = ({it, e}) => '<div class="item-row"><div style="flex:1;min-width:0"><div class="item-cat">' + escapeHtml(it.nota || 'compra a meses') + '</div>'
+      + '<div class="item-meta">' + mesesTexto(it, e) + (it.gasto ? '' : ' · la traías') + '</div>'
+      + '<div class="meses-bar" aria-hidden="true"><span style="width:' + Math.max(0, Math.min(100, e.pct)) + '%"></span></div></div>'
+      + '<div style="text-align:right"><div class="item-amt-neg">' + fmt(e.falta) + '</div><div class="item-meta">falta</div></div>'
+      + (it.gasto && !huerfana(it) ? '' : '<button type="button" class="del-btn del-x" aria-label="quitar esta compra a meses" title="quitar" onclick="quitarMesesTraia(\'' + k + '\',\'' + escapeHtml(it.id) + '\')">' + ICONO_BORRAR + '</button>') + '</div>';
+    el.innerHTML = '<div class="meses-tit"><span>compras a meses</span><span>' + fmt(activas.reduce((a, x) => a + x.e.falta, 0)) + ' por cargar</span></div>'
+      + activas.map(fila).join('') + (hechas.length ? '<div class="item-meta" style="margin-top:6px">' + (hechas.length === 1 ? '1 compra terminada' : hechas.length + ' compras terminadas') + '</div>' : '')
+      + (lista.some(x => x.it.gasto) ? '<div class="item-meta" style="margin-top:6px;line-height:1.5">Una compra que anotaste como gasto se quita borrando ese gasto en Movimientos.</div>' : '');
+  });
+}
+// una compra a meses que ya traias: solo lo que falta por cargar, sin gasto (ya lo gastaste antes de usar la app)
+const mesesTraiaId = {};   // el id se conserva entre intentos: un intento en duda y el siguiente no anotan dos veces
+window.anotarMesesTraia = async function(k) {
+  const suf = k === 'tarjetaRev' ? 'rev' : 'nu';
+  const nota = document.getElementById('ms-nota-' + suf).value.trim();
+  const mens = parseFloat(document.getElementById('ms-mens-' + suf).value), n = Number(document.getElementById('ms-faltan-' + suf).value);
+  if (!(Number.isFinite(mens) && mens > 0)) { showToast('escribe la mensualidad'); return; }
+  if (!(Number.isInteger(n) && n >= 1 && n <= MESES_N_MAX)) { showToast('las mensualidades que faltan van de 1 a ' + MESES_N_MAX); return; }
+  if (dineroOcupado) { showToast('espera, hay otra operación en curso'); return; }
+  if (hayQueGuardarEnTelefono()) { showToast('una compra a meses necesita señal: anótala cuando tengas conexión'); return; }
+  const m = c2(mens), total = c2(m * n), creado = new Date().toISOString();
+  const id = mesesTraiaId[k] || (mesesTraiaId[k] = 'ms_' + nuevoId().replace(/[^A-Za-z0-9]/g, '').slice(0, 24));
+  const item = {id, n, total, mensualidad: m, precio: total, primero: mesesPrimero(hoyLocal(), corteDeTj(k)), nota, gasto: null, creado};
+  const btn = document.getElementById('ms-btn-' + suf);
+  let res = null, err = null;
+  btn.disabled = true; dineroOcupado = true;
+  try { res = await txDinero({mesesAdd: {k, item}}); }
+  catch (e) { err = e; }
+  finally { btn.disabled = false; liberarDinero(); }
+  if (err) { console.error('anotarMesesTraia', err); showToast(msgFalloDinero()); return; }
+  const limpiar = () => { delete mesesTraiaId[k]; ['ms-nota-', 'ms-mens-', 'ms-faltan-'].forEach(p => { document.getElementById(p + suf).value = ''; }); };
+  if (res.error && res.codigo === 'ya-existe') { limpiar(); yaAplicado(); return; }
+  if (res.error) { showToast(res.error); return; }
+  aplicarRes(res); limpiar();
+  refrescar(render, renderMovimientos);
+  showToast('compra a meses anotada · ' + n + ' de ' + fmt(m));
+};
+window.quitarMesesTraia = async function(k, id) {
+  const it = mesesDe(k).find(x => x.id === id); if (!it || (it.gasto && state.gastos.some(g => g.id === it.gasto))) return;
+  if (dineroOcupado) { showToast('espera, hay otra operación en curso'); return; }
+  const e = mesesEstado(it, corteDeTj(k), hoyLocal());
+  if (!(await confirmarDeslizando({titulo: '¿Quitar la compra a meses?', texto: (it.nota ? '“' + it.nota + '”\n' : '') + 'Se quita de tu tarjeta'
+      + (e.cargado > 0.005 ? ' con lo que ya se cargó (' + fmt(e.cargado) + '): si ya lo pagaste, tu tarjeta puede quedar con saldo a favor.' : '.'), verbo: 'quitar'}))) return;
+  if (!mesesDe(k).some(x => x.id === id)) return;
+  if (dineroOcupado) { showToast('espera, hay otra operación en curso'); return; }
+  let res = null, err = null;
+  dineroOcupado = true;
+  try { res = await txDinero({mesesDel: {k, id}, permitirDeudaNegativa: true}); }
+  catch (e2) { err = e2; }
+  finally { liberarDinero(); }
+  if (err) { console.error('quitarMesesTraia', err); showToast(msgFalloDinero()); return; }
+  if (res.error) { showToast(res.error); return; }
+  aplicarRes(res);
+  refrescar(render, renderMovimientos);
+  showToast('compra a meses quitada');
+};
 // (7-nov-2026) PAGAR UNA TARJETA DESDE UNA CUENTA QUE LA PERSONA AGREGO (x_, en pesos). Una persona nueva solo tiene cuentas agregadas: el select de pago
 // no las ofrecia y su deuda nunca podia bajar desde su banco. TODO en UNA txDinero: baja el saldo de la cuenta (plan.fx), baja la deuda, queda el pago en la
 // tarjeta y la transferencia (origen x_, destino la tarjeta). Una cuenta x_ NUNCA va en plan.deltas. requerirAusentes sobre la transferencia + el id del pago
@@ -10010,7 +10248,7 @@ function getSaldoCuenta(c) {
   if(Object.hasOwn(CAMPO_COMP,c)) return calcCompAt(c,Date.now());
   // OJO: para el deposito de la TDC devuelve el RETIRABLE (piso $250 y deuda usada
   // quedan bloqueados por Revolut), NO el deposito total — no usar para mostrarlo
-  if(c==='revTdcDep') return Math.max(0,Math.min((state.revTdcDeposito||0)-250,(state.revTdcDeposito||0)-Math.max(0,state.revTdcDeuda||0)));
+  if(c==='revTdcDep') return Math.max(0,Math.min((state.revTdcDeposito||0)-250,(state.revTdcDeposito||0)-Math.max(0,(state.revTdcDeuda||0)+mesesFaltaTotal(state.revTdcMeses,CORTE_TJREV,hoyLocal()))));
   return 0;
 }
 // ── FONDO: lo apartado y lo libre de cada cuenta ──
@@ -11457,14 +11695,27 @@ async function altaGasto(cat,monto,nota,fuente,btn,fecha,extra) {
   if(extra&&typeof extra.suscripcion==='string') gasto.suscripcion=extra.suscripcion.slice(0,24);
   // (18-nov-2026) subcategoria opcional y el pago de un credito (lo que es interes de ese pago): etiquetas, nunca dinero
   aplicarExtraG(gasto,extra);
+  // (19-nov-2026) compra a meses: el gasto es lo que de verdad cuesta (mensualidad x meses) y la compra va a la lista de SU tarjeta en
+  // la MISMA transaccion. La deuda no sube hoy: sube sola en cada corte (fijarDeudasTj). Pide señal: la bandeja no sabe de compras a meses
+  let msItem=null;
+  if(extra&&extra.meses){
+    if(fuente!=='tarjeta'&&fuente!=='tarjetaRev'){ showToast('una compra a meses va con una tarjeta de crédito'); return false; }
+    const pl=mesesPlan(m,extra.meses.n,extra.meses.mensualidad);
+    if(pl.error){ showToast(pl.error); return false; }
+    if(hayQueGuardarEnTelefono()){ showToast('una compra a meses necesita señal: anótala cuando tengas conexión'); return false; }
+    const dia=/T00:00:00Z$/.test(gasto.fecha)?gasto.fecha.slice(0,10):(diaLocalMov(gasto.fecha)||hoyLocal());
+    msItem={id:'ms_'+ref.id, n:extra.meses.n, total:pl.total, mensualidad:pl.mensualidad, precio:m, primero:mesesPrimero(dia,corteDeTj(fuente)), nota:nota||cat, gasto:ref.id, creado};   // sin nota se llama como su categoria
+    gasto.monto=pl.total; gasto.meses=msItem.id;
+  }
   // (15-oct-2026) sin senal se guarda en el telefono con su id ya fijado y sube despues. Los
   // pagos de suscripcion NO: su id fijo por mes depende de lo que diga el servidor ese dia.
-  const aTelefono=!idFijo&&!gasto.suscripcion&&!gasto.credito;   // el pago de un credito no va a la bandeja (no lleva credito)
+  const aTelefono=!idFijo&&!gasto.suscripcion&&!gasto.credito&&!msItem;   // el pago de un credito y una compra a meses no van a la bandeja
   if(aTelefono&&hayQueGuardarEnTelefono()) return guardarEnTelefonoConCandado('gasto',ref.id,gasto,false,btn,uidCaptura);
   // el gasto YA OCURRIO en la vida real: si el saldo registrado no alcanza se avisa,
   // pero no se bloquea — perder el registro es peor que quedar en rojo. El limite de
   // la TDC Revolut SI es bloqueante y lo valida txDinero contra el deposito canonico.
   const plan=planAltaGasto(ref,gasto);
+  if(msItem){ delete plan.tarjetaDelta; delete plan.tdcRevDelta; plan.mesesAdd={k:fuente,item:msItem}; }
   // SIEMPRE requerirAusentes (15-oct-2026): si el commit llega y se pierde la respuesta, el SDK reintenta
   // la funcion de la transaccion; sin esto releia el saldo ya debitado y lo debitaba OTRA VEZ.
   plan.requerirAusentes=[ref];
@@ -11482,7 +11733,7 @@ async function altaGasto(cat,monto,nota,fuente,btn,fecha,extra) {
   if(res.error&&res.codigo==='ya-existe'&&!idFijo){
     gasto.id=ref.id; await traerYaEstaba(ref,state.gastos);
     if(!state.gastos.some(x=>x.id===ref.id)){ insertarPorFecha(state.gastos,gasto); refrescar(render,renderMovimientos); } // getDoc fallo: se sabe que llego
-    showToast('−'+fmt(m)+' registrado'); return true;
+    showToast('−'+fmt(gasto.monto)+' registrado'); return true;
   }
   if(res.error){ showToast(res.error); return false; }
   // -- post-commit: se refleja lo que quedo en el SERVIDOR, no lo que creia la pantalla --
@@ -11490,15 +11741,42 @@ async function altaGasto(cat,monto,nota,fuente,btn,fecha,extra) {
   gasto.id=ref.id; insertarPorFecha(state.gastos,gasto);
   const quedoNegativo=!!plan.deltas && res.saldos[fuente]<0;
   refrescar(render,renderMovimientos);
-  showToast(quedoNegativo?('−'+fmt(m)+' registrado · ojo: SALDO quedó negativo'):('−'+fmt(m)+' registrado'));
+  showToast(msItem?('compra a '+msItem.n+' meses registrada · '+fmt(msItem.mensualidad)+' al mes'):quedoNegativo?('−'+fmt(m)+' registrado · ojo: SALDO quedó negativo'):('−'+fmt(m)+' registrado'));
   avisoCategoria(cat,gasto.fecha); // aviso diferido si ese mes ya va muy arriba del promedio
-  avisoLimite(m,gasto.fecha,cat);  // y el del limite del mes y de su categoria (gana si salen los dos)
+  avisoLimite(gasto.monto,gasto.fecha,cat);  // y el del limite del mes y de su categoria (gana si salen los dos)
   return true;
 }
+// (19-nov-2026) la casilla "la compré a meses" solo sale con una tarjeta en "pagado con"; lo que va a costar se dice antes de registrar
+function mesesGastoLeido() {
+  const on=document.getElementById('gasto-meses-on'), f=document.getElementById('gasto-meses-field');
+  if(!on||!f||f.hidden||!on.checked) return null;
+  const n=Number(document.getElementById('gasto-meses-n').value), mt=document.getElementById('gasto-meses-mens').value.trim();
+  return {n, mensualidad: mt===''?null:parseFloat(mt)};
+}
+window.pintarMesesGasto = function() {
+  const f=document.getElementById('gasto-meses-field'); if(!f) return;
+  const conTj=state.fuenteGasto==='tarjeta'||state.fuenteGasto==='tarjetaRev';
+  f.hidden=!conTj;
+  const on=document.getElementById('gasto-meses-on'), det=document.getElementById('gasto-meses-det'), res=document.getElementById('gasto-meses-res');
+  det.hidden=!(conTj&&on.checked);
+  if(det.hidden){ res.textContent=''; return; }
+  const ms=mesesGastoLeido(), precio=parseFloat(document.getElementById('gasto-monto').value);
+  if(!ms||!ms.n||!(precio>0)){ res.textContent='escribe el monto y los meses'; return; }
+  const pl=mesesPlan(precio,ms.n,ms.mensualidad);
+  if(pl.error){ res.textContent=pl.error; return; }
+  const corte=corteDeTj(state.fuenteGasto), fv=document.getElementById('gasto-fecha').value, dia=/^\d{4}-\d{2}-\d{2}$/.test(fv)?fv:hoyLocal();
+  const prim=mesesPrimero(dia,corte), f1=parseFechaLocal(mesesCorteDe(prim,corte)).toLocaleDateString('es-MX',{day:'numeric',month:'short'});
+  // (19-nov-2026, revision) con fecha pasada, las mensualidades que ya cayeron entran a lo que debes HOY: se dice antes de registrar
+  const ya=mesesEstado({n:ms.n,total:pl.total,mensualidad:pl.mensualidad,primero:prim},corte,hoyLocal());
+  res.textContent=ms.n+' mensualidades de '+fmt(pl.mensualidad)+(pl.interes>0.005?' · te cuesta '+fmt(pl.total)+', '+fmt(pl.interes)+' de interés':' · sin intereses')
+    +'. Cuenta como gasto completo el día de la compra; tu tarjeta sube mes a mes, desde el corte del '+f1+'.'
+    +(ya.k>0?' Ojo: '+(ya.k===1?'1 mensualidad ya cayó':ya.k+' mensualidades ya cayeron')+' y tu deuda sube '+fmt(ya.cargado)+' hoy. Si ya las tenías en lo que debes, anótala en tu tarjeta como compra que ya traías.':'');
+};
 window.registrarGasto = async function() {
   if(!montoValido('gasto-monto')) return;
   if(!state.fuenteGasto){ faltaCuenta('gasto-fuente-toggle','Elige de dónde salió el dinero'); return; }
   const fecha=fechaMovOpcional('gasto-fecha'); if(fecha===null) return;
+  const meses=mesesGastoLeido();
   // (20-oct-2026) una cuenta en otra moneda va por su propio camino (plan.fx), nunca por deltas
   const ok=esIdX(state.fuenteGasto) ? await altaMovX('gasto',
     document.getElementById('gasto-cat').value, parseFloat(document.getElementById('gasto-monto').value),
@@ -11508,9 +11786,9 @@ window.registrarGasto = async function() {
     parseFloat(document.getElementById('gasto-monto').value),
     document.getElementById('gasto-nota').value.trim(),
     state.fuenteGasto,
-    document.getElementById('gasto-btn'),fecha,{sub:subElegida('gasto')});
+    document.getElementById('gasto-btn'),fecha,{sub:subElegida('gasto'),...(meses?{meses}:{})});
   if(ok) palomita('gasto-btn');
-  if(ok){ ['gasto-monto','gasto-nota','gasto-fecha'].forEach(id=>document.getElementById(id).value=''); window.setFuente(''); ticketQuitarMarcas(); ticketGen++; const sg=document.getElementById('gasto-sub'); if(sg) sg.value=''; }
+  if(ok){ ['gasto-monto','gasto-nota','gasto-fecha','gasto-meses-n','gasto-meses-mens'].forEach(id=>document.getElementById(id).value=''); document.getElementById('gasto-meses-on').checked=false; window.setFuente(''); ticketQuitarMarcas(); ticketGen++; const sg=document.getElementById('gasto-sub'); if(sg) sg.value=''; }
 };
 // <ticket-puras> (7-nov-2026) Foto del ticket: del texto que da el lector a {monto, fecha, comercio, confianza}. Funciones puras, sin DOM ni red:
 // test-ticket.mjs las corre en Node. Regla: ante la duda NO se llena (monto null); un monto mal leido que la persona no revise es peor que un campo vacio.
@@ -11985,7 +12263,11 @@ window.eliminarGasto = async function(id) {
   const sinEfecto=movSinEfecto(g); // capturado por atajo y nunca aplicado: borrar no toca cuentas
   if(dineroOcupado){showToast('espera, hay otra operación en curso');return;}
   const visto={monto:g.monto,fuente:g.fuente,cat:g.cat};
-  if(!(await confirmarDeslizando({titulo:'¿Eliminar el gasto?', texto:(g.nota?'“'+g.nota+'”\n':'')+'¿Eliminar gasto de '+fmtMov(g)+' en '+g.cat+'? '+(sinEfecto?'(no afecta saldos: no estaba aplicado)':'El dinero se devuelve a '+(g.fuente==='tarjeta'||g.fuente==='tarjetaRev'?'la tarjeta':nombreCuenta(g.fuente)||g.fuente)), verbo:'eliminar'})))return;
+  const msItem=g.meses?mesesDe(g.fuente).find(x=>x.id===g.meses):null;
+  const efecto=sinEfecto?'(no afecta saldos: no estaba aplicado)'
+    :g.meses?'Es una compra a meses: se quita de tu tarjeta con las mensualidades que ya se cargaron'+(msItem&&mesesEstado(msItem,corteDeTj(g.fuente),hoyLocal()).cargado>0.005?' ('+fmt(mesesEstado(msItem,corteDeTj(g.fuente),hoyLocal()).cargado)+')':'')+'.'
+    :'El dinero se devuelve a '+(g.fuente==='tarjeta'||g.fuente==='tarjetaRev'?'la tarjeta':nombreCuenta(g.fuente)||g.fuente);
+  if(!(await confirmarDeslizando({titulo:'¿Eliminar el gasto?', texto:(g.nota?'“'+g.nota+'”\n':'')+'¿Eliminar gasto de '+fmtMov(g)+' en '+g.cat+'? '+efecto, verbo:'eliminar'})))return;
   if(!sigueIgual(visto,state.gastos.find(x=>x.id===id),['monto','fuente','cat']))return;
   if(dineroOcupado){showToast('espera, hay otra operación en curso');return;} // el confirm bloquea: revalidar al volver
   const m=c2(nFin(g.monto));
@@ -11998,8 +12280,13 @@ window.eliminarGasto = async function(id) {
   const plan={permitirNegativo:true, permitirDeudaNegativa:true,
     movBorrar:{ref, slot:enCuenta?g.fuente:null, signo:1, monto:m},
     // en otra moneda txDinero devuelve montoOrig a su cuenta (lo lee del servidor): se verifica que no cambio
-    verificarIguales:[{ref, campos:{monto:m, fuente:g.fuente, ...(esMovX(g)?{montoOrig:g.montoOrig, moneda:g.moneda}:{})}}]};
-  if(g.fuente==='tarjeta') plan.tarjetaDelta=-m;
+    verificarIguales:[{ref, campos:{monto:m, fuente:g.fuente, ...(esMovX(g)?{montoOrig:g.montoOrig, moneda:g.moneda}:{}), ...(g.meses?{meses:g.meses}:{})}}]};
+  // (19-nov-2026) un gasto a meses nunca subio la deuda por el total: se quita su compra y con ella lo ya cargado
+  if(g.meses){
+    if(g.fuente!=='tarjeta'&&g.fuente!=='tarjetaRev'){ showToast('esa compra a meses está dañada: no se puede deshacer sola'); return; }
+    if(!sinEfecto) plan.mesesDel={k:g.fuente,id:g.meses};
+  }
+  else if(g.fuente==='tarjeta') plan.tarjetaDelta=-m;
   else if(g.fuente==='tarjetaRev') plan.tdcRevDelta=-m;
   let res=null,err=null;
   dineroOcupado=true;
@@ -12013,7 +12300,7 @@ window.eliminarGasto = async function(id) {
   const i2=state.gastos.findIndex(x=>x.id===id); if(i2>=0) state.gastos.splice(i2,1);
   refrescar(render,renderMovimientos);
   // no se recorta a 0: si el gasto eliminado deja la tarjeta con saldo a favor, se avisa en vez de ocultarlo
-  const aFavor=(res.tarjeta&&res.tarjeta.deuda<0)||(res.tdcRev&&res.tdcRev.deuda<0);
+  const aFavor=(res.tarjeta&&state.tarjetaDeuda<0)||(res.tdcRev&&state.revTdcDeuda<0);   // (19-nov-2026) la deuda real, con lo cargado de las compras a meses
   showToast(aFavor?'gasto eliminado · ojo: la tarjeta quedó con saldo a favor':'gasto eliminado');
 };
 
@@ -12156,7 +12443,9 @@ function renglonMov(m) {
   const edit=it.id?`<button type="button" class="edit-btn" title="editar movimiento" aria-label="editar movimiento" onclick="editarMovimiento('${esGasto?'gasto':'ingreso'}','${it.id}')">${ICONO_EDITAR}</button>`:'';
   const marca=it.pendiente===true?' · atajo: pendiente de aplicar':(it.porAtajo===true&&it.aplicadoSaldo===false?' · atajo: rechazado (no afectó saldos)':'');
   // (17-nov-2026) sin la fecha: el dia va en el encabezado (en la lista y en el dia del calendario); la nota solo si hay
-  const meta=[it.nota?escapeHtml(it.nota):'',cuenta].filter(Boolean).join(' · ')+marca;
+  const ms=it.meses&&esGasto?mesesDe(it.fuente).find(x=>x.id===it.meses):null;
+  const marcaMs=it.meses&&esGasto?(ms?' · a '+ms.n+' meses':' · a meses'):'';
+  const meta=[it.nota?escapeHtml(it.nota):'',cuenta].filter(Boolean).join(' · ')+marcaMs+marca;
   return`<div class="item-row mov-row"><div><div class="item-cat">${escapeHtml(catFV(it.cat))}${it.sub?'<span class="mov-sub"> · '+escapeHtml(String(it.sub))+'</span>':''}</div><div class="item-meta">${meta}</div></div><div class="mov-amt ${esGasto?'item-amt-neg':'item-amt-pos'}">${esGasto?'−':'+'}${fmtMov(it)}</div><div class="mov-acc">${edit}${del}</div></div>`;
 }
 function renderMovimientos() {
@@ -12264,14 +12553,16 @@ function calAgenda(y,mes0) {
     if(k<hoy) return;
     // la deuda solo se dice en el proximo corte: en los siguientes ya no sera esa
     const este=calDiaDeCorte(corte,hy,hm), sig=new Date(hy,hm+1,1), prox=este>=hoy?este:calDiaDeCorte(corte,sig.getFullYear(),sig.getMonth());
-    poner(k,{tipo:'corte',id,nombre:CUENTAS[id]||'tarjeta',deuda:k===prox&&Number.isFinite(deuda)&&deuda>0?deuda:null});
+    const ms=mesesEnCorte(mesesDe(id),corte,k);   // (19-nov-2026) lo que se carga ese dia de sus compras a meses (no suma a "por venir": no es un gasto nuevo)
+    poner(k,{tipo:'corte',id,nombre:CUENTAS[id]||'tarjeta',deuda:k===prox&&Number.isFinite(deuda)&&deuda>0?deuda:null,meses:ms.reduce((a,x)=>a+x.monto,0),mesesN:ms.length});
   });
   return porDia;
 }
 function calRenglonAgenda(x,k) {
   const f=parseFechaLocal(k).toLocaleDateString('es-MX',{day:'numeric',month:'short'});
   if(x.tipo==='corte') return '<div class="item-row cal-ag"><div><div class="item-cat cal-ag-corte">corte de '+escapeHtml(x.nombre)+'</div>'
-    +'<div class="item-meta cal-ag-meta">aquí cierra tu estado de cuenta, aún no pagas · '+(x.deuda!==null?'hoy debes '+fmt(x.deuda)+' · ':'')+escapeHtml(f)+'</div></div></div>';
+    +'<div class="item-meta cal-ag-meta">aquí cierra tu estado de cuenta, aún no pagas · '+(x.deuda!==null?'hoy debes '+fmt(x.deuda)+' · ':'')
+    +(x.mesesN?'entran '+fmt(x.meses)+' de '+(x.mesesN>1?x.mesesN+' compras':'tu compra')+' a meses · ':'')+escapeHtml(f)+'</div></div></div>';
   // 'luego' la saca del aviso de Inicio: ahi ya no se le puede mandar
   const enInicio=Object.assign({},susLuegoMap(),susLuegoMem)[x.s.id]!==k.slice(0,7);
   const est=x.estado==='pagada'?'ya la registraste este mes':(x.estado==='pendiente'?(k===hoyLocal()?'te toca hoy':'te tocaba')+', ¿ya la pagaste? '+(enInicio?'regístrala en Inicio':'anótala como gasto con su nombre en la nota'):'suscripción');
@@ -12487,7 +12778,7 @@ window.editarMovimiento = function(tipo, id) {
   // (20-oct-2026) en otra moneda tambien se bloquean monto y cuenta: el monto en pesos depende del tipo de
   // cambio de su dia y las reglas del servidor no dejan cambiarlo (se borra y se registra de nuevo)
   const enX = esMovX(it);
-  const bloqueadas = movRechazado(it) || enX;
+  const bloqueadas = movRechazado(it) || enX || !!it.meses;
   document.getElementById('edit-mov-cuenta').innerHTML = opciones.map(c=>{
     const legada = !EDIT_CUENTAS[tipo].includes(c) && !enX;
     return `<button type="button" class="type-opt${c===it[campo]?' active':''}" data-cta="${escapeHtml(String(c))}"`
@@ -12498,7 +12789,9 @@ window.editarMovimiento = function(tipo, id) {
   inpMonto.disabled = bloqueadas;
   inpMonto.classList.remove('is-error','is-shaking'); inpMonto.removeAttribute('aria-invalid'); // restos de un intento anterior
   if (enX) document.getElementById('edit-mov-monto').value = String(c2(nFin(it.monto)));
-  document.getElementById('edit-mov-sub').textContent = enX
+  document.getElementById('edit-mov-sub').textContent = it.meses
+    ? 'compra a meses: puedes cambiar categoría, nota y fecha (la fecha no mueve sus mensualidades); para cambiar el monto o la tarjeta, bórrala y regístrala de nuevo'
+    : enX
     ? (it.moneda && it.moneda !== 'MXN' ? 'movimiento en otra moneda ('+fmtMov(it)+')' : 'movimiento de una cuenta que agregaste') + ': puedes cambiar categoría, nota y fecha; para corregir el monto o la cuenta, bórralo y regístralo de nuevo'
     : bloqueadas
     ? 'este movimiento del Atajo fue rechazado: puedes cambiar categoría, nota y fecha; para corregir el monto o la cuenta, bórralo y regístralo de nuevo'
@@ -12628,7 +12921,7 @@ window.guardarEdicionMov = async function() {
   // originales y NO se valida el monto (si venia invalido, justo por eso fue rechazado), para
   // que si se puedan corregir categoria, nota y fecha
   // (20-oct-2026) un movimiento en otra moneda se trata igual: monto y cuenta fijos, solo metadatos
-  const rechazado=movRechazado(it)||esMovX(it);
+  const rechazado=movRechazado(it)||esMovX(it)||!!it.meses;   // (19-nov-2026) una compra a meses: solo categoria, nota y fecha
   const cuenta=rechazado?visto[campo]:editMov.cuenta;
   if(!cat){ showToast('elige una categoría'); return; }
   const m1=c2(nFin(visto.monto));
@@ -12767,7 +13060,7 @@ window.guardarEdicionMov = async function() {
   window.cerrarEdicionMov();
   refrescar(rerenderTodo); // un fallo pintando nunca debe reportarse como "no se guardo"
   const enRojo = Object.values(res.saldos||{}).some(v=>cent(v)<0);
-  const aFavor=(res.tarjeta&&res.tarjeta.deuda<0)||(res.tdcRev&&res.tdcRev.deuda<0);
+  const aFavor=(res.tarjeta&&state.tarjetaDeuda<0)||(res.tdcRev&&state.revTdcDeuda<0);   // (19-nov-2026) la deuda real, con lo cargado de las compras a meses
   const movido=cambiaFecha?textoMovido(fecha):'';
   showToast(enRojo?'movimiento actualizado'+movido+' · ojo: una cuenta quedó negativa':aFavor?'movimiento actualizado'+movido+' · ojo: la tarjeta quedó con saldo a favor':'movimiento actualizado'+movido);
 };
@@ -13232,7 +13525,7 @@ window.eliminarDeuda = async function(personaKey, movId) {
   state.personas[personaKey]=personaSegura({...state.personas[personaKey],...res.persona},personaKey);
   refrescar(renderDeudas,render);
   // como en eliminarGasto: si la tarjeta ya se habia pagado, puede quedar con saldo a favor; se dice
-  const aFavorDeuda=(res.tarjeta&&res.tarjeta.deuda<0)||(res.tdcRev&&res.tdcRev.deuda<0);
+  const aFavorDeuda=(res.tarjeta&&state.tarjetaDeuda<0)||(res.tdcRev&&state.revTdcDeuda<0);   // (19-nov-2026) la deuda real
   showToast(aFavorDeuda?'movimiento eliminado · ojo: la tarjeta quedó con saldo a favor':'movimiento eliminado');
 };
 
@@ -16285,7 +16578,7 @@ window.exportarMisDatos = async function() {
     const datos={
       exportado:new Date().toISOString(),
       perfil:state.perfil, tickers:state.tickers, saldos:saldosPayload(),
-      tarjetaNu:{deuda:state.tarjetaDeuda,movimientos:state.tarjetaMovimientos},
+      tarjetaNu:{deuda:state.tarjetaDeudaG,deudaHoy:state.tarjetaDeuda,movimientos:state.tarjetaMovimientos,meses:state.tarjetaMeses},   // deuda = la guardada; deudaHoy = con lo ya cargado de sus compras a meses
       tarjetaRev:tarjetaRevPayload(),
       gastos:state.gastos, ingresos:state.ingresos, transferencias:state.transferencias,
       operacionesBolsa:state.stocksOps, personas:state.personas,
@@ -18018,8 +18311,10 @@ function proxCorteKey(corte) {
 function datosDebes() {
   const T=totalesInicio||{};
   const tarjetas=[['tarjeta',CORTE_TJ,state.tarjetaDeuda],['tarjetaRev',CORTE_TJREV,state.revTdcDeuda]]
-    .map(([id,corte,d])=>({id, nombre:CUENTAS[id]||'tarjeta', corte:proxCorteKey(corte), deuda:Number(d)||0}))
-    .filter(t=>!ctaApagada(t.id)||Math.abs(t.deuda)>0.005);   // apagada sin deuda: no sale (con deuda si: sigue contando en Inicio)
+    .map(([id,corte,d])=>({id, nombre:CUENTAS[id]||'tarjeta', corte:proxCorteKey(corte), deuda:Number(d)||0,
+      meses:mesesDe(id).map(it=>({it, e:mesesEstado(it,corte,hoyLocal())})).filter(x=>x.e.falta>0.005)}))
+    .map(t=>({...t, falta:t.meses.reduce((s,x)=>s+x.e.falta,0)}))
+    .filter(t=>!ctaApagada(t.id)||Math.abs(t.deuda)>0.005||t.falta>0.005);   // apagada sin deuda: no sale (con deuda si: sigue contando en Inicio)
   const ps=Object.values(state.personas||{}).filter(p=>p&&Number.isFinite(p.saldo)).map(p=>({nombre:p.nombre||'', s:saldoP(p)}));   // (18-nov-2026) con su interes
   const aPersonas=ps.filter(p=>p.s<-0.005).map(p=>({nombre:p.nombre, monto:-p.s})).sort((a,b)=>b.monto-a.monto);
   const teDeben=ps.filter(p=>p.s>0.005).map(p=>({nombre:p.nombre, monto:p.s})).sort((a,b)=>b.monto-a.monto);
@@ -18027,8 +18322,9 @@ function datosDebes() {
   const personas=aPersonas.reduce((s,p)=>s+p.monto,0);
   const creditos=Object.keys(state.creditos||{}).map(id=>estadoCredito(id)).filter(e=>e&&!e.error&&e.debe>0.005).map(e=>({nombre:e.c.nombre, monto:e.debe, prox:e.prox}));
   const credTot=creditos.reduce((s,c)=>s+c.monto,0);
-  const total=Math.max(0,tdc)+personas+credTot;
-  return {tarjetas, tdc, aPersonas, personas, creditos, credTot, teDeben, teDebenTot:teDeben.reduce((s,p)=>s+p.monto,0), total, resto:(T.tuyo||0)-total,
+  const mesesFalta=c2(tarjetas.reduce((s,t)=>s+t.falta,0));   // (19-nov-2026) compras a meses: lo que todavia no se carga a la tarjeta
+  const total=Math.max(0,tdc)+mesesFalta+personas+credTot;
+  return {tarjetas, tdc, mesesFalta, aPersonas, personas, creditos, credTot, teDeben, teDebenTot:teDeben.reduce((s,p)=>s+p.monto,0), total, resto:(T.tuyo||0)-total,
     seguro:!!T.listo&&datosCargados&&!cargaDesdeCache, bolsaPend:!!T.bolsaPend};
 }
 function renderDebes() {
@@ -18037,7 +18333,7 @@ function renderDebes() {
   const d=datosDebes(), f=k=>parseFechaLocal(k).toLocaleDateString('es-MX',{day:'numeric',month:'short'});
   const nota=d.seguro?'':'<div class="item-meta debes-nota">copia local, sin confirmar</div>';
   const fila=(cat,meta,monto,cls)=>'<div class="item-row"><div><div class="item-cat">'+cat+'</div>'+(meta?'<div class="item-meta">'+meta+'</div>':'')+'</div><span class="'+cls+'">'+monto+'</span></div>';
-  const conTdc=d.tarjetas.some(t=>Math.abs(t.deuda)>0.005);
+  const conTdc=d.tarjetas.some(t=>Math.abs(t.deuda)>0.005||t.falta>0.005);
   if(d.total<0.005&&!conTdc&&!d.teDeben.length){
     el.innerHTML='<div class="empty-state debes-nada">'+(d.seguro?'no debes nada en tarjetas ni a personas':'en tu copia local no debes nada en tarjetas ni a personas')+'</div>'+nota;
     return;
@@ -18055,6 +18351,13 @@ function renderDebes() {
       const meta='próximo corte: '+f(t.corte)+(t.deuda<-0.005?' · saldo a favor':'');
       h+=fila(escapeHtml(t.nombre),meta,t.deuda<-0.005?'+'+fmt(-t.deuda):fmt(t.deuda),t.deuda>0.005?'debes-amt':'debes-cero');
     });
+    // (19-nov-2026) compras a meses: lo ya cargado esta arriba, en la tarjeta; aqui lo que falta por cargar, compra por compra
+    if(d.mesesFalta>0.005){
+      h+='<div class="debes-sub"><span>a meses, falta por cargar</span><span id="debes-meses">'+fmt(d.mesesFalta)+'</span></div>';
+      d.tarjetas.forEach(t=>t.meses.forEach(({it,e})=>{
+        h+=fila(escapeHtml(it.nota||'compra a meses'),mesesTexto(it,e)+' · '+escapeHtml(t.nombre),fmt(e.falta),'debes-amt');
+      }));
+    }
   }
   if(d.aPersonas.length){
     h+='<div class="debes-sub"><span>a personas</span><span id="debes-personas">'+fmt(d.personas)+'</span></div>';
@@ -18370,8 +18673,9 @@ const TIPO_TXT={efectivo:'efectivo en mano',banco:'cuenta de banco',ahorro:'cuen
   tarjeta:'tarjeta de crédito',bolsa:'inversión en bolsa'};
 // dinero de una cuenta fija (una tarjeta cuenta su deuda; la 2 garantizada, tambien su deposito)
 function saldoSlotCfg(k) {
-  if (k === 'tarjeta') return nFin(state.tarjetaDeuda);
-  if (k === 'tarjetaRev') return Math.abs(nFin(state.revTdcDeuda)) + Math.abs(nFin(state.revTdcDeposito));
+  // (19-nov-2026, revision) lo que falta por cargar de sus compras a meses tambien es deuda: con eso no se apaga
+  if (k === 'tarjeta') return nFin(state.tarjetaDeuda) + mesesFaltaTotal(state.tarjetaMeses, CORTE_TJ, hoyLocal());
+  if (k === 'tarjetaRev') return Math.abs(nFin(state.revTdcDeuda)) + Math.abs(nFin(state.revTdcDeposito)) + mesesFaltaTotal(state.revTdcMeses, CORTE_TJREV, hoyLocal());
   if (k === 'stocks') return 0;
   return nFin(getSaldoCuenta(k));
 }
@@ -18411,8 +18715,8 @@ function renderConfigCuentas() {
 var cfgMasAbierto = false;   // var: renderConfigCuentas puede correr antes de llegar a esta linea
 // una cuenta fija con algun movimiento (aunque este apagada): nunca se esconde detras de "ver más"
 function slotConMovsCfg(k) {
-  if (k === 'tarjeta') return (state.tarjetaMovimientos || []).length > 0;
-  if (k === 'tarjetaRev') return (state.revTdcMovs || []).length > 0;
+  if (k === 'tarjeta') return (state.tarjetaMovimientos || []).length > 0 || (state.tarjetaMeses || []).length > 0;
+  if (k === 'tarjetaRev') return (state.revTdcMovs || []).length > 0 || (state.revTdcMeses || []).length > 0;
   const toca = m => !!m && typeof m === 'object' && Object.values(m).some(v => v === k);
   return [state.gastos, state.ingresos, state.transferencias, state.stocksOps, (state.fondo && state.fondo.movs) || [],
     Object.values(state.personas || {}).flatMap(p => (p && p.movimientos) || [])].some(l => Array.isArray(l) && l.some(toca));
