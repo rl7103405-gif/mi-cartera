@@ -6644,7 +6644,7 @@ window.agregarCredito = async function(btn) {
     ['cr-nombre', 'cr-monto', 'cr-pago', 'cr-n', 'cr-tasa', 'cr-primero'].forEach(i => { const x = document.getElementById(i); if (x) x.value = ''; });
     window.previaCredito();
     const d = document.getElementById('cr-alta'); if (d) d.open = false;
-    showToast('crédito anotado'); refrescar(renderCreditos, render);
+    showToast('crédito anotado'); refrescar(renderCreditos, renderDeudas, render);   // (20-nov-2026, Marcela) el balance de Deudas cuenta los creditos
   } catch (e) { creditoIntento = {id, firma}; console.error('agregarCredito', e); showToast(msgSinGuardarG(e)); }
   finally { creditoOcupado = false; btn.disabled = false; }
 };
@@ -6656,7 +6656,7 @@ window.borrarCredito = async function(id) {
   try {
     await guardarMergeG('creditos', {lista: {[id]: deleteField()}});
     const x = {...state.creditos}; delete x[id]; state.creditos = x;
-    showToast('crédito quitado'); refrescar(renderCreditos, render);
+    showToast('crédito quitado'); refrescar(renderCreditos, renderDeudas, render);
   } catch (e) { console.error('borrarCredito', e); showToast(msgSinGuardarG(e)); }
   finally { creditoOcupado = false; }
 };
@@ -6676,7 +6676,7 @@ window.pagarCredito = async function(id) {
   const nota = e.c.nombre + ' · pago ' + (e.k + 1) + ' de ' + e.plan.n;
   const btn = document.getElementById('g-cr-btn');
   const ok = esIdX(cuenta) ? await altaMovX('gasto', e.c.cat, monto, nota, cuenta, btn, fecha, extra) : await altaGasto(e.c.cat, monto, nota, cuenta, btn, fecha, extra);
-  if (ok) { creditoPagando = null; refrescar(renderCreditos, render); }
+  if (ok) { creditoPagando = null; refrescar(renderCreditos, renderDeudas, render); }
 };
 
 window.irTiposCat = function() {
@@ -15014,7 +15014,7 @@ const AYUDA_BASE = [
     r:['En Deudas, en préstamos y créditos: cuánto te prestaron, el pago, cada cuándo y la tasa (con tres de esos datos la app saca el cuarto).', 'Cada pago se anota como gasto, con su parte de interés. Lo que debes hoy sale ahí y en lo que debes del Resumen. Lo que compraste a meses con tu tarjeta va como gasto.'],
     claves:'prestamo prestamos credito creditos hipoteca hipotecario financiamiento'},
   {id:'cal-ingresos', g:'ver', p:'Mi quincena no sale en el calendario', donde:'Calendario', ir:'calendario', boton:'ir al calendario',
-    r:['El calendario pinta en cada día lo que gastaste y lo que viene (suscripciones y cortes). Lo que te entró sale arriba, en "Ingresos" del mes, y cada ingreso con su fecha en Movimientos.'],
+    r:['En el calendario, lo que te entró sale en verde, con un +, en el día que lo anotaste. El total del mes sale arriba, en "Ingresos". Si tu quincena no sale, revisa en Movimientos que esté anotada como ingreso y con su fecha.'],
     claves:'quincena quincenas sueldo'},
   {id:'ingreso', g:'anotar', p:'¿Cómo registro un ingreso?', donde:'Movimientos › Registrar › Ingreso', ir:'ingreso', boton:'ir a registrar un ingreso',
     r:['Elige "Ingreso", la categoría y el monto, y en "Entra a" elige la cuenta. Termina con "Registrar ingreso". Si dejas la fecha vacía, queda con la de hoy.'],
@@ -16918,6 +16918,9 @@ function renderCamino(ctx) {
     if(ap.cajitasX) huboOpRef.v=true;
   }
   const huboOp=huboOpRef.v;
+  // (20-nov-2026, Marcela) el mes en curso no entra al promedio (solo meses completos); si ya aportaste este mes se dice, no "aun no hay aportaciones"
+  const apMes=huboOp?null:aportacionesEnRango(new Date(hoyD.getFullYear(),hoyD.getMonth(),1),new Date(hoyD.getFullYear(),hoyD.getMonth()+1,1));
+  const huboMes=!!apMes&&Object.values(apMes).some(v=>Math.abs(v)>0.005);
   const fila=(nombre,actual,meta,prom,bloqueada,f)=>{
     // comparacion por fecha calendario: el propio dia de la meta todavia cuenta
     if(hoyLocal()>f) return `<div class="item-row"><div><div class="item-cat">${escapeHtml(nombre)}</div><div class="item-meta">la fecha de esta meta ya pasó — ponle otra con «editar»</div></div><span class="item-meta">—</span></div>`;
@@ -16947,7 +16950,8 @@ function renderCamino(ctx) {
     }).join('')+
     `<div class="item-meta" style="text-align:center;padding-top:8px">${huboOp
       ?'proyección conservadora: solo tus aportaciones, sin contar rendimientos'
-      :'aún no hay aportaciones registradas en los últimos 3 meses — la proyección arranca cuando muevas dinero desde la app'}</div>`;
+      :(huboMes?'ya ves lo que aportaste este mes; la proyección usa el promedio de tus meses completos y arranca cuando cierre tu primer mes'
+        :'aún no hay aportaciones registradas en los últimos 3 meses — la proyección arranca cuando muevas dinero desde la app')}</div>`;
 }
 
 // ── APARTADOS (metas de caprichos: contadores visuales, no tocan cuentas) ──
