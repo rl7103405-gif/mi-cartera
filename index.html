@@ -1172,6 +1172,8 @@ html[data-tema='grafito'] .cal-d.hoy .cal-n{color:#14171a}
 .cal-a{font-size:11px;line-height:1.15;font-variant-numeric:tabular-nums;white-space:nowrap;max-width:100%;overflow:hidden}
 .cal-a.g{color:var(--red-txt)}
 .cal-a.v{color:var(--text);font-weight:500}
+.cal-a.i{color:var(--accent-dark);font-weight:600}   /* (20-nov-2026) lo que entro ese dia */
+html[data-tema='grafito'] .cal-a.i{color:var(--accent)}
 .cal-d.viene{border:1px dashed var(--accent);background:var(--g2)}
 /* (17-nov-2026, sesion C) tinte por lo gastado ese dia, en 4 niveles (renderCalendario). Sobre el tinte mas fuerte la cifra va en
    --text: el rojo sobre rojo no llega a 4.5:1. El dia de mas gasto lleva ademas su borde */
@@ -1204,7 +1206,8 @@ html[data-tema='grafito'] .cal-d.hoy .cal-n{color:#14171a}
 @media (min-width:900px){.cal-a{font-size:12px}}
 .cal-ley .i-v{border:1px dashed var(--accent);background:var(--g2)}
 .cal-ley .i-p{width:9px;height:9px;border-radius:50%;border:1.5px solid var(--cal-ambar)}
-#mov-cal.priv .cal-ley-max,#mov-cal.priv .cal-ley-g{display:none}
+#mov-cal.priv .cal-ley-max,#mov-cal.priv .cal-ley-g,#mov-cal.priv .cal-ley-i{display:none}
+.cal-ley .i-i{width:auto;height:auto;color:var(--accent-dark);font-style:normal;font-weight:700;line-height:1}
 .cal-det-tit{font-size:14px;font-weight:600;margin-bottom:2px}
 .cal-nota{font-size:12px;color:var(--muted);line-height:1.5}
 .cal-det-res{font-size:12px;color:var(--muted);padding-bottom:4px}
@@ -2082,6 +2085,7 @@ html[data-tema='grafito'] #cal-filtro .type-opt.active>span{color:#14171a}
       <div class="cal-ley">
         <div class="cal-ley-esc"><span>menos</span><i class="i-g1"></i><i class="i-g2"></i><i class="i-g3"></i><i class="i-g4"></i><span>más gastado</span></div>
         <div class="cal-ley-max"><i class="i-max"></i>día de más gasto</div>
+        <div class="cal-ley-i"><i class="i-i">+</i>entró</div>
         <div><i class="i-v"></i>por venir</div>
         <div><i class="i-p"></i>sin registrar</div>
       </div>
@@ -12588,12 +12592,13 @@ function calRenglonAgenda(x,k) {
     +'<div class="item-meta cal-ag-meta">'+est+' · '+escapeHtml(f)+(ctaSus?' · con '+escapeHtml(ctaSus):'')+'</div></div>'
     +'<div class="cal-ag-m'+(x.estado==='pagada'?' neu':'')+'">'+fmt(x.monto)+'</div></div>';
 }
-function calEtiquetaDia(k,gastado,esMax,agenda) {
+function calEtiquetaDia(k,gastado,esMax,agenda,entro) {
   const p=[parseFechaLocal(k).toLocaleDateString('es-MX',{weekday:'long',day:'numeric',month:'long'})];
   if(k===hoyLocal()) p.push('hoy');
   // en modo privado la etiqueta tampoco dice montos ni nombres: un lector de pantalla la lee en voz alta
   if(modoPrivado){ if(gastado>0) p.push('con gastos'); if(agenda.length) p.push('con cosas por venir'); return p.join(', '); }
   if(gastado>0) p.push('gastaste '+fmt(gastado));
+  if(entro>0) p.push('entró '+fmt(entro));
   if(esMax) p.push('tu día de más gasto del mes');
   agenda.forEach(x=>{ if(x.tipo==='corte') p.push('corte de '+x.nombre); else if(x.estado!=='pagada') p.push(x.s.nombre+' '+fmt(x.monto)+(x.estado==='pendiente'?' sin registrar':'')); });
   return p.join(', ');
@@ -12633,6 +12638,8 @@ function renderCalendario() {
   document.getElementById('cal-sig').disabled=calOffset>=CAL_MAX_ADELANTE;
 
   const porDia=calGastosPorDia(t.gastos);
+  // (20-nov-2026, Marcela: "no me aparece mi quincena en el calendario") lo que entro cada dia, de los MISMOS ingresos que suma el total del mes
+  const porDiaI=calGastosPorDia(t.ingresos||[]);
   const vals=Object.values(porDia), maxG=vals.length?Math.max(...vals):0;
   // dos dias empatados se marcan los dos; a medio centavo por si la suma de decimales no da exacta
   const esMaxDia=v=>maxG>0&&v>=maxG-0.005;
@@ -12653,6 +12660,8 @@ function renderCalendario() {
     if(verG) cont+=modoPrivado?'<span class="cal-pt"></span>':'<span class="cal-a g">'+fmtCorto(g)+'</span>';
     else if(verV) cont+=modoPrivado?'<span class="cal-pt"></span>':'<span class="cal-a v">'+fmtCorto(sumaViene)+'</span>';
     if(verG&&verV) cont+='<span class="cal-pt" style="background:var(--accent-dark)"></span>';
+    const ing=porDiaI[k]||0;
+    if(verFueron&&ing>0&&!modoPrivado) cont+='<span class="cal-a i">+'+fmtCorto(ing)+'</span>';   // en privado no: diria que dia entra el sueldo
     if(verVienen&&pend) cont+='<span class="cal-pend"></span>';
     if(verVienen&&corte) cont+='<span class="cal-corte">corte</span>';
     // (17-nov-2026, sesion C) el mes se lee de un vistazo: cada dia con gasto lleva un tinte de 4 niveles, mas fuerte entre mas se gasto.
@@ -12661,7 +12670,7 @@ function renderCalendario() {
     const nivel=(verG&&!modoPrivado&&maxG>0)?Math.min(4,Math.max(1,Math.ceil(Math.sqrt(g/maxG)*4))):0;
     const cls='cal-d'+(pasado?' pasado':'')+(esHoy?' hoy':'')+(verVienen&&(vienenAqui.length||corte)?' viene':'')+(verFueron&&esMax?' max':'')+(nivel?' g'+nivel:'');
     filas+='<td><button type="button" class="'+cls+'" data-dia="'+k+'" tabindex="'+(k===foco?'0':'-1')+'" aria-pressed="'+(calDia===k)+'"'+(esHoy?' aria-current="date"':'')
-      +' aria-label="'+escapeHtml(calEtiquetaDia(k,g,esMax,ag))+'"><span class="cal-n">'+d+'</span>'+cont+'</button></td>';
+      +' aria-label="'+escapeHtml(calEtiquetaDia(k,g,esMax,ag,verFueron?(porDiaI[k]||0):0))+'"><span class="cal-n">'+d+'</span>'+cont+'</button></td>';
     if(++col===7&&d<ult){ filas+='</tr><tr>'; col=0; }
   }
   document.getElementById('cal-cuerpo').innerHTML=filas+'</tr>';
@@ -16905,6 +16914,8 @@ function renderCamino(ctx) {
     const fin=new Date(hoyD.getFullYear(),hoyD.getMonth()-i+1,1);
     const ap=aportacionesEnRango(ini,fin);
     METAS_PROYECTABLES.forEach(c=>{ suma[c]+=(ap[c]||0); if(ap[c]) huboOpRef.v=true; });
+    // (20-nov-2026, Marcela) lo que metiste a una cajita que agregaste tambien es aportacion (Inicio y Resumen ya la cuentan): no se dice "aun no hay aportaciones"
+    if(ap.cajitasX) huboOpRef.v=true;
   }
   const huboOp=huboOpRef.v;
   const fila=(nombre,actual,meta,prom,bloqueada,f)=>{
