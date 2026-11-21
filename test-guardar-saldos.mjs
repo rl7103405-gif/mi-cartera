@@ -4,7 +4,7 @@
 // mismo aviso, mismo plan para txDinero y mismos campos limpiados. La foto de Inicio cubre el guardado
 // valido contra el emulador; esto cubre las ramas de rechazo. Reloj fijo: hoy = 2026-10-27.
 import fs from 'node:fs';
-const APP = process.env.APP || 'c:/Users/elita/Desktop/CARTERA/mi-cartera/index.html';
+const APP = process.env.APP || 'c:/Users/rl710/Desktop/CARTERA/mi-cartera/index.html';
 const HTML = fs.readFileSync(APP, 'utf8').replace(/\r\n/g, '\n');
 const VIEJO = fs.readFileSync(new URL('./test-guardar-viejo.js', import.meta.url), 'utf8').replace(/\r\n/g, '\n');
 

@@ -1,7 +1,7 @@
 // Prueba del codigo por SMS de Fundview (4-nov-2026): numeros, mascara y errores, sin navegador. Corre el bloque <fv-sms-puras> del index.html tal cual.
 // Lo que pasa en pantalla lo prueba pruebas-sin-senal\fundview\e2e-sms.mjs.
 import fs from 'node:fs';
-const APP = process.env.APP || 'c:/Users/elita/Desktop/CARTERA/mi-cartera/index.html';
+const APP = process.env.APP || 'c:/Users/rl710/Desktop/CARTERA/mi-cartera/index.html';
 const HTML = fs.readFileSync(APP, 'utf8').replace(/\r\n/g, '\n');
 const ini = HTML.indexOf('// <fv-sms-puras>'), fin = HTML.indexOf('// </fv-sms-puras>');
 if (ini < 0 || fin < ini) { console.log('esta copia no tiene SMS: nada que probar'); process.exit(0); }

@@ -2,7 +2,7 @@
 // Reproduce el caso real del 27-ago-2026 y comprueba que ya no puede repetirse.
 import fs from 'fs';
 
-const APP = process.env.APP || 'c:/Users/elita/Desktop/CARTERA/mi-cartera/index.html';
+const APP = process.env.APP || 'c:/Users/rl710/Desktop/CARTERA/mi-cartera/index.html';
 const NS  = process.env.NS  || 'cartera';
 const PFX = process.env.PFX || '';
 const HTML = fs.readFileSync(APP, 'utf8');

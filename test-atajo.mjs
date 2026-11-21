@@ -4,7 +4,7 @@
 // MISMOS movimientos pendientes al azar, y exige que dejen el servidor y la memoria identicos.
 import fs from 'fs';
 
-const APP = process.env.APP || 'c:/Users/elita/Desktop/CARTERA/mi-cartera/index.html';
+const APP = process.env.APP || 'c:/Users/rl710/Desktop/CARTERA/mi-cartera/index.html';
 const HTML = fs.readFileSync(APP, 'utf8').replace(/\r\n/g, '\n');
 const VIEJO = fs.readFileSync(new URL('./test-atajo-viejo.js', import.meta.url), 'utf8');
 

@@ -5,7 +5,7 @@
 // un dato (un cero se lee como un hecho; "pendiente" no).
 import fs from 'fs';
 
-const APP = process.env.APP || 'c:/Users/elita/Desktop/CARTERA/mi-cartera/index.html';
+const APP = process.env.APP || 'c:/Users/rl710/Desktop/CARTERA/mi-cartera/index.html';
 const HTML = fs.readFileSync(APP, 'utf8');
 
 function extrae(desde, hasta) {

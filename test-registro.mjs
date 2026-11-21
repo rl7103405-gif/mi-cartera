@@ -2,7 +2,7 @@
 // salir IGUAL del registro, con el mismo orden (el orden es el de las opciones en pantalla).
 // Los valores esperados son los literales que tenia index.html antes del registro: son el contrato.
 import fs from 'node:fs';
-const APP = process.env.APP || 'c:/Users/elita/Desktop/CARTERA/mi-cartera/index.html';
+const APP = process.env.APP || 'c:/Users/rl710/Desktop/CARTERA/mi-cartera/index.html';
 const HTML = fs.readFileSync(APP, 'utf8').replace(/\r\n/g, '\n');
 
 const ini = HTML.indexOf('// ── REGISTRO DE CUENTAS'), fin = HTML.indexOf('// ── fin registro de cuentas');

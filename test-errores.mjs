@@ -1,7 +1,7 @@
 // Prueba del reporte de errores de Fundview (4-nov-2026): el bloque <fv-errores> del index.html tal cual, sin navegador. Lo que se comprueba: un mensaje con un monto,
 // una nota, un nombre o un correo NO sale, y lo tecnico si. En pantalla y contra la funcion: pruebas-sin-senal\fundview\e2e-errores.mjs.
 import fs from 'node:fs';
-const APP = process.env.APP || 'c:/Users/elita/Desktop/CARTERA/mi-cartera/index.html';
+const APP = process.env.APP || 'c:/Users/rl710/Desktop/CARTERA/mi-cartera/index.html';
 const HTML = fs.readFileSync(APP, 'utf8').replace(/\r\n/g, '\n');
 const ini = HTML.indexOf('// <fv-errores>'), fin = HTML.indexOf('// </fv-errores>');
 if (ini < 0 || fin < ini) { console.log('esta copia no tiene el reporte de errores: nada que probar'); process.exit(0); }

@@ -2,7 +2,7 @@
 // <fv-ayuda> del index.html tal cual. Corpus: lo que debe contestar, lo que debe escalar y lo que no debe caer en nada.
 // Lo que pasa en pantalla lo prueba pruebas-sin-senal\fundview\e2e-ayuda.mjs.
 import fs from 'node:fs';
-const APP = process.env.APP || 'c:/Users/elita/Desktop/CARTERA/mi-cartera/index.html';
+const APP = process.env.APP || 'c:/Users/rl710/Desktop/CARTERA/mi-cartera/index.html';
 const HTML = fs.readFileSync(APP, 'utf8').replace(/\r\n/g, '\n');
 const ini = HTML.indexOf('// <fv-ayuda>'), fin = HTML.indexOf('// </fv-ayuda>');
 if (ini < 0 || fin < ini) { console.log('esta copia no tiene ayuda: nada que probar'); process.exit(0); }

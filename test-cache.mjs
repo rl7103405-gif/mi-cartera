@@ -4,7 +4,7 @@
 // que sea TODO O NADA y que no invente datos cuando la copia local esta incompleta.
 import fs from 'fs';
 
-const APP = process.env.APP || 'c:/Users/elita/Desktop/CARTERA/mi-cartera/index.html';
+const APP = process.env.APP || 'c:/Users/rl710/Desktop/CARTERA/mi-cartera/index.html';
 const NS  = process.env.NS  || 'cartera';
 const PFX = process.env.PFX || '';
 const HTML = fs.readFileSync(APP, 'utf8');
