@@ -531,6 +531,9 @@ html[data-tema='grafito'] .btn.inicio-accion{background:var(--accent);border-col
 .rc-seg{display:block;height:100%}.rc-seg+.rc-seg{border-left:2px solid var(--bg2s)}
 .rc-fija{background:var(--muted)}.rc-ajustable{background:var(--accent);opacity:.55}.rc-bajar{background:var(--accent)}
 .rc-punto{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:7px;vertical-align:baseline}
+/* (20-nov-2026) Deudas: cada tarjeta es un boton que lleva a anotar un cargo o un pago */
+button.deuda-tj{width:100%;background:none;border:0;border-bottom:0.5px solid var(--border);border-radius:0;font:inherit;color:inherit;text-align:left;cursor:pointer;gap:12px;min-height:44px}
+button.deuda-tj:last-child{border-bottom:none}button.deuda-tj>.dtj-txt{display:block;min-width:0;overflow-wrap:anywhere}button.deuda-tj>.dtj-txt>span{display:block}button.deuda-tj>span:not(.dtj-txt){white-space:nowrap}
 #res-recortar .item-row{gap:12px}#res-recortar .item-row>div{min-width:0;overflow-wrap:anywhere}
 .rc-cats{font-size:12px;color:var(--muted);margin-top:2px;overflow-wrap:anywhere}
 .rc-val{display:flex;flex-direction:column;align-items:flex-end;font-size:14px;font-weight:600;white-space:nowrap;font-variant-numeric:tabular-nums}
@@ -820,6 +823,9 @@ html[data-tema='grafito'] .btn.inicio-accion{background:var(--accent);border-col
 .field input.is-error:focus,.field input.is-error:focus-visible{outline-color:var(--red);border-color:var(--red)}
 /* (17-nov-2026) falta elegir la cuenta: el selector en rojo y el texto debajo. Fecha: el selector del telefono, del mismo alto que los demas */
 .field select.falta-cuenta{border-color:var(--red-txt)}
+/* (20-nov-2026) gasto · ingreso · tarjeta · inversión caben en un renglon a 390; con una escondida, las tres llenan el renglon */
+#mov-tipo-toggle .type-opt{min-width:calc(25% - 5px)}#mov-tipo-toggle .type-opt[hidden]{display:none}
+#form-inversion-wrap .inv-nota{line-height:1.5;margin-bottom:10px}#form-inversion-wrap .inv-cajita{margin-top:16px}
 .type-toggle.falta-cuenta{outline:2px solid var(--red-txt);outline-offset:3px;border-radius:var(--rs)}
 .falta-cuenta-txt{font-size:13px;line-height:1.4;color:var(--red-txt);margin-top:8px;font-weight:600}
 .field input[type=date]{min-height:44px;font-family:inherit;text-align:left}
@@ -1881,6 +1887,7 @@ html[data-tema='grafito'] #cal-filtro .type-opt.active>span{color:#14171a}
       <button type="button" class="type-opt active" id="mov-tipo-gasto" aria-pressed="true" onclick="setMovTipo('gasto')">gasto</button>
       <button type="button" class="type-opt" id="mov-tipo-ingreso" aria-pressed="false" onclick="setMovTipo('ingreso')">ingreso</button>
       <button type="button" class="type-opt" id="mov-tipo-tarjeta" aria-pressed="false" onclick="setMovTipo('tarjeta')">tarjeta</button>
+      <button type="button" class="type-opt" id="mov-tipo-inversion" data-cuenta="stocks" aria-pressed="false" onclick="setMovTipo('inversion')">inversión</button>
     </div>
     <div id="form-gasto-wrap">
     <div class="panel">
@@ -1935,6 +1942,14 @@ html[data-tema='grafito'] #cal-filtro .type-opt.active>span{color:#14171a}
       </div>
       <button class="btn btn-green" id="ingreso-btn" onclick="registrarIngreso()">registrar ingreso</button>
     </div>
+    </div>
+    <!-- (20-nov-2026, lo pidio Georgette: no encontro donde meter sus inversiones) solo lleva: aqui no se anota nada -->
+    <div id="form-inversion-wrap" class="panel" hidden>
+      <div class="item-meta inv-nota" id="inv-nota-on">tus compras y ventas de acciones se anotan en la pestaña Inversiones, en «bolsa · registrar operación». Ahí ves cuánto vale cada una y cuánto le has ganado.</div>
+      <div class="item-meta inv-nota" id="inv-nota-off" hidden>para anotar compras y ventas de acciones hay que encender la pestaña Inversiones. Ahí ves cuánto vale cada una y cuánto le has ganado.</div>
+      <button type="button" class="btn btn-green" id="inv-ir">registrar una compra o venta</button>
+      <div class="item-meta inv-nota inv-cajita">¿es una cajita, savings o una cuenta que te paga intereses? Esa se agrega como cuenta y la app calcula lo que gana.</div>
+      <button type="button" class="btn" id="inv-cajita">agregar una cajita</button>
     </div>
     <div id="form-tarjeta-wrap" hidden>
   <details class="acc">
@@ -2378,6 +2393,8 @@ html[data-tema='grafito'] #cal-filtro .type-opt.active>span{color:#14171a}
       <div class="amount" id="deuda-grand-total">$—</div>
       <div style="font-size:12px;color:var(--muted);margin-top:4px" id="deuda-grand-sub">—</div>
     </div>
+    <div class="section-title" id="deudas-tj-title" hidden>tus tarjetas de crédito</div>
+    <div class="panel" id="deudas-tarjetas" hidden></div>
     <div id="personas-container"></div>
     <div class="section-title" id="creditos-title">préstamos y créditos</div>
     <div class="panel" id="creditos-panel">
@@ -3256,6 +3273,8 @@ function prepararTdcAgregar() {
   const bb = document.getElementById('cx-nuevo-bolsa-btn'); if (bb) bb.addEventListener('click', irABolsa);
   // el boton de Inicio: sin cuentas configurables no hay tarjeta que agregar, y no se promete
   const ian = document.getElementById('inicio-anotar'); if (ian) ian.addEventListener('click', inicioAnotar);
+  const ii = document.getElementById('inv-ir'); if (ii) ii.addEventListener('click', irARegistrarInversion);
+  const ic = document.getElementById('inv-cajita'); if (ic) ic.addEventListener('click', irAAgregarCajita);
   const ia = document.getElementById('inicio-agregar');
   if (ia) { if (!CUENTAS_CFG) ia.textContent = '+ agregar un banco o una cajita'; ia.addEventListener('click', irAAgregarCuenta); }
 }
@@ -3283,6 +3302,37 @@ async function irABolsa() {
     if (pp && !pp.classList.contains('active')) return;
     showPage('dashboard', true);
   } finally { if (btn) btn.disabled = false; }
+}
+// (20-nov-2026, Georgette) "inversion" en Movimientos › registrar: lleva a "bolsa · registrar operacion", y si la pestana esta apagada la
+// enciende primero (lo mismo que el interruptor del perfil y que irABolsa). Solo navega; encender es la unica escritura, y es la de siempre
+async function irARegistrarInversion() {
+  const btn = document.getElementById('inv-ir');
+  if (btn && btn.disabled) return;
+  if (!dashboardEncendido() && (navigator.onLine === false || cargaDesdeCache)) { showToast('para encender inversiones necesitas señal'); return; }
+  if (btn) btn.disabled = true;
+  try {
+    if (!dashboardEncendido()) {
+      // (revision) con wifi sin internet el setDoc del perfil no resuelve nunca: plazo de 12 s. guardarPerfil sigue con su candado
+      // (perfilGuardando) hasta que el servidor conteste, a proposito: soltarlo dejaria pasar un segundo guardado que pise al que quedo en cola
+      let plazo; const vencio = new Promise(r => { plazo = setTimeout(() => r('plazo'), 12000); });
+      const r = await Promise.race([window.setDashboard(true), vencio]); clearTimeout(plazo);
+      if (r === 'plazo') { showToast('para encender inversiones necesitas señal'); return; }
+      if (!dashboardEncendido()) return;
+    }
+    // si mientras guardaba la persona se fue a otra pestana, no se la arrastra
+    const pm = document.getElementById('page-movimientos');
+    if (pm && !pm.classList.contains('active')) return;
+    showPage('dashboard', true);
+    const acc = document.getElementById('stock-acc');
+    if (acc) { acc.open = true; acc.scrollIntoView({block: 'center'}); const s = acc.querySelector('summary'); if (s) s.focus({preventScroll: true}); }
+  } finally { if (btn) btn.disabled = false; }
+}
+// ...o, si lo que tiene es una cajita o savings, a "agregar una cuenta" con el tipo cajita ya elegido
+function irAAgregarCajita() {
+  irAAgregarCuenta();
+  const t = document.getElementById('cx-nuevo-tipo');
+  if (t && [...t.options].some(o => o.value === 'cajita')) { t.value = 'cajita'; t.dispatchEvent(new Event('change')); }
+  const n = document.getElementById('cx-nuevo-nombre'); if (n) n.focus({preventScroll: true});
 }
 // (17-nov-2026) los botones del tipo dicen lo que el select tiene elegido: el marcado lleva aria-checked y es la unica parada del tabulador
 function cxPintarTipos() {
@@ -9317,8 +9367,17 @@ window.toggleCuenta = function(key, detailId) {
   pintarMovsCuenta(key);
   toggleDetail(detailId);
 };
+// (revision) nota, texto y boton de "inversion" segun el tablero; se repinta tambien cuando el tablero se enciende o apaga (aplicarVisibilidadDashboard)
+function pintarInversion() {
+  const ni=document.getElementById('inv-nota-on'), nf=document.getElementById('inv-nota-off'), b=document.getElementById('inv-ir');
+  if(!ni||!nf||!b) return;
+  const on=dashboardEncendido();
+  ni.hidden=!on; nf.hidden=on;
+  b.textContent=on?'registrar una compra o venta':'encender Inversiones y registrar';
+}
 window.setMovTipo = t => {
   if (t === 'tarjeta' && CFG.multi && ctaApagada('tarjeta') && ctaApagada('tarjetaRev')) t = 'gasto';   // Fundview: sin tarjetas encendidas no hay forma de tarjeta
+  if (t === 'inversion' && ctaApagada('stocks')) t = 'gasto';   // (20-nov-2026) una cartera sin bolsa no tiene a donde llevar
   document.getElementById('form-gasto-wrap').hidden = t!=='gasto';
   document.getElementById('form-ingreso-wrap').hidden = t!=='ingreso';
   document.getElementById('mov-tipo-gasto').classList.toggle('active', t==='gasto');
@@ -9329,6 +9388,11 @@ window.setMovTipo = t => {
   document.getElementById('form-tarjeta-wrap').hidden = t!=='tarjeta';
   document.getElementById('mov-tipo-tarjeta').classList.toggle('active', t==='tarjeta');
   document.getElementById('mov-tipo-tarjeta').setAttribute('aria-pressed', t==='tarjeta');
+  // (20-nov-2026) cuarta opcion: inversion. Solo explica y lleva (a "registrar operacion" o a agregar una cajita); el historial no cambia
+  const bi=document.getElementById('mov-tipo-inversion'), fi=document.getElementById('form-inversion-wrap');
+  if(fi) fi.hidden=t!=='inversion';
+  if(bi){ bi.classList.toggle('active', t==='inversion'); bi.setAttribute('aria-pressed', t==='inversion'); }
+  if(t==='inversion'){ pintarInversion(); return; }
   if(t==='tarjeta'){
     // con una sola tarjeta encendida, se abre sola
     const vis=[...document.querySelectorAll('#form-tarjeta-wrap details.acc')].filter(d=>d.offsetParent!==null); // offsetParent y no .hidden: zoe esconde la BBVA con CSS
@@ -13337,14 +13401,31 @@ function renderDeudas() {
   const personas=state.personas;
   // (18-nov-2026) lo que se debe con cada persona: con tasa lleva su interes (saldoP); sin tasa, su saldo de siempre
   const sal=Object.fromEntries(Object.entries(personas).map(([k,p])=>[k,saldoP(p)]));
-  // (20-nov-2026, Marcela) los prestamos y creditos estan en esta misma pantalla: el balance y "tu debes" los cuentan (decia $0.00 sobre un prestamo de $42,000)
-  const credD=deudaCreditos();
-  let gt=-credD; Object.values(sal).forEach(v=>gt+=v);
+  // (20-nov-2026, decision de Beto: "es lo que le debes a la tarjeta") "tu debes" es LA MISMA cifra que "lo que debes" del Resumen
+  // (datosDebes: tarjetas, compras a meses por cargar, personas y prestamos) y el neto es lo que te deben menos eso. Antes las tarjetas iban aparte
+  let D;
+  try { D=datosDebes(); }
+  catch(e) {   // (revision) un credito corrupto no deja sin pintar a las personas: sin tarjetas ni creditos, el total es solo personas
+    console.error('datosDebes',e);
+    const vs=Object.values(sal).filter(Number.isFinite);
+    const aP=vs.filter(s=>s<-0.005).reduce((a,s)=>a-s,0), teD=vs.filter(s=>s>0.005).reduce((a,s)=>a+s,0);
+    D={tarjetas:[], tdc:0, mesesFalta:0, credTot:0, teDebenTot:teD, total:aP, seguro:datosCargados&&!cargaDesdeCache};
+  }
+  const teDeben=D.teDebenTot, debes=D.total, gt=teDeben-debes, tjDebe=Math.max(0,D.tdc)+D.mesesFalta;
   const gtEl=document.getElementById('deuda-grand-total');
   gtEl.textContent=fmt(Math.abs(gt)); gtEl.className='amount '+(gt>=0?'pos':'neg');
   // el grande es el NETO; abajo, las dos partes que lo forman (antes 'te deben en total' mostraba el neto)
-  const teDeben=Object.values(sal).reduce((a,v)=>a+Math.max(0,v),0), debes=Object.values(sal).reduce((a,v)=>a+Math.max(0,-v),0)+credD;
-  document.getElementById('deuda-grand-sub').textContent=(gt>=0?'a tu favor':'en tu contra')+' · te deben '+fmt(teDeben)+' · tú debes '+fmt(debes)+(credD>0.005?' (con préstamos y créditos; tus tarjetas van aparte)':'');
+  const con=tjDebe>0.005&&D.credTot>0.005?' (con tus tarjetas, préstamos y créditos)':tjDebe>0.005?' (con tus tarjetas)':D.credTot>0.005?' (con préstamos y créditos)':'';
+  document.getElementById('deuda-grand-sub').textContent=(gt>=0?'a tu favor':'en tu contra')+' · te deben '+fmt(teDeben)+' · tú debes '+fmt(debes)+con+(datosCargados&&!cargaDesdeCache?'':' · copia local, sin confirmar');   // (revision) igual que el Resumen
+  // un renglon por tarjeta con deuda o compras a meses por cargar; tocarlo lleva a anotar un cargo o un pago de ESA tarjeta
+  const tjs=D.tarjetas.filter(t=>Math.abs(t.deuda)>0.005||t.falta>0.005), tjPanel=document.getElementById('deudas-tarjetas');
+  const fCorte=k=>parseFechaLocal(k).toLocaleDateString('es-MX',{day:'numeric',month:'short'});
+  document.getElementById('deudas-tj-title').hidden=tjPanel.hidden=!tjs.length;
+  tjPanel.innerHTML=tjs.map(t=>{
+    const meta=['próximo corte '+fCorte(t.corte), t.falta>0.005?'a meses, falta por cargar '+fmt(t.falta):'', 'anotar un cargo o un pago'].filter(Boolean).join(' · ');
+    const monto=t.deuda<-0.005?'<span class="item-amt-pos">a favor '+fmt(-t.deuda)+'</span>':'<span class="item-amt-neg">'+fmt(Math.max(0,t.deuda))+'</span>';
+    return '<button type="button" class="item-row deuda-tj" data-tj="'+t.id+'" onclick="irATarjetaDeuda(\''+t.id+'\')"><span class="dtj-txt"><span class="item-cat">'+escapeHtml(t.nombre)+'</span><span class="item-meta">'+meta+'</span></span>'+monto+'</button>';   // (revision) un boton no admite div: span con display:block
+  }).join('');
   const tarjeta=([key,p])=>{
     const s=sal[key], isPos=s>=0, it=interesDe(p), t=saneaTasa(p.tasa);
     const movs=p.movimientos.slice().sort((a,b)=>(String(b.fecha||'')+'|'+String(b.creado||'')).localeCompare(String(a.fecha||'')+'|'+String(a.creado||''))).map(m=>{
@@ -13384,6 +13465,16 @@ function renderDeudas() {
     +(Object.keys(personas).length?'<details class="g-grupos-ed"><summary>editar grupos</summary>'+editorListaHTML('gruposPersona',state.clasif.gruposPersona,'ej. vecinos')+'</details>':'');
 }
 window.toggleDeuda=id=>document.getElementById(id).classList.toggle('open');
+// (20-nov-2026) de un renglon de tarjeta en Deudas a Movimientos › registrar › tarjeta, con ESA tarjeta abierta (la otra se cierra). Solo navega
+window.irATarjetaDeuda=function(k) {
+  showPage('movimientos', true); movSub('registrar'); setMovTipo('tarjeta');
+  const accs=[...document.querySelectorAll('#form-tarjeta-wrap > details.acc')];
+  const d=accs.find(a=>k==='tarjetaRev'?a.dataset.cuenta==='tarjetaRev':a.dataset.cuenta!=='tarjetaRev');
+  accs.forEach(a=>{ if(a!==d) a.open=false; });
+  if(!d) return;
+  d.open=true;
+  const s=d.querySelector('summary'); d.scrollIntoView({block:'center'}); if(s) s.focus({preventScroll:true});
+};
 
 // ── EXCEL DE UNA CUENTA (deudas) ──────────────────────────────
 // 16-sep-2026, Roberto: "poder descargar un Excel de mi cuenta con mi papa, de una semana, un mes,
@@ -15068,6 +15159,9 @@ const AYUDA_BASE = [
   {id:'fondo', g:'cuentas', p:'¿Cómo aparto dinero para algo, como un viaje?', donde:'Perfil › Mis cuentas › + Crear un fondo', ir:'fondo', boton:'ir a crear un fondo',
     r:['Un fondo es dinero apartado dentro de tus cuentas: no sale de tu banco, solo deja de contar para el día a día. Ya trae uno llamado "Mi fondo", que puedes dejar vacío. Ponle nombre al tuyo y toca "Crear fondo". Después, en "Registrar un movimiento del fondo", elige "Apartar dinero que ya está en la cuenta".'],
     claves:'fondo fondos apartar aparto apartado guardar viaje viajes vacaciones ahorrar emergencias coche separar reservar universidad'},
+  {id:'inversiones', g:'cuentas', p:'¿Dónde anoto mis inversiones?', donde:'Movimientos › Registrar › Inversión', ir:'inversion', boton:'ir a inversión',
+    r:['Depende de qué sea. Si son acciones o fondos de la bolsa, en Registrar toca "Inversión": te lleva a "Bolsa · registrar operación", donde anotas lo que "Compré" o "Vendí" y ves cuánto ha subido. Si es una cajita, savings o algo que te paga intereses, agrégala como cuenta tipo "Cajita" con su tasa. Fundview solo lleva la cuenta: no compra ni vende nada.'],
+    claves:'inversion inversiones invertido inverti pongo poner anoto registro donde cetes pagare fondo fondos savings cajita porcentaje porcentajes rendimiento rendimientos ganancia'},
   {id:'bolsa', g:'cuentas', p:'¿Cómo anoto mis acciones?', donde:'Perfil › Mis cuentas › Qué pestañas ves', ir:'bolsa', boton:'ir a mis acciones',
     r:['Enciende el tablero en "Qué pestañas ves". Sale la pestaña "Inversiones", y ahí, en "Bolsa · registrar operación", anotas lo que "Compré" o "Vendí". Fundview solo lleva la cuenta: no compra ni vende nada.'],
     claves:'accion acciones bolsa inversion inversiones invertido inverti tablero compre vendi posicion portafolio dividendo'},
@@ -15158,7 +15252,7 @@ function ayudaSinSms() {
 // puede correr antes de detectar que la persona dice que ya perdio algo ("cerre sesion y perdi mis gastos"): por eso las frases de perdida (perdi,
 // desaparecio, ya no esta) estan en 'cuadra', que se revisa ANTES que AYUDA_DIRECTAS. Se escala el pasado ("perdi"), no el futuro ("se perdera?"):
 // la pregunta de "si salgo, se pierde lo que anote?" sigue teniendo su respuesta. "perdi mi contrasena/clave/cuenta" tienen su propia salida
-const AYUDA_USO = /\b(registr\w*|anot\w*|apunt\w*|captur\w*|veo|ver|encend\w*|enciend\w*|prend\w*|pestana|tablero|compre|vendi|agreg\w*|borr\w*|corrij\w*|edit\w*)\b/;
+const AYUDA_USO = /\b(registr\w*|anot\w*|apunt\w*|captur\w*|veo|ver|encend\w*|enciend\w*|prend\w*|pestana|tablero|compre|vendi|agreg\w*|borr\w*|corrij\w*|edit\w*)\b|\b(donde|como) (las |los |mis |mi |lo )?(meto|meter|pongo|poner|subo|cargo)\b(?! (a |en )?(mi |el |tu |su )?(dinero|lana|ahorro))/;   // (20-nov-2026, Georgette) 'donde meto mis inversiones' es uso, no consejo; 'meto mi dinero en cetes' sin 'donde' o 'como' sigue sin contestarse
 const AYUDA_TEL = 'telefono|celular|cel|movil', AYUDA_AUT = 'autenticador\\w*|authenticator';
 const AYUDA_ESCALAR = [
   {razon:'perdi-app', re:new RegExp('\\b(perd\\w*|rob\\w*|romp\\w*|cambi\\w*|nuevo|nueva|se me \\w+)\\b.*\\b(' + AYUDA_TEL + ')\\b|\\b(' + AYUDA_TEL + ')\\b.*\\b(perd\\w*|rob\\w*|nuevo|nueva|cambi\\w*|romp\\w*)\\b' +
@@ -15234,7 +15328,7 @@ const AYUDA_RAZON = {
 const AYUDA_SIN_CORREO = ['consejo', 'inversion'];
 // lo que mas se pregunta: se ofrece cuando la ayuda no entiende, para tocar en vez de volver a escribir
 const AYUDA_COMUNES = ['gasto', 'cuanto-debo', 'agregar', 'empezar'];
-const AYUDA_VACIAS = new Set(('a al algo alguna alguien alla aqui asi ayuda ayudame ayudar acerca con cual cuando cuanto cuanta cuantos como de del donde dos el ella en entonces es esa ese esta estas este esto favor fundview app aplicacion gracias hacer haga hago hay hola la las le les lo los me meto meter mi mis necesito no o oye para pero por porque puede puedo quiero que se sea si sin soy sobre su sus tambien te tengo ti tu tus un una uno unos unas va voy y ya yo eso esa quisiera saber podrias podria decir decirme dime disculpa buenas buenos tardes dias noches pregunta duda oiga mija mijo mijita porfa porfavor hice hizo hoy manana desde').split(' '));
+const AYUDA_VACIAS = new Set(('a al algo alguna alguien alla aqui asi ayuda ayudame ayudar acerca con cual cuando cuanto cuanta cuantos como de del donde dos el ella en entonces es esa ese esta estas este esto favor fundview app aplicacion gracias hacer haga hago hay hola la las le les lo los me meto meter mi mis necesito no o oye para pero por porque puede puedo quiero que se sea si sin soy sobre su sus tambien te tengo ti tu tus un una uno unos unas va voy y ya yo eso esa quisiera saber podrias podria decir decirme dime disculpa buenas buenos tardes dias noches pregunta duda oiga mija mijo mijita porfa porfavor hice hizo hoy manana desde encuentro encuentra encontrar encontre').split(' '));
 const AYUDA_SINONIMOS = {celular:'telefono', cel:'telefono', movil:'telefono', smartphone:'telefono', lana:'dinero', plata:'dinero', feria:'dinero', varo:'dinero', pesos:'dinero', tdc:'tarjeta',
   dolar:'moneda', dolares:'moneda', euro:'moneda', euros:'moneda', yuan:'moneda', yuanes:'moneda', usd:'moneda', aud:'moneda', nzd:'moneda', eur:'moneda', cny:'moneda', divisa:'moneda', divisas:'moneda', extranjera:'moneda', extranjero:'moneda',
   savings:'cajita', password:'contrasena', pass:'contrasena', email:'correo', mail:'correo', eliminar:'borrar', elimino:'borrar', suprimir:'borrar', acciones:'accion', pongo:'poner', pon:'poner', veo:'ver', uso:'usar', compu:'computadora', laptop:'computadora', ipad:'tablet'};
@@ -15342,6 +15436,7 @@ const AYUDA_IR = {
   fijas: () => { ayMisCuentas(); return document.querySelector('[data-cfg-cuentas]'); },
   calendario: () => { showPage('calendario', true); return document.getElementById('mov-cal'); },
   fondo: () => { abrirFondoNuevo(); return ayEl('fondo-nuevo'); },
+  inversion: () => { if (ctaApagada('stocks')) return AYUDA_IR.cajita(); ayMov('inversion'); return ayEl('form-inversion-wrap'); },
   bolsa: () => { if (dashboardEncendido()) { showPage('dashboard', true); return ayAbrir(ayEl('stock-op-btn')); } ayMisCuentas(); return ayEl('dashboard-toggle').closest('.panel'); },
   inicio: () => { showPage('inicio', true); return document.querySelector('.total-section'); },
   // la linea roja bajo el total, si hay deuda; si no, el total
@@ -16064,6 +16159,7 @@ function aplicarVisibilidadDashboard() {
   if (off && onEl) { off.classList.toggle('active', !on); onEl.classList.toggle('active', on); }
   if (typeof cxTipoTdc === 'function' && document.getElementById('cx-nuevo-tipo')) cxTipoTdc(); // el texto de "inversiones en bolsa" depende de esto
   try { refrescarBolsa(); } catch(e) { console.error('bolsa sin uso', e); }
+  try { pintarInversion(); } catch(e) { console.error('inversion', e); }
 }
 window.setDashboard = async function(valor) {
   if (dashboardEncendido() === !!valor) return;      // ya esta asi: no escribir por gusto
@@ -18374,7 +18470,7 @@ function datosDebes() {
   const ps=Object.values(state.personas||{}).filter(p=>p&&Number.isFinite(p.saldo)).map(p=>({nombre:p.nombre||'', s:saldoP(p)}));   // (18-nov-2026) con su interes
   const aPersonas=ps.filter(p=>p.s<-0.005).map(p=>({nombre:p.nombre, monto:-p.s})).sort((a,b)=>b.monto-a.monto);
   const teDeben=ps.filter(p=>p.s>0.005).map(p=>({nombre:p.nombre, monto:p.s})).sort((a,b)=>b.monto-a.monto);
-  const tdc=Number.isFinite(T.tdc)?T.tdc:(state.tarjetaDeuda||0)+(state.revTdcDeuda||0);
+  const tdc=(state.tarjetaDeuda||0)+(state.revTdcDeuda||0);   // (revision) la definicion de tdcInicio en render(): no depende de la foto totalesInicio, que renderDeudas lee antes de que render() la recalcule
   const personas=aPersonas.reduce((s,p)=>s+p.monto,0);
   const creditos=Object.keys(state.creditos||{}).map(id=>estadoCredito(id)).filter(e=>e&&!e.error&&e.debe>0.005).map(e=>({nombre:e.c.nombre, monto:e.debe, prox:e.prox}));
   const credTot=creditos.reduce((s,c)=>s+c.monto,0);
