@@ -540,7 +540,7 @@ html[data-tema='grafito'] .btn.inicio-accion{background:var(--accent);border-col
 /* (18-nov-2026) donde recortar, deudas con grupos e interes, creditos y subcategorias */
 #res-recortar .rc-barra{display:flex;height:12px;border-radius:6px;overflow:hidden;background:var(--bg3);margin:2px 0 10px}
 .rc-seg{display:block;height:100%}.rc-seg+.rc-seg{border-left:2px solid var(--bg2s)}
-.rc-fija{background:var(--muted)}.rc-ajustable{background:var(--accent);opacity:.55}.rc-bajar{background:var(--accent)}
+.rc-fija{background:var(--muted)}.rc-ajustable{background:var(--accent);opacity:.55}.rc-bajar{background:var(--accent)}.rc-abono{background:var(--border2)}
 .rc-punto{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:7px;vertical-align:baseline}
 /* (20-nov-2026) Deudas: cada tarjeta es un boton que lleva a anotar un cargo o un pago */
 button.deuda-tj{width:100%;background:none;border:0;border-bottom:0.5px solid var(--border);border-radius:0;font:inherit;color:inherit;text-align:left;cursor:pointer;gap:12px;min-height:44px}
@@ -2445,6 +2445,8 @@ html[data-tema='grafito'] #cal-filtro .type-opt.active>span{color:#14171a}
     </div>
     <div class="section-title" id="deudas-tj-title" hidden>tus tarjetas de crédito</div>
     <div class="panel" id="deudas-tarjetas" hidden></div>
+    <!-- (22-nov-2026, Marcela) sin titulo propio, las personas quedaban bajo "tus tarjetas de credito" -->
+    <div class="section-title" id="personas-title" hidden>personas</div>
     <div id="personas-container"></div>
     <div class="section-title" id="creditos-title">préstamos y créditos</div>
     <div class="panel" id="creditos-panel">
@@ -2458,7 +2460,7 @@ html[data-tema='grafito'] #cal-filtro .type-opt.active>span{color:#14171a}
         <div class="g-tasa-fila"><div class="field"><label for="cr-n">número de pagos</label><input type="number" id="cr-n" step="1" min="1" inputmode="numeric" placeholder="ej. 18" oninput="previaCredito()"></div>
         <div class="field"><label for="cr-tasa">tasa al año (opcional)</label><input type="number" id="cr-tasa" step="0.01" min="0" inputmode="decimal" placeholder="la del contrato" oninput="previaCredito()"></div></div>
         <div class="field"><label for="cr-primero">fecha del primer pago que falta</label><input type="date" id="cr-primero"></div>
-        <div class="field"><label for="cr-cat">cada pago se anota como gasto en</label><select id="cr-cat"></select></div>
+        <div class="field"><label for="cr-cat">los intereses de cada pago (o el pago entero, si es compra a plazos) van como gasto en</label><select id="cr-cat"></select></div>
         <div class="item-meta g-nota">con dos de estos tres (pago, número de pagos, tasa) se calcula lo demás. Si ya llevas tiempo pagando, pon lo que debes hoy y los pagos que te faltan</div>
         <div class="item-meta g-cr-previa" id="cr-previa" role="status" aria-live="polite" hidden></div>
         <button type="button" class="btn btn-purple" onclick="agregarCredito(this)">agregar</button>
@@ -2661,6 +2663,8 @@ html[data-tema='grafito'] #cal-filtro .type-opt.active>span{color:#14171a}
     <div class="summary-box" style="margin-bottom:20px">
       <div class="s-label">balance del periodo</div>
       <div class="s-amt" id="res-balance" style="font-size:24px">$—</div>
+      <!-- (22-nov-2026) el capital de los pagos de prestamos: no es gasto, pero el balance lo resta -->
+      <div class="item-meta res-abonos" id="res-abonos" hidden></div>
     </div>
     <div class="section-title" id="cierre-title">cierre del mes</div>
     <div class="panel" id="res-cierre" style="margin-bottom:16px"></div>
@@ -6094,7 +6098,9 @@ function calcRecortar(o) {
   });
   const totalG = por.fija + por.ajustable + por.bajar;
   const ingreso = Number(o.ingreso) > 0 ? Number(o.ingreso) : 0;
-  const falta = ingreso > 0 ? totalG - ingreso : null;   // > 0: gastas mas de lo que entra
+  // (22-nov-2026) abonos = el capital de los pagos de prestamos: no es gasto, pero si salio de lo que entro
+  const abonos = Number(o.abonos) > 0 ? Number(o.abonos) : 0;
+  const falta = ingreso > 0 ? totalG + abonos - ingreso : null;   // > 0: sale mas de lo que entra
   const bajar = Object.keys(porCat).filter(c => tipoCatDe(c, o.tipos) === 'bajar').map(c => {
     const prom = o.promedios && Number.isFinite(o.promedios[c]) && o.promedios[c] > 0 ? o.promedios[c] : null;
     return {cat: c, amt: porCat[c], prom, sobre: prom === null ? null : porCat[c] - prom};
@@ -6105,14 +6111,14 @@ function calcRecortar(o) {
   const deudaPct = ingreso > 0 && pagos > 0 ? pagos / ingreso * 100 : null;
   const intereses = Number(o.intereses) > 0 ? Number(o.intereses) : 0;
   const noAlcanza = (falta !== null && falta > 0.005) || (deudaPct !== null && deudaPct > DEUDA_PCT_IDEAL);
-  return {por, totalG, ingreso, falta, bajar, pagos, deudaPct, intereses, noAlcanza};
+  return {por, totalG, abonos, ingreso, falta, bajar, pagos, deudaPct, intereses, noAlcanza};
 }
 // los hechos, en texto plano y sin "deberias": quien los pinte los escapa. fmt llega de fuera (modo privado)
 // Cada frase EMPIEZA con palabras de la app (en Fundview la primera letra va en mayuscula por CSS)
 function hechosRecortar(r, fmt, esActual, periodo) {
   const h = [], per = periodo === 'ano' ? 'este año' : 'este mes';
   if (r.falta !== null && r.falta > 0.005)
-    h.push(per + (esActual ? ' llevas ' : ' gastaste ') + fmt(r.falta) + ' más de lo que ' + (esActual ? 'ha entrado' : 'entró'));
+    h.push(per + (r.abonos > 0.005 ? (esActual ? ' entre gastos y abonos a tus préstamos llevas ' : ' entre gastos y abonos a tus préstamos salieron ') : (esActual ? ' llevas ' : ' gastaste ')) + fmt(r.falta) + ' más de lo que ' + (esActual ? 'ha entrado' : 'entró'));
   if (r.deudaPct !== null)
     h.push('tus pagos de préstamos y créditos se llevan el ' + Math.round(r.deudaPct) + '% de tu ingreso · CONDUSEF pone lo sano en ' + DEUDA_PCT_IDEAL
       + '% y el límite entre 35 y ' + DEUDA_PCT_LIMITE + '%');
@@ -6424,7 +6430,7 @@ function promediosCat3(start) {
   (state.gastos || []).forEach(g => {
     if (!movValido(g)) return;
     const i = claves.indexOf(mesLocalDe(g.fecha)); if (i < 0) return;
-    (por[g.cat] = por[g.cat] || [0, 0, 0])[i] += g.monto;
+    (por[g.cat] = por[g.cat] || [0, 0, 0])[i] += montoConsumo(g);
   });
   const out = {};
   Object.keys(por).forEach(c => { const v = por[c].filter(x => x > 0); out[c] = v.length >= 2 ? v.reduce((a, b) => a + b, 0) / v.length : null; });
@@ -6444,17 +6450,19 @@ function renderRecortar(start, end, modo) {
   const con = modo === 'mes' || modo === 'ano';
   tit.style.display = el.style.display = con ? '' : 'none';
   if (!con) { el.innerHTML = ''; return; }
-  const {gastos, totalI} = totalesPeriodo(start, end);
-  if (!gastos.length) { el.innerHTML = '<div class="empty-state">sin gastos en este periodo</div>'; return; }
+  const {gastos: gastosTodos, totalI, abonos} = totalesPeriodo(start, end);
+  if (!gastosTodos.length) { el.innerHTML = '<div class="empty-state">sin gastos en este periodo</div>'; return; }
   const ahora = Date.now(), esActual = ahora >= start.getTime() && ahora < end.getTime();
-  const r = calcRecortar({gastos, ingreso: totalI, promedios: modo === 'mes' ? promediosCat3(start) : {},
-    tipos: state.clasif.tiposCat, pagosDeuda: pagosDeudaEnRango(start, end, gastos), intereses: interesesEnGastos(gastos)});
+  // (22-nov-2026) por tipo solo cuenta lo que es gasto (de un pago de prestamo, su interes); el capital va en su propio renglon
+  const gastos = gastosTodos.map(g => ({...g, monto: montoConsumo(g)})).filter(g => g.monto > 0.005);
+  const r = calcRecortar({gastos, ingreso: totalI, abonos, promedios: modo === 'mes' ? promediosCat3(start) : {},
+    tipos: state.clasif.tiposCat, pagosDeuda: pagosDeudaEnRango(start, end, gastosTodos), intereses: interesesEnGastos(gastosTodos)});
   const pct = v => r.ingreso > 0 ? Math.round(v / r.ingreso * 100) + '% de lo que entró' : '';
   const catsDe = t => { const s = new Set(); gastos.forEach(g => { if (tipoCatDe(g.cat, state.clasif.tiposCat) === t) s.add(g.cat); }); return [...s]; };
   // barra apilada contra lo que entro (o contra el gasto, si no hubo ingresos)
-  const base = Math.max(r.ingreso, r.totalG) || 1;
-  const seg = t => r.por[t] > 0.005 ? '<span class="rc-seg rc-' + t + '" style="width:' + (r.por[t] / base * 100).toFixed(2) + '%"></span>' : '';
-  let h = '<div class="rc-barra" aria-hidden="true">' + seg('fija') + seg('ajustable') + seg('bajar') + '</div>';
+  const base = Math.max(r.ingreso, r.totalG + r.abonos) || 1;
+  const seg = t => { const v = t === 'abono' ? r.abonos : r.por[t]; return v > 0.005 ? '<span class="rc-seg rc-' + t + '" style="width:' + (v / base * 100).toFixed(2) + '%"></span>' : ''; };
+  let h = '<div class="rc-barra" aria-hidden="true">' + seg('fija') + seg('ajustable') + seg('bajar') + seg('abono') + '</div>';
   TIPOS_CAT.forEach(t => {
     if (!(r.por[t] > 0.005)) return;
     const cs = catsDe(t);
@@ -6462,8 +6470,12 @@ function renderRecortar(start, end, modo) {
       + '<div class="rc-cats">' + cs.slice(0, 6).map(escapeHtml).join(' · ') + (cs.length > 6 ? ' · +' + (cs.length - 6) : '') + '</div></div>'
       + '<div class="rc-val"><span>' + fmt(r.por[t]) + '</span>' + (r.ingreso > 0 ? '<span class="item-meta">' + pct(r.por[t]) + '</span>' : '') + '</div></div>';
   });
+  if (r.abonos > 0.005)
+    h += '<div class="item-row rc-tipo"><div><div class="item-cat"><span class="rc-punto rc-abono"></span>abonos a tus préstamos</div>'
+      + '<div class="rc-cats">no es gasto: bajó lo que debes</div></div>'
+      + '<div class="rc-val"><span>' + fmt(r.abonos) + '</span>' + (r.ingreso > 0 ? '<span class="item-meta">' + pct(r.abonos) + '</span>' : '') + '</div></div>';
   if (r.falta !== null)
-    h += '<div class="item-row rc-resto"><div class="item-cat">' + (r.falta > 0.005 ? (esActual ? 'llevas gastado más de lo que entró' : 'gastaste más de lo que entró') : (esActual ? 'te queda de lo que entró' : 'te quedó de lo que entró'))
+    h += '<div class="item-row rc-resto"><div class="item-cat">' + (r.falta > 0.005 ? (r.abonos > 0.005 ? (esActual ? 'llevas más de lo que entró, entre gastos y abonos' : 'salió más de lo que entró, entre gastos y abonos') : (esActual ? 'llevas gastado más de lo que entró' : 'gastaste más de lo que entró')) : (esActual ? 'te queda de lo que entró' : 'te quedó de lo que entró'))
       + '</div><span class="' + (r.falta > 0.005 ? 'debes-amt' : '') + '">' + fmt(Math.abs(r.falta)) + '</span></div>';
   else h += '<div class="item-meta rc-nota">sin ingresos registrados en este periodo: no se puede comparar con lo que entró</div>';
   if (r.noAlcanza) {
@@ -6481,7 +6493,9 @@ function aplicarExtraG(mov, extra) {
   if (typeof extra.credito === 'string' && /^cr_[a-z0-9]{6,20}$/.test(extra.credito)) {
     mov.credito = extra.credito;
     const i = Number(extra.interes);
-    if (Number.isFinite(i) && i > 0 && i <= mov.monto) mov.interes = Math.round(i * 100) / 100;
+    if (Number.isFinite(i) && i >= 0 && i <= mov.monto) mov.interes = Math.round(i * 100) / 100;   // (22-nov-2026) tambien 0: sin el campo, el pago contaba entero como gasto
+    // (22-nov-2026, code-reviewer) la marca de "se parte en interes y abono" vive EN el pago: quitar el credito despues no reescribe los meses ya cerrados
+    if (extra.parcial === true && mov.interes !== undefined) mov.parcial = true;
   }
 }
 window.irSubcatsDeuda = function() {
@@ -6674,6 +6688,11 @@ function creditoTarjetaHTML(id) {
   if (p.r > 1e-9) lineas.push('equivale a ' + (p.r * 100).toFixed(2) + '% ' + cada[2] + ', unos ' + Math.round(p.anualEfectiva) + '% al año contando intereses sobre intereses');
   if (p.difiere) lineas.push('con estos pagos tu tasa real sale de ' + p.anualSimple.toFixed(1) + '% al año, distinta de la del contrato (' + p.tasaContrato + '%): pueden venir seguros o comisiones dentro del pago');
   lineas.push(e.k >= p.n ? 'ya hiciste los ' + p.n + ' pagos' : 'llevas ' + e.k + ' de ' + p.n + ' pagos · te faltan ' + (p.n - e.k) + ' · hoy debes unos ' + fmt(e.debe) + ' de lo prestado');
+  // (22-nov-2026, Beto: "que noten cuanto deben y cuanto estan pagando de mas") de lo pagado, cuanto fue interes y cuanto bajo la deuda
+  if (e.k > 0 && c.tipo !== 'tienda') {
+    const ps = pagosDeCredito(id), pagado = ps.reduce((s, g) => s + g.monto, 0), int = ps.reduce((s, g) => s + partesGasto(g).consumo, 0);
+    if (pagado > 0.005) lineas.push('de lo que llevas pagado (' + fmt(pagado) + '), ' + fmt(int) + ' fueron intereses y ' + fmt(Math.max(0, pagado - int)) + ' bajaron lo que debías');
+  }
   if (e.prox) lineas.push('el siguiente pago toca el ' + parseFechaLocal(e.prox).toLocaleDateString('es-MX', {day: 'numeric', month: 'short', year: 'numeric'}));
   let pagar = '';
   if (e.k < p.n) {
@@ -6684,7 +6703,9 @@ function creditoTarjetaHTML(id) {
         + fs.map(f => '<option value="' + escapeHtml(f) + '">' + escapeHtml(susCuenta(f)) + '</option>').join('') + '</select></div>'
         + '<div class="field"><label for="g-cr-monto">monto</label><input type="number" id="g-cr-monto" step="0.01" inputmode="decimal" value="' + (modoPrivado ? '' : c2(p.A)) + '" placeholder="' + (modoPrivado ? 'el monto del pago' : '') + '"></div>'
         + '<div class="field"><label for="g-cr-fecha">fecha (si no la eliges, es hoy)</label><input type="date" id="g-cr-fecha" data-hasta-hoy></div>'
-        + '<div class="item-meta g-nota">se anota como gasto en ' + escapeHtml(c.cat) + (partes.interes > 0.005 ? ' · de este pago, unos ' + fmt(partes.interes) + ' son interés' : '') + '</div>'
+        + '<div class="item-meta g-nota">' + (c.tipo === 'tienda' ? 'se anota como gasto en ' + escapeHtml(c.cat) + ': es lo que compraste, pagado en partes'
+          : (partes.interes > 0.005 ? 'de este pago, unos ' + fmt(partes.interes) + ' son interés y cuentan como gasto en ' + escapeHtml(c.cat) + '; ' + fmt(Math.max(0, c2(p.A - partes.interes))) + ' bajan lo que debes y no son gasto'
+          : 'este pago no lleva interés: todo baja lo que debes y no cuenta como gasto')) + '</div>'
         + '<button type="button" class="btn btn-purple" id="g-cr-btn" onclick="pagarCredito(\'' + k + '\')">anotar el pago ' + (e.k + 1) + '</button>'
         + '<button type="button" class="btn" style="margin-top:8px" onclick="abrirPagoCredito(null)">cancelar</button></div>';
     } else pagar = '<button type="button" class="btn g-cr-pagar" onclick="abrirPagoCredito(\'' + k + '\')">ya hice el pago ' + (e.k + 1) + '</button>';
@@ -6759,8 +6780,14 @@ window.agregarCredito = async function(btn) {
 };
 window.borrarCredito = async function(id) {
   const c = (state.creditos || {})[id]; if (!c || creditoOcupado) return;
-  const n = pagosDeCredito(id).length;
-  if (!(await confirmarDeslizando({titulo: '¿Quitar el crédito?', texto: 'Quitar "' + c.nombre + '" de tus créditos.' + (n ? ' Los ' + n + ' pagos que anotaste se quedan como gastos.' : ''), verbo: 'quitar'}))) return;
+  const ps = pagosDeCredito(id), n = ps.length;
+  // (22-nov-2026) los pagos marcados conservan su particion; los de antes (sin marca) dependen del credito: al quitarlo cuentan enteros como gasto
+  const viejos = c.tipo === 'tienda' ? 0 : ps.filter(g => g.parcial !== true && partesGasto(g).abono > 0.005).length;
+  const sobrePagos = !n ? '' : c.tipo === 'tienda' ? (n === 1 ? ' El pago que anotaste se queda como gasto.' : ' Los ' + n + ' pagos que anotaste se quedan como gastos.')
+    : viejos ? ' Los pagos que anotaste se quedan, pero ' + (viejos === 1 ? '1 pago anotado antes del 22 de noviembre va a contar entero como gasto' : viejos + ' pagos anotados antes del 22 de noviembre van a contar enteros como gasto') + ': ya no se sabría qué parte bajó tu deuda.'
+    : ps.every(g => g.parcial === true) ? (n === 1 ? ' El pago que anotaste se queda: su interés sigue contando como gasto y lo demás como abono.' : ' Los ' + n + ' pagos que anotaste se quedan: su interés sigue contando como gasto y lo demás como abono.')
+    : (n === 1 ? ' El pago que anotaste se queda como está.' : ' Los ' + n + ' pagos que anotaste se quedan como están.');
+  if (!(await confirmarDeslizando({titulo: '¿Quitar el crédito?', texto: 'Quitar "' + c.nombre + '" de tus créditos.' + sobrePagos, verbo: 'quitar'}))) return;
   creditoOcupado = true;
   try {
     await guardarMergeG('creditos', {lista: {[id]: deleteField()}});
@@ -6781,7 +6808,7 @@ window.pagarCredito = async function(id) {
   const monto = parseFloat(document.getElementById('g-cr-monto').value);
   const fecha = fechaMovOpcional('g-cr-fecha'); if (fecha === null) return;
   const partes = partesPago(e.plan, e.k);
-  const extra = {credito: id, interes: Math.min(partes.interes, monto)};
+  const extra = {credito: id, interes: Math.min(partes.interes, monto), parcial: e.c.tipo !== 'tienda'};
   const nota = e.c.nombre + ' · pago ' + (e.k + 1) + ' de ' + e.plan.n;
   const btn = document.getElementById('g-cr-btn');
   const ok = esIdX(cuenta) ? await altaMovX('gasto', e.c.cat, monto, nota, cuenta, btn, fecha, extra) : await altaGasto(e.c.cat, monto, nota, cuenta, btn, fecha, extra);
@@ -7387,6 +7414,28 @@ async function procesarPendientesAtajo() {
 function movSinEfecto(m) { return m.pendiente===true || (m.porAtajo===true && m.aplicadoSaldo!==true); }
 // los rechazados no cuentan en resumen ni en totales (nunca fueron dinero real validado)
 function movValido(m) { return Number.isFinite(m.monto) && !(m.porAtajo===true && m.aplicadoSaldo===false); }
+// (22-nov-2026, Beto y Marcela: "el capital no es gasto") el pago de un prestamo, hipoteca o credito de auto se parte en dos:
+// su interes es GASTO (consumo) y el resto es ABONO a lo que debias (baja la deuda, no es consumo). Una compra a plazos de
+// tienda cuenta ENTERA como gasto: es lo que compraste, pagado en partes. Un pago sin interes guardado, o de un credito que
+// ya se quito ("los pagos se quedan como gastos"), cuenta entero, como antes. El dinero que sale de la cuenta es SIEMPRE
+// g.monto: saldos, reversas y Movimientos no cambian. Lo que suma "gastaste" usa consumo; el balance resta consumo + abono
+// (asi lo que entro menos lo que salio sigue cuadrando con tus cuentas)
+function partesGasto(g) {
+  const m=Number(g&&g.monto);
+  if(!Number.isFinite(m)) return {consumo:m, abono:0};
+  if(!g.credito) return {consumo:m, abono:0};
+  // un pago marcado al anotarlo (desde el 22-nov) se parte sin consultar el credito: quitar el credito no cambia el pasado
+  if(g.parcial===true){ const ip=Number(g.interes); if(!Number.isFinite(ip)||ip<0) return {consumo:m, abono:0}; const cp=Math.min(ip,m); return {consumo:cp, abono:Math.round((m-cp)*100)/100}; }
+  const c=(state.creditos||{})[g.credito];
+  if(!c||c.tipo==='tienda') return {consumo:m, abono:0};
+  // antes del 22-nov un interes de 0 no se guardaba: un credito cuyos pagos no pasan de lo prestado no cobra intereses
+  const i=g.interes!==undefined&&g.interes!==null?Number(g.interes):(Number(c.pago)*Number(c.n)<=Number(c.monto)+0.01?0:NaN);
+  if(!Number.isFinite(i)||i<0) return {consumo:m, abono:0};
+  const consumo=Math.min(i,m);
+  return {consumo, abono:Math.round((m-consumo)*100)/100};
+}
+const montoConsumo=g=>partesGasto(g).consumo;
+const abonoCapital=g=>partesGasto(g).abono;
 
 // ── SINCRONIZACION EN VIVO ────────────────────────────────────
 // Sin esto, una pestana abierta se queda con los saldos congelados: no se entera de lo
@@ -10026,9 +10075,14 @@ function render() {
     const resto=total-debTot;
     if(td){ td.hidden=!(debTot>0.005);
       const soloTdc=partes.length===1&&partes[0][1]==='en tarjetas';
+      // (22-nov-2026, Marcela: "son 4 renglones y asusta") con varias deudas: el total y de que es, sin montos por parte; el detalle esta en "ver desglose", justo abajo.
+      // "si pagas todo hoy te quedan" / "te faltarian" solo con tarjetas: un prestamo a 20 meses no se paga hoy
+      const NOM={'en tarjetas':'tarjetas','a meses por cargar':'compras a meses','en préstamos':'préstamos','a personas':'personas'};
+      const y=l=>l.length>1?l.slice(0,-1).join(', ')+' y '+l[l.length-1]:l[0];
       const cuanto=partes.length===1?'debes '+fmt(debTot)+' '+partes[0][1]
-        :'debes '+fmt(debTot)+' en total: '+(l=>l.slice(0,-1).join(', ')+' y '+l[l.length-1])(partes.map(x=>fmt(x[0])+' '+x[1]));
-      const queda=bolsaPend||!(debTot>0.005)?'':' · '+(resto>-0.005?(soloTdc?'si las pagas hoy te quedan ':'si pagas todo hoy te quedan ')+fmt(Math.max(0,resto)):(soloTdc?'para pagarlas te faltarían ':'para pagar todo te faltarían ')+fmt(-resto))+(teDeben>0.005&&!soloTdc?', sin contar lo que te deben':'');
+        :partes.length===2?'debes '+fmt(debTot)+' en total: '+y(partes.map(x=>fmt(x[0])+' '+x[1]))
+        :'debes '+fmt(debTot)+' en total, entre '+y(partes.map(x=>NOM[x[1]]))+' · el detalle, abajo en el desglose';
+      const queda=bolsaPend||!(debTot>0.005)||!soloTdc?'':' · '+(resto>-0.005?'si las pagas hoy te quedan '+fmt(Math.max(0,resto)):'para pagarlas te faltarían '+fmt(-resto));
       td.textContent=debTot>0.005?cuanto+queda:''; } }
   refrescarGananciaMes();
   // (28-oct-2026) una cartera recien creada abre sola el asistente, una vez por sesion (nunca con datos de la cache)
@@ -11044,7 +11098,7 @@ async function altaMovX(tipo, cat, montoOrig, nota, cuentaId, btn, fecha, extra)
   refrescar(render, renderMovimientos);
   const queda = res.cx && res.cx[cuentaId] ? res.cx[cuentaId].saldo : null;
   showToast((esGasto ? fmtX(-mo, x.moneda) : '+' + fmtX(mo, x.moneda)) + (x.moneda === 'MXN' ? '' : ' (≈ ' + fmt(m) + ')') + ' registrado' + (queda !== null && queda < 0 ? ' · ojo: ' + x.nombre + ' quedó en rojo' : ''));
-  if (esGasto) { avisoCategoria(cat, mov.fecha); avisoLimite(m, mov.fecha, cat); }
+  if (esGasto) { avisoCategoria(cat, mov.fecha); avisoLimite(montoConsumo(mov), mov.fecha, cat); }   // (22-nov-2026, qa) el limite cuenta solo el consumo: con el monto completo de un pago de prestamo avisaba un cruce falso
   return true;
 }
 
@@ -11909,7 +11963,7 @@ async function altaGasto(cat,monto,nota,fuente,btn,fecha,extra) {
   refrescar(render,renderMovimientos);
   showToast(msItem?('compra a '+msItem.n+' meses registrada · '+fmt(msItem.mensualidad)+' al mes'):quedoNegativo?('−'+fmt(m)+' registrado · ojo: SALDO quedó negativo'):('−'+fmt(m)+' registrado'));
   avisoCategoria(cat,gasto.fecha); // aviso diferido si ese mes ya va muy arriba del promedio
-  avisoLimite(gasto.monto,gasto.fecha,cat);  // y el del limite del mes y de su categoria (gana si salen los dos)
+  avisoLimite(montoConsumo(gasto),gasto.fecha,cat);  // (22-nov-2026, qa) solo el consumo, como gastoDelMes; y el del limite del mes y de su categoria (gana si salen los dos)
   return true;
 }
 // (19-nov-2026) la casilla "la compré a meses" solo sale con una tarjeta en "pagado con"; lo que va a costar se dice antes de registrar
@@ -12313,6 +12367,22 @@ function ticketTrabajador(partes) {
 // y fecha de una foto real que los grises perdian); al final 4 (una columna) en grises. Probado con tickets dibujados: con 4 una foto girada
 // perdia la columna de cifras; con 6 no. Cada pasada extra tarda lo mismo que la primera: se para en cuanto basta
 const TICKET_PASADAS = [{psm: '6', img: 'gris'}, {psm: '6', img: 'zonas'}, {psm: '4', img: 'gris'}];
+// (22-nov-2026, prueba con fotos reales de internet) una foto tomada de lado (el ticket acostado sobre la mesa) no daba nada: rotateAuto
+// endereza unos grados, no 90. Si NINGUNA pasada encontro un total, se lee la version en grises girada a la derecha y, si tampoco, a la
+// izquierda. Una foto derecha no paga nada de esto
+async function ticketGirar(png, sentido) {
+  const bmp = await createImageBitmap(new Blob([png], {type: 'image/png'}));
+  const cv = document.createElement('canvas');
+  try {
+    cv.width = bmp.height; cv.height = bmp.width;
+    const cx = cv.getContext('2d');
+    cx.translate(cv.width / 2, cv.height / 2); cx.rotate(sentido * Math.PI / 2); cx.drawImage(bmp, -bmp.width / 2, -bmp.height / 2);
+    const blob = await new Promise(r => cv.toBlob(r, 'image/png'));
+    if (!blob) throw ticketError('ticket/no-imagen');
+    return new Uint8Array(await blob.arrayBuffer());
+  } finally { bmp.close(); cv.width = 0; cv.height = 0; }
+}
+const ticketHayTotal = textos => textos.some(t => ticketLeer(t, '2000-01-01').monto !== null);
 // todo el camino: bajar o sacar de la copia el lector, preparar la foto, leer. Devuelve los textos de las pasadas hechas: se para en cuanto
 // basta(textos) === true (total confirmado, fecha y comercio); si no, hace todas para que ticketElegir compare. Nunca toca la forma
 async function ticketTexto(file, avisar, basta) {
@@ -12333,6 +12403,7 @@ async function ticketTexto(file, avisar, basta) {
   let reloj;
   // (8-nov) los textos viven fuera de la tarea: si una pasada extra falla o vence el plazo, el texto de la primera no se pierde
   const textos = [];
+  const grisCopia = imagenes.gris.slice();   // la ultima pasada en grises la entrega al lector: girarla pide una copia
   try {
     const plazo = new Promise((ok, no) => { reloj = setTimeout(() => textos.length ? ok({textos: textos.slice(), bajados}) : no(ticketError('ticket/plazo')), TICKET_PLAZO); });
     const trabajo = (async () => {
@@ -12352,6 +12423,19 @@ async function ticketTexto(file, avisar, basta) {
           textos.push(String((r && r.text) || ''));
         } catch (e) { if (k > 0 && textos.length) break; throw e; }
         if (k === TICKET_PASADAS.length - 1 || (basta && basta(textos))) break;
+      }
+      // (22-nov-2026) sin ningun total: la foto puede estar de lado
+      if (textos.length === TICKET_PASADAS.length && !ticketHayTotal(textos)) {
+        await t.pedir('setParameters', {params: {tessedit_pageseg_mode: '6', preserve_interword_spaces: '1', user_defined_dpi: '300'}});
+        for (const sentido of [1, -1]) {
+          try {
+            const img = await ticketGirar(grisCopia, sentido);
+            avisar('leyendo el ticket… (girado)');
+            const r = await t.pedir('recognize', {image: img, options: {rotateAuto: true}, output: {text: true}}, null, [img.buffer]);
+            textos.push(String((r && r.text) || ''));
+          } catch (e) { break; }
+          if (ticketHayTotal(textos)) break;
+        }
       }
       return {textos: textos.slice(), bajados};
     })();
@@ -12650,7 +12734,10 @@ function renglonMov(m) {
   // (17-nov-2026) sin la fecha: el dia va en el encabezado (en la lista y en el dia del calendario); la nota solo si hay
   const ms=it.meses&&esGasto?mesesDe(it.fuente).find(x=>x.id===it.meses):null;
   const marcaMs=it.meses&&esGasto?(ms?' · a '+ms.n+' meses':' · a meses'):'';
-  const meta=[it.nota?escapeHtml(it.nota):'',cuenta].filter(Boolean).join(' · ')+marcaMs+marca;
+  // (22-nov-2026) el pago de un prestamo dice que parte es gasto (interes) y que parte bajo lo que debes
+  const pg=esGasto&&it.credito?partesGasto(it):null;
+  const marcaCr=pg&&pg.abono>0.005?' · '+fmt(pg.consumo)+' de interés (gasto) y '+fmt(pg.abono)+' a lo que debías':'';
+  const meta=[it.nota?escapeHtml(it.nota):'',cuenta].filter(Boolean).join(' · ')+marcaMs+marcaCr+marca;
   return`<div class="item-row mov-row"><div><div class="item-cat">${escapeHtml(catFV(it.cat))}${it.sub?'<span class="mov-sub"> · '+escapeHtml(String(it.sub))+'</span>':''}</div><div class="item-meta">${meta}</div></div><div class="mov-amt ${esGasto?'item-amt-neg':'item-amt-pos'}">${esGasto?'−':'+'}${fmtMov(it)}</div><div class="mov-acc">${edit}${del}</div></div>`;
 }
 function renderMovimientos() {
@@ -12687,13 +12774,13 @@ function renderMovimientos() {
   // lo de cada dia se suma de TODO lo filtrado (no solo de los 200 que se pintan)
   const porDia=Object.create(null);
   lista.forEach(m=>{ if((m.tipo!=='gasto'&&m.tipo!=='ingreso')||!movValido(m.it)) return; const k=diaLocalMov(m.it.fecha); if(!k) return;
-    const d=porDia[k]||(porDia[k]={g:0,i:0}); if(m.tipo==='gasto') d.g+=m.it.monto; else d.i+=m.it.monto; });
+    const d=porDia[k]||(porDia[k]={g:0,i:0,ab:0}); if(m.tipo==='gasto'){ const p=partesGasto(m.it); d.g+=p.consumo; d.ab+=p.abono; } else d.i+=m.it.monto; });   // (22-nov-2026) la misma particion que "gastaste · abonaste" de arriba
   let html=recortado?'<div class="item-meta" style="text-align:center;padding:6px 0">mostrando los 200 más recientes de '+lista.length+'</div>':'', dia=null;
   lista.slice(0,200).forEach(m=>{
     const k=diaLocalMov(m.it.fecha)||'';
     if(k!==dia){
-      dia=k; const t=porDia[k]||{g:0,i:0};
-      const tot=[t.g>0.004?'−'+fmt(t.g):'', t.i>0.004?'+'+fmt(t.i):''].filter(Boolean).join(' · ');
+      dia=k; const t=porDia[k]||{g:0,i:0,ab:0};
+      const tot=[t.g>0.004?'−'+fmt(t.g):'', t.ab>0.004?'abono '+fmt(t.ab):'', t.i>0.004?'+'+fmt(t.i):''].filter(Boolean).join(' · ');
       html+='<div class="mov-dia"><span>'+escapeHtml(k?movDiaTitulo(k):'sin fecha')+'</span>'+(tot?'<span class="mov-dia-tot">'+tot+'</span>':'')+'</div>';
     }
     html+=m.tipo==='gasto'||m.tipo==='ingreso'?renglonMov(m):renglonNeutro(m);
@@ -12704,13 +12791,15 @@ function renderMovimientos() {
 // Los pagos de tarjeta no suman (no son gasto). En privado sin montos: fmt ya los tapa
 function pintarResumenMov(lista, hayFiltros) {
   const el=document.getElementById('mov-resumen'); if(!el) return;
-  let g=0, i=0, n=0;
-  lista.forEach(m=>{ n++; if((m.tipo!=='gasto'&&m.tipo!=='ingreso')||!movValido(m.it)) return; if(m.tipo==='gasto') g+=m.it.monto; else i+=m.it.monto; });
+  let g=0, i=0, n=0, ab=0;
+  // (22-nov-2026) de un pago de prestamo solo su interes es gasto; el capital se dice aparte ("abonaste")
+  lista.forEach(m=>{ n++; if((m.tipo!=='gasto'&&m.tipo!=='ingreso')||!movValido(m.it)) return; if(m.tipo==='gasto'){ const p=partesGasto(m.it); g+=p.consumo; ab+=p.abono; } else i+=m.it.monto; });
   if(!n&&!hayFiltros){ el.innerHTML=''; return; }
   const partes=[n===1?'1 movimiento':n+' movimientos'];
   // solo lo que hay: con un filtro que solo da gastos no se dice "entró $0.00" (salvo que se hayan pedido ingresos)
   const verG=movFiltro==='gastos'||(movFiltro==='todos'&&(g>0.004||i<=0.004)), verI=movFiltro==='ingresos'||(movFiltro==='todos'&&i>0.004);
   if(verG&&!modoPrivado) partes.push('gastaste <b>'+fmt(g)+'</b>');
+  if((verG||movFiltro==='todos')&&!modoPrivado&&ab>0.004) partes.push('abonaste a préstamos <b>'+fmt(ab)+'</b>');   // (revision) aunque el gasto sea 0 (un pago sin interes)
   if(verI&&!modoPrivado) partes.push('entró <b>'+fmt(i)+'</b>');
   // el lector de pantalla oye el texto solo cuando cambia: aria-live en el span, que no se rehace si es igual
   const txt=partes.join(' · ');
@@ -12737,7 +12826,7 @@ const calDiaDeCorte=(corte,y,m0)=>calClave(y,m0,Math.min(corte,new Date(y,m0+1,0
 // lo gastado por dia: agrupa los MISMOS gastos que suma el total del mes (por eso los dias siempre suman el total)
 function calGastosPorDia(gastos) {
   const porDia=Object.create(null);
-  gastos.forEach(g=>{ const k=diaLocalMov(g.fecha); if(k) porDia[k]=(porDia[k]||0)+g.monto; });
+  gastos.forEach(g=>{ const k=diaLocalMov(g.fecha), v=montoConsumo(g); if(k&&v>0.005) porDia[k]=(porDia[k]||0)+v; });
   return porDia;
 }
 // lo que toca en un mes (mes0 0-11), por dia. Meses pasados: nada, porque no se sabe si tocaba (no hay historia de suscripciones).
@@ -12824,9 +12913,11 @@ function renderCalendario() {
   conSigno(document.getElementById('cal-ahorro'),apTotal(aportacionesEnRango(start,end)));
   conSigno(document.getElementById('cal-balance'),t.balance);
   // el mes en curso sin ingresos todavia no es "vas mal": quien cobra por quincena puede haber cobrado el mes pasado
-  const sinIngresos=calOffset===0&&t.totalI===0&&t.totalG>0, balD=document.getElementById('cal-bal-d');
+  const sinIngresos=calOffset===0&&t.totalI===0&&(t.totalG>0||t.abonos>0), balD=document.getElementById('cal-bal-d');
   if(sinIngresos) document.getElementById('cal-balance').className='cal-kpi-v';
-  balD.textContent=sinIngresos?'aún no entra dinero este mes':''; balD.hidden=!sinIngresos;
+  // (22-nov-2026) el balance resta tambien lo que abonaste a tus prestamos (no es gasto, pero salio): se dice para que cuadre
+  const conAbono=!sinIngresos&&!modoPrivado&&t.abonos>0.005;
+  balD.textContent=sinIngresos?'aún no entra dinero este mes':(conAbono?'incluye '+fmt(t.abonos)+' que abonaste a tus préstamos':''); balD.hidden=!sinIngresos&&!conAbono;
   // a esta misma fecha del mes pasado (el dia se topa: el 31 contra un mes de 30). Sin montos no se puede comparar: en privado no sale
   const compEl=document.getElementById('cal-comp'); let comp='';
   if(calOffset===0&&!modoPrivado){
@@ -13617,7 +13708,10 @@ function renderDeudas() {
   const porGrupo=new Map(); state.clasif.gruposPersona.forEach(g=>porGrupo.set(g,[]));
   Object.entries(personas).forEach(e=>{ const g=grupoDe(e[1]); if(!porGrupo.has(g)) porGrupo.set(g,[]); porGrupo.get(g).push(e); });
   const usados=[...porGrupo.entries()].filter(([,l])=>l.length);
-  document.getElementById('personas-container').innerHTML=(usados.length>1
+  // (22-nov-2026, Marcela: "tras Listo: Familia no aparece nada") con un solo grupo tambien lleva encabezado si alguien lo eligio a proposito
+  const conGrupo=Object.values(personas).some(p=>p&&typeof p.grupo==='string'&&state.clasif.gruposPersona.includes(p.grupo));
+  const pt=document.getElementById('personas-title'); if(pt) pt.hidden=!Object.keys(personas).length;
+  document.getElementById('personas-container').innerHTML=(usados.length>1||conGrupo
     ?usados.map(([g,l])=>{ const td=l.reduce((a,[k])=>a+Math.max(0,sal[k]),0), db=l.reduce((a,[k])=>a+Math.max(0,-sal[k]),0);
         return '<div class="g-grupo-tit"><span class="g-grupo-n">'+escapeHtml(g)+'</span><span class="g-grupo-t">'+[td>0.005?'te deben '+fmt(td):'',db>0.005?'le debes '+fmt(db):''].filter(Boolean).join(' · ')+'</span></div>'+l.map(tarjeta).join(''); }).join('')
     :usados.flatMap(([,l])=>l).map(tarjeta).join(''))
@@ -15181,6 +15275,9 @@ async function asisCrearTrabajo() {
     if (err) { console.error('asistente', err); asisAviso(msgFalloDinero()); return; }
     if (res.error && res.codigo !== 'ya-existe') { asisAviso(res.error); return; }
     if (!res.error) aplicarRes(res);
+    // (22-nov-2026, Marcela) los saldos del asistente son saldos puestos al dia: el panel de salud no debe decir "puede estar viejo"
+    // justo despues. Se espera (con tope) porque encender una tarjeta al final recarga la app y cortaria la escritura
+    try { await Promise.race([marcarAlDia(), new Promise(r => setTimeout(r, 4000))]); } catch (e) {}
   }
   // los fondos van aparte (su lista vive en cartera/fondo): si alguno ya existe, se salta
   for (const n of fondos) {
@@ -15312,7 +15409,7 @@ const AYUDA_BASE = [
     r:['Anótala como gasto: en "Pagado con" elige tu tarjeta y marca "La compré a meses". Pon los meses y, si tiene intereses, la mensualidad; antes de registrar te dice cuánto te cuesta.', 'Cuenta como gasto completo ese día y tu tarjeta sube en cada corte. Si la traías de antes, usa "Anotar una compra a meses que ya traías", salvo que el saldo que pusiste de tu tarjeta ya incluya lo que falta: se contaría dos veces.'],
     claves:'meses msi mensualidad mensualidades diferido diferida'},
   {id:'prestamo', g:'anotar', p:'¿Cómo anoto un préstamo o un crédito?', donde:'Deudas', ir:'deudas', boton:'ir a deudas', soloCreditos:true,
-    r:['En Deudas, en préstamos y créditos: cuánto te prestaron, el pago, cada cuándo y la tasa (con tres de esos datos la app saca el cuarto).', 'Cada pago se anota como gasto, con su parte de interés. Lo que debes hoy sale ahí y en lo que debes del Resumen. Tu siguiente pago sale en tu préstamo y en el calendario, en su día.'],
+    r:['En Deudas, en préstamos y créditos: cuánto te prestaron, el pago, cada cuándo y la tasa (con tres datos la app saca el cuarto).', 'De cada pago, el interés es gasto y el resto baja lo que debes (en una compra a plazos de tienda, todo es gasto). Lo que debes hoy sale ahí y en el Resumen. Tu siguiente pago sale en tu préstamo y en el calendario, en su día.'],
     claves:'prestamo prestamos credito creditos hipoteca hipotecario financiamiento'},
   {id:'cal-ingresos', g:'ver', p:'Mi quincena no sale en el calendario', donde:'Calendario', ir:'calendario', boton:'ir al calendario',
     r:['En el calendario, lo que te entró sale en verde, con un +, en el día que lo anotaste. El total del mes sale arriba, en "Ingresos". Si tu quincena no sale, revisa en Movimientos que esté anotada como ingreso y con su fecha.'],
@@ -15381,11 +15478,18 @@ const AYUDA_BASE = [
     claves:'total cuanto tengo dinero patrimonio suma ver veo donde esta mi desglose activos'},
   // (18-nov-2026, calificacion con usuario-real) Pico buscaba su corte y lo que debe, y ya salen en inicio
   {id:'cuanto-debo', g:'ver', p:'¿Dónde veo cuánto debo y mi fecha de corte?', donde:'Inicio', ir:'deuda', boton:'ir a lo que debo',
-    r:['En inicio, bajo tu total, sale en rojo todo lo que debes junto: tarjetas, compras a meses por cargar, préstamos y lo que debes a personas, y con cuánto te quedas si pagas todo hoy. Tu total no resta esa deuda. El detalle, renglón por renglón, está en Resumen, en "Lo que debes".', 'El día de corte sale en tu tarjeta de crédito y en el calendario.'],
+    r:['En inicio, bajo tu total, sale en rojo todo lo que debes junto: tarjetas, compras a meses por cargar, préstamos y lo que debes a personas. Tu total no resta esa deuda. El detalle está justo abajo, en el desglose, y renglón por renglón en Resumen, en "Lo que debes".', 'El día de corte sale en tu tarjeta de crédito y en el calendario.'],
     claves:'debo deuda deudas total corte corta fecha dia rojo resta restar debes tarjeta tarjetas pantalla principal'},
   {id:'negativo', g:'ver', p:'¿Por qué mi neto sale abajo de cero?', donde:'Inicio', ir:'deuda', boton:'ir a lo que debo',
     r:['Tu patrimonio neto es lo que tienes en tus cuentas, más lo que te deben, menos todo lo que debes: tarjetas, compras a meses por cargar y préstamos. Sale negativo cuando debes más de lo que tienes anotado.', 'Toca "Ver desglose", bajo tu total en inicio: ahí está renglón por renglón.'],
     claves:'neto'},
+  // (22-nov-2026, Marcela) dos preguntas que no tenian respuesta: el tipo de gasto y el panel de salud
+  {id:'tipo-gasto', g:'anotar', p:'¿Cómo marco un gasto como fijo o como algo que se puede bajar?', donde:'Movimientos › Categorías', ir:'categorias', boton:'ir a categorías',
+    r:['En Movimientos, en Categorías: cada categoría de gasto tiene tres opciones, fijo, se ajusta y se puede bajar. Toca la que va con la tuya.', 'Se elige por categoría, no gasto por gasto: si para ti la gasolina es un gasto fijo, marca como fijo la categoría donde la anotas (por ejemplo Transporte). Al cerrar el mes, la app nunca te propone bajar un gasto fijo.'],
+    claves:'fijo fija fijos ajustable ajusta bajar recortar tipo variable'},
+  {id:'salud', g:'ver', p:'¿Qué es mi salud financiera y por qué dice que puede estar viejo?', donde:'Resumen', ir:'salud', boton:'ir a mi salud financiera',
+    r:['Está en el Resumen: hechos con lo que anotaste, cada uno contra una referencia (pagos a préstamos, colchón, ahorro y lo que debes). Se miden con un mes completo.', 'Dice que puede estar viejo si hace más de un mes que no pones al día tus saldos o más de dos semanas que no anotas nada. Se arregla en Inicio, en Actualizar saldos, o guardando el saldo de una cuenta que agregaste.'],
+    claves:'salud financiera viejo desactualizado colchon referencia condusef'},
   {id:'real', g:'ver', p:'¿Es real este número?', donde:'Inicio', ir:'inicio', boton:'ir a inicio',
     r:['Es lo que tú has anotado, sumado. Fundview no se conecta a tu banco ni lo lee, así que no puede saber si coincide con lo que tienes de verdad.', 'El interés de una cajita es un estimado con la tasa que escribiste. Para acercarlo a tu banco, pon tu saldo al día en "Actualizar saldos".'],
     claves:'real reales numero cifra cifras cantidad verdad correcto correcta cierto exacto exacta confiable estimado estimada estimacion cajita dice dinero total interes intereses'},
@@ -15485,6 +15589,10 @@ const AYUDA_ESCALAR = [
 ];
 // frases que por si solas ya dicen de que se habla, aunque sus palabras sean de las vacias
 const AYUDA_DIRECTAS = [[/\bagreg\w* (un |otro |mi )?banco\b/, 'agregar'],
+  // (22-nov-2026, Marcela) volver fijo un gasto (no un pago fijo, que es una suscripcion) y el panel de salud
+  // (revision) exige "gasto" o "categoria" en la frase: "cuenta fija", "sueldo fijo", "tasa fija" o "renta fija" son otra cosa
+  [/^(?!.*\b(pago|pagos|suscrip\w*|cobr\w*|mensual\w*|cuenta|cuentas|ingreso\w*|sueldo\w*|nomina|tasa|renta fija|prestamo\w*|credito\w*)\b)(?=.*\b(gasto|gastos|categoria\w*)\b).*\bfij[oa]s?\b/, 'tipo-gasto'],
+  [/\bsalud financiera\b|\bpuede estar (viejo|desactualizad\w*)\b/, 'salud'],
   // (20-nov-2026) compras a meses y la quincena en el calendario (calificacion de Marcela)
   [/\bmsi\b|\bmeses sin intereses\b|\bcompras? a meses\b|^(?!.*\b(meta|metas|juntar|ahorrar)\b).*\bcompr\w*\b.*\ba meses\b|(?=.*\b(a|en) \d{1,2} meses\b)(?=.*\b(compr\w*|tarjeta|mensualidad\w*|intereses)\b)(?!.*\b(meta|metas|juntar|ahorrar|app|fundview|cuesta)\b)/, 'meses'],
   [/^(?!.*\btarjeta\w*\b)(?!.*\b(hermano|hermana|amigo|amiga|prim[oa]s?|mama|papa|hijo|hija|novi[oa]|tio|tia|vecin\w*|le (di|preste|prestamos))\b)(?=.*\b(prestamo|credito)s?\b.*\b(banco|nomina|auto|carro|coche|personal|hipotecari\w*)\b|.*\bhipoteca\b)/, 'prestamo'],
@@ -15661,6 +15769,7 @@ const AYUDA_IR = {
   // la linea roja bajo el total, si hay deuda; si no, el total
   deuda: () => { showPage('inicio', true); const d = ayEl('total-deuda'); return d && !d.hidden && d.offsetParent !== null ? d : document.querySelector('.total-section'); },
   resumen: () => { showPage('resumen', true); return ayEl('res-periodo-toggle'); },
+  salud: () => { showPage('resumen', true); return ayEl('res-salud'); },
   ganancia: () => { showPage('resumen', true); return ayAbrir(ayEl('res-utilidades')); },
   limite: () => { ayPerfil(); return ayAbrir(ayEl('limite-input')); },
   metas: () => { showPage('metas', true); return ayEl('metas-panel'); },
@@ -16867,9 +16976,11 @@ window.exportarMisDatosExcel = async function() {
     const numX = v => Number.isFinite(v) ? v : '';
     const colsMonX = CFG.multi ? [['moneda', 'moneda', 10], ['monto original', 'orig', 16], ['tipo de cambio', 'tc', 14]] : [];
     const filaMonX = g => CFG.multi ? {moneda: g.moneda || '', orig: numX(g.montoOrig), tc: numX(g.tc)} : {};
-    hoja('Gastos', [['fecha', 'f', 12, 'fecha'], ['categoría', 'cat', 18], ['monto', 'monto', 14, 'mon'], ['pagado con', 'cta', 22], ['nota', 'nota', 32], ...colsMonX],
-      state.gastos.map(g => ({f: fecha(g.fecha), cat: g.cat, monto: nFin(g.monto), cta: cta(g.fuente), nota: g.nota || '', ...filaMonX(g)})), {total: 'monto', desc: 'cada gasto; filtra por categoría o cuenta y el total se ajusta', color: 'FFC0504D'});
-    porCategoria('Gastos por categoría', state.gastos, 'cuánto gastaste en cada categoría, mes por mes');
+    // (22-nov-2026, revision) con pagos de prestamos, una columna dice que parte de lo que salio bajo la deuda (no es gasto): asi cuadra con "Gastos por categoría"
+    const hayAb = state.gastos.some(g => abonoCapital(g) > 0.005);
+    hoja('Gastos', [['fecha', 'f', 12, 'fecha'], ['categoría', 'cat', 18], ['monto', 'monto', 14, 'mon'], ...(hayAb ? [['abono a deuda (no es gasto)', 'ab', 16, 'mon']] : []), ['pagado con', 'cta', 22], ['nota', 'nota', 32], ...colsMonX],
+      state.gastos.map(g => ({f: fecha(g.fecha), cat: g.cat, monto: nFin(g.monto), ...(hayAb ? {ab: c2(abonoCapital(g))} : {}), cta: cta(g.fuente), nota: g.nota || '', ...filaMonX(g)})), {total: 'monto', desc: 'cada gasto; filtra por categoría o cuenta y el total se ajusta' + (hayAb ? '. "monto" es lo que salió; "abono a deuda" es la parte de un pago de préstamo que bajó lo que debías y no cuenta como gasto' : ''), color: 'FFC0504D'});
+    porCategoria('Gastos por categoría', state.gastos.map(g => ({...g, monto: montoConsumo(g)})).filter(g => g.monto > 0.005), 'cuánto gastaste en cada categoría, mes por mes; de un pago de préstamo solo cuenta su interés');
     hoja('Ingresos', [['fecha', 'f', 12, 'fecha'], ['categoría', 'cat', 18], ['monto', 'monto', 14, 'mon'], ['a la cuenta', 'cta', 22], ['nota', 'nota', 32], ...colsMonX],
       state.ingresos.map(g => ({f: fecha(g.fecha), cat: g.cat, monto: nFin(g.monto), cta: cta(g.destino), nota: g.nota || '', ...filaMonX(g)})), {total: 'monto', desc: 'cada ingreso; filtra por categoría o cuenta y el total se ajusta', color: 'FF4F81BD'});
     porCategoria('Ingresos por categoría', state.ingresos, 'cuánto entró de cada categoría, mes por mes');
@@ -17308,6 +17419,17 @@ function renderCamino(ctx) {
   // (20-nov-2026, Marcela) el mes en curso no entra al promedio (solo meses completos); si ya aportaste este mes se dice, no "aun no hay aportaciones"
   const apMes=huboOp?null:aportacionesEnRango(new Date(hoyD.getFullYear(),hoyD.getMonth(),1),new Date(hoyD.getFullYear(),hoyD.getMonth()+1,1));
   const huboMes=!!apMes&&Object.values(apMes).some(v=>Math.abs(v)>0.005);
+  // (22-nov-2026, Marcela) la cifra, no solo "ya ves lo que aportaste": cuanto y a donde (el mismo neto que Inicio y Resumen)
+  let txtMes='';
+  if(huboMes){
+    const tot=apTotal(apMes), ini=new Date(hoyD.getFullYear(),hoyD.getMonth(),1).getTime(), fin=new Date(hoyD.getFullYear(),hoyD.getMonth()+1,1).getTime();
+    const noms=[];
+    Object.keys(apMes).forEach(k=>{ if(!(apMes[k]>0.005)||k==='cajitasX') return; noms.push(k==='stocks'?'tu bolsa':(CUENTAS[k]||k)); });
+    if(apMes.cajitasX>0.005) (state.transferencias||[]).forEach(t=>{ const ms=t&&msFechaMov(t.fecha), x=t&&esIdX(t.destino)&&state.cuentasX[t.destino];
+      if(x&&x.tipo==='cajita'&&ms!==null&&ms>=ini&&ms<fin&&!noms.includes(x.nombre)) noms.push(x.nombre); });
+    const a=noms.length>1?noms.slice(0,-1).join(', ')+' y '+noms[noms.length-1]:(noms[0]||'tus ahorros');
+    txtMes=tot>0.005?'este mes metiste '+fmt(tot)+' a '+escapeHtml(a):(tot<-0.005?'este mes sacaste '+fmt(-tot)+' de tus ahorros':'este mes lo que metiste y sacaste de tus ahorros se compensa');
+  }
   const fila=(nombre,actual,meta,prom,bloqueada,f)=>{
     // comparacion por fecha calendario: el propio dia de la meta todavia cuenta
     if(hoyLocal()>f) return `<div class="item-row"><div><div class="item-cat">${escapeHtml(nombre)}</div><div class="item-meta">la fecha de esta meta ya pasó — ponle otra con «editar»</div></div><span class="item-meta">—</span></div>`;
@@ -17337,7 +17459,7 @@ function renderCamino(ctx) {
     }).join('')+
     `<div class="item-meta" style="text-align:center;padding-top:8px">${huboOp
       ?'proyección conservadora: solo tus aportaciones, sin contar rendimientos'
-      :(huboMes?'ya ves lo que aportaste este mes; la proyección usa el promedio de tus meses completos y arranca cuando cierre tu primer mes'
+      :(huboMes?txtMes+'; la proyección usa el promedio de tus meses completos y arranca cuando cierre tu primer mes'
         :'aún no hay aportaciones registradas en los últimos 3 meses — la proyección arranca cuando muevas dinero desde la app')}</div>`;
 }
 
@@ -17395,7 +17517,7 @@ let avisoCatTimer=null;
 const LIMITE_UMBRALES=[50,75,90];
 // (30-oct-2026, Beto: "o te pones un límite general o te metes más profundo, sobre categoría") el del mes Y, opcional,
 // uno por categoria (limitesCat = [{cat, monto}] en el perfil: lista, para que quitar una categoria la borre de verdad)
-function gastoDelMes(cat){ const k=hoyLocal().slice(0,7); return c2(state.gastos.filter(g=>movValido(g)&&mesLocalDe(g.fecha)===k&&(cat==null||g.cat===cat)).reduce((s,g)=>s+nFin(g.monto),0)); }
+function gastoDelMes(cat){ const k=hoyLocal().slice(0,7); return c2(state.gastos.filter(g=>movValido(g)&&mesLocalDe(g.fecha)===k&&(cat==null||g.cat===cat)).reduce((s,g)=>s+nFin(montoConsumo(g)),0)); }
 const limitesCat=()=>{ const a=state.perfil&&state.perfil.limitesCat; return Array.isArray(a)?a:[]; };
 function medirLimite(L,g){
   const hoy=new Date(), diasMes=new Date(hoy.getFullYear(),hoy.getMonth()+1,0).getDate(), dia=hoy.getDate();
@@ -17516,10 +17638,10 @@ function avisoCategoria(cat,fechaMov) {
   // dispararia una alerta sobre un mes que ya paso
   if(fechaMov&&mesLocalDe(fechaMov)!==hoyLocal().slice(0,7)) return;
   const mesKey=hoyLocal().slice(0,7);
-  const totalMes=state.gastos.filter(g=>g.cat===cat&&mesLocalDe(g.fecha)===mesKey).reduce((s,g)=>s+g.monto,0);
+  const totalMes=state.gastos.filter(g=>g.cat===cat&&mesLocalDe(g.fecha)===mesKey).reduce((s,g)=>s+montoConsumo(g),0);
   const hoy=new Date(); const claves=[];
   for(let i=1;i<=3;i++){ const d=new Date(hoy.getFullYear(),hoy.getMonth()-i,1); claves.push(d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')); }
-  const sums=claves.map(k=>state.gastos.filter(g=>g.cat===cat&&mesLocalDe(g.fecha)===k).reduce((s,g)=>s+g.monto,0)).filter(v=>v>0);
+  const sums=claves.map(k=>state.gastos.filter(g=>g.cat===cat&&mesLocalDe(g.fecha)===k).reduce((s,g)=>s+montoConsumo(g),0)).filter(v=>v>0);
   if(sums.length<2) return; // con un solo mes de historia seria muy ruidoso
   const prom=sums.reduce((a,b)=>a+b,0)/sums.length;
   if(totalMes>prom*1.5 && totalMes-prom>300){
@@ -18303,7 +18425,7 @@ function mesStats(y,m) {
   const enR=it=>{ if(!movValido(it)) return false; const t=msFechaMov(it.fecha); return t!==null&&t>=ini.getTime()&&t<fin.getTime(); };
   const gs=state.gastos.filter(enR), is=state.ingresos.filter(enR);
   const ap=aportacionesEnRango(ini,fin);
-  return {totalI:is.reduce((s,i)=>s+i.monto,0), totalG:gs.reduce((s,i)=>s+i.monto,0),
+  return {totalI:is.reduce((s,i)=>s+i.monto,0), totalG:gs.reduce((s,i)=>s+montoConsumo(i),0), abonos:gs.reduce((s,i)=>s+abonoCapital(i),0),
     aporte:apTotal(ap),
     tieneDatos:gs.length>0||is.length>0||apHay(ap)};
 }
@@ -18317,7 +18439,9 @@ function mesBueno(st) {
   // bien" dos renglones abajo. Un panel que se contradice solo no se vuelve a leer.
   // OJO: con esto una racha vieja puede bajar — es correcto, antes contaba de mas.
   const est=estandarDe(state.perfil);
-  return st.tieneDatos && i>0 && g*100<=i*est.gastoMax && a*100>=i*est.ahorroObj;
+  // (22-nov-2026, code-reviewer) el capital de un prestamo no es gasto, pero un mes en que entre gastos y abonos salio mas de lo que entro no es "bueno"
+  const ab=Math.round((st.abonos||0)*100);
+  return st.tieneDatos && i>0 && g*100<=i*est.gastoMax && g+ab<=i && a*100>=i*est.ahorroObj;
 }
 // racha de meses buenos CONSECUTIVOS que termina en el mes (y,m) INCLUSIVE (max 24: '24+').
 // Sin argumentos termina en el ultimo mes COMPLETO. Antes solo se calculaba para el mes
@@ -18342,7 +18466,7 @@ function calcularCierre(start,end,modo) {
   const esAno=modo==='ano', per=esAno?'año':'mes';
   const enR=it=>{ if(!movValido(it)) return false; const t=msFechaMov(it.fecha); return t!==null&&t>=start.getTime()&&t<end.getTime(); };
   const gastosR=state.gastos.filter(enR), ingresosR=state.ingresos.filter(enR);
-  const totalG=gastosR.reduce((s,i)=>s+i.monto,0), totalI=ingresosR.reduce((s,i)=>s+i.monto,0);
+  const totalG=gastosR.reduce((s,i)=>s+montoConsumo(i),0), totalI=ingresosR.reduce((s,i)=>s+i.monto,0), abonos=gastosR.reduce((s,i)=>s+abonoCapital(i),0);
   const ap=aportacionesEnRango(start,end);
   const aporte=apTotal(ap);
   const vacio=totalI===0&&totalG===0&&!apHay(ap);
@@ -18353,11 +18477,11 @@ function calcularCierre(start,end,modo) {
   const falta20=totalI>0?(estPre.ahorroObj/100)*totalI-aporte:0;
   // top 3 categorias vs promedio de los 3 meses ANTERIORES (solo en vista de mes;
   // mismos umbrales que avisoCategoria: 1.5x y +$300 para no marcar ruido)
-  const byCat=Object.create(null); gastosR.forEach(g=>byCat[g.cat]=(byCat[g.cat]||0)+g.monto);
+  const byCat=Object.create(null); gastosR.forEach(g=>{ const v=montoConsumo(g); if(v>0.005) byCat[g.cat]=(byCat[g.cat]||0)+v; });
   const claves=[];
   if(!esAno) for(let i=1;i<=3;i++){ const d=new Date(start.getFullYear(),start.getMonth()-i,1); claves.push(d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')); }
   const tops=Object.entries(byCat).sort((a,b)=>b[1]-a[1]).slice(0,3).map(([cat,amt])=>{
-    const sums=claves.map(k=>state.gastos.filter(g=>movValido(g)&&g.cat===cat&&mesLocalDe(g.fecha)===k).reduce((s,g)=>s+g.monto,0)).filter(v=>v>0);
+    const sums=claves.map(k=>state.gastos.filter(g=>movValido(g)&&g.cat===cat&&mesLocalDe(g.fecha)===k).reduce((s,g)=>s+montoConsumo(g),0)).filter(v=>v>0);
     let prom=null, inflada=false;
     if(sums.length>=2){ prom=sums.reduce((a,b)=>a+b,0)/sums.length; inflada=amt>prom*1.5&&amt-prom>300; }
     return {cat,amt,prom,inflada};
@@ -18372,7 +18496,7 @@ function calcularCierre(start,end,modo) {
     const diasCorridos=esActual?Math.floor((ahora-start.getTime())/86400000)+1:null;
     const prevFin=esActual?new Date(Math.min(prevFinFull.getTime(),new Date(prevIni.getFullYear(),prevIni.getMonth(),prevIni.getDate()+diasCorridos).getTime())):prevFinFull;
     const enP=it=>{ if(!movValido(it)) return false; const t=msFechaMov(it.fecha); return t!==null&&t>=prevIni.getTime()&&t<prevFin.getTime(); };
-    const pg=state.gastos.filter(enP).reduce((s,i)=>s+i.monto,0);
+    const pg=state.gastos.filter(enP).reduce((s,i)=>s+montoConsumo(i),0);
     const pi=state.ingresos.filter(enP).reduce((s,i)=>s+i.monto,0);
     const pAp=aportacionesEnRango(prevIni,prevFin);
     const hayPrev=pg>0||pi>0||apHay(pAp);
@@ -18411,7 +18535,7 @@ function calcularCierre(start,end,modo) {
   const diaMes=esActual?new Date().getDate():31;
   const maduro=!esActual||esAno||diaMes>=15;
   const diasMes=new Date(start.getFullYear(),start.getMonth()+1,0).getDate();
-  return {start,end,modo,esAno,per,esActual,totalI,totalG,aporte,ap,vacio,gPct,aPct,falta20,tops,comp,metas,
+  return {start,end,modo,esAno,per,esActual,totalI,totalG,abonos,aporte,ap,vacio,gPct,aPct,falta20,tops,comp,metas,
     maduro,diaMes,diasMes,est:estPre,
     // la racha termina en el mes que se esta viendo: si es el actual (a medias), en el
     // anterior; si es uno ya cerrado, en ese mismo mes incluido
@@ -18429,6 +18553,7 @@ const SCORE_VER='1.1';
 function porQueNoConto(m) {
   if(m.gPct===null) return 'no hay ingresos registrados';
   if(m.gPct>100) return 'gastaste más de lo que entró ('+m.gPct.toFixed(0)+'%)';
+  if((m.abonos||0)>0.005&&m.totalG+m.abonos>m.totalI+0.005) return 'entre gastos y abonos a tus préstamos salió más de lo que entró';
   // el gasto va PRIMERO: es la razon mas comun desde que mesBueno lo exige, y sin esto
   // caia en el generico de abajo justo cuando la respuesta estaba dos renglones arriba
   if(m.gPct>m.est.gastoMax) return 'gastaste el '+m.gPct.toFixed(0)+'% y tu tope es '+m.est.gastoMax+'%';
@@ -18456,11 +18581,11 @@ function calcScore(m) {
   // 3) constancia (20): meses buenos seguidos, tope a 6 para no premiar eternamente lo mismo
   comps.push({nombre:'constancia',max:20,puntos:Math.round(20*Math.min(1,m.racha/3)),
     // (28-oct-2026) se dice cuanto falta: los 20 puntos son con 6 meses seguidos (con 3 meses = 10, que no es un error)
-    detalle:(m.racha>=1?('llevas '+(m.racha>=24?'24 o más':m.racha)+' mes(es) seguidos cerrando bien'+(m.racha<3?' · los 20 puntos son con 3 meses: te faltan '+(3-m.racha):'')):('este mes no contó: '+porQueNoConto(m)))
+    detalle:(m.racha>=1?('llevas '+(m.racha>=24?'24 o más':m.racha)+' mes(es) seguidos cerrando bien'+(m.racha<3?' · los 20 puntos son con 3 meses: te faltan '+(3-m.racha):'')):('la racha suma los meses dentro de tu referencia; este '+m.per+': '+porQueNoConto(m)))
       +' · se recalcula con tu referencia actual, así que cambia si editas tu perfil'});
   // 4) colchon (10): meses de gasto cubiertos por dinero DISPONIBLE (sin bolsa, sin el
   // deposito congelado de la TDC, sin lo que te deben) contra el objetivo del estandar
-  const gastoRef=promedioGastoMensual();
+  const gastoRef=promedioGastoMensual(true);
   if(gastoRef>0){
     // (20-oct-2026) + las cuentas en otra moneda (en pesos); una en rojo no resta
     const liquido=[...ctasGrupo('disponible'),...ctasGrupo('ahorro')].reduce((s,c)=>s+Math.max(0,saldoTuyo(c)),0)
@@ -18476,13 +18601,15 @@ function calcScore(m) {
   const nivel=score>=85?'excelente':score>=70?'muy bien':score>=55?'vas bien':score>=40?'a mejorar':'necesita atención';
   return {score,nivel,comps,excluidos,maxTotal,preliminar:!m.maduro,ver:SCORE_VER,est};
 }
-// gasto mensual de referencia: promedio de los ultimos 3 meses COMPLETOS con datos
-function promedioGastoMensual() {
+// gasto mensual de referencia: promedio de los ultimos 3 meses COMPLETOS con datos.
+// (22-nov-2026) conAbonos: el colchon mide contra TODO lo que sale al mes (el capital de un prestamo no es gasto, pero hay que
+// pagarlo igual); la referencia del limite del mes, solo contra el gasto (el limite solo cuenta gasto)
+function promedioGastoMensual(conAbonos) {
   const now=new Date(); const vals=[];
   for(let i=1;i<=3;i++){
     const d=new Date(now.getFullYear(),now.getMonth()-i,1);
-    const st=mesStats(d.getFullYear(),d.getMonth());
-    if(st.tieneDatos&&st.totalG>0) vals.push(st.totalG);
+    const st=mesStats(d.getFullYear(),d.getMonth()), v=st.totalG+(conAbonos?st.abonos:0);
+    if(st.tieneDatos&&v>0) vals.push(v);
   }
   return vals.length?vals.reduce((a,b)=>a+b,0)/vals.length:0;
 }
@@ -18512,11 +18639,16 @@ function textoCoach(m) {
   if(foco&&top&&top.cat!==foco.cat) dondeVa=topTxt+(topFija?', un gasto fijo; de lo que se puede ajustar, lo que más pesa es ':(foco.inflada?'; la que más se salió de tu promedio es ':'; de lo que marcaste que se puede bajar, lo que más pesa es '))+focoTxt;
   else if(foco) dondeVa=focoTxt;
   else if(top) dondeVa=topTxt+(topFija?', un gasto fijo':'');
-  if(!gMed) return '⚠️ '+(esActual?'Vas gastando':'Gastaste')+' más de lo que '+(esActual?'ha ingresado':'ingresó')+' ('+gPct.toFixed(0)+'%). '+(dondeVa?'Donde más se fue: '+dondeVa+'. ':'')+'Si el hueco se cubre con tarjeta, genera intereses.';
-  if(gOk&&aOk) return '🎉 '+(esActual?('Este '+per+' va excelente'):('Fue un gran '+per))+': gastaste el '+gPct.toFixed(0)+'% de tus ingresos y aportaste el '+aPct.toFixed(0)+'% — muy buen ritmo de ahorro e inversión.'+(infl?' Solo cuida '+infl.cat+', que va arriba de tu promedio.':' Sigue así y diciembre llega solo.');
+  // (22-nov-2026, Beto: "no hay que juzgar a la gente, pero si gratificarles cuando hagan algo bueno") en un mes dificil solo hechos,
+  // sin veredicto ni advertencia, y se reconoce lo que si se hizo (apartar, abonar a una deuda). Lo bueno se celebra con nombre
+  const aunAsi=(m.aporte||0)>0.005?'Aun así apartaste '+fmt(m.aporte)+'. ':'';
+  if(!gMed) return (esActual?'Va saliendo':'Salió')+' más de lo que '+(esActual?'ha entrado':'entró')+' ('+gPct.toFixed(0)+'% en gastos). Hay meses así: cuando entra menos, lo fijo se paga igual. '+aunAsi+(dondeVa?'Donde más se fue: '+dondeVa+'. ':'')+'Si la diferencia salió de tu tarjeta, en Deudas ves cuánto debes.';
+  // (22-nov-2026, code-reviewer) el gasto puede ir bien y aun asi, con los abonos a prestamos, salir mas de lo que entra: se dice
+  if((m.abonos||0)>0.005&&m.totalG+m.abonos>m.totalI+0.005) return 'Abonaste '+fmt(m.abonos)+' a tus préstamos: eso baja lo que debes, aunque con eso '+(esActual?'va saliendo':'salió')+' más de lo que '+(esActual?'ha entrado':'entró')+'. Tus gastos fueron el '+gPct.toFixed(0)+'% de lo que entró. '+aunAsi+(dondeVa?'Donde más se fue: '+dondeVa+'.':'');
+  if(gOk&&aOk) return '🎉 '+(esActual?('Este '+per+' va excelente'):('Fue un gran '+per))+': gastaste el '+gPct.toFixed(0)+'% de tus ingresos y aportaste el '+aPct.toFixed(0)+'% — muy buen ritmo de ahorro e inversión.'+(infl?' Un dato: '+infl.cat+' fue arriba de tu promedio.':' Sigue así y diciembre llega solo.');
   if(gOk) return 'Buen control de gasto ('+gPct.toFixed(0)+'%). El siguiente paso es la aportación: '+(esActual?'llevas':'cerraste con')+' el '+Math.max(0,aPct).toFixed(0)+'% — '+(esActual?'te faltan ':'te faltaron ')+fmt(Math.max(0,falta20))+' para tu '+est.ahorroObj+'%.';
-  if(aOk) return 'Buen ritmo de aportación ('+aPct.toFixed(0)+'%). El gasto va algo cargado ('+gPct.toFixed(0)+'%)'+(dondeVa?': donde más se va es '+dondeVa+'.':'.');
-  return (esAno?'Año apretado':'Mes apretado')+': gasto al '+gPct.toFixed(0)+'% y aportación al '+Math.max(0,aPct).toFixed(0)+'%. '+(dondeVa?(dondeVa!==focoTxt?'Donde más se va es '+dondeVa:'Lo que más pesa de lo que se puede mover es '+focoTxt)+'. ':'')+'Para tu '+est.ahorroObj+'% faltan '+fmt(Math.max(0,falta20))+'.';
+  if(aOk) return 'Buen ritmo de aportación ('+aPct.toFixed(0)+'%). Tus gastos fueron el '+gPct.toFixed(0)+'% de lo que entró'+(dondeVa?': donde más se va es '+dondeVa+'.':'.');
+  return 'Tus gastos '+(esActual?'van en el ':'fueron el ')+gPct.toFixed(0)+'% de lo que entró y apartaste el '+Math.max(0,aPct).toFixed(0)+'%. '+(dondeVa?(dondeVa!==focoTxt?'Donde más se va es '+dondeVa:'Lo que más pesa de lo que se puede mover es '+focoTxt)+'. ':'')+'Para tu '+est.ahorroObj+'% faltan '+fmt(Math.max(0,falta20))+'.';
 }
 
 // analisis largo: varias frases, omitiendo las que no tengan datos suficientes
@@ -18527,7 +18659,8 @@ function textoAnalisis(m) {
   if(gPct!==null){
     p.push('Ingresaste '+fmt(totalI)+' y gastaste '+fmt(totalG)+' ('+gPct.toFixed(0)+'% de lo que entró), '+
       (gPct<=m.est.gastoMax?'un margen sano':(gPct<=100?'un margen justo':'más de lo que entró'))+
-      ', y te quedó un balance de '+((totalI-totalG)>=0?'+':'−')+fmt(Math.abs(totalI-totalG))+'.');
+      ((m.abonos||0)>0.005?', abonaste '+fmt(m.abonos)+' a tus préstamos':'')+   // (22-nov-2026) el balance resta el abono, igual que el Resumen
+      ', y te quedó un balance de '+((totalI-totalG-(m.abonos||0))>=0?'+':'−')+fmt(Math.abs(totalI-totalG-(m.abonos||0)))+'.');
     p.push('De ese ingreso aportaste '+fmt(Math.abs(aporte))+(aporte<0?' en retiros netos':'')+' a ahorro e inversión, el '+Math.max(0,aPct).toFixed(0)+'%'+
       (aPct>=m.est.ahorroObj?(' — por encima de tu referencia del '+m.est.ahorroObj+'%, que es justo donde quieres estar.')
               :(', debajo de tu referencia del '+m.est.ahorroObj+'%: '+(esActual?'te faltan ':'te faltaron ')+fmt(Math.max(0,falta20))+' para llegar.')));
@@ -18570,8 +18703,9 @@ function cierreMesHTML(m,label,capturar) {
   const coach=textoCoach(m);
   const est=m.est;
   if(totalI>0){
-    fila(gPct<=est.gastoMax?'✅':(gPct<=100?'🟡':'🔴'),'gasto del ingreso',
-      gPct>100?'gastaste más de lo que ingresó':(gPct<=est.gastoMax?'buen control de gasto':'al límite: cuida los gastos'),gPct.toFixed(0)+'%');
+    // (22-nov-2026, Beto) sin semaforo rojo ni "cuida los gastos": lo bueno lleva palomita, lo demas es un hecho
+    fila(gPct<=est.gastoMax?'✅':'·','gasto del ingreso',
+      gPct>100?'salió más de lo que entró':(gPct<=est.gastoMax?'buen control de gasto':'arriba de tu referencia del '+est.gastoMax+'%'),gPct.toFixed(0)+'%');
     // (4-nov-2026, Fundview) sin emojis, el semaforo ✅/🟡/⚠️ era lo UNICO que decia si la aportacion alcanzo: ahora lo dice una palabra en el texto
     // (el renglon de arriba, 'gasto del ingreso', ya la traia). La familia sigue con su emoji y sin la palabra
     // (4-nov-2026) el dia 4 de un mes, 0% aportado no es "por debajo": el mes apenas empieza. Un saldo inicial (el del asistente) no es una aportacion y no cuenta
@@ -18580,7 +18714,7 @@ function cierreMesHTML(m,label,capturar) {
     // 50/30/20 y CONDUSEF) UN renglon de lo apartado, en palabras de diario. El 20% lo dice el consejo de arriba; si no hay
     // consejo (mes que apenas empieza), lo dice este renglon, una sola vez. De donde sale la referencia sigue en el perfil
     const faltaTxt=falta20>0.005?((esActual?'te faltan ':'te faltaron ')+fmt(falta20)+' para tu '+est.ahorroObj+'%'):'';
-    fila(aPct>=est.ahorroObj?'✅':(aPct>=est.ahorroMin?'🟡':'⚠️'),'apartaste para ahorrar o invertir',
+    fila(aPct>=est.ahorroObj?'✅':'·','apartaste para ahorrar o invertir',
       [CFG.multi?(aPct>=est.ahorroObj?'buen ritmo de aportación':(aPct>=est.ahorroMin?'cerca de tu referencia':(pronto?'el mes apenas empieza':'por debajo de tu referencia'))):'',
         'lo que pasaste a tus cajitas y tu bolsa, menos lo que sacaste', coach?'':faltaTxt].filter(Boolean).join(' · '),
       (aporte<0?'−':'')+Math.abs(aPct).toFixed(0)+'% · '+fmt(Math.abs(aporte)));
@@ -18589,7 +18723,7 @@ function cierreMesHTML(m,label,capturar) {
     if(apHay(ap)){
       const deQue='lo que pasaste a tus cajitas y tu bolsa, menos lo que sacaste';
       if(aporte>0) fila('✅','apartaste para ahorrar o invertir',deQue,fmt(aporte));
-      else if(aporte<0) fila('⚠️','sacaste de tus ahorros o inversiones',deQue,fmt(-Math.abs(aporte)));
+      else if(aporte<0) fila('·','sacaste de tus ahorros o inversiones',deQue,fmt(-Math.abs(aporte)));
       else fila('·','no apartaste para ahorrar este '+per,deQue,fmt(0));
     }
   }
@@ -18747,8 +18881,10 @@ function totalesPeriodo(start,end) {
   const enRango=i=>{if(!movValido(i))return false;const t=msFechaMov(i.fecha);return t!==null&&t>=start.getTime()&&t<end.getTime();};
   const gastos=state.gastos.filter(enRango);
   const ingresos=state.ingresos.filter(enRango);
-  const totalG=gastos.reduce((s,i)=>s+i.monto,0), totalI=ingresos.reduce((s,i)=>s+i.monto,0);
-  return {gastos,ingresos,totalG,totalI,balance:totalI-totalG};
+  const totalG=gastos.reduce((s,i)=>s+montoConsumo(i),0), totalI=ingresos.reduce((s,i)=>s+i.monto,0);
+  // (22-nov-2026) abonos = el capital de los pagos de prestamos: no es gasto, pero si salio de tus cuentas; el balance lo resta
+  const abonos=gastos.reduce((s,i)=>s+abonoCapital(i),0);
+  return {gastos,ingresos,totalG,totalI,abonos,balance:totalI-totalG-abonos};
 }
 // ── LO QUE DEBES (18-nov-2026, sesion H del plan "todo a 8", version chica) ──
 // Solo lectura y con lo que ya existe: tarjetas (la MISMA cifra de #total-deuda, totalesInicio.tdc) y personas.
@@ -18788,7 +18924,7 @@ function marcarAlDia() {
   const h=hoyLocal(); if(!state.perfil) return;
   if((state.perfil.alDia||'')>=h) return;
   if(cargaDesdeCache||navigator.onLine===false) return;   // regla de "Sin señal": nada fuera de gasto o ingreso se encola
-  setDoc(doc(db,NS,'perfil'),{alDia:h},{merge:true}).then(()=>{ state.perfil.alDia=h; refrescar(renderSalud); }).catch(e=>console.warn('alDia',e&&e.code));
+  return setDoc(doc(db,NS,'perfil'),{alDia:h},{merge:true}).then(()=>{ state.perfil.alDia=h; refrescar(renderSalud); }).catch(e=>console.warn('alDia',e&&e.code));
 }
 const diasDesde=k=>Math.max(0,Math.round((parseFechaLocal(hoyLocal())-parseFechaLocal(k))/864e5));
 function datosSalud() {
@@ -18804,13 +18940,15 @@ function datosSalud() {
   const deudaPct=t.totalI>0?pagosDeuda/t.totalI*100:null;
   const cierre=calcularCierre(pi,pf,'mes');
   const aPct=cierre&&!cierre.vacio&&cierre.gPct!==null?Math.max(0,cierre.aPct):null;
-  const gastoRef=promedioGastoMensual();
+  const gastoRef=promedioGastoMensual(true);   // (22-nov-2026) el colchon, contra todo lo que sale al mes
   const liquido=[...ctasGrupo('disponible'),...ctasGrupo('ahorro')].reduce((s,c)=>s+Math.max(0,saldoTuyo(c)),0)
     +Object.values(state.cuentasX||{}).reduce((s,x)=>{ const tc=tcDe(x.moneda); return s+(tc?Math.max(0,saldoX(x)*tc):0); },0);
   const colchon=gastoRef>0?liquido/gastoRef:null;
   const T=totalesInicio||{}, debes=datosDebes().total;
   const debesPct=T.listo&&!T.bolsaPend&&(T.tuyo||0)>0.005?debes/T.tuyo*100:null, debesMas=T.listo&&!T.bolsaPend&&debes>0.005&&(T.tuyo||0)<=0.005;
-  return {dAl, dMov, alDia:p.alDia||'', ultMov, confianza, mes:MESES[pi.getMonth()], deudaPct, aPct, est, colchon, debesPct, debesMas, debes};
+  // (22-nov-2026, Marcela) primer mes: todo lo anotado es de este mes, asi que no hay mes completo que medir
+  const primerMes=!movs.length||movs[0]>=hoy.slice(0,7)+'-01';
+  return {dAl, dMov, alDia:p.alDia||'', ultMov, confianza, mes:MESES[pi.getMonth()], mesActual:MESES[now.getMonth()], primerMes, deudaPct, aPct, est, colchon, debesPct, debesMas, debes};
 }
 function renderSalud() {
   const el=document.getElementById('res-salud'); if(!el) return;
@@ -18824,12 +18962,15 @@ function renderSalud() {
     +(s.dAl===null?'todavía no hay registro de cuándo pusiste al día tus saldos contra tu banco':'pusiste al día tus saldos '+cuando(s.dAl))
     +' · '+(s.dMov===null?'todavía no anotas movimientos':'tu último gasto o ingreso tiene fecha de '+cuando(s.dMov))
     +(s.confianza==='al dia'?'':'. Lo de abajo sale de lo que anotaste: si tu banco dice otra cosa, vale lo del banco')+'</div></div>';
-  h+=s.deudaPct===null?fila('pagos a deudas','sin ingresos anotados en '+s.mes+': no se puede comparar','—','')
+  if(s.primerMes) h+=fila('pagos a deudas, colchón y ahorro','se miden con un mes completo de lo que anotas: '+(s.dMov===null?'empiezan cuando anotes tus gastos e ingresos':'se llenan al cerrar '+s.mesActual),'','');
+  else h+=s.deudaPct===null?fila('pagos a deudas','sin ingresos anotados en '+s.mes+': no se puede comparar','—','')
     :fila('pagos a deudas','en '+s.mes+' pagaste a préstamos y créditos el '+pc(s.deudaPct)+' de lo que entró · la referencia de la CONDUSEF es hasta '+DEUDA_PCT_IDEAL+'%',pc(s.deudaPct),s.deudaPct>DEUDA_PCT_IDEAL?'alto':'');
+  if(!s.primerMes){
   h+=s.colchon===null?fila('colchón','aún no hay meses completos de gasto para medirlo','—','')
     :fila('colchón','tu dinero disponible cubre '+s.colchon.toFixed(1)+' meses de tu gasto de siempre · tu referencia es '+s.est.emergenciaMeses,s.colchon.toFixed(1)+' meses','');
   h+=s.aPct===null?fila('ahorro','sin ingresos anotados en '+s.mes+': no se puede medir','—','')
     :fila('ahorro','en '+s.mes+' apartaste el '+pc(s.aPct)+' de lo que entró · tu referencia es '+s.est.ahorroObj+'%',pc(s.aPct),'');
+  }
   if(s.debesMas) h+=fila('lo que debes contra lo que tienes','debes más de lo que tienes','más','alto');
   if(s.debesPct!==null&&s.debes>0.005) h+=fila('lo que debes contra lo que tienes','debes el equivalente al '+pc(s.debesPct)+' de tu dinero',pc(s.debesPct),s.debesPct>100?'alto':'');
   el.innerHTML=h+'<div class="item-meta salud-nota">son hechos con lo que anotaste, cada uno contra una referencia; no es una calificación ni un consejo</div>';
@@ -18884,8 +19025,13 @@ function renderDebes() {
 function renderResumen() {
   const {start,end,label}=rangoResumen();
   document.getElementById('mes-label').textContent=label;
-  const {gastos,ingresos,totalG,totalI,balance}=totalesPeriodo(start,end);
+  const {gastos:gastosTodos,ingresos,totalG,totalI,abonos,balance}=totalesPeriodo(start,end);
+  // (22-nov-2026) por categoria solo cuenta lo que es gasto: de un pago de prestamo, su interes (un pago sin interes no sale aqui)
+  const gastos=gastosTodos.filter(g=>montoConsumo(g)>0.005);
   document.getElementById('res-gastos').textContent=fmt(totalG);
+  const abEl=document.getElementById('res-abonos');
+  if(abEl){ abEl.hidden=!(abonos>0.005);
+    abEl.textContent=abonos>0.005?'incluye '+fmt(abonos)+' que abonaste a tus préstamos: no es gasto (bajó lo que debes), pero sí salió de tus cuentas':''; }
   document.getElementById('res-ingresos').textContent=fmt(totalI);
   const balEl=document.getElementById('res-balance');
   balEl.textContent=(balance>=0?'+':'−')+fmt(Math.abs(balance)); balEl.className='s-amt '+(balance>=0?'pos':'neg');
@@ -18901,7 +19047,7 @@ function renderResumen() {
       cierreP.innerHTML=cierreMesHTML(calcularCierre(start,end,state.resPeriodo),label,activa);
     } else if(activa) ultimoCierre=null; // en dia/semana no hay cierre exportable
   }
-  const byCat={}; gastos.forEach(i=>byCat[i.cat]=(byCat[i.cat]||0)+i.monto);
+  const byCat={}; gastos.forEach(i=>byCat[i.cat]=(byCat[i.cat]||0)+montoConsumo(i));
   const sortedG=Object.entries(byCat).sort((a,b)=>b[1]-a[1]); const maxG=sortedG[0]?sortedG[0][1]:1;
   document.getElementById('res-pie').innerHTML=pieChart(sortedG);
   document.getElementById('resumen-cats').innerHTML=sortedG.length?sortedG.map(([cat,amt])=>`<div class="resumen-bar${catsAbiertas.has('g|'+cat)?' abierta':''}" data-k="g|${escapeHtml(cat)}" onclick="toggleCatDesglose(this,event)" title="ver los movimientos de esta categoría"><div class="bar-header" role="button" tabindex="0"><span class="bar-label">${escapeHtml(cat)} <span class="bar-n">${gastos.filter(i=>i.cat===cat).length}</span></span><span class="bar-amt neg">${fmt(amt)}<span class="bar-chev">&#9662;</span></span></div><div class="bar-track"><div class="bar-fill" style="width:${(amt/maxG*100).toFixed(1)}%"></div></div>${desgloseCatHTML(gastos.filter(i=>i.cat===cat),'neg',catsAbiertas.has('g|'+cat))}</div>`).join(''):'<div class="empty-state">sin gastos en este periodo</div>';
@@ -18911,7 +19057,7 @@ function renderResumen() {
   document.getElementById('resumen-ingresos-cats').innerHTML=sortedI.length?sortedI.map(([cat,amt])=>`<div class="resumen-bar${catsAbiertas.has('i|'+cat)?' abierta':''}" data-k="i|${escapeHtml(cat)}" onclick="toggleCatDesglose(this,event)" title="ver los movimientos de esta categoría"><div class="bar-header" role="button" tabindex="0"><span class="bar-label">${escapeHtml(cat)} <span class="bar-n">${ingresos.filter(i=>i.cat===cat).length}</span></span><span class="bar-amt pos">${fmt(amt)}<span class="bar-chev">&#9662;</span></span></div><div class="bar-track"><div class="bar-fill bar-fill-green" style="width:${(amt/maxI*100).toFixed(1)}%"></div></div>${desgloseCatHTML(ingresos.filter(i=>i.cat===cat),'pos',catsAbiertas.has('i|'+cat))}</div>`).join(''):'<div class="empty-state">sin ingresos en este periodo</div>';
 
   try { renderRecortar(start, end, state.resPeriodo); } catch (e) { console.error('recortar', e); }
-  renderRendimientos(start, end, balance);
+  renderRendimientos(start, end, balance, abonos);
   renderUtilidades(start, end);
   renderGBMResumen();
 }
@@ -18926,9 +19072,11 @@ const catsAbiertas=new Set();
 function desgloseCatHTML(items, cls, abierto) {
   const tipo=cls==='neg'?'gasto':'ingreso';
   const ord=items.slice().sort((a,b)=>String(b.fecha||'').localeCompare(String(a.fecha||'')));
+  // (22-nov-2026) de un pago de prestamo la barra solo suma su interes: el renglon dice lo mismo y de que pago sale
+  const pgC=m=>tipo==='gasto'&&m.credito?partesGasto(m):null;
   const filas=ord.map(m=>`<div class="cat-mov"><span class="cat-mov-f">${escapeHtml(fmtFechaMov(m.fecha,{day:'numeric',month:'short'}))}</span>`+
-    `<span class="cat-mov-n">${escapeHtml(m.nota||'sin nota')}<span class="cat-mov-c">${escapeHtml(nombreCuenta(tipo==='gasto'?m.fuente:m.destino)||'—')}</span></span>`+
-    `<span class="cat-mov-m ${cls}">${fmt(m.monto)}</span>`+
+    `<span class="cat-mov-n">${escapeHtml(m.nota||'sin nota')}<span class="cat-mov-c">${escapeHtml(nombreCuenta(tipo==='gasto'?m.fuente:m.destino)||'—')}${(p=>p&&p.abono>0.005?' · interés de un pago de '+escapeHtml(fmt(m.monto)):'')(pgC(m))}</span></span>`+
+    `<span class="cat-mov-m ${cls}">${fmt((p=>p?p.consumo:m.monto)(pgC(m)))}</span>`+
     (m.id?`<button type="button" class="edit-btn cat-mov-e" title="editar movimiento" aria-label="editar movimiento" onclick="editarMovimiento('${tipo}','${escapeHtml(m.id)}')">&#9998;</button>`:'')+
     `</div>`).join('');
   return `<div class="cat-desglose"${abierto?'':' style="display:none"'}>${filas||'<div class="item-meta">sin movimientos</div>'}</div>`;
@@ -19128,7 +19276,7 @@ function renderUtilidades(start,end) {
   el.innerHTML=filas.join('')+'<div class="item-meta" style="text-align:center;padding-top:8px">los intereses se cuentan desde la fecha base de cada cuenta; el valor de tus acciones usa cierres de mercado, no precios en vivo</div>';
 }
 
-function renderRendimientos(start, end, balance) {
+function renderRendimientos(start, end, balance, abonos) {
   // rango efectivo: no calcular rendimientos a futuro
   const endC=new Date(Math.min(Date.now(), end.getTime()));
   const dias=Math.max(0,(endC-start)/86400000);
@@ -19170,7 +19318,7 @@ function renderRendimientos(start, end, balance) {
     rowC1+rowRS+rowMF+rowsX+
     (rendFondo>0?`<div class="item-row"><div><div class="item-cat">del fondo de la universidad</div><div class="item-meta">rendimiento conciliado en la pestaña fondo: no es tuyo</div></div>${sgn(-rendFondo)}</div>`:'')+
     `<div class="item-row"><div class="item-cat" style="font-weight:600">total rendimientos</div>${sgn(rendTotal,1)}</div>`+
-    `<div class="item-row"><div><div class="item-cat" style="font-weight:600">balance real del periodo</div><div class="item-meta">ingresos − gastos + rendimientos</div></div>${sgn(real,1)}</div>`;
+    `<div class="item-row"><div><div class="item-cat" style="font-weight:600">balance real del periodo</div><div class="item-meta">ingresos − gastos${abonos>0.005?' − abonos a préstamos':''} + rendimientos</div></div>${sgn(real,1)}</div>`;
 }
 
 // 'a, b y c'
