@@ -587,6 +587,8 @@ html[data-tema='grafito'] .cat-tipo-op.on>span{color:#14171a}
 .g-credito{padding:12px 0;border-bottom:1px solid var(--border)}.g-credito:last-of-type{border-bottom:0}
 .g-credito .item-row{gap:12px;border:0;padding-bottom:4px}.g-credito .item-row>div{min-width:0;overflow-wrap:anywhere}
 .g-credito .debes-amt{font-size:15px;font-weight:650;color:var(--red-txt);white-space:nowrap;font-variant-numeric:tabular-nums}
+.g-credito .debes-amt.cero{color:var(--muted)}
+.g-quitada .cat-act,.g-quitar-p{min-height:44px}
 .g-cr-linea{margin:3px 0;line-height:1.45}.g-cr-pagar{margin-top:10px}
 .g-pagar{background:var(--bg3);border-radius:var(--rs);padding:12px;margin-top:10px}
 .g-cr-previa{margin:4px 0 10px;font-weight:600;color:var(--text)}
@@ -6232,6 +6234,12 @@ function partesPago(plan, k) {
   const interes = Math.min(plan.A, s * plan.r);
   return {interes: Math.round(interes * 100) / 100, capital: Math.round((plan.A - interes) * 100) / 100, saldoAntes: s};
 }
+// (23-nov-2026) lo que se prellena en el pago k+1: el del plan (A), salvo el ultimo, que es lo que de verdad queda (debe) mas su interes del
+// periodo: con pago+tasa, n se redondea hacia arriba y el ultimo pago real es menor que A (prellenar A daba un falso "pagaste de mas")
+function pagoSugerido(plan, k, debe) {
+  if (!(k + 1 >= plan.n) || !(debe > 0.005)) return Math.round(plan.A * 100) / 100;
+  return Math.round(Math.min(plan.A, debe * (1 + Math.max(0, plan.r))) * 100) / 100;
+}
 // fecha (AAAA-MM-DD) del pago numero i (0 = el primero)
 function fechaPagoCredito(primero, cada, i) {
   const [y, m, d] = String(primero).split('-').map(Number);
@@ -6553,7 +6561,13 @@ function interesDe(p) {
   return interesPersona(nFin(p.saldo), movs, t, diaNumG(hoyLocal()));
 }
 // LO QUE SE DEBE con esa persona: con tasa, capital + interes; sin tasa, el saldo de siempre
-function saldoP(p) { const r = interesDe(p); return r ? r.total : (Number(p && p.saldo) || 0); }
+function saldoVivoP(p) { const r = interesDe(p); return r ? r.total : (Number(p && p.saldo) || 0); }
+// (23-nov-2026, decision de Beto: "si debe existir quitar persona") quitar NO borra: archiva con quitada:{en, saldo}. Lo que se debia con
+// ella deja de contar (saldoP da 0, y con eso Inicio, el neto, lo que debes, Deudas y el Excel la dejan fuera solos) y sus movimientos
+// se quedan, porque esos si movieron tus cuentas (historial, fondo, aportaciones). Se regresa desde "personas que quitaste"
+const personaQuitada = p => !!(p && p.quitada && typeof p.quitada === 'object' && !Array.isArray(p.quitada));
+function saldoP(p) { return personaQuitada(p) ? 0 : saldoVivoP(p); }
+const personasVivas = () => Object.fromEntries(Object.entries(state.personas || {}).filter(([, p]) => !personaQuitada(p)));
 function grupoDe(p) {
   const gs = state.clasif.gruposPersona, g = p && typeof p.grupo === 'string' ? p.grupo : '';
   if (g && gs.includes(g)) return g;
@@ -6617,6 +6631,7 @@ window.guardarAjustesPersona = async function(key, btn) {
       rp = await Promise.race([runTransaction(db, async tx => {
         const s = await tx.get(refP), d = s.exists() ? s.data() || {} : {};
         if (!(d.data && typeof d.data === 'object' && Object.prototype.hasOwnProperty.call(d.data, key) && d.data[key] && typeof d.data[key] === 'object')) return {error: 'esa persona ya no existe — recarga la app'};
+        if (personaQuitada(d.data[key])) return {error: 'a esa persona la quitaste: regrésala para cambiarla'};   // (23-nov) una quitada no se toca (ni con el servidor adelante de la pantalla)
         const cbS = mueveDeuda && CON_CAMBIOS ? await tx.get(doc(db, NS, 'cambios')) : null;   // se lee ANTES de escribir
         // (23-nov-2026) lo que se confirmo en pantalla se compara contra lo que dice el SERVIDOR: si otro aparato movio a esa persona, no se escribe
         if (CON_CREDITOS) {
@@ -6642,6 +6657,80 @@ window.guardarAjustesPersona = async function(key, btn) {
     showToast('listo'); refrescar(renderDeudas, render);
   } catch (e) { console.error('guardarAjustesPersona', e); showToast(msgSinGuardarG(e)); }
   finally { personaGOcupado = false; btn.disabled = false; }
+};
+// (23-nov-2026, decision de Beto) quitar y regresar a una persona: UNA transaccion sobre cartera/personas (solo el campo quitada) y su
+// constancia en el registro. No mueve ninguna cuenta. Lo que se ve en pantalla se compara con el servidor: si otro aparato le anoto algo, no se quita
+async function cambiarQuitada(key, quitar, visto) {
+  if (!datosCargados) throw new Error('datos no cargados');
+  if (navigator.onLine === false || cargaDesdeCache) throw new Error('sin conexión');
+  const refP = doc(db, NS, 'personas'), enT = new Date().toISOString(), idCb = 'cb' + Date.now().toString(36) + (quitar ? '_q' : '_r');   // fijos: un reintento escribe la misma constancia
+  let rp;
+  try {
+    rp = await Promise.race([runTransaction(db, async tx => {
+      const sP = await tx.get(refP), cbS = CON_CAMBIOS ? await tx.get(doc(db, NS, 'cambios')) : null;   // lecturas ANTES de escribir
+      const d = sP.exists() ? sP.data() || {} : {}, ps = d.data && typeof d.data === 'object' && Object.prototype.hasOwnProperty.call(d.data, key) ? d.data[key] : null;
+      if (!ps || typeof ps !== 'object') return {error: 'esa persona ya no existe — recarga la app'};
+      if (personaQuitada(ps) === quitar) return {ok: true, ya: true, quitada: quitar ? ps.quitada : null};   // otro aparato ya lo hizo
+      const quien = txtCorto(typeof ps.nombre === 'string' && ps.nombre ? ps.nombre : key, 60);
+      const s = c2(saldoVivoP({...ps, movimientos: Array.isArray(ps.movimientos) ? ps.movimientos : []}));
+      if (quitar && cent(s) !== cent(visto)) return {error: 'esa persona cambió en otro aparato — recarga la app'};
+      const quitada = quitar ? {en: enT, saldo: s} : null;
+      tx.set(refP, {data: {[key]: {quitada: quitar ? quitada : deleteField()}}}, {merge: true});
+      if (!CON_CAMBIOS) return {ok: true, quitada};
+      const lista = recortaCambios([{id: idCb, en: enT, t: 'ajuste', clase: 'persona', persona: quien, antes: quitar ? s : 0, despues: quitar ? 0 : s, razon: quitar ? 'quitada' : 'regresada'}],
+        cbS && cbS.exists() ? cbS.data() : null);
+      tx.set(doc(db, NS, 'cambios'), {lista});
+      return {ok: true, quitada, cambios: lista};
+    }), new Promise((_, no) => setTimeout(() => no(new Error('tiempo agotado')), 15000))]);
+    setSyncDot('ok');
+  } catch (e) { setSyncDot('err'); throw e; }
+  if (rp.error) return rp;
+  if (Array.isArray(rp.cambios)) state.cambios = rp.cambios;
+  const q = {...state.personas[key]}; if (rp.quitada) q.quitada = rp.quitada; else delete q.quitada;
+  state.personas[key] = q;
+  return rp;
+}
+window.quitarPersona = async function(key, btn) {
+  if (personaGOcupado) return;
+  const p = (state.personas || {})[key]; if (!p || personaQuitada(p)) { showToast('esa persona ya no está — recarga la app'); return; }
+  const quien = p.nombre || key, s = c2(saldoVivoP(p));
+  const queda = s > 0.005 ? quien + ' todavía te debe ' + fmt(s) + ': si la quitas, eso deja de contar en lo que te deben.'
+    : s < -0.005 ? 'Todavía le debes ' + fmt(-s) + ' a ' + quien + ': si la quitas, eso deja de contar en lo que debes.' : quien + ' está en cero.';
+  if (!(await confirmarDeslizando({titulo: '¿Quitar a ' + quien + '?', texto: queda + ' No mueve ninguna cuenta, sus movimientos se quedan en Movimientos'
+    + (CON_CAMBIOS ? ', queda anotado en el registro' : '') + ' y la puedes regresar desde «personas que quitaste».', verbo: 'quitar'}))) return;
+  // (revalida: el dialogo no bloquea) si mientras se deslizaba cambio lo que se debe, no se quita con la cifra vieja
+  const p2 = (state.personas || {})[key];
+  if (!p2 || personaQuitada(p2) || cent(c2(saldoVivoP(p2))) !== cent(s)) { showToast('esa persona cambió mientras confirmabas: revisa y vuelve a intentar'); renderDeudas(); return; }
+  personaGOcupado = true; if (btn) btn.disabled = true;
+  try {
+    const r = await cambiarQuitada(key, true, s);
+    if (r.error) { showToast(r.error); return; }
+    if (ajustesPersonaAbierto === key) ajustesPersonaAbierto = null;
+    if (personaSelPrev === key) personaSelPrev = '';
+    showToast(quien + ' ya no está en tus deudas'); refrescar(renderPersonaSelect, renderDeudas, render);
+  } catch (e) { console.error('quitarPersona', e); showToast(msgSinGuardarG(e)); }
+  finally { personaGOcupado = false; if (btn) btn.disabled = false; }
+};
+window.regresarPersona = async function(key, btn) {
+  if (personaGOcupado) return;
+  const p = (state.personas || {})[key]; if (!p || !personaQuitada(p)) { showToast('esa persona ya está en tus deudas'); renderDeudas(); return; }
+  // (23-nov-2026, decision) el interes de una persona quitada sigue corriendo (es lo que de verdad se debe): si hoy es otra cifra que al quitarla, se dice
+  const vivo = c2(saldoVivoP(p)), alQuitar = c2(nFin(p.quitada.saldo));
+  if (cent(vivo) !== cent(alQuitar)) {
+    const quien = p.nombre || key, frase = (v, t) => v > 0.005 ? quien + (t === 'hoy' ? ' te debe ' : ' te debía ') + fmt(v) : v < -0.005 ? (t === 'hoy' ? 'le debes ' : 'le debías ') + fmt(-v) + ' a ' + quien : (t === 'hoy' ? 'está en cero' : 'estaba en cero');
+    if (!(await confirmarDeslizando({titulo: '¿Regresar a ' + quien + '?', texto: 'Al quitarla ' + frase(alQuitar, 'quitar') + '; con su interés, hoy ' + frase(vivo, 'hoy') + '. No mueve ninguna cuenta.', verbo: 'regresar'}))) return;
+    // (revalida: el dialogo no bloquea) si mientras se deslizaba cambio la persona, no se regresa con la cifra vieja
+    const p2 = (state.personas || {})[key];
+    if (personaGOcupado) return;
+    if (!p2 || !personaQuitada(p2) || cent(c2(saldoVivoP(p2))) !== cent(vivo)) { showToast('esa persona cambió mientras confirmabas: revisa y vuelve a intentar'); renderDeudas(); return; }
+  }
+  personaGOcupado = true; if (btn) btn.disabled = true;
+  try {
+    const r = await cambiarQuitada(key, false, null);
+    if (r.error) { showToast(r.error); return; }
+    showToast((p.nombre || key) + ' regresó a tus deudas'); refrescar(renderPersonaSelect, renderDeudas, render);
+  } catch (e) { console.error('regresarPersona', e); showToast(msgSinGuardarG(e)); }
+  finally { personaGOcupado = false; if (btn) btn.disabled = false; }
 };
 // la subcategoria de un movimiento de deuda ya anotado: transaccion sobre ESA persona, que solo cambia ese campo
 window.editarSubDeuda = function(key, id, ev) { if (ev) ev.stopPropagation(); subDeudaEdit = {key, id}; renderDeudas(); const d = document.getElementById('d-' + key); if (d) d.classList.add('open'); const s = document.getElementById('g-subdeuda-sel'); if (s) s.focus(); };
@@ -6684,6 +6773,9 @@ window.guardarSubDeuda = async function(ev) {
 const TIPOS_CREDITO = {tienda: 'compra a plazos o crédito de tienda', prestamo: 'préstamo', hipoteca: 'hipoteca', auto: 'crédito de auto'};
 const CADA_TXT = {semanal: ['semanal', 'semanales', 'a la semana'], quincenal: ['quincenal', 'quincenales', 'a la quincena'], mensual: ['mensual', 'mensuales', 'al mes']};
 const esIdCredito = id => typeof id === 'string' && /^cr_[a-z0-9]{6,20}$/.test(id);
+// (23-nov-2026) por que quedo ajustado un prestamo al cerrarlo (reabrir solo lo pone la app)
+const RAZONES_CREDITO = {perdon: 'el banco o la tienda me lo dio por pagado', fuera: 'lo arreglé por fuera', error: 'anoté mal algún pago', demas: 'pagué de más', otra: 'otra razón', reabrir: 'lo reabrí'};
+const RAZONES_CR_FALTA = ['perdon', 'fuera', 'error', 'otra'], RAZONES_CR_DEMAS = ['demas', 'error', 'otra'];
 function saneaCreditos(d) {
   const out = {}, l = d && d.lista && typeof d.lista === 'object' && !Array.isArray(d.lista) ? d.lista : {};
   Object.keys(l).slice(0, 100).forEach(id => {
@@ -6692,6 +6784,10 @@ function saneaCreditos(d) {
       n: Number(c.n), cada: Object.prototype.hasOwnProperty.call(CADA_TXT, c.cada) ? c.cada : 'mensual', tasaAnual: Number.isFinite(Number(c.tasaAnual)) && c.tasaAnual !== null ? Number(c.tasaAnual) : null,
       primero: typeof c.primero === 'string' && esFechaReal(c.primero) ? c.primero : '', cat: txtCortoG(c.cat, 60) || 'Otros', creado: typeof c.creado === 'string' ? c.creado : ''};
     if (!(x.monto > 0) || !(x.pago > 0) || !(x.n > 0)) return;
+    // (23-nov-2026) el cierre "quedó ajustado con $X": monto > 0 = lo que faltaba y se dio por pagado; < 0 = lo que se pagó de más
+    const aj = c.ajuste;
+    if (aj && typeof aj === 'object' && Number.isFinite(Number(aj.monto)) && typeof aj.en === 'string' && !isNaN(new Date(aj.en).getTime()))
+      x.ajuste = {monto: Number(aj.monto), en: aj.en, razon: Object.prototype.hasOwnProperty.call(RAZONES_CREDITO, aj.razon) ? aj.razon : 'otra', nota: txtCortoG(aj.nota, 80)};
     out[id] = x;
   });
   return out;
@@ -6708,14 +6804,32 @@ function estadoCredito(id) {
   // (23-nov-2026, auditoria) lo que debes sale tambien de lo que DE VERDAD abonaste: con el plan solo, un pago de mas no lo bajaba.
   // Un prestamo (no una compra de tienda, que no se parte) cuyos pagos traen su interes guardado: lo prestado menos lo abonado.
   // Si hay pagos viejos sin ese dato, manda la cifra mas baja entre el plan y lo abonado (un pago extra si se nota; nunca sube)
+  // (23-nov-2026, decision de Beto) con los pagos completos YA NO se da por pagado solo: si lo abonado no llega a lo prestado (o a lo que
+  // ibas a pagar, en una tienda), se debe la diferencia hasta que se anote el pago que falta o se cierre con "quedó ajustado con $X".
+  // Pagado de mas: se dice, y se puede cerrar igual. Tolerancia por los centavos de redondear cada pago: $1 o un centavo por pago
+  let pendiente = null;
+  const tol = Math.max(1, plan.n * 0.01, plan.A * 0.005);
   if (c.tipo !== 'tienda' && pagos.length) {
     const abonado = pagos.reduce((s, g) => s + abonoCapital(g), 0), porAbono = Math.max(0, plan.P - abonado);
-    debe = pagos.every(g => g.parcial === true) ? (k >= plan.n ? Math.min(debe, porAbono) : porAbono) : Math.min(debe, porAbono);
+    // con pagos viejos (sin su interes guardado) lo abonado no se sabe: se queda como antes, sin cierre
+    if (pagos.every(g => g.parcial === true)) { debe = porAbono; if (k >= plan.n) pendiente = c2(plan.P - abonado); }
+    else debe = Math.min(debe, porAbono);
+  } else if (c.tipo === 'tienda' && k >= plan.n) pendiente = c2(plan.total - pagos.reduce((s, g) => s + nFin(g.monto), 0));
+  let cierre = null, ajusteViejo = null;
+  // el ajuste solo vale mientras los pagos sigan dando la misma diferencia (o no se pueda saber, con pagos viejos): si se anoto otro pago
+  // o se quito uno, ya no cuadra y se calcula el cierre normal, diciendo que ese ajuste quedo viejo
+  const ajVale = !!c.ajuste && k >= plan.n && (pendiente === null || Math.abs(pendiente - c.ajuste.monto) <= tol);
+  if (c.ajuste && !ajVale) ajusteViejo = c.ajuste;
+  if (k >= plan.n) {
+    if (ajVale) { cierre = {tipo: 'ajustado', monto: c.ajuste.monto, ajuste: c.ajuste}; debe = 0; }
+    else if (pendiente !== null && pendiente > tol) { cierre = {tipo: 'falta', monto: pendiente}; debe = pendiente; }
+    else if (pendiente !== null && pendiente < -tol) { cierre = {tipo: 'demas', monto: pendiente}; debe = 0; }
+    else debe = 0;
   }
-  return {c, plan, k, debe: Math.round(debe * 100) / 100, prox: k < plan.n && c.primero ? fechaPagoCredito(c.primero, c.cada, k) : null};
+  return {c, plan, k, debe: Math.round(debe * 100) / 100, cierre, ajusteViejo, prox: k < plan.n && c.primero ? fechaPagoCredito(c.primero, c.cada, k) : null};
 }
 function deudaCreditos() { return Object.keys(state.creditos || {}).reduce((s, id) => { const e = estadoCredito(id); return s + (e && !e.error ? e.debe : 0); }, 0); }
-let creditoPagando = null, creditoOcupado = false, creditoIntento = null;   // creditoIntento = {id, firma} del ultimo alta que fallo
+let creditoPagando = null, creditoAjustando = null, creditoOcupado = false, creditoIntento = null;   // creditoIntento = {id, firma} del ultimo alta que fallo
 function fuentesCredito() { return susFuentes(); }
 function creditoTarjetaHTML(id) {
   const e = estadoCredito(id); if (!e) return '';
@@ -6731,31 +6845,67 @@ function creditoTarjetaHTML(id) {
   else lineas.push('no te cobran intereses: pagas lo mismo que ' + (c.tipo === 'tienda' ? 'costaba' : 'debías'));
   if (p.r > 1e-9) lineas.push('equivale a ' + (p.r * 100).toFixed(2) + '% ' + cada[2] + ', unos ' + Math.round(p.anualEfectiva) + '% al año contando intereses sobre intereses');
   if (p.difiere) lineas.push('con estos pagos tu tasa real sale de ' + p.anualSimple.toFixed(1) + '% al año, distinta de la del contrato (' + p.tasaContrato + '%): pueden venir seguros o comisiones dentro del pago');
-  lineas.push(e.k >= p.n ? 'ya hiciste los ' + p.n + ' pagos' : 'llevas ' + e.k + ' de ' + p.n + ' pagos · te faltan ' + (p.n - e.k) + ' · hoy debes unos ' + fmt(e.debe) + ' de lo prestado');
+  const deQue = c.tipo === 'tienda' ? 'de lo que ibas a pagar' : 'de lo prestado', cr = e.cierre;
+  if (e.k < p.n) lineas.push('llevas ' + e.k + ' de ' + p.n + ' pagos · te faltan ' + (p.n - e.k) + ' · hoy debes unos ' + fmt(e.debe) + ' de lo prestado');
+  else if (cr && cr.tipo === 'falta') lineas.push('ya hiciste los ' + p.n + ' pagos, pero según lo que anotaste te faltan ' + fmt(cr.monto) + ' ' + deQue
+    + '. Si ya te lo dieron por pagado, ciérralo como ajustado; si todavía lo debes, anota el pago que falta');
+  else if (cr && cr.tipo === 'demas') lineas.push('ya hiciste los ' + p.n + ' pagos y pagaste ' + fmt(-cr.monto) + ' más ' + deQue + '. Si así quedó, ciérralo como ajustado');
+  else if (cr && cr.tipo === 'ajustado') {
+    const f = new Date(cr.ajuste.en).toLocaleDateString('es-MX', {day: 'numeric', month: 'short', year: 'numeric'});
+    lineas.push('cerrado el ' + f + ': ' + (cr.monto > 0.005 ? 'quedó ajustado con ' + fmt(cr.monto) + ' que se dieron por pagados' : cr.monto < -0.005 ? 'quedó ajustado; pagaste ' + fmt(-cr.monto) + ' de más' : 'quedó ajustado')
+      + (RAZONES_CREDITO[cr.ajuste.razon] && cr.ajuste.razon !== 'otra' ? ' (' + RAZONES_CREDITO[cr.ajuste.razon] + ')' : '') + (cr.ajuste.nota ? ' · ' + cr.ajuste.nota : ''));
+  } else lineas.push('ya hiciste los ' + p.n + ' pagos');
+  if (e.ajusteViejo) lineas.push('el ajuste que anotaste (' + fmt(Math.abs(e.ajusteViejo.monto)) + ') ya no cuadra con tus pagos'
+    + (cr && (cr.tipo === 'falta' || cr.tipo === 'demas') ? ': ciérralo otra vez' : ': ya no hace falta'));
   // (22-nov-2026, Beto: "que noten cuanto deben y cuanto estan pagando de mas") de lo pagado, cuanto fue interes y cuanto bajo la deuda
   if (e.k > 0 && c.tipo !== 'tienda') {
     const ps = pagosDeCredito(id), pagado = ps.reduce((s, g) => s + g.monto, 0), int = ps.reduce((s, g) => s + partesGasto(g).consumo, 0);
-    if (pagado > 0.005) lineas.push('de lo que llevas pagado (' + fmt(pagado) + '), ' + fmt(int) + ' fueron intereses y ' + fmt(Math.max(0, pagado - int)) + ' bajaron lo que debías');
+    // (23-nov-2026, Marcela) lo que baja la deuda no pasa de lo prestado: lo de mas se dice aparte ("si debia 2,000, no pudieron bajar 2,300")
+    const bajo = Math.max(0, pagado - int), deMas = Math.max(0, c2(bajo - p.P));
+    if (pagado > 0.005) lineas.push('de lo que llevas pagado (' + fmt(pagado) + '), ' + fmt(int) + ' fueron intereses y ' + fmt(bajo - deMas) + ' bajaron lo que debías'
+      + (deMas > 0.005 ? '; ' + fmt(deMas) + ' fueron de más' : ''));
   }
   if (e.prox) lineas.push('el siguiente pago toca el ' + parseFechaLocal(e.prox).toLocaleDateString('es-MX', {day: 'numeric', month: 'short', year: 'numeric'}));
   let pagar = '';
-  if (e.k < p.n) {
+  // (23-nov-2026) terminados los pagos: cerrar como ajustado (falta o de mas), o deshacer el ajuste
+  const ajusteHTML = () => {
+    const ops = (cr.tipo === 'falta' ? RAZONES_CR_FALTA : RAZONES_CR_DEMAS).map(r => { const t = RAZONES_CREDITO[r];
+      return '<option value="' + r + '">' + escapeHtml(CFG.multi ? t.charAt(0).toUpperCase() + t.slice(1) : t) + '</option>'; }).join('');
+    return '<div class="g-pagar g-ajuste-cr" onclick="event.stopPropagation()">'
+      + '<div class="field"><label for="g-cr-razon">¿por qué quedó así?</label><select id="g-cr-razon">' + ops + '</select></div>'
+      + '<div class="field"><label for="g-cr-ajnota">nota (opcional)</label><input type="text" id="g-cr-ajnota" maxlength="80" placeholder="ej. me hicieron un descuento al liquidar"></div>'
+      + '<div class="item-meta g-nota">no mueve ninguna cuenta: el préstamo queda en cero y en Movimientos queda anotado' + (CON_CAMBIOS ? '' : ' en este préstamo') + '. Lo puedes deshacer después</div>'
+      + '<button type="button" class="btn btn-purple" id="g-cr-ajbtn" onclick="ajustarCredito(\'' + k + '\',this)">cerrar: quedó ajustado con ' + fmt(Math.abs(cr.monto)) + '</button>'
+      + '<button type="button" class="btn" style="margin-top:8px" onclick="abrirAjusteCredito(null)">cancelar</button></div>';
+  };
+  if (e.k >= p.n && cr && cr.tipo === 'ajustado')
+    pagar = '<button type="button" class="ticket-gal g-cr-deshacer" onclick="deshacerAjusteCredito(\'' + k + '\',this)">deshacer el ajuste</button>';
+  else if (e.k >= p.n && cr && cr.tipo === 'demas')
+    pagar = creditoAjustando === id ? ajusteHTML() : '<button type="button" class="btn g-cr-ajustar" onclick="abrirAjusteCredito(\'' + k + '\')">quedó ajustado</button>';
+  else if (e.k >= p.n && cr && cr.tipo === 'falta' && creditoAjustando === id) pagar = ajusteHTML();
+  if (e.k < p.n || (cr && cr.tipo === 'falta' && creditoAjustando !== id)) {
+    const extraPago = e.k >= p.n;   // el pago que falta: todo baja lo que debes (no hay interes del plan que repartir)
     if (creditoPagando === id) {
-      const partes = partesPago(p, e.k), fs = fuentesCredito();
+      const sug = extraPago ? 0 : pagoSugerido(p, e.k, e.debe), partes = extraPago ? {interes: 0} : partesPago(p, e.k), fs = fuentesCredito();
+      if (!extraPago && e.k + 1 >= p.n) partes.interes = Math.min(sug, c2(e.debe * p.r));   // el ultimo pago: su interes sale de lo que de verdad queda
       pagar = '<div class="g-pagar" onclick="event.stopPropagation()">'
         + '<div class="field"><label for="g-cr-cta">pagado con</label><select id="g-cr-cta"><option value="">' + TXT_ELIGE_CUENTA + '</option>'
         + fs.map(f => '<option value="' + escapeHtml(f) + '">' + escapeHtml(susCuenta(f)) + '</option>').join('') + '</select></div>'
-        + '<div class="field"><label for="g-cr-monto">monto</label><input type="number" id="g-cr-monto" step="0.01" inputmode="decimal" value="' + (modoPrivado ? '' : c2(p.A)) + '" placeholder="' + (modoPrivado ? 'el monto del pago' : '') + '"></div>'
+        + '<div class="field"><label for="g-cr-monto">monto</label><input type="number" id="g-cr-monto" step="0.01" inputmode="decimal" value="' + (modoPrivado ? '' : c2(extraPago ? cr.monto : sug)) + '" placeholder="' + (modoPrivado ? 'el monto del pago' : '') + '"></div>'
         + '<div class="field"><label for="g-cr-fecha">fecha (si no la eliges, es hoy)</label><input type="date" id="g-cr-fecha" data-hasta-hoy></div>'
         + '<div class="item-meta g-nota">' + (c.tipo === 'tienda' ? 'se anota como gasto en ' + escapeHtml(c.cat) + ': es lo que compraste, pagado en partes'
-          : (partes.interes > 0.005 ? 'de este pago, unos ' + fmt(partes.interes) + ' son interés y cuentan como gasto en ' + escapeHtml(c.cat) + '; ' + fmt(Math.max(0, c2(p.A - partes.interes))) + ' bajan lo que debes y no son gasto'
+          : extraPago ? 'este pago baja lo que debes y no cuenta como gasto'
+          : (partes.interes > 0.005 ? 'de este pago, unos ' + fmt(partes.interes) + ' son interés y cuentan como gasto en ' + escapeHtml(c.cat) + '; ' + fmt(Math.max(0, c2((extraPago ? p.A : sug) - partes.interes))) + ' bajan lo que debes y no son gasto'
           : 'este pago no lleva interés: todo baja lo que debes y no cuenta como gasto')) + '</div>'
-        + '<button type="button" class="btn btn-purple" id="g-cr-btn" onclick="pagarCredito(\'' + k + '\')">anotar el pago ' + (e.k + 1) + '</button>'
+        + '<button type="button" class="btn btn-purple" id="g-cr-btn" onclick="pagarCredito(\'' + k + '\')">' + (extraPago ? 'anotar el pago que falta' : 'anotar el pago ' + (e.k + 1)) + '</button>'
         + '<button type="button" class="btn" style="margin-top:8px" onclick="abrirPagoCredito(null)">cancelar</button></div>';
-    } else pagar = '<button type="button" class="btn g-cr-pagar" onclick="abrirPagoCredito(\'' + k + '\')">ya hice el pago ' + (e.k + 1) + '</button>';
+    } else if (extraPago) pagar = '<button type="button" class="btn g-cr-pagar" onclick="abrirPagoCredito(\'' + k + '\')">anotar el pago que falta</button>'
+      + '<button type="button" class="btn g-cr-ajustar" style="margin-top:8px" onclick="abrirAjusteCredito(\'' + k + '\')">quedó ajustado</button>';
+    else pagar = '<button type="button" class="btn g-cr-pagar" onclick="abrirPagoCredito(\'' + k + '\')">ya hice el pago ' + (e.k + 1) + '</button>';
   }
+  if (e.ajusteViejo) pagar += '<button type="button" class="ticket-gal g-cr-deshacer" onclick="deshacerAjusteCredito(\'' + k + '\',this)">deshacer el ajuste</button>';
   return '<div class="g-credito" id="cr-' + k + '"><div class="item-row"><div><div class="item-cat">' + nom + '</div><div class="item-meta g-cr-tipo">' + TIPOS_CREDITO[c.tipo] + '</div></div>'
-    + '<span class="debes-amt">' + fmt(e.debe) + '</span></div>'
+    + '<span class="debes-amt' + (e.debe > 0.005 ? '' : ' cero') + '">' + fmt(e.debe) + '</span></div>'
     + lineas.map(t => '<div class="item-meta g-cr-linea">' + escapeHtml(t) + '</div>').join('') + pagar
     + '<button type="button" class="ticket-gal g-cr-quitar" onclick="borrarCredito(\'' + k + '\')">quitar este crédito</button></div>';
 }
@@ -6778,7 +6928,77 @@ function pintarCatsCredito() {
     const hit = cats.find(c => pref.includes(normTxtG(c))); if (hit) s.value = hit; }
 }
 window.pintarCatsCredito = pintarCatsCredito;   // la llama el select de la forma de alta
-window.abrirPagoCredito = function(id) { creditoPagando = id; renderCreditos(); const s = document.getElementById('g-cr-cta'); if (s) s.focus(); };
+window.abrirPagoCredito = function(id) { creditoPagando = id; creditoAjustando = null; renderCreditos(); const s = document.getElementById('g-cr-cta'); if (s) s.focus(); };
+window.abrirAjusteCredito = function(id) { creditoAjustando = id; creditoPagando = null; renderCreditos(); const s = document.getElementById('g-cr-razon'); if (s) s.focus(); };
+// (23-nov-2026, decision de Beto) cerrar o reabrir un prestamo cuyos pagos no dieron lo pactado: UNA transaccion sobre creditos (solo el
+// campo ajuste de ESE credito) y su constancia en el registro. No mueve ninguna cuenta ni toca los pagos (que son gastos)
+async function cambiarAjusteCredito(id, ajuste, monto) {
+  if (!datosCargados) throw new Error('datos no cargados');
+  if (navigator.onLine === false || cargaDesdeCache) throw new Error('sin conexión');
+  const c = state.creditos[id], refC = doc(db, NS, 'creditos'), enT = new Date().toISOString(), idCb = 'cb' + Date.now().toString(36) + (ajuste ? '_a' : '_o');   // fijos: un reintento escribe la misma constancia
+  let rc;
+  try {
+    rc = await Promise.race([runTransaction(db, async tx => {
+      const cS = await tx.get(refC), cbS = CON_CAMBIOS ? await tx.get(doc(db, NS, 'cambios')) : null;   // lecturas ANTES de escribir
+      const srv = cS.exists() ? ((cS.data() || {}).lista || {})[id] : null;
+      if (!srv || typeof srv !== 'object') return {error: 'ese crédito ya no existe — recarga la app'};
+      // el plan del servidor tiene que ser el que se vio: si otro aparato lo cambio, la cifra del ajuste ya no vale
+      if (cent(nFin(srv.monto)) !== cent(c.monto) || cent(nFin(srv.pago)) !== cent(c.pago) || nFin(srv.n) !== c.n) return {error: 'ese crédito cambió en otro aparato — recarga la app'};
+      const tiene = !!(srv.ajuste && typeof srv.ajuste === 'object');
+      if (!tiene && !ajuste) return {ok: true, ya: true, ajuste: null};   // otro aparato ya lo deshizo
+      // otro aparato ya cerro con ese mismo monto: no se duplica. Con otro monto (el viejo ya no cuadraba) se sobrescribe, con su constancia
+      if (tiene && ajuste && cent(nFin(srv.ajuste.monto)) === cent(ajuste.monto)) return {ok: true, ya: true, ajuste: srv.ajuste};
+      const montoCb = ajuste ? ajuste.monto : nFin(srv.ajuste.monto);
+      // el merge es profundo: al sobrescribir un ajuste viejo, su nota no puede sobrevivir en el nuevo
+      const escr = ajuste ? {...ajuste, ...(tiene && !ajuste.nota ? {nota: deleteField()} : {})} : deleteField();
+      tx.set(refC, {lista: {[id]: {ajuste: escr}}}, {merge: true});
+      if (!CON_CAMBIOS) return {ok: true, ajuste};
+      const nota = txtCorto(String(srv.nombre || c.nombre || 'préstamo') + (ajuste && ajuste.nota ? ' · ' + ajuste.nota : ''), 120);
+      const lista = recortaCambios([{id: idCb, en: enT, t: 'ajuste', clase: 'credito', antes: ajuste ? montoCb : 0, despues: ajuste ? 0 : montoCb,
+        razon: ajuste ? ajuste.razon : 'reabrir', nota}], cbS && cbS.exists() ? cbS.data() : null);
+      tx.set(doc(db, NS, 'cambios'), {lista});
+      return {ok: true, ajuste, cambios: lista};
+    }), new Promise((_, no) => setTimeout(() => no(new Error('tiempo agotado')), 15000))]);
+    setSyncDot('ok');
+  } catch (e) { setSyncDot('err'); throw e; }
+  if (rc.error) return rc;
+  if (Array.isArray(rc.cambios)) state.cambios = rc.cambios;
+  // lo del servidor pasa por el mismo saneado que la carga
+  const x = saneaCreditos({lista: {[id]: {...state.creditos[id], ajuste: rc.ajuste || undefined}}})[id];
+  if (x) state.creditos = {...state.creditos, [id]: x};
+  return rc;
+}
+window.ajustarCredito = async function(id, btn) {
+  if (creditoOcupado) return;
+  const e = estadoCredito(id);
+  if (!e || e.error || !e.cierre || (e.cierre.tipo !== 'falta' && e.cierre.tipo !== 'demas')) { showToast('ese crédito ya no tiene nada que ajustar'); creditoAjustando = null; renderCreditos(); return; }
+  const lista = e.cierre.tipo === 'falta' ? RAZONES_CR_FALTA : RAZONES_CR_DEMAS, rz = (document.getElementById('g-cr-razon') || {}).value;
+  const ajuste = {monto: c2(e.cierre.monto), en: new Date().toISOString(), razon: lista.includes(rz) ? rz : 'otra'};
+  const nota = txtCortoG((document.getElementById('g-cr-ajnota') || {}).value, 80); if (nota) ajuste.nota = nota;
+  creditoOcupado = true; if (btn) btn.disabled = true;
+  try {
+    const r = await cambiarAjusteCredito(id, ajuste);
+    if (r.error) { showToast(r.error); return; }
+    creditoAjustando = null;
+    showToast(r.ya ? 'ese crédito ya estaba cerrado' : 'crédito cerrado: quedó ajustado'); refrescar(renderCreditos, renderDeudas, render);
+  } catch (err) { console.error('ajustarCredito', err); showToast(msgSinGuardarG(err)); }
+  finally { creditoOcupado = false; if (btn) btn.disabled = false; }
+};
+window.deshacerAjusteCredito = async function(id, btn) {
+  if (creditoOcupado) return;
+  const c = (state.creditos || {})[id]; if (!c || !c.ajuste) { renderCreditos(); return; }
+  const m = c.ajuste.monto, e0 = estadoCredito(id), vale = !!(e0 && e0.cierre && e0.cierre.tipo === 'ajustado');   // un ajuste viejo ya no cuadra: no se promete esa cifra
+  if (!(await confirmarDeslizando({titulo: '¿Deshacer el ajuste?', texto: '"' + c.nombre + '" vuelve a contar según tus pagos'
+    + (vale && m > 0.005 ? ': otra vez debes unos ' + fmt(m) + '.' : '.') + ' No mueve ninguna cuenta.', verbo: 'deshacer'}))) return;
+  if (!((state.creditos || {})[id] || {}).ajuste) { renderCreditos(); return; }   // (revalida) otro aparato ya lo deshizo
+  creditoOcupado = true; if (btn) btn.disabled = true;
+  try {
+    const r = await cambiarAjusteCredito(id, null);
+    if (r.error) { showToast(r.error); return; }
+    showToast('listo: el crédito volvió a contar'); refrescar(renderCreditos, renderDeudas, render);
+  } catch (err) { console.error('deshacerAjusteCredito', err); showToast(msgSinGuardarG(err)); }
+  finally { creditoOcupado = false; if (btn) btn.disabled = false; }
+};
 // lo que dice la forma de alta mientras se escribe: cuanto vas a pagar y cuanto es interes
 function leerFormCredito() {
   const v = id => (document.getElementById(id) || {}).value;
@@ -6865,16 +7085,19 @@ window.borrarCredito = async function(id) {
 window.pagarCredito = async function(id) {
   // la bandeja sin señal no lleva credito ni interes: un pago asi se guardaria como un gasto suelto y el credito no avanzaria
   if (hayQueGuardarEnTelefono()) { showToast('sin señal no se puede anotar el pago de un crédito: inténtalo cuando vuelva'); return; }
-  const e = estadoCredito(id); if (!e || e.error || e.k >= e.plan.n) { showToast('ese crédito ya no tiene pagos pendientes'); creditoPagando = null; renderCreditos(); return; }
+  const e = estadoCredito(id);
+  // (23-nov-2026) terminados los pagos, aun se acepta el pago que falta si lo abonado no llego a lo prestado
+  const extraPago = !!(e && !e.error && e.k >= e.plan.n && e.cierre && e.cierre.tipo === 'falta');
+  if (!e || e.error || (e.k >= e.plan.n && !extraPago)) { showToast('ese crédito ya no tiene pagos pendientes'); creditoPagando = null; renderCreditos(); return; }
   const cuenta = (document.getElementById('g-cr-cta') || {}).value;
   if (!cuenta) { faltaCuenta('g-cr-cta', 'Elige de dónde salió el dinero'); return; }
   if (!fuentesCredito().includes(cuenta)) { showToast('esa cuenta ya no está disponible: elige otra'); return; }
   if (!montoValido('g-cr-monto')) return;
   const monto = parseFloat(document.getElementById('g-cr-monto').value);
   const fecha = fechaMovOpcional('g-cr-fecha'); if (fecha === null) return;
-  const partes = partesPago(e.plan, e.k);
+  const partes = extraPago ? {interes: 0} : partesPago(e.plan, e.k);
   const extra = {credito: id, interes: Math.min(partes.interes, monto), parcial: e.c.tipo !== 'tienda'};
-  const nota = e.c.nombre + ' · pago ' + (e.k + 1) + ' de ' + e.plan.n;
+  const nota = e.c.nombre + (extraPago ? ' · pago que faltaba' : ' · pago ' + (e.k + 1) + ' de ' + e.plan.n);
   const btn = document.getElementById('g-cr-btn');
   const ok = esIdX(cuenta) ? await altaMovX('gasto', e.c.cat, monto, nota, cuenta, btn, fecha, extra) : await altaGasto(e.c.cat, monto, nota, cuenta, btn, fecha, extra);
   if (ok) { creditoPagando = null; refrescar(renderCreditos, renderDeudas, render); }
@@ -8447,6 +8670,8 @@ async function txDinero(plan) {
         } else {
           const p = data[plan.persona.key];
           if (!p) return {error:'esa persona ya no existe — recarga la app'};
+          // (23-nov-2026) una persona quitada no recibe ni pierde movimientos: su saldo ya no cuenta y se descuadraria al regresarla
+          if (p.quitada && typeof p.quitada === 'object' && !Array.isArray(p.quitada)) return {error:'a esa persona la quitaste: regrésala desde Deudas para anotarle algo'};
           let movs = Array.isArray(p.movimientos) ? p.movimientos : [];
           if (plan.persona.movDelId) {
             const srv = movs.find(m => m && m.id === plan.persona.movDelId);
@@ -13008,7 +13233,10 @@ function diaCorto(f) {
   return d.toLocaleDateString('es-MX',{day:'numeric',month:'short',...(d.getFullYear()!==new Date().getFullYear()?{year:'numeric'}:{})}).replace(/ de /g,' ').replace(/\./g,'');
 }
 function tituloCambio(c) {
+  if(c.t==='ajuste'&&c.clase==='persona'&&c.razon==='quitada') return 'quitaste a '+(c.persona||'una persona');
+  if(c.t==='ajuste'&&c.clase==='persona'&&c.razon==='regresada') return 'regresaste a '+(c.persona||'una persona');
   if(c.t==='ajuste'&&c.clase==='persona') return 'cambió lo que se debe con '+(c.persona||'una persona');
+  if(c.t==='ajuste'&&c.clase==='credito') return c.razon==='reabrir'?'reabriste un préstamo':'cerraste un préstamo';
   if(c.t==='ajuste') return (c.razon==='inicial'?'saldo inicial de ':'ajustaste ')+(nombreCuenta(c.cuenta)||'una cuenta');
   if(c.clase==='cuenta') return 'cambiaste '+(nombreCuenta(c.cuenta)||'una cuenta');
   if(c.t==='borrado'&&c.clase==='tarjeta'){ const mv=c.mov&&typeof c.mov==='object'?c.mov:{}; return (mv.tipo==='pago'?'deshiciste un pago de ':'quitaste un cargo de ')+(CUENTAS[c.tarjeta]||'tu tarjeta'); }
@@ -13022,6 +13250,19 @@ function metaCambio(c) {
   const mv=c.mov&&typeof c.mov==='object'?c.mov:{}, pv=c.previo&&typeof c.previo==='object'?c.previo:{};
   const f=v=>c.moneda?fmtX(nFin(v),c.moneda):fmt(nFin(v));
   if(c.clase==='cuenta') return [c.nota||'', 'no mueve dinero'];
+  // (23-nov-2026) quitar o regresar a una persona y cerrar o reabrir un prestamo: no movieron ninguna cuenta
+  if(c.t==='ajuste'&&c.clase==='persona'&&(c.razon==='quitada'||c.razon==='regresada')){
+    const v=c.razon==='quitada'?nFin(c.antes):nFin(c.despues);
+    const deb=v>0.005?(c.razon==='quitada'?'te debía ':'te debe ')+fmt(v):v<-0.005?(c.razon==='quitada'?'le debías ':'le debes ')+fmt(-v):'estaba en cero';
+    return [deb, c.razon==='quitada'?'dejó de contar en tus deudas; sus movimientos se quedan':'vuelve a contar en tus deudas', 'no movió tus cuentas'];
+  }
+  if(c.t==='ajuste'&&c.clase==='credito'){
+    const v=c.razon==='reabrir'?nFin(c.despues):nFin(c.antes);
+    return [c.nota||'', c.razon==='reabrir'?'vuelve a contar lo que dice tu plan de pagos'
+      :v>0.005?'quedó ajustado: se dieron por pagados '+fmt(v):v<-0.005?'quedó ajustado: pagaste '+fmt(-v)+' de más':'quedó ajustado',
+      // (Marcela) la razon solo si dice algo que el texto no dijo ya
+      c.razon&&RAZONES_CREDITO[c.razon]&&!['perdon','demas','reabrir'].includes(c.razon)?RAZONES_CREDITO[c.razon]:'', 'no movió tus cuentas'];
+  }
   if(c.t==='ajuste') return [c.razon==='inicial'?'empezó en '+f(c.despues):'de '+f(c.antes)+' a '+f(c.despues),
     c.razon&&c.razon!=='inicial'?RAZONES_AJUSTE[c.razon]||'':'', c.nota||'', 'no es gasto ni ingreso'];
   const que=c.clase==='bolsa'?(mv.tipo==='venta'?'venta':'compra')+' de '+(mv.acciones||'')+' '+(mv.simbolo||'')+(mv.cuenta&&mv.cuenta!=='externo'?' · '+(nombreCuenta(mv.cuenta)||''):''):mv.cat?catFV(mv.cat)+(mv.sub?' · '+mv.sub:''):(mv.origen||mv.destino)&&c.clase==='transferencia'?(nombreCuenta(mv.origen)||'otra cuenta')+' → '+(nombreCuenta(mv.destino)||'otra cuenta'):(mv.tipo&&c.clase==='tarjeta'?(mv.tipo==='pago'?'pago':'cargo')+' de '+(CUENTAS[c.tarjeta]||'tarjeta'):'');
@@ -13043,6 +13284,9 @@ function metaCambio(c) {
 }
 function montoCambio(c) {
   if(c.clase==='cuenta') return '';
+  // (23-nov-2026, Marcela: "no sé cuáles suman y cuáles restan") quitar o regresar a alguien no movió dinero: sin signo, como las demás constancias
+  if(c.t==='ajuste'&&c.clase==='persona'&&(c.razon==='quitada'||c.razon==='regresada')) return fmt(Math.abs(nFin(c.razon==='quitada'?c.antes:c.despues)));
+  if(c.t==='ajuste'&&c.clase==='credito') return fmt(Math.abs(c2(nFin(c.despues)-nFin(c.antes))));   // (23-nov-2026) sin signo: el texto dice si se perdonó o se pagó de más
   if(c.t==='ajuste'){ const d=c2(nFin(c.despues)-nFin(c.antes)); const t=c.moneda?fmtX(Math.abs(d),c.moneda):fmt(Math.abs(d)); return (d<0?'−':'+')+t; }
   const mv=c.mov&&typeof c.mov==='object'?c.mov:{};
   // (23-nov-2026, Marcela) en una edicion lo util es cuanto cambio ("+$50.00"), no el monto nuevo; sin cambio de monto, nada
@@ -13923,15 +14167,16 @@ window.eliminarIngreso = async function(id) {
 let personaSelPrev='';
 function renderPersonaSelect() {
   const sel=document.getElementById('deuda-persona');
-  const prev=Object.hasOwn(state.personas,sel.value)?sel.value:personaSelPrev;
-  const _opc=Object.entries(state.personas).map(([k,p])=>`<option value="${escapeHtml(k)}">${escapeHtml(p.nombre)}</option>`).join('');
+  const vivas=personasVivas();   // (23-nov-2026) una persona quitada no se ofrece
+  const prev=Object.hasOwn(vivas,sel.value)?sel.value:personaSelPrev;
+  const _opc=Object.entries(vivas).map(([k,p])=>`<option value="${escapeHtml(k)}">${escapeHtml(p.nombre)}</option>`).join('');
   // el select SOLO lista personas: agregar es una accion y vive en el boton "+ persona"
   // de al lado. Mezclarla como una opcion mas hacia que, con la lista vacia, fuera la
   // unica opcion, ya estuviera seleccionada, y al pulsarla el valor no cambiara: el
   // evento change no disparaba y "no pasaba nada".
   const _ph=_opc?'':'<option value="" disabled selected>agrega tu primera persona…</option>';
   sel.innerHTML=_ph+_opc;
-  if(Object.hasOwn(state.personas,prev)){ sel.value=prev; personaSelPrev=prev; }
+  if(Object.hasOwn(vivas,prev)){ sel.value=prev; personaSelPrev=prev; }
 }
 // El alta de persona ya NO usa prompt(): si el navegador lo suprime (devuelve null sin
 // mostrar nada, reportado con la app instalada en la pantalla de inicio), el codigo viejo
@@ -13970,6 +14215,13 @@ window.confirmarNuevaPersona = async function() {
   if(!key){ showToast('usa un nombre con letras o números'); return; }
   // colision sin distinguir mayusculas: "papa" y "Papa" son la misma persona
   const existente=Object.keys(state.personas).find(k=>k.toLowerCase()===key.toLowerCase());
+  // (23-nov-2026) con el mismo nombre que una persona quitada: se regresa, no se crea otra (la clave es la misma)
+  if(existente&&personaQuitada(state.personas[existente])){
+    showToast('ya tenías a esa persona y la quitaste: regrésala desde «personas que quitaste», en Deudas');
+    window.cerrarModalPersona();
+    const q=document.querySelector('.g-quitadas'); if(q){ q.open=true; try{ q.scrollIntoView({block:'center'}); }catch(e){} }
+    return;
+  }
   if(existente){
     showToast('esa persona ya existe');
     window.cerrarModalPersona();
@@ -14020,7 +14272,7 @@ window.registrarDeuda = async function() {
   const nota=document.getElementById('deuda-nota').value.trim();
   const cuenta=document.getElementById('deuda-cuenta').value;
   const tipo=state.tipoDeuda;
-  if(!state.personas[persona]){showToast('persona no válida');return;}
+  if(!state.personas[persona]||personaQuitada(state.personas[persona])){showToast('persona no válida');return;}
   if(!DEUDA_TIPOS[tipo]){showToast('tipo no válido');return;}
   if(!cuenta){ faltaCuenta('deuda-cuenta','Elige la cuenta del dinero (o "'+CTA_EXTERNO.otro+'", si no quieres mover ninguna)'); return; }
   // (18-nov-2026, sesion G) una cuenta que agregaste (x_) tambien sirve, solo en pesos: el saldo de la persona va en pesos
@@ -14071,7 +14323,8 @@ window.registrarDeuda = async function() {
 function renderDeudas() {
   pintarSubcatsDeuda();
   try { renderCreditos(); } catch(e) { console.error('creditos',e); }
-  const personas=state.personas;
+  const personas=personasVivas();   // (23-nov-2026) las quitadas van aparte, al final
+  const quitadas=Object.entries(state.personas||{}).filter(([,p])=>personaQuitada(p));
   // (18-nov-2026) lo que se debe con cada persona: con tasa lleva su interes (saldoP); sin tasa, su saldo de siempre
   const sal=Object.fromEntries(Object.entries(personas).map(([k,p])=>[k,saldoP(p)]));
   // (20-nov-2026, decision de Beto: "es lo que le debes a la tarjeta") "tu debes" es LA MISMA cifra que "lo que debes" del Resumen
@@ -14125,7 +14378,7 @@ function renderDeudas() {
         ?((it.total>=0?'te debe ':'le debes ')+fmt(Math.abs(it.capital))+' de lo prestado y '+fmt(Math.abs(it.interes))+' de interés')
         :'ya está al corriente')+' · '+tasaTxt(t)+(it.interesPagado>0.005?' · de interés ya se pagó '+fmt(it.interesPagado):'')+'</div>':'';
     const aj=ajustesPersonaAbierto===key?ajustesPersonaHTML(key,p):'';
-    return`<div class="deuda-person"><div class="deuda-header" role="button" tabindex="0" onclick="toggleDeuda('d-${key}')"><div><div class="deuda-name">${escapeHtml(p.nombre)}</div><div class="deuda-sub">${isPos?'te debe':'le debes'}${t?' · con interés':''}</div></div><div class="deuda-total ${isPos?'pos':'neg'}">${fmt(Math.abs(s))}</div></div><div class="deuda-detail" id="d-${key}">${intTxt}<button type="button" class="ticket-gal g-ajustes-btn" aria-expanded="${ajustesPersonaAbierto===key}" onclick="abrirAjustesPersona('${key}',event)">${CON_CREDITOS?'grupo e interés':'grupo'}</button>${aj}${excelPanelHTML(key)}${movs||'<div class="empty-state" style="padding:12px 0">sin movimientos</div>'}</div></div>`;
+    return`<div class="deuda-person"><div class="deuda-header" role="button" tabindex="0" onclick="toggleDeuda('d-${key}')"><div><div class="deuda-name">${escapeHtml(p.nombre)}</div><div class="deuda-sub">${isPos?'te debe':'le debes'}${t?' · con interés':''}</div></div><div class="deuda-total ${isPos?'pos':'neg'}">${fmt(Math.abs(s))}</div></div><div class="deuda-detail" id="d-${key}">${intTxt}<button type="button" class="ticket-gal g-ajustes-btn" aria-expanded="${ajustesPersonaAbierto===key}" onclick="abrirAjustesPersona('${key}',event)">${CON_CREDITOS?'grupo e interés':'grupo'}</button>${aj}${excelPanelHTML(key)}${movs||'<div class="empty-state" style="padding:12px 0">sin movimientos</div>'}<button type="button" class="ticket-gal g-cr-quitar g-quitar-p" onclick="quitarPersona('${key}',this)">quitar a esta persona de tus deudas</button></div></div>`;
   };
   // (18-nov-2026) por grupo, en el orden de la lista; un solo grupo en uso no lleva encabezado
   const porGrupo=new Map(); state.clasif.gruposPersona.forEach(g=>porGrupo.set(g,[]));
@@ -14138,8 +14391,22 @@ function renderDeudas() {
     ?usados.map(([g,l])=>{ const td=l.reduce((a,[k])=>a+Math.max(0,sal[k]),0), db=l.reduce((a,[k])=>a+Math.max(0,-sal[k]),0);
         return '<div class="g-grupo-tit"><span class="g-grupo-n">'+escapeHtml(g)+'</span><span class="g-grupo-t">'+[td>0.005?'te deben '+fmt(td):'',db>0.005?'le debes '+fmt(db):''].filter(Boolean).join(' · ')+'</span></div>'+l.map(tarjeta).join(''); }).join('')
     :usados.flatMap(([,l])=>l).map(tarjeta).join(''))
-    +(Object.keys(personas).length?'<details class="g-grupos-ed"'+(grupoMarcando!==null?' open':'')+'><summary>editar grupos</summary>'+editorListaHTML('gruposPersona',state.clasif.gruposPersona,'ej. vecinos')+marcarGrupoHTML(personas)+'</details>':'');
+    +(Object.keys(personas).length?'<details class="g-grupos-ed"'+(grupoMarcando!==null?' open':'')+'><summary>editar grupos</summary>'+editorListaHTML('gruposPersona',state.clasif.gruposPersona,'ej. vecinos')+marcarGrupoHTML(personas)+'</details>':'')
+    +quitadasHTML(quitadas);
 }
+// (23-nov-2026) "personas que quitaste": lo que se debia al quitarla (congelado en quitada.saldo) y regresarla. Un toque, sin deslizar: regresar se puede deshacer
+function quitadasHTML(l) {
+  if(!l.length) return '';
+  const fq=f=>{ const d=new Date(f); return isNaN(d.getTime())?'':d.toLocaleDateString('es-MX',{day:'numeric',month:'short',...(d.getFullYear()!==new Date().getFullYear()?{year:'numeric'}:{})}).replace(/ de /g,' ').replace(/\./g,''); };
+  return '<details class="g-quitadas"'+(window.quitadasAbierto?' open':'')+' ontoggle="quitadasAbierto=this.open"><summary>personas que quitaste ('+l.length+')</summary>'
+    +l.sort((a,b)=>String(a[1].nombre||'').localeCompare(String(b[1].nombre||''),'es')).map(([k,p])=>{
+      const s=nFin(p.quitada.saldo), f=fq(p.quitada.en);
+      const meta=['la quitaste'+(f?' el '+f:''), s>0.005?'te debía '+fmt(s):s<-0.005?'le debías '+fmt(-s):'estaba en cero', 'no cuenta en tus deudas'].concat(saneaTasa(p.tasa)?['su interés sigue corriendo']:[]).join(' · ');
+      return '<div class="item-row g-quitada"><div><div class="item-cat">'+escapeHtml(p.nombre||k)+'</div><div class="item-meta g-quit-meta">'+meta+'</div></div>'
+        +'<button type="button" class="cat-act" onclick="regresarPersona(\''+escapeHtml(k)+'\',this)">regresar</button></div>';
+    }).join('')+'<div class="item-meta g-nota">sus movimientos se quedan en Movimientos tal como los anotaste</div></details>';
+}
+window.quitadasAbierto=false;
 // (20-nov-2026, tanda 2, Beto) entrar a un grupo y marcar con casillas a quien va ahi. Quitar la marca lo regresa al grupo de siempre
 // ("Otros" o el ultimo). Una sola transaccion sobre cartera/personas que solo cambia el campo grupo de quien cambio
 let grupoMarcando=null, marcasGrupo={};   // marcasGrupo: lo que la persona marco y aun no guarda (un snapshot repinta Deudas y no se pierde)
@@ -17511,8 +17778,11 @@ window.exportarMisDatosExcel = async function() {
         cta: m.cuenta === 'externo' ? 'sin mover tus cuentas' : cta(m.cuenta), nota: [m.subcat, m.nota].filter(Boolean).join(' · ')}))),
       {desc: 'cada préstamo o pago con una persona (filtra por persona)'});
     // (23-nov-2026) el saldo de cada persona, con su interés si tiene tasa: la MISMA cifra de la pantalla Deudas (saldoP)
-    hoja('Personas', [['persona', 'p', 18], ['te debe (+) o le debes (−)', 'saldo', 18, 'mon'], ['de eso, interés', 'int', 16, 'mon'], ['grupo', 'g', 16]],
-      Object.values(state.personas || {}).map(p => { const r = interesDe(p); return {p: p.nombre || '', saldo: c2(saldoP(p)), int: r ? c2(nFin(r.interes)) : 0, g: p.grupo || ''}; }),
+    // (23-nov-2026) una persona quitada sale en 0 (no cuenta) y su columna dice cuándo se quitó y cuánto se debía entonces
+    hoja('Personas', [['persona', 'p', 18], ['te debe (+) o le debes (−)', 'saldo', 18, 'mon'], ['de eso, interés', 'int', 16, 'mon'], ['grupo', 'g', 16], ['quitada', 'q', 30]],
+      Object.values(state.personas || {}).map(p => { const r = personaQuitada(p) ? null : interesDe(p);
+        const q = personaQuitada(p) ? 'quitada el ' + (String(p.quitada.en || '').slice(0, 10) || '?') + (Math.abs(nFin(p.quitada.saldo)) > 0.005 ? '; se debía ' + fmt(Math.abs(nFin(p.quitada.saldo))) + (nFin(p.quitada.saldo) > 0 ? ' a tu favor' : ' en tu contra') : '; estaba en cero') : '';
+        return {p: p.nombre || '', saldo: c2(saldoP(p)), int: r ? c2(nFin(r.interes)) : 0, g: p.grupo || '', q}; }),
       {total: 'saldo', desc: 'lo que te debe o le debes a cada persona hoy, con su interés si le pusiste tasa'});
     // (23-nov-2026) prestamos y creditos: cuanto debes hoy (lo mismo que Deudas y el Resumen); sus pagos estan en Gastos
     hoja('Préstamos', [['nombre', 'n', 22], ['tipo', 't', 20], ['monto', 'monto', 14, 'mon'], ['pago', 'pago', 14, 'mon'], ['pagos', 'np', 8], ['hechos', 'k', 8], ['tasa anual %', 'tasa', 12], ['debes hoy (aprox.)', 'debe', 16, 'mon']],
@@ -19014,7 +19284,7 @@ function calcularCierre(start,end,modo) {
   const totalG=gastosR.reduce((s,i)=>s+montoConsumo(i),0), totalI=ingresosR.reduce((s,i)=>s+i.monto,0), abonos=gastosR.reduce((s,i)=>s+abonoCapital(i),0);
   const ap=aportacionesEnRango(start,end);
   const aporte=apTotal(ap);
-  const vacio=totalI===0&&totalG===0&&!apHay(ap);
+  const vacio=totalI===0&&totalG===0&&abonos<0.005&&!apHay(ap);   // (23-nov-2026, Marcela) un mes con solo abonos a un prestamo no esta "sin movimientos"
   const estPre=estandarDe(state.perfil);
   const gPct=totalI>0?totalG/totalI*100:null;
   const aPct=totalI>0?aporte/totalI*100:null;
