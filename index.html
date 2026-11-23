@@ -1008,6 +1008,8 @@ html[data-tema='grafito'] .mov-mas-n{background:var(--accent);color:#0f1a14}
 .mov-acc .del-btn.del-x:hover{color:var(--red-txt);background:var(--bg3)}
 .mov-acc svg{display:block}
 .mov-acc-vacia{width:88px}
+/* (23-nov-2026) un renglon gris con UN boton (deshacer un cargo, un pago o una operacion de bolsa) ocupa lo mismo que editar+borrar: los montos siguen en una columna */
+.mov-acc{min-width:88px;justify-content:flex-end}
 .mov-quitar[hidden]{display:none}
 .del-btn:active{color:var(--red)}
 
@@ -1850,6 +1852,13 @@ html[data-tema='grafito'] #cal-filtro .type-opt.active>span{color:#14171a}
     <!-- los campos de cada cuenta los pone pintarFormSaldos() desde REG_CUENTAS (ui y en.form) -->
     <div class="section-title" id="saldos-tit-cuentas">tus cuentas</div>
     <div class="section-title" id="saldos-tit-cajitas">tus cajitas</div>
+    <!-- (23-nov-2026) cada saldo que cambia queda anotado en Movimientos, de cuánto a cuánto y por qué -->
+    <div class="row2 saldos-razon">
+      <div class="field"><label for="saldos-razon">¿por qué cambia tu saldo?</label>
+        <select id="saldos-razon"><option value="">elige una razón</option><option value="banco">lo puse igual que el banco</option><option value="contado">conté mi efectivo</option><option value="error">corregí algo que anoté mal</option><option value="olvido">se me olvidó anotar algo</option><option value="otra">otra razón</option></select></div>
+      <div class="field"><label for="saldos-razon-nota">detalle (opcional)</label><input type="text" id="saldos-razon-nota" maxlength="120" placeholder="ej. comisión del banco"></div>
+    </div>
+    <p class="saldos-ayuda" id="saldos-registro-nota">Queda anotado en Movimientos: de cuánto a cuánto y por qué.</p>
     <button class="btn btn-purple" id="manuales-btn" onclick="guardarManuales()">guardar</button>
     <details class="mas-tasa hist-bloque"><summary>rendimiento histórico</summary>
       <p class="saldos-ayuda" id="saldos-ayuda-semilla">Lo que tu banco dice que has ganado en total con cada cuenta. Cópialo de la app del banco; desde ahí la app lo lleva sola, aunque muevas dinero. Cambiarlo corrige, no suma.</p>
@@ -3507,6 +3516,8 @@ function pintarFormSaldos() {
   ponDespues('saldos-ayuda-semilla', comps.map(c=>{ const ids=idsFormComp(c);
     return `<div class="row2">${campo(c.ui.etq+' · ganado en total',ids.semilla,'ej. '+c.ui.ej.semilla)}${campo('¿de qué día? (vacía = hoy)',ids.semillaFecha,'AAAA-MM-DD · vacía = hoy',true)}</div>`; }).join(''));
   // (3-nov-2026) Fundview: sin cajitas encendidas, ni el titulo solo ni el bloque vacio. Las que agrega la persona llevan su propia tarjeta
+  // (23-nov-2026) la nota de "queda anotado" solo si el registro de cambios se escribe (en Fundview, hasta CFG.cambios)
+  { const n=document.getElementById('saldos-registro-nota'); if(n) n.hidden=!!CFG.multi&&CFG.cambios!==true; }
   if(CFG.multi&&!comps.length){ const t=document.getElementById('saldos-tit-cajitas'), a=document.getElementById('saldos-ayuda-semilla'), d=a&&a.closest('details');
     if(t) t.hidden=true; if(d) d.hidden=true; }
 }
@@ -5494,7 +5505,7 @@ window.doLogout = async function() {
 // Lo unico que hay bajo usuarios/<uid>: las colecciones de los C_* y estos documentos de cartera, los MISMOS 19 de
 // docCartera() en fundview-app\firestore.rules (armar.mjs falla si no coinciden con las reglas o con el codigo).
 const FV_DOCS_CARTERA = ['apartados', 'categorias', 'cuentas', 'cuentasX', 'fondo', 'historial', 'mercado', 'metas', 'metasFondos',
-  'perfil', 'personas', 'posiciones', 'saldos', 'suscripciones', 'tarjeta', 'tarjetaRev', 'tickers', 'clasificacion', 'creditos'];
+  'perfil', 'personas', 'posiciones', 'saldos', 'suscripciones', 'tarjeta', 'tarjetaRev', 'tickers', 'clasificacion', 'creditos', 'cambios'];
 const FV_BORRA_A_LA_VEZ = 8;      // de a uno y no en lotes: las reglas topan los accesos por lote (20) y esto no gana nada con ellos
 const FV_BORRA_PAGINA = 200;
 const FV_BORRA_PLAZO = 20000;     // con caché persistente, un delete sin señal nunca contesta: a los 20 s se dice y se reintenta
@@ -5756,12 +5767,14 @@ async function fvBorrarDatos() {
         await fvEnTandas(snap.docs, d => quitar(d.ref));
       }
     }
-    await fvEnTandas(FV_DOCS_CARTERA, nom => conPlazoBorrado(deleteDoc(doc(db, NS, nom))));
+    // (23-nov-2026) 'cambios' solo existe con CFG.cambios: sin el, las reglas desplegadas pueden no conocerlo y negarian el borrado entero
+    const docsFv = FV_DOCS_CARTERA.filter(n => n !== 'cambios' || CON_CAMBIOS);
+    await fvEnTandas(docsFv, nom => conPlazoBorrado(deleteDoc(doc(db, NS, nom))));
     // lo pendiente en este aparato se esconde en las lecturas: primero que llegue todo, y luego a preguntar al servidor
     await conPlazoBorrado(waitForPendingWrites(db));
     let queda = false;
     for (const c of fvColsUsuario()) if (!(await conPlazoBorrado(getDocsFromServer(query(collection(db, c), limit(1))))).empty) queda = true;
-    await fvEnTandas(FV_DOCS_CARTERA, async nom => { if ((await conPlazoBorrado(getDocFromServer(doc(db, NS, nom)))).exists()) queda = true; });
+    await fvEnTandas(docsFv, async nom => { if ((await conPlazoBorrado(getDocFromServer(doc(db, NS, nom)))).exists()) queda = true; });
     if (!queda) return;
   }
   throw Object.assign(new Error('quedaron datos despues de tres vueltas'), {code: 'fv/quedan-datos'});
@@ -6582,25 +6595,48 @@ window.guardarAjustesPersona = async function(key, btn) {
   }
   // una tasa que se quita con interes ya cobrado: ese dinero queda como pago de mas (se dice antes)
   const r = interesDe(p);
-  if (CON_CREDITOS && !tasa && r && r.interesPagado > 0.005 && !(await confirmarDeslizando({titulo: '¿Quitar el interés?', texto: 'Ya te pagó ' + fmt(r.interesPagado) + ' de interés. Sin la tasa, ese dinero cuenta como si te hubiera pagado de más.', verbo: 'quitar'}))) return;
+  // (23-nov-2026, auditoria) cambiar o quitar la tasa cambia lo que se debe, tambien hacia atras: se dice la cifra antes de guardar
+  // (antes, quitarla con interes sin cobrar lo borraba sin avisar) y queda en el registro de cambios
+  const antesP = c2(saldoP(p)), despuesP = CON_CREDITOS ? c2(saldoP({...p, tasa: tasa || undefined})) : antesP;
+  const mueveDeuda = cent(antesP) !== cent(despuesP);
+  if (CON_CREDITOS && (mueveDeuda || (!tasa && r && r.interesPagado > 0.005))) {
+    const quien = p.nombre || key, txt = v => v >= 0 ? quien + ' te debe ' + fmt(v) : 'le debes ' + fmt(-v) + ' a ' + quien;
+    const extra = !tasa && r && r.interesPagado > 0.005 ? ' Ya te pagó ' + fmt(r.interesPagado) + ' de interés: sin la tasa, ese dinero cuenta como si te hubiera pagado de más.' : '';
+    if (!(await confirmarDeslizando({titulo: tasa ? '¿Cambiar el interés?' : '¿Quitar el interés?',
+      texto: (mueveDeuda ? 'Hoy ' + txt(antesP) + '; con este cambio, ' + txt(despuesP) + '.' + (CON_CAMBIOS ? ' Queda anotado en Movimientos.' : '') : '') + extra, verbo: tasa ? 'cambiar' : 'quitar'}))) return;
+  }
   personaGOcupado = true; btn.disabled = true;
   try {
     // sin creditos (Fundview hasta sus terminos) solo se toca el grupo: nunca se borra una tasa que esta pantalla no enseña
     if (!datosCargados) throw new Error('datos no cargados');
     if (navigator.onLine === false || cargaDesdeCache) throw new Error('sin conexión');
     // transaccion: si otro aparato borro a la persona no se crea una fantasma con solo grupo y tasa
-    const refP = doc(db, NS, 'personas');
+    const refP = doc(db, NS, 'personas'), enT = Date.now();   // instante fijo: un reintento escribe la misma constancia
     let rp;
     try {
       rp = await Promise.race([runTransaction(db, async tx => {
         const s = await tx.get(refP), d = s.exists() ? s.data() || {} : {};
         if (!(d.data && typeof d.data === 'object' && Object.prototype.hasOwnProperty.call(d.data, key) && d.data[key] && typeof d.data[key] === 'object')) return {error: 'esa persona ya no existe — recarga la app'};
+        const cbS = mueveDeuda && CON_CAMBIOS ? await tx.get(doc(db, NS, 'cambios')) : null;   // se lee ANTES de escribir
+        // (23-nov-2026) lo que se confirmo en pantalla se compara contra lo que dice el SERVIDOR: si otro aparato movio a esa persona, no se escribe
+        if (CON_CREDITOS) {
+          const ps = d.data[key], antesS = c2(saldoP(ps)), despS = c2(saldoP({...ps, tasa: tasa || undefined}));
+          if (cent(antesS) !== cent(antesP) || cent(despS) !== cent(despuesP)) return {error: 'esa persona cambió en otro aparato — recarga la app'};
+        }
         tx.set(refP, {data: {[key]: CON_CREDITOS ? {grupo, tasa: tasa || deleteField()} : {grupo}}}, {merge: true});
+        if (mueveDeuda && CON_CAMBIOS) {
+          const listaT = recortaCambios([{id: 'cb' + enT.toString(36) + '_t', en: new Date(enT).toISOString(), t: 'ajuste', clase: 'persona', persona: txtCorto(p.nombre || key, 60),
+            antes: antesP, despues: despuesP, razon: 'tasa', ...(tasa ? {nota: tasa.pct + '% ' + (tasa.per === 'anio' ? 'al año' : 'al mes') + ' desde ' + tasa.desde} : {})},
+            ], cbS && cbS.exists() ? cbS.data() : null);
+          tx.set(doc(db, NS, 'cambios'), {lista: listaT});
+          return {ok: true, cambios: listaT};
+        }
         return {ok: true};
       }), new Promise((_, no) => setTimeout(() => no(new Error('tiempo agotado')), 15000))]);
       setSyncDot('ok');
     } catch (e) { setSyncDot('err'); throw e; }
     if (rp.error) { showToast(rp.error); return; }
+    if (Array.isArray(rp.cambios)) state.cambios = rp.cambios;
     const q = {...state.personas[key], grupo}; if (CON_CREDITOS) { if (tasa) q.tasa = tasa; else delete q.tasa; }
     state.personas[key] = q; ajustesPersonaAbierto = null;
     showToast('listo'); refrescar(renderDeudas, render);
@@ -6666,8 +6702,16 @@ function estadoCredito(id) {
   const c = state.creditos[id]; if (!c) return null;
   const plan = planCredito({monto: c.monto, pago: c.pago, n: c.n, tasaAnual: c.tasaAnual, cada: c.cada});
   if (plan.error) return {c, error: plan.error};
-  const k = Math.min(pagosDeCredito(id).length, plan.n);
-  const debe = k >= plan.n ? 0 : saldoTrasPagos(plan.P, plan.r, plan.A, k);
+  const pagos = pagosDeCredito(id);
+  const k = Math.min(pagos.length, plan.n);
+  let debe = k >= plan.n ? 0 : saldoTrasPagos(plan.P, plan.r, plan.A, k);
+  // (23-nov-2026, auditoria) lo que debes sale tambien de lo que DE VERDAD abonaste: con el plan solo, un pago de mas no lo bajaba.
+  // Un prestamo (no una compra de tienda, que no se parte) cuyos pagos traen su interes guardado: lo prestado menos lo abonado.
+  // Si hay pagos viejos sin ese dato, manda la cifra mas baja entre el plan y lo abonado (un pago extra si se nota; nunca sube)
+  if (c.tipo !== 'tienda' && pagos.length) {
+    const abonado = pagos.reduce((s, g) => s + abonoCapital(g), 0), porAbono = Math.max(0, plan.P - abonado);
+    debe = pagos.every(g => g.parcial === true) ? (k >= plan.n ? Math.min(debe, porAbono) : porAbono) : Math.min(debe, porAbono);
+  }
   return {c, plan, k, debe: Math.round(debe * 100) / 100, prox: k < plan.n && c.primero ? fechaPagoCredito(c.primero, c.cada, k) : null};
 }
 function deudaCreditos() { return Object.keys(state.creditos || {}).reduce((s, id) => { const e = estadoCredito(id); return s + (e && !e.error ? e.debe : 0); }, 0); }
@@ -6790,7 +6834,28 @@ window.borrarCredito = async function(id) {
   if (!(await confirmarDeslizando({titulo: '¿Quitar el crédito?', texto: 'Quitar "' + c.nombre + '" de tus créditos.' + sobrePagos, verbo: 'quitar'}))) return;
   creditoOcupado = true;
   try {
-    await guardarMergeG('creditos', {lista: {[id]: deleteField()}});
+    if (!CON_CAMBIOS) await guardarMergeG('creditos', {lista: {[id]: deleteField()}});
+    else {
+      // (23-nov-2026) el borrado y su constancia van en UNA transaccion: o quedan los dos o ninguno
+      if (!datosCargados) throw new Error('datos no cargados');
+      if (navigator.onLine === false || cargaDesdeCache) throw new Error('sin conexión');
+      const refC = doc(db, NS, 'creditos'), enCb = new Date().toISOString(), idCb = 'cb' + Date.now().toString(36) + '_c';   // fijos: un reintento escribe la misma constancia
+      let rc;
+      try {
+        rc = await Promise.race([runTransaction(db, async tx => {
+          const cS = await tx.get(refC), cbS = await tx.get(doc(db, NS, 'cambios'));   // lecturas ANTES de escribir
+          const srv = cS.exists() ? ((cS.data() || {}).lista || {})[id] : null;
+          if (!srv || typeof srv !== 'object') return {error: 'ese crédito ya lo quitó alguien más — recarga la app'};
+          const lista = recortaCambios([{id: idCb, en: enCb, t: 'borrado', clase: 'credito', mov: copiaMov({nota: srv.nombre, tipo: srv.tipo, monto: srv.monto})}], cbS.exists() ? cbS.data() : null);
+          tx.set(refC, {lista: {[id]: deleteField()}}, {merge: true});
+          tx.set(doc(db, NS, 'cambios'), {lista});
+          return {ok: true, cambios: lista};
+        }), new Promise((_, no) => setTimeout(() => no(new Error('tiempo agotado')), 15000))]);
+        setSyncDot('ok');
+      } catch (e) { setSyncDot('err'); throw e; }
+      if (rc.error) { showToast(rc.error); return; }
+      if (Array.isArray(rc.cambios)) state.cambios = rc.cambios;
+    }
     const x = {...state.creditos}; delete x[id]; state.creditos = x;
     showToast('crédito quitado'); refrescar(renderCreditos, renderDeudas, render);
   } catch (e) { console.error('borrarCredito', e); showToast(msgSinGuardarG(e)); }
@@ -6863,6 +6928,8 @@ let state = {
   clasif:saneaClasif(null),
   // (18-nov-2026) prestamos, hipoteca y compras a plazos (cartera/creditos, con merge por credito)
   creditos:{},
+  // (23-nov-2026) registro de cambios (cartera/cambios): ajustes de saldo, ediciones y borrados. Solo se ve
+  cambios:[],
   // fondo de la universidad: dinero APARTADO dentro de las cuentas reales (ver saneaFondo)
   fondo:{saldosPorCuenta:{}, movs:[]},
   // perfil para el estandar personalizado (vacio = estandar generico, no bloquea nada)
@@ -6923,6 +6990,7 @@ async function pintarDesdeCache() {
   if (r.some((x,i) => x.status !== 'fulfilled' && !(i === 1 && sinTarjeta))) return false;
   const [sD,tD,trvD,pD,cD,hD,mD,fD,gS,iS,trS,opS,rS,xD] = r.map(x => x.value);
   try { const cl = await getDocFromCache(doc(db,NS,'clasificacion')); state.clasif = saneaClasif(cl.exists() ? cl.data() : null); } catch (e) {}   // (18-nov-2026) opcional
+  if (CON_CAMBIOS) try { const cb = await getDocFromCache(doc(db,NS,'cambios')); state.cambios = saneaCambios(cb.exists() ? cb.data() : null); } catch (e) {}   // (23-nov-2026) opcional: solo se ve
   try { const crd = await getDocFromCache(doc(db,NS,'creditos')); state.creditos = saneaCreditos(crd.exists() ? crd.data() : null); } catch (e) {}
   // sin saldos, personas o tarjeta no alcanza para una pantalla coherente: pintar
   // personas vacio enseñaria los PERSONAS_DEFAULT del codigo como si fueran deudas reales
@@ -7062,7 +7130,7 @@ async function loadFromFirebase() {
       sDoc, mDoc, pDoc, perDoc, tDoc,
       trvDoc, hDoc, aDoc, mtDoc, cDoc, tkDoc, fDoc,
       gSnap, iSnap, trSnap, opSnap
-    , rendSnap, cxDoc, mfDoc, clDoc, crDoc] = await Promise.all([
+    , rendSnap, cxDoc, mfDoc, clDoc, crDoc, cbDoc] = await Promise.all([
       getDoc(doc(db,NS,'saldos')),
       getDoc(doc(db,NS,'mercado')),
       getDoc(doc(db,NS,'personas')),
@@ -7088,6 +7156,8 @@ async function loadFromFirebase() {
       getDoc(doc(db,NS,'clasificacion')).catch(()=>null),
       // creditos SI entran a 'vino del servidor' (cambian lo que debes); si la lectura falla, se quedan los que habia
       getDoc(doc(db,NS,'creditos')).catch(()=>null),
+      // (23-nov-2026) registro de cambios: solo se ve; si falla no tumba la carga ni decide "vino del servidor"
+      CON_CAMBIOS ? getDoc(doc(db,NS,'cambios')).catch(()=>null) : null,
     ]);
     if (CFG.multi && fvBorrado.activo) return false;   // empezo a borrarse mientras leia: de aqui abajo se siembra y se escribe
     // si los datos vinieron de la cache local (red caida o lentisima) NO se corren
@@ -7101,6 +7171,7 @@ async function loadFromFirebase() {
     state.metasFondos = saneaMetasFondos(mfDoc && mfDoc.exists() ? mfDoc.data() : null);
     if (clDoc) state.clasif = saneaClasif(clDoc.exists() ? clDoc.data() : null);
     if (crDoc) state.creditos = saneaCreditos(crDoc.exists() ? crDoc.data() : null);
+    if (cbDoc) state.cambios = saneaCambios(cbDoc.exists() ? cbDoc.data() : null);
     state.cuentasX = saneaCX(cxDoc.exists() ? cxDoc.data() : null);
     // el fondo se carga SIEMPRE, exista o no: sin el, inicio pintaria el dinero apartado como tuyo
     state.fondo = saneaFondo(fDoc.exists() ? fDoc.data() : null);
@@ -7364,15 +7435,18 @@ async function procesarPendientesAtajo() {
         const {ref,id,tipo,d}=r;
         const cta=tipo==='gasto'?d.fuente:d.destino;
         const listas=tipo==='gasto'?FUENTES_GASTO:DESTINOS_INGRESO;
-        let valido=Number.isFinite(d.monto)&&d.monto>0&&d.monto<=10000000
-          &&typeof d.cat==='string'&&d.cat.trim()!==''
-          &&listas.includes(cta)&&Number.isFinite(Date.parse(d.fecha));
+        // (23-nov-2026, auditoria) un rechazo guarda POR QUE (antes la lista solo decia "rechazado")
+        const motivo=!(Number.isFinite(d.monto)&&d.monto>0&&d.monto<=10000000)?'monto no válido'
+          :!(typeof d.cat==='string'&&d.cat.trim()!=='')?'sin categoría'
+          :!listas.includes(cta)?'cuenta que la app no conoce'
+          :!Number.isFinite(Date.parse(d.fecha))?'fecha no válida':'';
+        let valido=!motivo, motivoR=motivo;
         // TDC Revolut: limite = deposito; aqui SI se valida contra los valores canonicos
         // (este es el unico flujo genuinamente concurrente); si excede, se rechaza
-        if(valido&&cta==='tarjetaRev'&&tdcGarantizada()&&Math.round((Math.max(0,revTdcDeuda+usadoMsAt)+d.monto)*100)>Math.round(revTdcDeposito*100)) valido=false;
+        if(valido&&cta==='tarjetaRev'&&tdcGarantizada()&&Math.round((Math.max(0,revTdcDeuda+usadoMsAt)+d.monto)*100)>Math.round(revTdcDeposito*100)){ valido=false; motivoR='pasaría el límite de la tarjeta'; }
         if(valido&&tipo==='gasto'){
           const campoAt=CAMPO_SIMPLE[cta];
-          if(campoAt&&apAt[cta]&&Math.round((cuentas[campoAt]-d.monto)*100)<Math.round(apAt[cta]*100)) valido=false;
+          if(campoAt&&apAt[cta]&&Math.round((cuentas[campoAt]-d.monto)*100)<Math.round(apAt[cta]*100)){ valido=false; motivoR='tomaría dinero del fondo'; }
         }
         if(valido){
           const sgn=tipo==='gasto'?-1:1;
@@ -7380,14 +7454,16 @@ async function procesarPendientesAtajo() {
           else if(cta==='tarjeta'){ tarjetaDeuda+=d.monto; cambioTarjeta=true; }
           else if(cta==='tarjetaRev'){ revTdcDeuda+=d.monto; cambioTarjetaRev=true; }
         }
-        estados.push({ref,id,tipo,aplicado:valido});
+        estados.push({ref,id,tipo,aplicado:valido,...(valido?{}:{motivo:motivoR})});
       };
       leidosG.forEach(procesa);
       leidosI.forEach(procesa);
-      estados.forEach(e=>tx.update(e.ref,{pendiente:false,aplicadoSaldo:e.aplicado}));
+      estados.forEach(e=>tx.update(e.ref,{pendiente:false,aplicadoSaldo:e.aplicado,...(e.motivo?{motivo:e.motivo}:{})}));
       // update PARCIAL con valores canonicos: no pisa el resto del doc de saldos
-      if(cambioCuentas) tx.update(saldosRef,{...cuentas});
-      if(cambioTarjeta) tx.update(tarjetaRef,{deuda:tarjetaDeuda});
+      // (23-nov-2026, auditoria) set con merge: con update, una cartera sin documento de saldos o de tarjeta hacia fallar la
+      // transaccion completa en cada carga y NINGUN pendiente del Atajo se aplicaba
+      if(cambioCuentas) tx.set(saldosRef,{...cuentas},{merge:true});
+      if(cambioTarjeta) tx.set(tarjetaRef,{deuda:tarjetaDeuda},{merge:true});
       // set con merge: el doc tarjetaRev puede no existir todavia (update fallaria);
       // si es doc nuevo, incluir movimientos:[] para no dejarlo sin ese campo
       if(cambioTarjetaRev) tx.set(tarjetaRevRef, trvSnap.exists()?{deuda:revTdcDeuda,deposito:revTdcDeposito}:{deuda:revTdcDeuda,deposito:revTdcDeposito,movimientos:[]}, {merge:true});
@@ -7397,7 +7473,7 @@ async function procesarPendientesAtajo() {
     resultado.estados.forEach(e=>{
       const arr=e.tipo==='gasto'?state.gastos:state.ingresos;
       const it=arr.find(x=>x.id===e.id);
-      if(it){ it.pendiente=false; it.aplicadoSaldo=e.aplicado; }
+      if(it){ it.pendiente=false; it.aplicadoSaldo=e.aplicado; if(e.motivo) it.motivo=e.motivo; }
       if(e.aplicado) resumen.aplicados++; else { resumen.rechazados++; console.error('movimiento del atajo rechazado',e.id); }
     });
     if(resultado.cambioCuentas){
@@ -7565,13 +7641,15 @@ function mesesCorteDe(ym, corte) { const ult = new Date(+ym.slice(0, 4), +ym.sli
 // la primera mensualidad cae en el primer corte DESPUES de la fecha: el dia del corte ya cuenta al siguiente, como Inicio
 function mesesPrimero(fecha, corte) { const ym = String(fecha).slice(0, 7); return mesesCorteDe(ym, corte) > String(fecha).slice(0, 10) ? ym : mesesMesSuma(ym, 1); }
 // cuantas mensualidades ya se cargaron a la tarjeta a la fecha `hoy` ('AAAA-MM-DD'): las de cortes que ya pasaron o son hoy
-function mesesCargadas(it, corte, hoy) { let k = 0; while (k < it.n && mesesCorteDe(mesesMesSuma(it.primero, k), corte) <= hoy) k++; return k; }
+// (23-nov-2026, auditoria) una compra guarda el dia de corte con que se anoto (it.corte): si despues cambias el corte de la tarjeta,
+// lo ya cargado no se recalcula solo. Las compras de antes, sin ese dato, usan el corte de hoy, como siempre
+function mesesCargadas(it, corte, hoy) { const c = it.corte || corte; let k = 0; while (k < it.n && mesesCorteDe(mesesMesSuma(it.primero, k), c) <= hoy) k++; return k; }
 // lo cargado tras k mensualidades: la ultima ajusta los centavos para que todas sumen exacto el total
 const mesesMonto = (it, k) => k >= it.n ? it.total : mesesR2(it.mensualidad * k);
 function mesesEstado(it, corte, hoy) {
   const k = mesesCargadas(it, corte, hoy), cargado = mesesMonto(it, k), falta = mesesR2(it.total - cargado);
   return {k, cargado, falta, quedan: it.n - k, pct: it.total > 0 ? Math.round(cargado / it.total * 100) : 0,
-    prox: k < it.n ? mesesCorteDe(mesesMesSuma(it.primero, k), corte) : null, proxMonto: k < it.n ? mesesR2(mesesMonto(it, k + 1) - cargado) : 0};
+    prox: k < it.n ? mesesCorteDe(mesesMesSuma(it.primero, k), it.corte || corte) : null, proxMonto: k < it.n ? mesesR2(mesesMonto(it, k + 1) - cargado) : 0};
 }
 const mesesCargadoTotal = (lista, corte, hoy) => mesesR2((lista || []).reduce((s, it) => s + mesesEstado(it, corte, hoy).cargado, 0));
 const mesesFaltaTotal = (lista, corte, hoy) => mesesR2((lista || []).reduce((s, it) => s + mesesEstado(it, corte, hoy).falta, 0));
@@ -7602,7 +7680,7 @@ function saneaMeses(raw) {
     .map(it => ({id: it.id, n: it.n, total: mesesR2(it.total), mensualidad: mesesR2(it.mensualidad), primero: it.primero,
       precio: Number.isFinite(it.precio) && it.precio > 0 ? mesesR2(it.precio) : mesesR2(it.total),
       nota: typeof it.nota === 'string' ? it.nota.slice(0, 200) : '', gasto: typeof it.gasto === 'string' ? it.gasto.slice(0, 64) : null,
-      creado: typeof it.creado === 'string' ? it.creado : ''}));
+      creado: typeof it.creado === 'string' ? it.creado : '', ...(Number.isInteger(it.corte) && it.corte >= 1 && it.corte <= 31 ? {corte: it.corte} : {})}));
 }
 // </meses-puras>
 // ── CUENTAS EN OTRA MONEDA (20-oct-2026, sesion 0 del plan) ──────────────────────
@@ -7776,6 +7854,70 @@ function saldoFinalSlot(slot, sal, campos, ahora) {
 // usa sus defaults fijos. Los modelos de cada cuenta viven en REG_CUENTAS (campo comp).
 const CAMPO_COMP=Object.fromEntries(ctasEn('comp').map(id=>[id,REG_CUENTAS.find(c=>c.id===id).comp]));
 
+// ── REGISTRO DE CAMBIOS (23-nov-2026; Beto: "que todo quede registrado, absolutamente todo") ──
+// Lo que se SOBRESCRIBE (actualizar saldos, el saldo de una cuenta agregada, el deposito de la TDC), lo que se EDITA y lo
+// que se BORRA deja una constancia en <NS>/cambios: de cuanto a cuanto y por que, o la copia de lo que habia. Se escribe
+// DENTRO de la misma transaccion que mueve el dinero (txDinero): si el saldo cambia, la constancia queda; si algo falla, no
+// queda ninguna de las dos. Solo se ve (renglones grises de Movimientos): NO entra a ningun total. Una version vieja no
+// conoce el documento y no lo toca. Tope: CAMBIOS_MAX renglones Y CAMBIOS_BYTES (pentester, 23-nov: el documento se reescribe
+// entero en cada operacion y Firestore no acepta mas de 1 MiB; pasarlo bloquearia para siempre toda operacion que lo toque).
+// Lo que se recorta son los mas viejos, y se pierde: la copia de mis datos lleva lo que queda en la lista.
+const CAMBIOS_MAX = 1500, CAMBIOS_BYTES = 600000;
+// (23-nov-2026, revision) en Fundview las reglas de produccion aun no conocen el documento `cambios`: leerlo o escribirlo dentro de una
+// transaccion la aborta ENTERA. Sin CFG.cambios el registro no se lee ni se escribe (la familia sigue igual)
+const CON_CAMBIOS = !CFG.multi || CFG.cambios === true;
+const RAZONES_AJUSTE = {banco:'lo puse igual que el banco', contado:'conté mi efectivo', error:'corregí algo que anoté mal',
+  olvido:'se me olvidó anotar algo', inicial:'saldo inicial', tasa:'cambió la tasa de interés', otra:'otra razón'};
+const RAZONES_SOLO_APP = ['inicial', 'tasa'];   // las pone la app, no se ofrecen al elegir
+const T_CAMBIO = ['ajuste', 'borrado', 'edicion'];
+const txtCorto = (v, n) => typeof v === 'string' ? v.replace(/[\u0000-\u001f\u007f]/g, '').trim().slice(0, n) : '';
+const MOV_COPIA_NUM = ['monto', 'montoOrig', 'tc', 'montoOrigen', 'montoDestino', 'interes', 'acciones'];
+const MOV_COPIA_TXT = ['cat', 'sub', 'fuente', 'destino', 'origen', 'cuenta', 'nota', 'fecha', 'moneda', 'monedaOrigen', 'monedaDestino',
+  'tipo', 'subcat', 'credito', 'meses', 'simbolo'];
+// copia CORTA de un movimiento para el registro: solo datos planos, sin ids ni banderas
+function copiaMov(d) {
+  const o = {};
+  if (!d || typeof d !== 'object') return o;
+  MOV_COPIA_NUM.forEach(k => { if (Number.isFinite(d[k])) o[k] = d[k]; });
+  MOV_COPIA_TXT.forEach(k => { const t = txtCorto(d[k], 120); if (t) o[k] = t; });
+  return o;
+}
+// (23-nov-2026, pentester) cada renglon se RECONSTRUYE con tipos fijos: un mapa raro ({toString:null}) en un campo tumbaba
+// Movimientos y el Excel. Lo que no sea un renglon valido se descarta
+function saneaCambio(x) {
+  if (!x || typeof x !== 'object' || !T_CAMBIO.includes(x.t)) return null;
+  const id = txtCorto(x.id, 40), en = txtCorto(x.en, 40);
+  if (!id || !en || isNaN(new Date(en).getTime())) return null;
+  const o = {id, en, t: x.t};
+  ['cuenta', 'razon', 'clase', 'moneda', 'tarjeta', 'persona'].forEach(k => { const v = txtCorto(x[k], 60); if (v) o[k] = v; });
+  const nota = txtCorto(x.nota, 120); if (nota) o.nota = nota;
+  if (Number.isFinite(x.antes)) o.antes = x.antes;
+  if (Number.isFinite(x.despues)) o.despues = x.despues;
+  if (x.sinEfecto === true) o.sinEfecto = true;
+  if (x.mov && typeof x.mov === 'object') o.mov = copiaMov(x.mov);
+  if (x.previo && typeof x.previo === 'object') o.previo = copiaMov(x.previo);
+  return o;
+}
+function saneaCambios(d) {
+  const l = d && Array.isArray(d.lista) ? d.lista : [];
+  return l.slice(0, CAMBIOS_MAX * 2).map(saneaCambio).filter(Boolean).slice(0, CAMBIOS_MAX);
+}
+// la lista que se escribe: lo nuevo primero, recortada por cantidad y por tamaño (se quitan los mas viejos)
+function recortaCambios(nuevos, d) {
+  // un renglon cuyo id ya viene en `nuevos` no se repite: ningun escritor duplica una constancia si el SDK reintenta tras perder la respuesta
+  const ids = new Set(nuevos.map(x => x && x.id));
+  let l = [...nuevos, ...saneaCambios(d).filter(x => !ids.has(x.id))].slice(0, CAMBIOS_MAX);
+  let n = JSON.stringify(l).length;
+  while (l.length > nuevos.length && n > CAMBIOS_BYTES) { n -= JSON.stringify(l[l.length - 1]).length + 1; l.pop(); }
+  return l;
+}
+// la clase de un movimiento por su coleccion (gastos, zoe_gastos, usuarios/<uid>/gastos...)
+const claseDeRef = r => { const p = (r && r.parent && r.parent.path) || ''; return /gastos$/.test(p) ? 'gasto' : /ingresos$/.test(p) ? 'ingreso' : /transferencias$/.test(p) ? 'transferencia' : 'movimiento'; };
+// campo de cartera/saldos -> cuenta: solo los que SON saldo (no tasas, fechas ni vigencias)
+const CAMPO_SALDO_SLOT = Object.fromEntries([
+  ...Object.entries(CAMPO_SIMPLE).map(([s, f]) => [f, s]),
+  ...Object.entries(CAMPO_COMP).map(([s, c]) => [c.base, s])]);
+
 // plan: {
 //   deltas:{slot:monto,...}      slots de CAMPO_SIMPLE/CAMPO_COMP y 'revTdcDep'
 //   absolutos:{campo:valor}      captura MANUAL: fija ese campo tal cual (no delta)
@@ -7786,6 +7928,7 @@ const CAMPO_COMP=Object.fromEntries(ctasEn('comp').map(id=>[id,REG_CUENTAS.find(
 //   permitirNegativo:bool        por defecto una SALIDA que deja la cuenta en rojo se rechaza
 //   tarjetaDelta, tarjetaMovAdd, tarjetaMovDelId      -> cartera/tarjeta
 //   tdcRevDelta,  tdcRevMovAdd,  tdcRevMovDelId       -> cartera/tarjetaRev
+//   tarjetaMovDelEsperado / tdcRevMovDelEsperado {monto,tipo}: (23-nov-2026) si el movimiento del servidor no es ese, no se revierte nada
 //   persona:{key,nombre,crear,deltaSaldo,movAdd,movDelId,movDelEsperado}
 //                                movDelEsperado {monto,cuenta,tipo}: (18-nov-2026) si el movimiento del servidor no es ese, no se revierte nada
 //   crear:[{ref,data}] borrar:[ref] requerirDocs:[ref]
@@ -7835,8 +7978,19 @@ async function txDinero(plan) {
   // misma clave en fx.deltas colapsaba -sale y +sale en +sale y creaba dinero. Se rechaza aqui, no solo en la pantalla
   if ((plan.crear || []).some(c => c && c.data && c.data.origen !== undefined && c.data.origen === c.data.destino)) return {error:'elige dos cuentas distintas'};
   if (Object.keys(deltasPlan).some(esIdX) || Object.keys(absolutos).some(esIdX)) throw new Error('una cuenta en otra moneda va en plan.fx, no en deltas');
+  // (23-nov-2026) el registro de cambios se lee solo si esta operacion SOBRESCRIBE, edita o borra algo.
+  // plan.registro = {razon, nota}: por que cambio un saldo (RAZONES_AJUSTE); lo manda la pantalla
+  const fxAbs = (fxPlan && fxPlan.absolutos) || {}, fxCrea = (fxPlan && fxPlan.crear) || {};
+  const usaCambios = CON_CAMBIOS && (Object.keys(absolutos).some(k => CAMPO_SALDO_SLOT[k]) || plan.tdcRevDeposito !== undefined || !!msD
+    || Object.keys(fxAbs).length > 0 || Object.keys(fxCrea).length > 0 || Object.keys((fxPlan && fxPlan.editar) || {}).length > 0
+    || !!mb || !!me || (plan.borrar || []).length > 0
+    || !!(plan.persona && plan.persona.movDelId) || !!plan.tarjetaMovDelId || !!plan.tdcRevMovDelId);
+  const razonReg = plan.registro && Object.prototype.hasOwnProperty.call(RAZONES_AJUSTE, plan.registro.razon) ? plan.registro.razon : '';
+  const notaReg = plan.registro ? txtCorto(plan.registro.nota, 120) : '';
+  const reg = {...(razonReg ? {razon:razonReg} : {}), ...(notaReg ? {nota:notaReg} : {})};
   // instante FIJO: los reintentos de la transaccion deben calcular el mismo interes
   const ahora = Date.now(), hoy = hoyLocal();
+  const sufCb = Math.random().toString(36).slice(2, 6);   // fijo por llamada (un reintento repite el id y recortaCambios no lo duplica); distingue dos operaciones del mismo milisegundo
   // referencias FIJAS para los tramos de rendimiento: se crean fuera de la transaccion para
   // que un reintento escriba el MISMO documento y no uno nuevo por intento
   const rendRefs = {};
@@ -7871,6 +8025,13 @@ async function txDinero(plan) {
       const meSnap = me ? await tx.get(me.ref) : null;
       // cuentas en otra moneda: si el plan las mueve, o si se borra/edita un movimiento (puede ser x_)
       const xSnap  = (fxPlan || mb || me) ? await tx.get(docCX()) : null;
+      // (23-nov-2026) registro de cambios: lo que ya habia, y lo que se va a borrar (para guardar su copia)
+      const cbSnap = usaCambios ? await tx.get(doc(db,NS,'cambios')) : null;
+      const borSnaps = [];
+      if (usaCambios) for (const r of (plan.borrar||[])) borSnaps.push({ref:r, snap: await tx.get(r)});
+      const cambios = [];   // constancias de ESTA operacion: se arman abajo y se escriben en la fase 3 (un return las tira)
+      const enCb = new Date(ahora).toISOString();
+      const anota = c => { if (!usaCambios) return; cambios.push({id:'cb' + ahora.toString(36) + sufCb + '_' + cambios.length, en:enCb, ...c}); };
       // ── FASE 2: validar contra lo LEIDO. Cualquier return aborta sin escribir nada ──
       // (16-oct-2026, Codex) un movimiento con id propio que el documento YA trae: el commit anterior SI
       // llego y el SDK reintento tras perder la respuesta. Repetirlo sumaria otra vez el dinero (mismo bug
@@ -7919,6 +8080,8 @@ async function txDinero(plan) {
         const msG = mbSnap.data().meses;
         if (msG && aplicaMov && !(msD && msD.id === msG)) return {error:'ese gasto es una compra a meses: recarga la app y vuelve a borrarlo'};
         if (aplicaMov && mb.slot) deltas[mb.slot] = c2(nFin(deltas[mb.slot]) + mb.signo * mb.monto);
+        // (23-nov-2026) la copia de lo que se borra, tal como estaba en el servidor
+        anota({t:'borrado', clase:claseDeRef(mb.ref), mov:copiaMov(mbSnap.data()), ...(aplicaMov ? {} : {sinEfecto:true})});
       }
       // el movimiento a EDITAR: mismo criterio. Se revierte lo que el documento del servidor
       // dice que aplico y se aplica lo nuevo; si esta pendiente del Atajo, solo cambian los datos
@@ -7930,6 +8093,8 @@ async function txDinero(plan) {
           return {error:'fue rechazado por el Atajo: bórralo y regístralo de nuevo'};
         if (meSnap.data().meses) return {error:'una compra a meses solo se edita en categoría, nota y fecha: para cambiar el monto o la tarjeta, bórrala y regístrala de nuevo'};
         aplicaMov = !movSinEfecto(meSnap.data());
+        // (23-nov-2026) lo que tenia antes y lo que tiene despues: editar ya no borra el valor anterior
+        anota({t:'edicion', clase:claseDeRef(me.ref), previo:copiaMov(meSnap.data()), mov:copiaMov({...meSnap.data(), ...me.datos})});
         if (aplicaMov) {
           if (me.antes.slot)  deltas[me.antes.slot]   = c2(nFin(deltas[me.antes.slot])   + me.signo * nFin(me.antes.monto));
           if (me.despues.slot) deltas[me.despues.slot] = c2(nFin(deltas[me.despues.slot]) - me.signo * nFin(me.despues.monto));
@@ -7968,6 +8133,8 @@ async function txDinero(plan) {
           const n = saneaCX({cuentas:{[k]:crea[k]}})[k];
           if (!n || !(cent(n.saldo) >= 0)) return {error:'cuenta en otra moneda no válida'};
           cxCambios[k] = n;
+          // (23-nov-2026) el saldo con que nace una cuenta tambien queda anotado (en SU moneda)
+          if (cent(n.saldo) !== 0) anota({t:'ajuste', cuenta:k, antes:0, despues:c2(n.saldo), razon:'inicial', ...(n.moneda && n.moneda !== 'MXN' ? {moneda:n.moneda} : {})});
         }
         const ed = (fxPlan && fxPlan.editar) || {};
         for (const k in ed) {
@@ -7989,12 +8156,23 @@ async function txDinero(plan) {
             if (rt > 0 || n.ret) n.ret = rt;
           }
           if (ed[k].on === true) n.on = true;
+          // (23-nov-2026) cambiar nombre, tasa, retencion, o apagar/encender una cuenta agregada deja constancia de lo que tenia
+          const pc = (v, u) => Number.isFinite(v) ? (Math.round(v * 10000) / 10000) + (u || '%') : '—';
+          const qd = [];
+          if (n.nombre !== cx[k].nombre) qd.push('nombre ' + cx[k].nombre + ' → ' + n.nombre);
+          if (nFin(n.tasa) !== nFin(cx[k].tasa)) qd.push('tasa ' + pc(cx[k].tasa) + ' → ' + pc(n.tasa));
+          if (nFin(n.tasaExc) !== nFin(cx[k].tasaExc) || nFin(n.tope) !== nFin(cx[k].tope)) qd.push('banda cambiada');
+          if (nFin(n.ret) !== nFin(cx[k].ret)) qd.push('retención ' + pc(nFin(cx[k].ret)) + ' → ' + pc(nFin(n.ret)));
+          if (n.on !== cx[k].on) qd.push(n.on ? 'encendida' : 'apagada');
+          if (qd.length) anota({t:'edicion', clase:'cuenta', cuenta:k, nota:txtCorto(qd.join(' · '), 120)});
           cxCambios[k] = n;
         }
         const abs = (fxPlan && fxPlan.absolutos) || {};
         for (const k in abs) {
           if (!cx[k]) return {error:'esa cuenta ya no existe — recarga la app'};
           if (!Number.isFinite(abs[k])) return {error:'saldo no válido'};
+          // (23-nov-2026, auditoria) una cuenta apagada no sale en ningun lado: un saldo ahi seria dinero que no se ve
+          if (!cx[k].on && !(cxCambios[k] && cxCambios[k].on)) return {error:'la cuenta ' + cx[k].nombre + ' está apagada: enciéndela en perfil'};
         }
         for (const k of new Set([...Object.keys(abs), ...Object.keys(fxD)])) {
           if (crea[k]) return {error:'no se puede crear y mover una cuenta en la misma operación'};
@@ -8004,6 +8182,11 @@ async function txDinero(plan) {
           const nuevo = c2((abs[k] !== undefined ? c2(abs[k]) : saldoX(base, ahora)) + d);
           // solo una SALIDA puede quedar bloqueada (mismo criterio que las cuentas en pesos)
           if (d < 0 && plan.permitirNegativo !== true && cent(nuevo) < 0) return {error:'saldo insuficiente en ' + base.nombre};
+          // (23-nov-2026) un saldo SOBRESCRITO deja de cuanto a cuanto (lo de antes, con su interes de hoy si es cajita)
+          if (abs[k] !== undefined) {
+            const antesX = c2(saldoX(base, ahora));
+            if (cent(nuevo) !== cent(antesX)) anota({t:'ajuste', cuenta:k, antes:antesX, despues:nuevo, ...reg, ...(base.moneda && base.moneda !== 'MXN' ? {moneda:base.moneda} : {})});
+          }
           if (cent(nuevo) !== cent(base.saldo) || cxCambios[k] || base.tipo === 'cajita') cxCambios[k] = {...base, saldo:nuevo, ...(base.tipo === 'cajita' ? {fecha:hoy} : {})};
         }
       }
@@ -8093,6 +8276,13 @@ async function txDinero(plan) {
           return {error:'saldo insuficiente en '+(CUENTAS[slot]||slot)};
         saldosFinales[slot] = nuevo;
       }
+      // (23-nov-2026) constancia de cada SALDO sobrescrito (no de tasas, fechas ni vigencias): de cuanto a cuanto. En una
+      // cajita es su saldo de hoy con interes, antes y despues de la captura: lo que la persona ve en su tarjeta
+      for (const f in absolutos) {
+        const slot = CAMPO_SALDO_SLOT[f]; if (!slot) continue;
+        const antesS = c2(saldoFinalSlot(slot, sal, {}, ahora)), despS = c2(saldoFinalSlot(slot, sal, campos, ahora));
+        if (cent(antesS) !== cent(despS)) anota({t:'ajuste', cuenta:slot, antes:antesS, despues:despS, ...reg});
+      }
       // FONDO DE LA UNIVERSIDAD: ninguna operacion puede dejar una cuenta con menos saldo fisico
       // del que tiene apartado; las del propio fondo mueven el apartado a la par (plan.fondo.delta).
       // Solo se juzgan las cuentas que ESTA operacion toca, y solo si las empeora: una entrada
@@ -8161,6 +8351,9 @@ async function txDinero(plan) {
         let lista = Array.isArray(d.meses) ? d.meses : [], cambio = false;
         if (msD && msD.k === k) {
           if (!lista.some(x => x && x.id === msD.id)) return {error:'esa compra a meses ya la quitó alguien más — recarga la app'};
+          // (23-nov-2026) la compra que se quita deja su copia (lo ya cargado no cambia: se quita lo que faltaba por cargar)
+          const q = lista.find(x => x && x.id === msD.id);
+          anota({t:'borrado', clase:'meses', tarjeta:k, mov:copiaMov({monto:q.total, nota:q.nota, meses:q.n + ' meses', tipo:'compra'})});
           lista = lista.filter(x => !(x && x.id === msD.id)); cambio = true;
         }
         if (msA && msA.k === k) {
@@ -8186,8 +8379,14 @@ async function txDinero(plan) {
           return {error:'el pago excede la deuda de la tarjeta'};
         let movs = Array.isArray(tj.movimientos) ? tj.movimientos : [];
         if (plan.tarjetaMovDelId) {
-          if (!movs.some(m => m && m.id === plan.tarjetaMovDelId))
+          const quita = movs.find(m => m && m.id === plan.tarjetaMovDelId);
+          if (!quita)
             return {error:'ese movimiento ya lo eliminó alguien más — recarga la app'};
+          const esp = plan.tarjetaMovDelEsperado;
+          if (esp && (cent(nFin(quita.monto)) !== cent(nFin(esp.monto)) || quita.tipo !== esp.tipo))
+            return {error:'ese movimiento cambió en otro aparato — recarga la app'};
+          { const trT = borSnaps.map(b => b.snap.exists() ? b.snap.data() : null).find(d => d && d.destino === 'tarjeta');
+            anota({t:'borrado', clase:'tarjeta', tarjeta:'tarjeta', mov:copiaMov({...quita, ...(trT ? {fuente: trT.origen} : {})})}); }
           movs = movs.filter(m => !(m && m.id === plan.tarjetaMovDelId));
         }
         if (plan.tarjetaMovAdd) movs = [plan.tarjetaMovAdd, ...movs];
@@ -8219,10 +8418,18 @@ async function txDinero(plan) {
         // tarjeta. Se revalida aqui porque el retirable solo se calculaba en memoria.
         if (usaDep && cent(deposito) > 0 && cent(deposito) < 25000)
           return {error:'el depósito de la TDC Revolut no puede bajar de $250'};
+        if (plan.tdcRevDeposito !== undefined && cent(deposito) !== cent(depBase))
+          anota({t:'ajuste', cuenta:'revTdcDep', antes:c2(depBase), despues:deposito, ...reg});
         let movs = Array.isArray(tv.movimientos) ? tv.movimientos : [];
         if (plan.tdcRevMovDelId) {
-          if (!movs.some(m => m && m.id === plan.tdcRevMovDelId))
+          const quita = movs.find(m => m && m.id === plan.tdcRevMovDelId);
+          if (!quita)
             return {error:'ese movimiento ya lo eliminó alguien más — recarga la app'};
+          const esp = plan.tdcRevMovDelEsperado;
+          if (esp && (cent(nFin(quita.monto)) !== cent(nFin(esp.monto)) || quita.tipo !== esp.tipo))
+            return {error:'ese movimiento cambió en otro aparato — recarga la app'};
+          { const trT = borSnaps.map(b => b.snap.exists() ? b.snap.data() : null).find(d => d && d.destino === 'tarjetaRev');
+            anota({t:'borrado', clase:'tarjeta', tarjeta:'tarjetaRev', mov:copiaMov({...quita, ...(trT ? {fuente: trT.origen} : {})})}); }
           movs = movs.filter(m => !(m && m.id === plan.tdcRevMovDelId));
         }
         if (plan.tdcRevMovAdd) movs = [plan.tdcRevMovAdd, ...movs];
@@ -8249,6 +8456,7 @@ async function txDinero(plan) {
             const esp = plan.persona.movDelEsperado;
             if (esp && (cent(nFin(srv.monto)) !== cent(nFin(esp.monto)) || srv.cuenta !== esp.cuenta || srv.tipo !== esp.tipo))
               return {error:'ese movimiento cambió en otro aparato — recarga la app'};
+            anota({t:'borrado', clase:'persona', persona:txtCorto(typeof p.nombre === 'string' && p.nombre ? p.nombre : plan.persona.key, 60), mov:copiaMov(srv)});
             movs = movs.filter(m => !(m && m.id === plan.persona.movDelId));
           }
           if (plan.persona.movAdd) movs = [plan.persona.movAdd, ...movs];
@@ -8256,7 +8464,15 @@ async function txDinero(plan) {
                      saldo:c2(nFin(p.saldo) + nFin(plan.persona.deltaSaldo)), movimientos:movs};
         }
       }
+      // (23-nov-2026) lo que plan.borrar quita (una transferencia, por ejemplo): su copia, del servidor
+      // (23-nov-2026, Marcela) deshacer un pago a tarjeta es UNA accion: su transferencia no deja renglon aparte (va dentro del de la tarjeta)
+      const deTj = d => (d.destino === 'tarjeta' && plan.tarjetaMovDelId) || (d.destino === 'tarjetaRev' && plan.tdcRevMovDelId);
+      for (const {ref, snap} of borSnaps) if (snap.exists() && !(mb && mb.ref.path === ref.path) && !deTj(snap.data() || {}))
+        anota({t:'borrado', clase:claseDeRef(ref), mov:copiaMov(snap.data())});
+      let listaCb = null;
+      if (cambios.length) listaCb = recortaCambios(cambios, cbSnap && cbSnap.exists() ? cbSnap.data() : null);
       // ── FASE 3: escrituras, SOLO los campos afectados ──
+      if (listaCb) tx.set(doc(db,NS,'cambios'), {lista:listaCb});
       if (Object.keys(campos).length) tx.set(doc(db,NS,'saldos'), campos, {merge:true});
       if (mb) tx.delete(mb.ref);
       if (me) tx.set(me.ref, me.datos, {merge:true});
@@ -8273,6 +8489,7 @@ async function txDinero(plan) {
       for (const t of tramos) tx.set(t.ref, t.data);
       return {ok:true, saldos:saldosFinales, campos, tarjeta, tdcRev, persona, fondo, tarjetaMeses: tjMeses, tdcRevMeses: rvMeses,
               cx: Object.keys(cxCambios).length ? cxCambios : null,
+              cambios: listaCb,
               tramos: tramos.map(t => ({id:t.ref.id || null, ...t.data})),
               movAplicaba: mb ? !movSinEfecto(mbSnap.data()) : me ? !movSinEfecto(meSnap.data()) : undefined,
               // el documento tal como QUEDO (lo del servidor + lo escrito): la pantalla se actualiza con esto
@@ -8315,6 +8532,7 @@ function aplicarRes(res) {
   if (res.tdcRev)  { state.revTdcDeudaG = res.tdcRev.deuda; state.revTdcDeposito = res.tdcRev.deposito; state.revTdcMovs = res.tdcRev.movimientos; if (res.tdcRevMeses) state.revTdcMeses = saneaMeses(res.tdcRevMeses); }
   if (res.tarjeta || res.tdcRev) fijarDeudasTj();
   if (Array.isArray(res.tramos) && res.tramos.length) state.rendimientos = [...(state.rendimientos||[]), ...res.tramos];
+  if (Array.isArray(res.cambios)) state.cambios = res.cambios;
 }
 // (19-nov-2026) lo que debes HOY en cada tarjeta = la deuda guardada + las mensualidades de sus compras a meses que ya cayeron en un corte.
 // Se recalcula en cada llegada del servidor y en cada render(): un corte que pasa con la app abierta sube la deuda sin escribir nada
@@ -8677,10 +8895,14 @@ window.catAccion = async function(btn) {
       showToast(usados > 0 ? ('esa categoría tiene ' + usados + ' movimientos: júntala con otra') : 'no se pudo comprobar — revisa tu conexión');
       renderCategorias(); return;
     }
+    // (23-nov-2026, auditoria) un prestamo o una suscripcion que la usa la "reviviria" en su siguiente pago: se junta, no se quita.
+    // Si las suscripciones no se pudieron leer, no se quita (falla cerrado, como el conteo de movimientos)
+    if (tipo === 'gasto') { const u = await usoDeCat(e.nombre); if (u) { catOcupado = false; showToast(u); renderCategorias(); return; } }
     if (!(await confirmarDeslizando({titulo:'¿Quitar la categoría?', texto:'Quitar la categoría "' + e.nombre + '"? No tiene movimientos, así que no se pierde nada.', verbo:'quitar'}))) { catOcupado = false; return; }
     // el conteo pudo cambiar mientras confirmabas: se comprueba otra vez
     try { usados = (await getDocsFromServer(query(collection(db, CAT_COL(tipo)), whereCat(tipo, e.nombre)))).size; } catch(err) { usados = -1; }
     if (usados !== 0) { catOcupado = false; showToast(usados > 0 ? 'esa categoría ya tiene movimientos: júntala con otra' : 'no se pudo comprobar — revisa tu conexión'); renderCategorias(); return; }
+    if (tipo === 'gasto') { const u = await usoDeCat(e.nombre); if (u) { catOcupado = false; showToast(u); renderCategorias(); return; } }
     const r = await txCatalogo((g,i) => { const arr = tipo==='gasto'?g:i; const k = arr.findIndex(c => c===e.nombre); if (k>=0) arr.splice(k,1); return {gasto:g, ingreso:i}; });
     catOcupado = false;
     if (r && r.error) showToast(r.error); else { showToast('categoría quitada'); if (tipo === 'gasto') await moverLimiteCat(e.nombre, null); await moverClasifCat(tipo, e.nombre, null); }
@@ -8721,6 +8943,7 @@ window.catAccion = async function(btn) {
     catOcupado = false; catEditando = null;
     if (ok && tipo === 'gasto') await moverLimiteCat(A, B);   // el limite de la categoria la sigue
     if (ok) await moverClasifCat(tipo, A, B);   // (18-nov-2026) su tipo y sus subcategorias tambien
+    if (ok && tipo === 'gasto') await moverCatCreditosSus(A, B);   // (23-nov-2026) y los prestamos y suscripciones que la usan
     rerenderTodo();
     if (movSubActual === 'cats') renderCategorias();
     return ok;
@@ -8848,6 +9071,37 @@ function susAsegurarCarga() {
 }
 // toda escritura del catalogo: transaccion sobre el documento VIGENTE (setDoc completo
 // desde memoria pisaba lo que otro aparato acabara de agregar — leccion de categorias)
+// (23-nov-2026, auditoria) renombrar o juntar una categoria de gasto movia los gastos, el limite y su tipo, pero no los PRESTAMOS ni
+// las SUSCRIPCIONES que la usan: su siguiente pago se anotaba con el nombre viejo y la categoria "revivia" sin tipo. Ahora se mueven
+// tambien. Si algo falla solo se avisa: los gastos ya quedaron movidos y el pago siguiente se puede corregir con la plumita
+// (23-nov-2026) ¿un prestamo o una suscripcion usa esta categoria de gasto? Devuelve el aviso, o '' si no. Si no se pudieron
+// leer las suscripciones, devuelve un aviso de "no se pudo comprobar": quien llama NO quita la categoria
+async function usoDeCat(nombre) {
+  const igual = c => catFV(c) === catFV(nombre);
+  const cr = Object.values(state.creditos || {}).find(c => c && igual(c.cat));
+  if (cr) return 'esa categoría la usa tu préstamo ' + (cr.nombre || '') + ': júntala con otra y se mueve sola';
+  if (!susCargadas) { try { await susAsegurarCarga(); } catch (err) {} }
+  if (!susCargadas) return 'no se pudo comprobar tus suscripciones — revisa tu conexión';
+  const su = (state.suscripciones || []).find(x => x && igual(x.cat));
+  return su ? 'esa categoría la usa tu suscripción ' + (su.nombre || '') + ': júntala con otra y se mueve sola' : '';
+}
+async function moverCatCreditosSus(A, B) {
+  if (!B || A === B) return;
+  try {
+    const ids = Object.keys(state.creditos || {}).filter(id => state.creditos[id] && state.creditos[id].cat === A);
+    if (ids.length) {
+      await guardarMergeG('creditos', {lista: Object.fromEntries(ids.map(id => [id, {cat: B}]))});
+      ids.forEach(id => { state.creditos[id] = {...state.creditos[id], cat: B}; });
+    }
+  } catch (e) { console.error('moverCatCreditosSus creditos', e); showToast('ojo: tus préstamos siguen con la categoría ' + A); }
+  try {
+    if (!susCargadas) await susAsegurarCarga();
+    if ((state.suscripciones || []).some(s => s && s.cat === A)) {
+      const r = await txSuscripciones(items => ({items: items.map(s => s.cat === A ? {...s, cat: B} : s)}));
+      if (r && r.error) showToast('ojo: tus suscripciones siguen con la categoría ' + A);
+    }
+  } catch (e) { console.error('moverCatCreditosSus suscripciones', e); }
+}
 async function txSuscripciones(aplicar) {
   const ref = SUS_DOC();
   try {
@@ -9474,11 +9728,18 @@ function pintarMovsCuenta(key) {
       if(tr.origen===key) items.push({t,txt:'transferencia a '+(nombreCuenta(tr.destino)||'(cuenta desconocida)'),monto:-tr.monto});
       else if(tr.destino===key) items.push({t,txt:'transferencia desde '+(nombreCuenta(tr.origen)||'(cuenta desconocida)'),monto:tr.monto});
     });
+    // (23-nov-2026) los ajustes de saldo de esta cuenta ("actualizar saldos"): sin ellos la lista no explicaba el saldo
+    (state.cambios||[]).forEach(c=>{
+      if(c.t!=='ajuste'||c.cuenta!==key) return;
+      const t=new Date(c.en).getTime(); if(!Number.isFinite(t)||t<desde) return;
+      const dd=c2(nFin(c.despues)-nFin(c.antes)); if(cent(dd)===0) return;
+      items.push({t,txt:(c.razon==='inicial'?'saldo inicial':'ajuste de saldo')+(c.razon&&c.razon!=='inicial'&&RAZONES_AJUSTE[c.razon]?' · '+RAZONES_AJUSTE[c.razon]:''),monto:dd});
+    });
     items.sort((a,b)=>b.t-a.t);
     const filas=items.slice(0,15).map(i=>
-      `<div class="detail-row"><span class="detail-label">${escapeHtml(i.txt)} · ${new Date(i.t).toLocaleDateString('es-MX',{day:'numeric',month:'short'})}</span><span class="detail-val ${i.monto<0?'neg':'pos'}">${i.monto<0?'-':'+'}${fmt(Math.abs(i.monto))}</span></div>`
+      `<div class="detail-row"><span class="detail-label">${escapeHtml(i.txt)} · ${new Date(i.t).toLocaleDateString('es-MX',{day:'numeric',month:'short'})}</span><span class="detail-val ${i.monto<0?'neg':'pos'}">${i.monto<0?'−':'+'}${fmt(Math.abs(i.monto))}</span></div>`
     ).join('');
-    cont.innerHTML=`<div class="detail-row" style="margin-top:6px"><span class="detail-label" style="font-weight:600">último mes (gastos, ingresos y transferencias)</span></div>`+
+    cont.innerHTML=`<div class="detail-row" style="margin-top:6px"><span class="detail-label" style="font-weight:600">último mes (gastos, ingresos, transferencias y ajustes)</span></div>`+
       (filas||'<div class="detail-row"><span class="detail-label">sin movimientos en el último mes</span></div>');
   }
 }
@@ -9827,15 +10088,20 @@ window.guardarRendimientoHistorico = async function() {
     escrituras.push({slot,monto:c2(monto),fin:f});
   }
   if(!escrituras.length){ showToast('no capturaste ningún dato'); return; }
+  // (23-nov-2026, auditoria) sin datos del servidor o sin senal NO se escribe: un commit en cola pisaba despues lo de otro aparato
+  if(!datosCargados||navigator.onLine===false||cargaDesdeCache){ showToast(msgFalloDinero()); return; }
   const btn=document.getElementById('semilla-btn'); if(btn) btn.disabled=true;
   try{
     // un solo batch: o se guardan todas las semillas capturadas o ninguna (sin exitos a medias)
     const lote=writeBatch(db), nuevos=[];
     for(const e of escrituras){
-      const data={slot:e.slot,motivo:'semilla',ini:null,fin:e.fin,monto:e.monto,creado:new Date().toISOString()};
+      // (23-nov-2026) corregirlo ya no borra la cifra de antes: queda en `anterior`
+      const prev=(state.rendimientos||[]).find(t=>t&&t.slot===e.slot&&t.motivo==='semilla');
+      const data={slot:e.slot,motivo:'semilla',ini:null,fin:e.fin,monto:e.monto,creado:new Date().toISOString(),
+        ...(prev&&Number.isFinite(prev.monto)?{anterior:{monto:prev.monto,fin:typeof prev.fin==='string'?prev.fin:'',creado:typeof prev.creado==='string'?prev.creado:''}}:{})};
       lote.set(doc(db,C_REND,'semilla_'+e.slot),data); nuevos.push({id:'semilla_'+e.slot,...data});
     }
-    await lote.commit();
+    await Promise.race([lote.commit(), new Promise((_,no)=>setTimeout(()=>no(new Error('tiempo agotado')),15000))]);
     const tocadas=new Set(escrituras.map(e=>e.slot));
     state.rendimientos=(state.rendimientos||[]).filter(t=>!(t&&tocadas.has(t.slot)&&t.motivo==='semilla')).concat(nuevos);
     setSyncDot('ok'); showToast('rendimiento histórico guardado');
@@ -10154,7 +10420,7 @@ window.guardarManuales = async function() {
       const n=parseFloat(r);
       if(c.simple) {
         if(!Number.isFinite(n)){ showToast('monto inválido en '+c.nombre); return; }
-        absolutos[c.simple]=n; tocoSaldo=true;
+        absolutos[c.simple]=c2(n); tocoSaldo=true;   // (23-nov-2026) a centavos: 12.345 no se guarda tal cual
       } else if(c.id==='revTdcDep') {
         // limite = deposito (regla del producto); rango oficial $250-$75,000 y nunca por debajo
         // de la deuda usada (Revolut no permite bajar el limite bajo el saldo)
@@ -10170,7 +10436,7 @@ window.guardarManuales = async function() {
     if(raw.base!==''){
       const n=parseFloat(raw.base);
       if(!Number.isFinite(n)){ showToast('monto inválido en '+L+' - saldo base'); return; }
-      v.base=n;
+      v.base=c2(n);
     }
     for(const [k,etq] of [['tasa','tasa'],['tasaExc','tasa excedente']]) {
       if(raw[k]==='') continue;
@@ -10228,7 +10494,11 @@ window.guardarManuales = async function() {
   const btn=document.getElementById('manuales-btn');
   if(dineroOcupado){showToast('espera, hay otra operación en curso');return;}
   if(!Object.keys(absolutos).length&&!cristalizar.length&&tdcDep===null){ showToast('no capturaste ningún dato'); return; }
-  const plan={absolutos,cristalizar};
+  // (23-nov-2026, Beto: "de cuánto a cuánto y ponerle una razón") un saldo que se sobrescribe pide por qué; una tasa sola no
+  const razonEl=document.getElementById('saldos-razon'), razon=razonEl?razonEl.value:'';
+  const notaRazon=(document.getElementById('saldos-razon-nota')||{value:''}).value.trim();
+  if((tocoSaldo||tdcDep!==null)&&!razon){ faltaCuenta('saldos-razon','elige por qué cambia tu saldo'); return; }
+  const plan={absolutos,cristalizar,registro:{razon,nota:notaRazon}};
   if(tdcDep!==null) plan.tdcRevDeposito=tdcDep; // vive en cartera/tarjetaRev
   let res=null,err=null;
   btn.disabled=true; dineroOcupado=true;
@@ -10241,8 +10511,11 @@ window.guardarManuales = async function() {
   aplicarRes(res);
   if(tocoSaldo) marcarAlDia();
   leidos.forEach(id=>document.getElementById(id).value='');
+  if(razonEl) razonEl.value=''; const rn=document.getElementById('saldos-razon-nota'); if(rn) rn.value='';
   refrescar(render);
-  showToast('guardado y sincronizado');
+  // (23-nov-2026) se dice cuanto cambio cada saldo: lo mismo que queda en Movimientos
+  const nuevos=(res.cambios||[]).filter(c=>c.en===(res.cambios[0]||{}).en&&c.t==='ajuste');
+  showToast(nuevos.length?'guardado · '+nuevos.map(c=>(nombreCuenta(c.cuenta)||'cuenta')+' '+(c.despues-c.antes<0?'−':'+')+fmt(Math.abs(c.despues-c.antes))).join(' · ')+' · queda en Movimientos':'guardado y sincronizado');
 };
 
 // ── TARJETA ───────────────────────────────────────────────────
@@ -10274,7 +10547,7 @@ window.registrarTarjeta = async function(tipo) {
     // el pago sale de una cuenta: se descuenta y queda registrado como transferencia
     if(fuente!=='externo'){
       plan.deltas={[fuente]:-m};   // sin permitirNegativo: un pago sin fondos se rechaza
-      tr={origen:fuente,destino:'tarjeta',monto:m,nota:nota||'pago tarjeta NU',fecha:fechaMov,creado:ahora};
+      tr={origen:fuente,destino:'tarjeta',monto:m,nota:nota||'pago tarjeta NU',fecha:fechaMov,creado:ahora,movId:plan.tarjetaMovAdd.id};   // (23-nov-2026) movId: para poder deshacer el pago
       ref=doc(collection(db,C_TRANSF));
       plan.crear=[{ref,data:tr}];
     }
@@ -10334,7 +10607,7 @@ window.anotarMesesTraia = async function(k) {
   if (hayQueGuardarEnTelefono()) { showToast('una compra a meses necesita señal: anótala cuando tengas conexión'); return; }
   const m = c2(mens), total = c2(m * n), creado = new Date().toISOString();
   const id = mesesTraiaId[k] || (mesesTraiaId[k] = 'ms_' + nuevoId().replace(/[^A-Za-z0-9]/g, '').slice(0, 24));
-  const item = {id, n, total, mensualidad: m, precio: total, primero: mesesPrimero(hoyLocal(), corteDeTj(k)), nota, gasto: null, creado};
+  const item = {id, n, total, mensualidad: m, precio: total, primero: mesesPrimero(hoyLocal(), corteDeTj(k)), corte: corteDeTj(k), nota, gasto: null, creado};
   const btn = document.getElementById('ms-btn-' + suf);
   let res = null, err = null;
   btn.disabled = true; dineroOcupado = true;
@@ -10387,6 +10660,7 @@ async function pagoTarjetaX(k, fuente, m, nota, fechaMov, btns, idsLimpiar) {
               montoOrigen:m, monedaOrigen:'MXN', montoDestino:m, monedaDestino:'MXN', tc:1};
   const ref = doc(collection(db, C_TRANSF));
   const mov = {id:nuevoId(), tipo:'pago', monto:m, nota, fuente, fecha:fechaMov, creado:ahora};
+  tr.movId = mov.id;   // (23-nov-2026) para poder deshacer el pago
   const plan = {crear:[{ref, data:tr}], requerirAusentes:[ref], fx:{deltas:{[fuente]: -m}}};   // sin permitirNegativo: un pago sin fondos se rechaza
   if (rev) { plan.tdcRevDelta = -m; plan.tdcRevMovAdd = mov; } else { plan.tarjetaDelta = -m; plan.tarjetaMovAdd = mov; }
   let res = null, err = null;
@@ -10437,7 +10711,7 @@ window.registrarTarjetaRev = async function(tipo) {
     plan.tdcRevDelta=-m;                   // txDinero rechaza si excede la deuda canonica
     if(fuente!=='externo'){
       plan.deltas={[fuente]:-m};           // sin permitirNegativo: un pago sin fondos se rechaza
-      tr={origen:fuente,destino:'tarjetaRev',monto:m,nota:nota||'pago TDC Revolut',fecha:fechaMov,creado:ahora};
+      tr={origen:fuente,destino:'tarjetaRev',monto:m,nota:nota||'pago TDC Revolut',fecha:fechaMov,creado:ahora,movId:plan.tdcRevMovAdd.id};
       ref=doc(collection(db,C_TRANSF));
       plan.crear=[{ref,data:tr}];
     }
@@ -10764,9 +11038,11 @@ window.registrarTransferencia = async function() {
   if(destino==='tarjeta'){
     plan.tarjetaDelta=-m;
     plan.tarjetaMovAdd={id:nuevoId(),tipo:'pago',monto:m,fuente:origen,nota:nota||('pago desde '+CUENTAS[origen]),fecha:fechaTr,creado:ahora};
+    tr.movId=plan.tarjetaMovAdd.id;   // (23-nov-2026) para poder deshacer el pago
   } else if(destino==='tarjetaRev'){
     plan.tdcRevDelta=-m;
     plan.tdcRevMovAdd={id:nuevoId(),tipo:'pago',monto:m,fuente:origen,nota:nota||('pago desde '+CUENTAS[origen]),fecha:fechaTr,creado:ahora};
+    tr.movId=plan.tdcRevMovAdd.id;
   } else {
     plan.deltas[destino]=m;
   }
@@ -10821,10 +11097,10 @@ window.eliminarTransferencia = async function(id) {
   const idx=state.transferencias.findIndex(t=>t.id===id); if(idx<0)return;
   const t=state.transferencias[idx];
   // (7-nov-2026) ANTES de esMovX: un pago a tarjeta desde una cuenta agregada tambien lo es, y deshacerlo desde aqui devolveria el dinero a la cuenta sin subir la deuda
-  if(t.destino==='tarjeta'||t.destino==='tarjetaRev'){showToast('los pagos a tarjeta no se pueden deshacer aquí');return;}
+  if(t.destino==='tarjeta'||t.destino==='tarjetaRev'){showToast('un pago a tarjeta se deshace desde su renglón "pago de" en Movimientos');return;}
   if(esMovX(t)) return eliminarTransferenciaX(t); // (20-oct-2026) en otra moneda: cada lado regresa en su moneda
   if(t.origen==='gbm'||t.destino==='gbm'){showToast('las transferencias del GBM retirado ya no se pueden deshacer');return;}
-  if(t.origen==='stocks'||t.destino==='stocks'||t.opId){showToast('las operaciones de bolsa no se deshacen: registra la operación inversa');return;}
+  if(t.origen==='stocks'||t.destino==='stocks'||t.opId){showToast('una operación de bolsa se deshace desde su renglón en Movimientos (solo la más reciente de cada acción)');return;}
   // si la transferencia toca una cajita/savings, el interes que ese dinero ya genero no se revierte al deshacer
   const CTAS_INTERES=ctasEn('interes');
   const tocaCajitaTr=CTAS_INTERES.includes(t.origen)||CTAS_INTERES.includes(t.destino);
@@ -11252,23 +11528,28 @@ function pintarSaldosX() {
 }
 // ultimos movimientos de una cuenta en otra moneda (gastos, ingresos y transferencias)
 function movsDeCuentaX(id) {
-  const g = state.gastos.filter(z => z.fuente === id).map(z => ({f:z.fecha, t:escapeHtml(z.cat) + (z.nota ? ' · ' + escapeHtml(z.nota) : ''), v:'-' + fmtX(z.montoOrig, z.moneda)}));
+  const g = state.gastos.filter(z => z.fuente === id).map(z => ({f:z.fecha, t:escapeHtml(z.cat) + (z.nota ? ' · ' + escapeHtml(z.nota) : ''), v:'−' + fmtX(z.montoOrig, z.moneda)}));
   const i = state.ingresos.filter(z => z.destino === id).map(z => ({f:z.fecha, t:escapeHtml(z.cat) + (z.nota ? ' · ' + escapeHtml(z.nota) : ''), v:'+' + fmtX(z.montoOrig, z.moneda)}));
   const tr = state.transferencias.filter(z => z.origen === id || z.destino === id).map(z => ({f:z.fecha,
     t:escapeHtml(z.origen === id ? 'a ' + nombreCuenta(z.destino) : 'de ' + nombreCuenta(z.origen)),
-    v:z.origen === id ? '-' + fmtX(z.montoOrigen, z.monedaOrigen) : '+' + fmtX(z.montoDestino, z.monedaDestino)}));
+    v:z.origen === id ? '−' + fmtX(z.montoOrigen, z.monedaOrigen) : '+' + fmtX(z.montoDestino, z.monedaDestino)}));
   // (18-nov-2026, sesion G) lo que se presto o se pago con esta cuenta (en pesos: solo una cuenta en pesos registra deudas)
   const d = [];
   Object.values(state.personas || {}).forEach(p => ((p && Array.isArray(p.movimientos)) ? p.movimientos : []).forEach(m => {
     const ef = m && m.cuenta === id && DEUDA_TIPOS[m.tipo]; if (!ef || !Number.isFinite(m.monto)) return;
-    d.push({f:m.fecha, t:escapeHtml((p.nombre || '') + (m.subcat ? ' · ' + m.subcat : '')), v:(ef.cuenta < 0 ? '-' : '+') + fmtX(m.monto, 'MXN')});
+    d.push({f:m.fecha, t:escapeHtml((p.nombre || '') + (m.subcat ? ' · ' + m.subcat : '')), v:(ef.cuenta < 0 ? '−' : '+') + fmtX(m.monto, 'MXN')});
   }));
-  return [...g, ...i, ...tr, ...d].sort((a, b) => (msFechaMov(b.f) || 0) - (msFechaMov(a.f) || 0)).slice(0, 8);
+  // (23-nov-2026) los ajustes de saldo de esta cuenta: lo que cambio sin ser gasto, ingreso ni transferencia
+  const mon = (state.cuentasX[id] || {}).moneda || 'MXN';
+  const aj = (state.cambios || []).filter(c => c.t === 'ajuste' && c.cuenta === id).map(c => { const dd = c2(nFin(c.despues) - nFin(c.antes));
+    return {f:c.en, t:escapeHtml(c.razon === 'inicial' ? 'saldo inicial' : 'ajuste de saldo' + (c.razon && RAZONES_AJUSTE[c.razon] ? ' · ' + RAZONES_AJUSTE[c.razon] : '')), v:(dd < 0 ? '−' : '+') + fmtX(Math.abs(dd), c.moneda || mon)}; });
+  return [...g, ...i, ...tr, ...d, ...aj].sort((a, b) => (msFechaMov(b.f) || 0) - (msFechaMov(a.f) || 0)).slice(0, 8);
 }
 function renderCuentasX() {
   // render() corre seguido (snapshots en vivo): lo que la persona va escribiendo no se debe perder al repintar
   const escrito = {};
-  document.querySelectorAll('#cx-cards input, #cx-perfil-lista input').forEach(i => { if (i.id && i.value !== i.defaultValue) escrito[i.id] = i.value; });
+  // (23-nov-2026) tambien la razon elegida (un select no tiene defaultValue: vacio = sin elegir)
+  document.querySelectorAll('#cx-cards input, #cx-cards select, #cx-perfil-lista input').forEach(i => { if (i.id && (i.tagName === 'SELECT' ? i.value !== '' : i.value !== i.defaultValue)) escrito[i.id] = i.value; });
   const enfocado = document.activeElement && document.activeElement.id;
   try { renderCuentasXSinCuidar(); }
   finally {
@@ -11299,6 +11580,7 @@ function renderCuentasXSinCuidar() {
           ${movs.length ? movs.map(m => `<div class="detail-row"><span class="detail-label">${m.t} · ${fmtFechaMov(m.f, {day:'numeric', month:'short'})}</span><span class="detail-val">${m.v}</span></div>`).join('') : '<div class="item-meta">sin movimientos todavía</div>'}
           <div class="field" style="margin-top:10px"><label for="cx-saldo-${id}">actualizar saldo · lo que muestra tu app hoy (${MONEDAS_X[x.moneda].sim})</label>
             <input type="number" id="cx-saldo-${id}" step="0.01" inputmode="decimal" placeholder="ej. ${sx || 500}"></div>
+          <div class="field"><label for="cx-razon-${id}">¿por qué cambia?</label><select id="cx-razon-${id}">${opcionesRazon()}</select></div>
           <button type="button" class="btn btn-purple" style="margin-top:4px" onclick="guardarSaldoX('${id}')">guardar saldo</button>
           ${mxn ? '' : '<div class="item-meta" style="margin-top:8px">' + escapeHtml(textoFx()) + '</div>'}
         </div>` : '';
@@ -11413,9 +11695,12 @@ window.guardarSaldoX = async function(id) {
   if (!Number.isFinite(v)) { showToast('escribe el saldo que muestra tu app'); return; }
   if (dineroOcupado) { showToast('espera, hay otra operación en curso'); return; }
   const calculado = saldoX(x);   // lo que Fundview calculaba (con el interes estimado, si es una cajita) justo antes de cuadrarlo
+  // (23-nov-2026) si el saldo cambia, se pide por que (queda en Movimientos con el de antes y el de ahora)
+  const rzEl = document.getElementById('cx-razon-' + id), razon = rzEl ? rzEl.value : '';
+  if (cent(v) !== cent(c2(calculado)) && !razon) { faltaCuenta('cx-razon-' + id, 'elige por qué cambia el saldo'); return; }
   let res = null, err = null;
   dineroOcupado = true;
-  try { res = await txDinero({fx:{absolutos:{[id]:v}}}); }
+  try { res = await txDinero({fx:{absolutos:{[id]:v}}, registro:{razon}}); }
   catch(e) { err = e; }
   finally { liberarDinero(); }
   if (err) { console.error('guardarSaldoX', err); showToast(msgFalloDinero()); return; }
@@ -11609,7 +11894,7 @@ async function guardarEnTelefono(tipo, id, mov, dudoso, uidCaptura) {
     showToast('NO se guardó: ' + ((e && e.message) || 'el teléfono no dejó guardarlo'));
     return false;
   }
-  showToast((tipo === 'gasto' ? '-' : '+') + fmtMov(mov) + ' guardado en tu teléfono · se sube cuando haya señal');
+  showToast((tipo === 'gasto' ? '−' : '+') + fmtMov(mov) + ' guardado en tu teléfono · se sube cuando haya señal');
   return true;
 }
 // (15-oct-2026) el guardado en el telefono toma el MISMO candado que el camino en linea: sin el,
@@ -11825,7 +12110,7 @@ function renderBandeja() {
         .filter(Boolean).map(escapeHtml).join(' · ');
       const reint = c.estado === B_EST.REVISAR ? `<button type="button" class="btn" style="margin-left:8px;padding:6px 10px;font-size:12px" onclick="reintentarBandeja('${escapeHtml(c.id)}')">reintentar</button>` : '';
       const del = bDescartable(c) ? `<button type="button" class="del-btn del-x" aria-label="descartar" onclick="descartarBandeja('${escapeHtml(c.id)}')">&times;</button>` : '';
-      return `<div class="item-row"><div><div class="item-cat">${escapeHtml(c.cat)}</div><div class="item-meta">${meta}</div></div><div style="display:flex;align-items:center"><div class="item-amt-pago">${esGasto ? '-' : '+'}${c.fx ? fmtX(c.fx.montoOrig, c.fx.moneda) : fmt(c.monto)}</div>${reint}${del}</div></div>`;
+      return `<div class="item-row"><div><div class="item-cat">${escapeHtml(c.cat)}</div><div class="item-meta">${meta}</div></div><div style="display:flex;align-items:center"><div class="item-amt-pago">${esGasto ? '−' : '+'}${c.fx ? fmtX(c.fx.montoOrig, c.fx.moneda) : fmt(c.monto)}</div>${reint}${del}</div></div>`;
     }).join('');
 }
 window.reintentarBandeja = async function(id) {
@@ -11924,7 +12209,7 @@ async function altaGasto(cat,monto,nota,fuente,btn,fecha,extra) {
     if(pl.error){ showToast(pl.error); return false; }
     if(hayQueGuardarEnTelefono()){ showToast('una compra a meses necesita señal: anótala cuando tengas conexión'); return false; }
     const dia=/T00:00:00Z$/.test(gasto.fecha)?gasto.fecha.slice(0,10):(diaLocalMov(gasto.fecha)||hoyLocal());
-    msItem={id:'ms_'+ref.id, n:extra.meses.n, total:pl.total, mensualidad:pl.mensualidad, precio:m, primero:mesesPrimero(dia,corteDeTj(fuente)), nota:nota||cat, gasto:ref.id, creado};   // sin nota se llama como su categoria
+    msItem={id:'ms_'+ref.id, n:extra.meses.n, total:pl.total, mensualidad:pl.mensualidad, precio:m, primero:mesesPrimero(dia,corteDeTj(fuente)), corte:corteDeTj(fuente), nota:nota||cat, gasto:ref.id, creado};   // sin nota se llama como su categoria
     gasto.monto=pl.total; gasto.meses=msItem.id;
   }
   // (15-oct-2026) sin senal se guarda en el telefono con su id ya fijado y sube despues. Los
@@ -12596,7 +12881,8 @@ function movCoincide(m) {
   if(neutro&&m.tipo!=='pago'&&f.cuenta){
     // (20-nov-2026) una transferencia cuenta para las dos cuentas que toca; un prestamo, para la cuenta de donde salio o a donde entro
     if(f.cuenta===CTA_DESCONOCIDA) return false;
-    if(m.tipo==='transf'?(it.origen!==f.cuenta&&it.destino!==f.cuenta):it.cuenta!==f.cuenta) return false;
+    // (23-nov-2026) un cambio (ajuste, edicion o borrado) cuenta para las cuentas que toco
+    if(m.tipo==='cambio'?!(it.cuentas||[]).includes(f.cuenta):m.tipo==='transf'?(it.origen!==f.cuenta&&it.destino!==f.cuenta):it.cuenta!==f.cuenta) return false;
   } else {
   const cta=m.tipo==='gasto'?it.fuente:it.destino;
   // sin cuenta anotada (legado, Atajo) tambien es "no la reconozco": el renglon dice "(cuenta desconocida)" y el filtro debe encontrarlo
@@ -12676,7 +12962,8 @@ function movDiaTitulo(k) {
 }
 // pagos de las tarjetas de crédito para el historial, saneados: el arreglo viene tal cual de la nube
 function pagosTarjetaHist() {
-  const ok=p=>p&&typeof p==='object'&&p.tipo==='pago'&&Number.isFinite(p.monto)&&p.monto>0&&typeof p.fecha==='string';
+  // (23-nov-2026) tambien los "+ cargo" directos: subian lo que debes y no se veian en ninguna lista
+  const ok=p=>p&&typeof p==='object'&&(p.tipo==='pago'||p.tipo==='cargo')&&Number.isFinite(p.monto)&&p.monto>0&&typeof p.fecha==='string';
   return [['tarjeta',state.tarjetaMovimientos],['tarjetaRev',state.revTdcMovs]].flatMap(([k,arr])=>
     // copia normalizada: nota siempre texto, y una fecha AAAA-MM-DD pelada se fija al día local
     // (msFechaMov la leería como UTC y en México caería un día antes)
@@ -12694,32 +12981,160 @@ function movsNeutrosHist() {
   const ps=Object.entries(state.personas||{}).flatMap(([key,p])=>(p&&Array.isArray(p.movimientos)?p.movimientos:[])
     .filter(m=>m&&typeof m==='object'&&Object.prototype.hasOwnProperty.call(DEUDA_TIPOS,m.tipo)&&Number.isFinite(m.monto)&&m.monto>0&&typeof m.fecha==='string')
     .map(m=>({tipo:'persona',key,nombre:p.nombre||'',it:{...m,nota:typeof m.nota==='string'?m.nota:'',fecha:fechaHist(m.fecha)}})));
-  return tr.concat(ps);
+  return tr.concat(ps, cambiosHist());
+}
+// (23-nov-2026) el registro de cambios en el historial: el dia es CUANDO se hizo el cambio (no la fecha del movimiento).
+// monto: la diferencia de un ajuste, o el monto de lo borrado o editado (sirve para buscar por monto). cuentas: las que toca
+function cambiosHist() {
+  return (state.cambios||[]).map(c=>{
+    const mv=c.mov&&typeof c.mov==='object'?c.mov:{}, pv=c.previo&&typeof c.previo==='object'?c.previo:{};
+    const monto=c.t==='ajuste'?Math.abs(nFin(c.despues)-nFin(c.antes)):nFin(mv.monto);
+    const cuentas=c.t==='ajuste'?[c.cuenta]:[mv.fuente,mv.destino,mv.origen,mv.cuenta,pv.fuente,pv.destino].filter(Boolean);
+    // nota: lo que se busca. Lleva el detalle del cambio y lo que copio (nota y categoria de lo borrado o editado); el renglon no la pinta
+    const buscable=[c.nota,mv.nota,mv.cat,mv.sub,pv.nota,pv.cat,c.persona].filter(x=>typeof x==='string'&&x).join(' ');
+    return {tipo:'cambio',it:{...c,monto,cuentas,fecha:c.en,creado:c.en,nota:buscable}};
+  }).filter(m=>m.it.fecha&&!isNaN(new Date(m.it.fecha).getTime()));
+}
+// las opciones de "¿por qué cambia?" (sin "saldo inicial", que solo pone la app al crear una cuenta)
+// (Fundview lleva mayuscula inicial en lo que escribe la app; la familia no cambia)
+const opcionesRazon=()=>{ const M=t=>CFG.multi?t.charAt(0).toUpperCase()+t.slice(1):t;
+  return '<option value="">'+M('elige una razón')+'</option>'+Object.entries(RAZONES_AJUSTE).filter(([k])=>!RAZONES_SOLO_APP.includes(k)).map(([k,t])=>`<option value="${k}">${escapeHtml(M(t))}</option>`).join(''); };
+const CLASE_TXT={cuenta:'una cuenta',bolsa:'una operación de bolsa',gasto:'un gasto',ingreso:'un ingreso',transferencia:'una transferencia',tarjeta:'un movimiento de tarjeta',meses:'una compra a meses',credito:'un préstamo',persona:'un movimiento con',movimiento:'un movimiento'};
+// "12 nov" (con año si no es este): para decir de que dia era lo borrado o editado
+function diaCorto(f) {
+  if(typeof f!=='string'||!f) return '';
+  const d=/^\d{4}-\d{2}-\d{2}$/.test(f)?parseFechaLocal(f):new Date(f);
+  if(isNaN(d.getTime())) return '';
+  return d.toLocaleDateString('es-MX',{day:'numeric',month:'short',...(d.getFullYear()!==new Date().getFullYear()?{year:'numeric'}:{})}).replace(/ de /g,' ').replace(/\./g,'');
+}
+function tituloCambio(c) {
+  if(c.t==='ajuste'&&c.clase==='persona') return 'cambió lo que se debe con '+(c.persona||'una persona');
+  if(c.t==='ajuste') return (c.razon==='inicial'?'saldo inicial de ':'ajustaste ')+(nombreCuenta(c.cuenta)||'una cuenta');
+  if(c.clase==='cuenta') return 'cambiaste '+(nombreCuenta(c.cuenta)||'una cuenta');
+  if(c.t==='borrado'&&c.clase==='tarjeta'){ const mv=c.mov&&typeof c.mov==='object'?c.mov:{}; return (mv.tipo==='pago'?'deshiciste un pago de ':'quitaste un cargo de ')+(CUENTAS[c.tarjeta]||'tu tarjeta'); }
+  const qu=CLASE_TXT[c.clase]||CLASE_TXT.movimiento;
+  const quien=c.clase==='persona'?' '+(c.persona||''):'';
+  return (c.t==='borrado'?'borraste ':'editaste ')+qu+quien;
+}
+// el monto de un movimiento copiado, en su moneda si era de otra
+const montoCopia=mv=>mv.moneda&&mv.moneda!=='MXN'&&Number.isFinite(mv.montoOrig)?fmtX(mv.montoOrig,mv.moneda):fmt(nFin(mv.monto));
+function metaCambio(c) {
+  const mv=c.mov&&typeof c.mov==='object'?c.mov:{}, pv=c.previo&&typeof c.previo==='object'?c.previo:{};
+  const f=v=>c.moneda?fmtX(nFin(v),c.moneda):fmt(nFin(v));
+  if(c.clase==='cuenta') return [c.nota||'', 'no mueve dinero'];
+  if(c.t==='ajuste') return [c.razon==='inicial'?'empezó en '+f(c.despues):'de '+f(c.antes)+' a '+f(c.despues),
+    c.razon&&c.razon!=='inicial'?RAZONES_AJUSTE[c.razon]||'':'', c.nota||'', 'no es gasto ni ingreso'];
+  const que=c.clase==='bolsa'?(mv.tipo==='venta'?'venta':'compra')+' de '+(mv.acciones||'')+' '+(mv.simbolo||'')+(mv.cuenta&&mv.cuenta!=='externo'?' · '+(nombreCuenta(mv.cuenta)||''):''):mv.cat?catFV(mv.cat)+(mv.sub?' · '+mv.sub:''):(mv.origen||mv.destino)&&c.clase==='transferencia'?(nombreCuenta(mv.origen)||'otra cuenta')+' → '+(nombreCuenta(mv.destino)||'otra cuenta'):(mv.tipo&&c.clase==='tarjeta'?(mv.tipo==='pago'?'pago':'cargo')+' de '+(CUENTAS[c.tarjeta]||'tarjeta'):'');
+  if(c.t==='borrado'&&c.clase==='meses') return [(mv.nota||'compra')+' · '+fmt(nFin(mv.monto))+(mv.meses?' a '+mv.meses:'')+' · '+(CUENTAS[c.tarjeta]||'tarjeta'), 'se quitó lo que faltaba por cargar; lo ya cargado no cambió'];
+  if(c.t==='borrado'&&c.clase==='credito') return [(mv.nota||'préstamo')+(mv.tipo?' · '+mv.tipo:'')+' · '+fmt(nFin(mv.monto)), 'no movió tus saldos'];
+  if(c.t==='borrado'&&c.clase==='tarjeta') return [mv.fecha?'era del '+diaCorto(mv.fecha):'', mv.nota||'',
+    mv.tipo==='pago'?(mv.fuente&&mv.fuente!=='externo'?'el dinero regresó a '+(nombreCuenta(mv.fuente)||'tu cuenta')+' y la deuda volvió a subir':'la deuda volvió a subir'):'la deuda bajó'];
+  if(c.t==='borrado') return [que, mv.fecha?'era del '+diaCorto(mv.fecha):'', mv.nota||'', c.sinEfecto?'nunca movió tus saldos':'el dinero regresó a como estaba'];
+  // edicion: solo lo que cambio
+  const cambio=[];
+  if(cent(nFin(pv.monto))!==cent(nFin(mv.monto))) cambio.push('antes '+montoCopia(pv)+', ahora '+montoCopia(mv));
+  const ctaA=pv.fuente||pv.destino, ctaD=mv.fuente||mv.destino;
+  if(ctaA!==ctaD) cambio.push('de '+(nombreCuenta(ctaA)||'otra cuenta')+' a '+(nombreCuenta(ctaD)||'otra cuenta'));
+  if((pv.fecha||'')!==(mv.fecha||'')) cambio.push('fecha del '+diaCorto(pv.fecha)+' al '+diaCorto(mv.fecha));
+  if((pv.cat||'')!==(mv.cat||'')) cambio.push('categoría '+catFV(pv.cat||'')+' → '+catFV(mv.cat||''));
+  if((pv.sub||'')!==(mv.sub||'')) cambio.push('subcategoría '+(pv.sub||'ninguna')+' → '+(mv.sub||'ninguna'));
+  if((pv.nota||'')!==(mv.nota||'')) cambio.push('nota antes: '+(pv.nota||'vacía'));
+  return [que, mv.nota||pv.nota||'', ...cambio];
+}
+function montoCambio(c) {
+  if(c.clase==='cuenta') return '';
+  if(c.t==='ajuste'){ const d=c2(nFin(c.despues)-nFin(c.antes)); const t=c.moneda?fmtX(Math.abs(d),c.moneda):fmt(Math.abs(d)); return (d<0?'−':'+')+t; }
+  const mv=c.mov&&typeof c.mov==='object'?c.mov:{};
+  // (23-nov-2026, Marcela) en una edicion lo util es cuanto cambio ("+$50.00"), no el monto nuevo; sin cambio de monto, nada
+  if(c.t==='edicion'){ const pv=c.previo&&typeof c.previo==='object'?c.previo:{}; const d=c2(nFin(mv.monto)-nFin(pv.monto)); return cent(d)?(d<0?'−':'+')+fmt(Math.abs(d)):''; }
+  return montoCopia(mv);
 }
 const DEUDA_HIST={cargo:'le prestaste a',pago:'te pagó',debo:'te prestó',pague:'le pagaste a'};
 function tituloNeutro(m) {
-  if(m.tipo==='pago') return 'pago de '+(CUENTAS[m.tarjeta]||'tarjeta');
+  if(m.tipo==='cambio') return tituloCambio(m.it);
+  if(m.tipo==='pago') return (m.it.tipo==='cargo'?'cargo a ':'pago de ')+(CUENTAS[m.tarjeta]||'tarjeta');
   if(m.tipo==='transf') return (nombreCuenta(m.it.origen)||'otra cuenta')+' → '+(nombreCuenta(m.it.destino)||'otra cuenta');
   const v=DEUDA_HIST[m.it.tipo]||'';
   return (m.it.tipo==='pago'||m.it.tipo==='debo'?m.nombre+' '+v:v+' '+m.nombre).trim();
 }
 function renglonNeutro(m) {
   if(m.tipo==='pago') return renglonPagoTarjeta(m);
+  if(m.tipo==='cambio'){
+    const c=m.it, meta=metaCambio(c).filter(Boolean).map(x=>escapeHtml(String(x))).join(' · ');
+    return `<div class="item-row mov-row mov-neutro mov-cambio" data-cambio="${escapeHtml(c.t)}"><div><div class="item-cat">${escapeHtml(tituloCambio(c))}</div><div class="item-meta">${meta}</div></div><div class="mov-amt item-amt-pago">${montoCambio(c)}</div><div class="mov-acc mov-acc-vacia" aria-hidden="true"></div></div>`;
+  }
   const it=m.it, ef=m.tipo==='persona'?DEUDA_TIPOS[it.tipo]:null;
   const cta=ef?(it.cuenta==='externo'?'sin mover tus cuentas':(ef.cuenta<0?'de ':'a ')+(nombreCuenta(it.cuenta)||'otra cuenta')):'';
   const meta=[m.tipo==='persona'&&it.subcat?it.subcat:'',it.nota||'',cta,m.tipo==='transf'?'entre tus cuentas, no cuenta como gasto':'no cuenta como gasto ni ingreso'].filter(Boolean).map(escapeHtml).join(' · ');
   const monto=m.tipo==='transf'?textoMontoTransfer(it):fmt(it.monto);
-  return `<div class="item-row mov-row mov-neutro"><div><div class="item-cat">${escapeHtml(tituloNeutro(m))}</div><div class="item-meta">${meta}</div></div><div class="mov-amt item-amt-pago">${monto}</div><div class="mov-acc mov-acc-vacia" aria-hidden="true"></div></div>`;
+  // (23-nov-2026) la transferencia de una compra o venta de acciones lleva "deshacer" (deshacerOpStock decide si se puede)
+  const delOp=m.tipo==='transf'&&typeof it.opId==='string'&&/^[A-Za-z0-9_-]{1,64}$/.test(it.opId)?`<button type="button" class="del-btn del-x" aria-label="deshacer esta operación de bolsa" title="deshacer" onclick="deshacerOpStock('${it.opId}')">${ICONO_BORRAR}</button>`:'';
+  return `<div class="item-row mov-row mov-neutro"><div><div class="item-cat">${escapeHtml(tituloNeutro(m))}</div><div class="item-meta">${meta}</div></div><div class="mov-amt item-amt-pago">${monto}</div>${delOp?`<div class="mov-acc">${delOp}</div>`:'<div class="mov-acc mov-acc-vacia" aria-hidden="true"></div>'}</div>`;
 }
 function renglonPagoTarjeta(m) {
   const it=m.it;
   const nomCta=k=>Object.prototype.hasOwnProperty.call(CUENTAS,k)?CUENTAS[k]:'';
   const cta=it.fuente==='externo'?'otra cuenta':(esIdX(it.fuente)?nombreCuenta(it.fuente):nomCta(it.fuente));   // (7-nov-2026) una cuenta agregada se llama como ella la llamo
   // la nota automática de las transferencias ya dice de dónde salió: no repetirlo
-  const desde=cta&&!it.nota.includes(cta)?'desde '+cta:'';
-  const meta=[it.nota||'',desde,'no cuenta como gasto'].filter(Boolean).map(escapeHtml).join(' · ');
-  return `<div class="item-row mov-row mov-neutro"><div><div class="item-cat">pago de ${escapeHtml(nomCta(m.tarjeta)||'tarjeta')}</div><div class="item-meta">${meta}</div></div><div class="mov-amt item-amt-pago">${fmt(it.monto)}</div><div class="mov-acc mov-acc-vacia" aria-hidden="true"></div></div>`;
+  const esCargo=it.tipo==='cargo';
+  const desde=!esCargo&&cta&&!it.nota.includes(cta)?'desde '+cta:'';
+  const meta=[it.nota||'',desde,esCargo?'subió lo que debes, no cuenta como gasto':'no cuenta como gasto'].filter(Boolean).map(escapeHtml).join(' · ');
+  // (23-nov-2026) un cargo o un pago de tarjeta ya se puede deshacer (antes no habia forma de corregir un monto o una cuenta equivocados)
+  const del=it.id&&/^[A-Za-z0-9_-]{1,64}$/.test(it.id)?`<button type="button" class="del-btn del-x" aria-label="deshacer ${esCargo?'este cargo':'este pago'}" title="deshacer" onclick="deshacerMovTarjeta('${m.tarjeta}','${it.id}')">${ICONO_BORRAR}</button>`:'';
+  return `<div class="item-row mov-row mov-neutro"><div><div class="item-cat">${esCargo?'cargo a':'pago de'} ${escapeHtml(nomCta(m.tarjeta)||'tarjeta')}</div><div class="item-meta">${meta}</div></div><div class="mov-amt item-amt-pago">${esCargo?'+':''}${fmt(it.monto)}</div>${del?`<div class="mov-acc">${del}</div>`:'<div class="mov-acc mov-acc-vacia" aria-hidden="true"></div>'}</div>`;
 }
+// (23-nov-2026) deshacer un cargo o un pago de tarjeta, en UNA transaccion: se quita el movimiento de la tarjeta, la deuda
+// vuelve a como estaba y, si el pago salio de una cuenta tuya, se borra su transferencia y el dinero regresa a esa cuenta.
+// La transferencia de un pago se reconoce por movId (pagos nuevos) o por cuenta, monto e instante de creacion (los de antes:
+// el pago y su transferencia se crean con el mismo `creado`). El registro de cambios guarda la copia de los dos.
+function transferDePago(k, mv) {
+  return (state.transferencias||[]).find(t=>t&&t.id&&t.destino===k&&(t.movId===mv.id||(!t.movId&&(!mv.fuente||t.origen===mv.fuente)&&cent(nFin(t.monto))===cent(nFin(mv.monto))&&typeof t.creado==='string'&&t.creado===mv.creado)))||null;
+}
+window.deshacerMovTarjeta = async function(k, movId) {
+  if(k!=='tarjeta'&&k!=='tarjetaRev') return;
+  if(dineroOcupado){ showToast('espera, hay otra operación en curso'); return; }
+  const arr=()=>(k==='tarjeta'?state.tarjetaMovimientos:state.revTdcMovs)||[];
+  const mv=arr().find(x=>x&&x.id===movId);
+  if(!mv){ showToast('ese movimiento ya no está — recarga la app'); return; }
+  const esPago=mv.tipo==='pago', m=c2(nFin(mv.monto)), nomTj=CUENTAS[k]||'tu tarjeta';
+  // (23-nov-2026) los pagos de antes del 30-sep no guardan `fuente`: si salieron de una cuenta, su transferencia (mismo monto y `creado`) lo dice
+  const sinFuente=esPago&&!mv.fuente, trAnt=sinFuente?transferDePago(k,mv):null;
+  if(sinFuente&&!trAnt){ showToast('ese pago es de antes y la app no sabe de qué cuenta salió, así que no se puede deshacer solo: si te equivocaste, anota un cargo a la tarjeta por ese monto y, si salió de una cuenta tuya, corrige su saldo en "actualizar saldos"'); return; }
+  const sale=esPago&&(trAnt||(mv.fuente&&mv.fuente!=='externo'));
+  const tr=sale?(trAnt||transferDePago(k,mv)):null;
+  if(sale&&!tr){ showToast('no encuentro el movimiento de tu cuenta que pagó esto: recarga la app y vuelve a intentarlo'); return; }
+  if(sale&&esIdX(tr.origen)&&!((state.cuentasX||{})[tr.origen]||{}).on){ showToast('la cuenta de ese pago está apagada: enciéndela en perfil para deshacerlo'); return; }
+  const ok=await confirmarDeslizando({
+    titulo:esPago?'¿Deshacer este pago?':'¿Quitar este cargo?',
+    texto:esPago?('Lo que debes en '+nomTj+' vuelve a subir '+fmt(m)+(sale?' y el dinero regresa a '+(nombreCuenta(tr.origen)||'tu cuenta'):'')+'.'+(CON_CAMBIOS?' Queda anotado en Movimientos.':''))
+                :('Lo que debes en '+nomTj+' baja '+fmt(m)+'.'+(CON_CAMBIOS?' Queda anotado en Movimientos.':'')),
+    verbo:esPago?'deshacer':'quitar'});
+  if(!ok) return;
+  // revalidar despues del await: otro aparato o esta pantalla pudo cambiarlo mientras se deslizaba
+  if(dineroOcupado){ showToast('espera, hay otra operación en curso'); return; }
+  if(!arr().some(x=>x&&x.id===movId)){ showToast('ese movimiento ya no está — recarga la app'); return; }
+  const plan={permitirDeudaNegativa:true};
+  // lo que se vio: si el movimiento del servidor ya es otro (monto o tipo), txDinero no revierte nada
+  if(k==='tarjeta'){ plan.tarjetaMovDelId=movId; plan.tarjetaDelta=esPago?m:-m; plan.tarjetaMovDelEsperado={monto:m,tipo:mv.tipo}; }
+  else { plan.tdcRevMovDelId=movId; plan.tdcRevDelta=esPago?m:-m; plan.tdcRevMovDelEsperado={monto:m,tipo:mv.tipo}; }
+  if(tr){
+    const ref=doc(db,C_TRANSF,tr.id);
+    plan.requerirDocs=[ref]; plan.borrar=[ref];
+    plan.verificarIguales=[{ref,campos:{monto:tr.monto,origen:tr.origen,destino:tr.destino}}];
+    if(esIdX(tr.origen)) plan.fx={deltas:{[tr.origen]:m}}; else plan.deltas={[tr.origen]:m};
+  }
+  let res=null, err=null;
+  dineroOcupado=true;
+  try{ res=await txDinero(plan); }
+  catch(e){ err=e; }
+  finally{ liberarDinero(); }
+  if(err){ console.error('deshacerMovTarjeta',err); showToast(msgFalloDinero()); return; }
+  if(res.error){ showToast(res.error); return; }
+  aplicarRes(res);
+  if(tr){ const i=state.transferencias.findIndex(t=>t.id===tr.id); if(i>=0) state.transferencias.splice(i,1); }
+  refrescar(render,renderTransferencias,renderMovimientos,renderDeudas);
+  showToast(esPago?'pago deshecho · '+nomTj+' vuelve a '+fmt(k==='tarjeta'?state.tarjetaDeuda:state.revTdcDeuda):'cargo quitado · '+nomTj+' queda en '+fmt(k==='tarjeta'?state.tarjetaDeuda:state.revTdcDeuda));
+};
 // un gasto o ingreso en su renglon, con sus botones de editar y borrar: la lista y el dia del calendario pintan lo mismo
 function renglonMov(m) {
   const it=m.it;
@@ -12730,7 +13145,7 @@ function renglonMov(m) {
   const del=it.id?`<button type="button" class="del-btn del-x" aria-label="borrar" title="borrar" onclick="${esGasto?'eliminarGasto':'eliminarIngreso'}('${it.id}')">${ICONO_BORRAR}</button>`:'';
   // editar corrige la captura SIN mover dinero ni fecha: por eso no hace falta borrar y volver a registrar
   const edit=it.id?`<button type="button" class="edit-btn" title="editar movimiento" aria-label="editar movimiento" onclick="editarMovimiento('${esGasto?'gasto':'ingreso'}','${it.id}')">${ICONO_EDITAR}</button>`:'';
-  const marca=it.pendiente===true?' · atajo: pendiente de aplicar':(it.porAtajo===true&&it.aplicadoSaldo===false?' · atajo: rechazado (no afectó saldos)':'');
+  const marca=it.pendiente===true?' · atajo: pendiente de aplicar':(it.porAtajo===true&&it.aplicadoSaldo===false?' · atajo: rechazado (no afectó saldos)'+(typeof it.motivo==='string'&&it.motivo?': '+escapeHtml(it.motivo.slice(0,60)):''):'');
   // (17-nov-2026) sin la fecha: el dia va en el encabezado (en la lista y en el dia del calendario); la nota solo si hay
   const ms=it.meses&&esGasto?mesesDe(it.fuente).find(x=>x.id===it.meses):null;
   const marcaMs=it.meses&&esGasto?(ms?' · a '+ms.n+' meses':' · a meses'):'';
@@ -13304,13 +13719,20 @@ window.guardarEdicionMov = async function() {
     let r=null, errL=null;
     editandoMov=true; btn.disabled=true;
     try{
+      // (23-nov-2026) instante fijo: un reintento escribe la MISMA constancia
+      const enCb=new Date().toISOString(), idCb='cb'+Date.now().toString(36)+'_e';
       r=await runTransaction(db, async tx=>{
         const s=await tx.get(refL);
+        const cbS=CON_CAMBIOS?await tx.get(doc(db,NS,'cambios')):null;   // registro de cambios: se lee ANTES de escribir
         if(!s.exists()) return {noExiste:true};
         const d=s.data()||{};
         for(const k in previos) if(d[k]!==previos[k]) return {cambio:true};
         tx.update(refL, campos);
-        return {ok:true};
+        if(!CON_CAMBIOS) return {ok:true};
+        // la constancia: lo que tenia y lo que tiene (categoria, nota, fecha, subcategoria)
+        const listaCbE=recortaCambios([{id:idCb,en:enCb,t:'edicion',clase:tipo,previo:copiaMov(d),mov:copiaMov({...d,...campos})}],cbS.exists()?cbS.data():null);
+        tx.set(doc(db,NS,'cambios'),{lista:listaCbE});
+        return {ok:true,cambios:listaCbE};
       });
     }catch(e){ errL=e; }
     finally{ editandoMov=false; btn.disabled=false; }
@@ -13330,6 +13752,7 @@ window.guardarEdicionMov = async function() {
       return;
     }
     if(r.cambio){ showToast('ese movimiento cambió en otro aparato — recarga la app'); return; }
+    if(Array.isArray(r.cambios)) state.cambios=r.cambios;
     const itL=arrL.find(x=>x.id===id);
     if(itL){
       Object.assign(itL, campos);
@@ -13696,7 +14119,7 @@ function renderDeudas() {
         ?'<span class="g-subdeuda" onclick="event.stopPropagation()"><select id="g-subdeuda-sel" aria-label="subcategoría">'+ops.map(x=>'<option value="'+escapeHtml(x)+'"'+(x===m.subcat?' selected':'')+'>'+escapeHtml(x)+'</option>').join('')+'</select>'
           +'<button type="button" class="cat-act pri" onclick="guardarSubDeuda(event)">guardar</button><button type="button" class="cat-act" onclick="cancelarSubDeuda(event)">cancelar</button></span>'
         :escapeHtml(m.subcat)+(m.id?`<button type="button" class="edit-btn g-subdeuda-e" title="cambiar subcategoría" aria-label="cambiar subcategoría" onclick="editarSubDeuda('${key}','${escapeHtml(m.id)}',event)">${ICONO_EDITAR}</button>`:'');
-      return`<div class="item-row"><div><div class="item-cat">${cat}</div><div class="item-meta">${meta}</div></div><div style="display:flex;align-items:center"><div class="${isNeg?'item-amt-neg':'item-amt-pos'}">${isNeg?'-':'+'}${fmt(m.monto)}</div>${del}</div></div>`;
+      return`<div class="item-row"><div><div class="item-cat">${cat}</div><div class="item-meta">${meta}</div></div><div style="display:flex;align-items:center"><div class="${isNeg?'item-amt-neg':'item-amt-pos'}">${isNeg?'−':'+'}${fmt(m.monto)}</div>${del}</div></div>`;
     }).join('');
     const intTxt=it&&t?'<div class="item-meta g-interes">'+(Math.abs(it.capital)>0.005||Math.abs(it.interes)>0.005
         ?((it.total>=0?'te debe ':'le debes ')+fmt(Math.abs(it.capital))+' de lo prestado y '+fmt(Math.abs(it.interes))+' de interés')
@@ -13885,6 +14308,11 @@ window.excelDeuda=async function(key) {
     for(let k=1;k<=6;k++){ tot.getCell(k).font={bold:true}; tot.getCell(k).fill=relleno(VCLARO); } [4,5,6].forEach(k=>tot.getCell(k).numFmt=MON);
     const fin=ws.getRow(fila++); fin.values=['',saldoFinal>=0?'Saldo final: '+nombre+' me debe':'Saldo final: le debo a '+nombre,'','','',Math.abs(saldoFinal)];
     fin.getCell(2).font={bold:true,color:{argb:VERDE}}; fin.getCell(6).numFmt=MON; fin.getCell(6).font={bold:true,size:12,color:{argb:VERDE}};
+    // (23-nov-2026, auditoria) con tasa, el saldo de arriba es solo el capital: lo que se debe HOY con su interes es lo que dice Deudas (saldoP)
+    { const ri=interesDe(p); if(ri&&Math.abs(nFin(ri.interes))>0.004){
+      const fi=ws.getRow(fila++); fi.values=['','Interés a hoy, con la tasa que le pusiste','','','',c2(nFin(ri.interes))]; fi.getCell(6).numFmt=MON; fi.getCell(2).font={italic:true};
+      const st=c2(saldoP(p)), fh=ws.getRow(fila++); fh.values=['',(st>=0?'Hoy, con interés, '+nombre+' me debe':'Hoy, con interés, le debo a '+nombre)+' (lo mismo que en la app)','','','',Math.abs(st)];
+      fh.getCell(2).font={bold:true,color:{argb:VERDE}}; fh.getCell(6).numFmt=MON; fh.getCell(6).font={bold:true,size:12,color:{argb:VERDE}}; } }
     if(excluidos>0){ const av=ws.getRow(fila+1); av.values=['',excluidos+' movimiento(s) sin fecha válida no se incluyeron: revísalos en la app']; av.getCell(2).font={italic:true,color:{argb:ROJO}}; }
     const buf=await wb.xlsx.writeBuffer();
     const blob=new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
@@ -13998,6 +14426,7 @@ function pedirDatosStock() {
 function limpiarFormStock() {
   ['stock-simbolo','stock-acciones','stock-monto','stock-usd','stock-fecha','stock-cuenta'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
 }
+let stockOpPend=null;   // (23-nov-2026) {firma, opId, trId}: los ids de la operacion que aun no se confirma
 async function operarStock(tipo) {
   if(stockOpOcupado||dineroOcupado) return;
   const d=pedirDatosStock(); if(!d) return;
@@ -14010,12 +14439,24 @@ async function operarStock(tipo) {
   // 'externo' no tiene campo: la compra/venta no toca saldos (dinero fuera de la app)
   const campo=CAMPO_SIMPLE[d.cuenta]||null;
   const opBtn=document.getElementById('stock-op-btn');
+  // (23-nov-2026, auditoria) los mismos candados que txDinero: sin datos del servidor o sin senal no se intenta
+  // (antes esperaba ~24 s, reintentaba y decia "ERROR" aunque la operacion pudiera haber llegado)
+  if(!datosCargados||navigator.onLine===false||cargaDesdeCache){ showToast(msgFalloDinero()); return; }
+  // (23-nov-2026, auditoria) ids FIJOS fuera de la transaccion: era el unico camino de dinero sin el blindaje contra la
+  // respuesta perdida. Si el commit llego y se perdio la respuesta, el SDK reintentaba el callback con un id NUEVO y
+  // compraba dos veces (acciones x2, saldo x2). Ahora el reintento encuentra la operacion y devuelve 'ya-existe'. Y si la
+  // persona vuelve a apretar tras un error, la MISMA operacion conserva sus ids (stockOpPend) y tampoco se duplica
+  const firma=JSON.stringify([tipo,d.simbolo,d.acciones,d.monto,d.cuenta,d.fecha]);
+  if(!stockOpPend||stockOpPend.firma!==firma) stockOpPend={firma, opId:doc(collection(db,C_OPS)).id, trId:doc(collection(db,C_TRANSF)).id};
+  const opRef=doc(db,C_OPS,stockOpPend.opId), trRefFijo=doc(db,C_TRANSF,stockOpPend.trId);
   stockOpOcupado=true; dineroOcupado=true;
   if(opBtn) opBtn.disabled=true;
   try{
     let res;
     try{
       res=await runTransaction(db, async tx=>{
+        const yaSnap=await tx.get(opRef);
+        if(yaSnap.exists()) return {error:'esa operación ya estaba registrada', codigo:'ya-existe'};
         const sSnap=await tx.get(doc(db,NS,'saldos'));
         const pSnap=await tx.get(doc(db,NS,'posiciones'));
         const fSnapOp=await tx.get(doc(db,NS,'fondo'));
@@ -14034,13 +14475,12 @@ async function operarStock(tipo) {
         const nuevoUnits=(tipo==='venta'&&esPolvo(restaUnits/1e8,actUnits/1e8))?0:restaUnits;
         const nuevoSaldo=campo?Math.round((saldoActual+(tipo==='compra'?-d.monto:d.monto))*100)/100:null;
         const op={tipo,simbolo:d.simbolo,acciones:d.acciones,montoMxn:d.monto,montoUsd:d.montoUsd,cuenta:d.cuenta,fecha:d.fecha,creado:new Date().toISOString()};
-        const opRef=doc(collection(db,C_OPS));
         const trFecha=d.fecha===hoyLocal()?new Date().toISOString():d.fecha+'T00:00:00Z';
         // con 'externo' no hay transferencia: el dinero nunca estuvo en una cuenta de la app
         const tr=!campo?null:(tipo==='compra'
           ?{origen:d.cuenta,destino:'stocks',monto:d.monto,nota:'compra '+d.acciones+' '+d.simbolo,fecha:trFecha,opId:opRef.id}
           :{origen:'stocks',destino:d.cuenta,monto:d.monto,nota:'venta '+d.acciones+' '+d.simbolo,fecha:trFecha,opId:opRef.id});
-        const trRef=tr?doc(collection(db,C_TRANSF)):null;
+        const trRef=tr?trRefFijo:null;
         tx.set(opRef,op);
         if(tr) tx.set(trRef,tr);
         if(campo) tx.update(doc(db,NS,'saldos'), {[campo]:nuevoSaldo});
@@ -14049,10 +14489,13 @@ async function operarStock(tipo) {
       });
     }catch(e){
       console.error('operarStock',e);
-      showToast('ERROR: no se guardó la operación, revisa tu conexión');
+      // los ids se conservan: si la persona vuelve a apretar, el reintento no duplica (si si llego, dice que ya estaba)
+      showToast(msgFalloDinero());
       return;
     }
+    if(res.error&&res.codigo==='ya-existe'){ stockOpPend=null; limpiarFormStock(); yaAplicado(); return; }
     if(res.error){ showToast(res.error); return; }
+    stockOpPend=null;
     try{
       state.stocksOps.push(res.op);
       state.stocksOps.sort((a,b)=>a.fecha<b.fecha?-1:a.fecha>b.fecha?1:0);
@@ -14072,6 +14515,79 @@ async function operarStock(tipo) {
   }finally{ stockOpOcupado=false; liberarDinero(); if(opBtn) opBtn.disabled=false; }
 }
 window.enviarOpStock=()=>operarStock(stockTipoSel);
+// (23-nov-2026, auditoria) deshacer una compra o venta de acciones mal capturada. Antes solo se podia registrar la operacion
+// contraria, que inventaba una ganancia o perdida. Solo la operacion MAS RECIENTE de esa accion: asi las acciones que tienes
+// nunca quedan en negativo ni se reescribe lo vendido despues. En UNA transaccion: se borran la operacion y su transferencia,
+// el dinero regresa a (o sale de) la cuenta, las acciones vuelven a como estaban y queda la copia en el registro de cambios
+window.deshacerOpStock = async function(opId) {
+  if (stockOpOcupado || dineroOcupado) { showToast('espera, hay otra operación en curso'); return; }
+  if (!datosCargados || navigator.onLine === false || cargaDesdeCache) { showToast(msgFalloDinero()); return; }
+  const op = (state.stocksOps || []).find(o => o && o.id === opId);
+  if (!op) { showToast('esa operación ya no está — recarga la app'); return; }
+  const ult = (state.stocksOps || []).filter(o => o && o.simbolo === op.simbolo).slice().sort(ordenOps).pop();
+  if (!ult || ult.id !== opId) { showToast('solo se puede deshacer la operación más reciente de ' + op.simbolo + ': para una anterior, registra la operación contraria'); return; }
+  const campo = CAMPO_SIMPLE[op.cuenta] || null;
+  const tr = (state.transferencias || []).find(t => t && t.opId === opId) || null;
+  if (campo && !tr) { showToast('no encuentro el movimiento de tu cuenta de esa operación: recarga la app'); return; }
+  const m = c2(nFin(op.montoMxn)), esCompra = op.tipo === 'compra';
+  const ok = await confirmarDeslizando({titulo: esCompra ? '¿Deshacer esta compra?' : '¿Deshacer esta venta?',
+    texto: (esCompra ? 'Se quitan ' + op.acciones + ' acciones de ' + op.simbolo : 'Vuelven ' + op.acciones + ' acciones de ' + op.simbolo)
+      + (campo ? (esCompra ? ' y regresan ' + fmt(m) + ' a ' : ' y salen ' + fmt(m) + ' de ') + (CUENTAS[op.cuenta] || op.cuenta) : '') + '.' + (CON_CAMBIOS ? ' Queda anotado en Movimientos.' : ''),
+    verbo: 'deshacer'});
+  if (!ok) return;
+  if (stockOpOcupado || dineroOcupado) { showToast('espera, hay otra operación en curso'); return; }
+  if (!(state.stocksOps || []).some(o => o && o.id === opId)) { showToast('esa operación ya no está — recarga la app'); return; }
+  const opRef = doc(db, C_OPS, opId), trRef = tr ? doc(db, C_TRANSF, tr.id) : null;
+  const enCb = new Date().toISOString(), idCb = 'cb' + Date.now().toString(36) + '_b';
+  stockOpOcupado = true; dineroOcupado = true;
+  let res = null;
+  try {
+    res = await runTransaction(db, async tx => {
+      const oS = await tx.get(opRef), tS = trRef ? await tx.get(trRef) : null;
+      const sS = await tx.get(doc(db, NS, 'saldos')), pS = await tx.get(doc(db, NS, 'posiciones')), fS = await tx.get(doc(db, NS, 'fondo'));
+      const cbS = CON_CAMBIOS ? await tx.get(doc(db, NS, 'cambios')) : null;
+      if (!oS.exists()) return {error: 'esa operación ya la deshizo alguien más — recarga la app'};
+      const o = oS.data() || {};
+      // lo que manda es el documento del servidor: si otro aparato la cambio, no se revierte nada
+      if (o.tipo !== op.tipo || o.simbolo !== op.simbolo || cent(nFin(o.montoMxn)) !== cent(m) || Math.round(nFin(o.acciones) * 1e8) !== Math.round(nFin(op.acciones) * 1e8) || o.cuenta !== op.cuenta)
+        return {error: 'esa operación cambió en otro aparato — recarga la app'};
+      if (trRef && !tS.exists()) return {error: 'el movimiento de tu cuenta de esa operación ya no está — recarga la app'};
+      const pos = pS.exists() ? pS.data() || {} : {};
+      const act = Math.round(nFin(pos[op.simbolo]) * 1e8), ou = Math.round(nFin(op.acciones) * 1e8);
+      const nuevoU = esCompra ? act - ou : act + ou;
+      if (nuevoU < 0) return {error: 'ya no tienes esas acciones de ' + op.simbolo + ': recarga la app'};
+      let nuevoSaldo = null;
+      if (campo) {
+        const sal = sS.exists() ? sS.data() || {} : {}, actual = nFin(sal[campo]);
+        nuevoSaldo = c2(actual + (esCompra ? m : -m));
+        if (!esCompra) {
+          if (cent(nuevoSaldo) < 0) return {error: 'saldo insuficiente en ' + (CUENTAS[op.cuenta] || op.cuenta) + ': ese dinero ya no está ahí'};
+          const ap = saneaFondo(fS.exists() ? fS.data() : null).saldosPorCuenta[op.cuenta] || 0;
+          if (cent(nuevoSaldo) < cent(ap)) return {error: 'eso tomaría dinero del fondo: en ' + (CUENTAS[op.cuenta] || op.cuenta) + ' hay ' + fmtFondo(ap) + ' apartados'};
+        }
+      }
+      tx.delete(opRef);
+      if (trRef) tx.delete(trRef);
+      if (campo) tx.set(doc(db, NS, 'saldos'), {[campo]: nuevoSaldo}, {merge: true});
+      tx.set(doc(db, NS, 'posiciones'), {[op.simbolo]: nuevoU / 1e8}, {merge: true});
+      const lista = !CON_CAMBIOS ? null : recortaCambios([{id: idCb, en: enCb, t: 'borrado', clase: 'bolsa', mov: copiaMov({tipo: o.tipo, simbolo: o.simbolo, acciones: o.acciones, monto: o.montoMxn, cuenta: o.cuenta, fecha: o.fecha})},
+        ], cbS.exists() ? cbS.data() : null);
+      if (lista) tx.set(doc(db, NS, 'cambios'), {lista});
+      return {ok: true, nuevoSaldo, cambios: lista};
+    });
+    setSyncDot('ok');
+  } catch (e) { setSyncDot('err'); console.error('deshacerOpStock', e); showToast(msgFalloDinero()); return; }
+  finally { stockOpOcupado = false; liberarDinero(); }
+  if (res.error) { showToast(res.error); return; }
+  state.stocksOps = state.stocksOps.filter(o => o.id !== opId);
+  if (tr) state.transferencias = state.transferencias.filter(t => t.id !== tr.id);
+  if (campo) state[campo] = res.nuevoSaldo;
+  if (Array.isArray(res.cambios)) state.cambios = res.cambios;
+  try { derivarPosiciones(); } catch (e) { console.error('deshacerOpStock derivar', e); }
+  refrescar(render, renderTransferencias, renderMovimientos, () => { if (dashboardEncendido()) renderDashboard(); });
+  showToast((esCompra ? 'compra' : 'venta') + ' de ' + op.simbolo + ' deshecha');
+};
+
 // los botones de la tarjeta solo preseleccionan el tipo y llevan al formulario
 function enfocarFormStock() {
   const p=document.getElementById('stock-form-panel');
@@ -15261,7 +15777,7 @@ async function asisCrearTrabajo() {
     if (s.cajita) crear[nuevoIdX()] = {nombre: (b + ' cajita').slice(0, 24), moneda: 'MXN', tipo: 'cajita', on: true, saldo: c2(asisNum(d.cajita) || 0), creada: ahora(),
       tasa: asisNum(d.tasa) || 0, tope: 0, tasaExc: 0, fecha: hoy}; });
   if (Object.keys(state.cuentasX || {}).length + Object.keys(crear).length > CX_MAX) { asisAviso('son demasiadas cuentas: máximo ' + CX_MAX); return; }
-  const ef = asisNum(asis.efectivo), plan = {};
+  const ef = asisNum(asis.efectivo), plan = {registro:{razon:'inicial'}};   // (23-nov-2026) lo que se anota aqui es el saldo con que empieza
   if (ef !== null) plan.absolutos = {efectivo: c2(ef)};
   if (Object.keys(crear).length) plan.fx = {crear};
   const fondos = asisFondos(), tjs = asisTdcs();
@@ -16977,27 +17493,53 @@ window.exportarMisDatosExcel = async function() {
     const colsMonX = CFG.multi ? [['moneda', 'moneda', 10], ['monto original', 'orig', 16], ['tipo de cambio', 'tc', 14]] : [];
     const filaMonX = g => CFG.multi ? {moneda: g.moneda || '', orig: numX(g.montoOrig), tc: numX(g.tc)} : {};
     // (22-nov-2026, revision) con pagos de prestamos, una columna dice que parte de lo que salio bajo la deuda (no es gasto): asi cuadra con "Gastos por categoría"
-    const hayAb = state.gastos.some(g => abonoCapital(g) > 0.005);
-    hoja('Gastos', [['fecha', 'f', 12, 'fecha'], ['categoría', 'cat', 18], ['monto', 'monto', 14, 'mon'], ...(hayAb ? [['abono a deuda (no es gasto)', 'ab', 16, 'mon']] : []), ['pagado con', 'cta', 22], ['nota', 'nota', 32], ...colsMonX],
-      state.gastos.map(g => ({f: fecha(g.fecha), cat: g.cat, monto: nFin(g.monto), ...(hayAb ? {ab: c2(abonoCapital(g))} : {}), cta: cta(g.fuente), nota: g.nota || '', ...filaMonX(g)})), {total: 'monto', desc: 'cada gasto; filtra por categoría o cuenta y el total se ajusta' + (hayAb ? '. "monto" es lo que salió; "abono a deuda" es la parte de un pago de préstamo que bajó lo que debías y no cuenta como gasto' : ''), color: 'FFC0504D'});
-    porCategoria('Gastos por categoría', state.gastos.map(g => ({...g, monto: montoConsumo(g)})).filter(g => g.monto > 0.005), 'cuánto gastaste en cada categoría, mes por mes; de un pago de préstamo solo cuenta su interés');
-    hoja('Ingresos', [['fecha', 'f', 12, 'fecha'], ['categoría', 'cat', 18], ['monto', 'monto', 14, 'mon'], ['a la cuenta', 'cta', 22], ['nota', 'nota', 32], ...colsMonX],
-      state.ingresos.map(g => ({f: fecha(g.fecha), cat: g.cat, monto: nFin(g.monto), cta: cta(g.destino), nota: g.nota || '', ...filaMonX(g)})), {total: 'monto', desc: 'cada ingreso; filtra por categoría o cuenta y el total se ajusta', color: 'FF4F81BD'});
-    porCategoria('Ingresos por categoría', state.ingresos, 'cuánto entró de cada categoría, mes por mes');
+    // (23-nov-2026, auditoria) solo lo que SI fue dinero (movValido), como el Resumen: un rechazado del Atajo hacia que el total no cuadrara
+    const gastosOk = state.gastos.filter(movValido), ingresosOk = state.ingresos.filter(movValido);
+    const hayAb = gastosOk.some(g => abonoCapital(g) > 0.005);
+    hoja('Gastos', [['fecha', 'f', 12, 'fecha'], ['categoría', 'cat', 18], ['subcategoría', 'sub', 16], ['monto', 'monto', 14, 'mon'], ...(hayAb ? [['abono a deuda (no es gasto)', 'ab', 16, 'mon']] : []), ['pagado con', 'cta', 22], ['nota', 'nota', 32], ...colsMonX],
+      gastosOk.map(g => ({f: fecha(g.fecha), cat: g.cat, sub: g.sub || '', monto: nFin(g.monto), ...(hayAb ? {ab: c2(abonoCapital(g))} : {}), cta: cta(g.fuente), nota: g.nota || '', ...filaMonX(g)})), {total: 'monto', desc: 'cada gasto; filtra por categoría o cuenta y el total se ajusta' + (hayAb ? '. "monto" es lo que salió; "abono a deuda" es la parte de un pago de préstamo que bajó lo que debías y no cuenta como gasto' : ''), color: 'FFC0504D'});
+    porCategoria('Gastos por categoría', gastosOk.map(g => ({...g, monto: montoConsumo(g)})).filter(g => g.monto > 0.005), 'cuánto gastaste en cada categoría, mes por mes (los últimos 12 meses); de un pago de préstamo solo cuenta su interés');
+    hoja('Ingresos', [['fecha', 'f', 12, 'fecha'], ['categoría', 'cat', 18], ['subcategoría', 'sub', 16], ['monto', 'monto', 14, 'mon'], ['a la cuenta', 'cta', 22], ['nota', 'nota', 32], ...colsMonX],
+      ingresosOk.map(g => ({f: fecha(g.fecha), cat: g.cat, sub: g.sub || '', monto: nFin(g.monto), cta: cta(g.destino), nota: g.nota || '', ...filaMonX(g)})), {total: 'monto', desc: 'cada ingreso; filtra por categoría o cuenta y el total se ajusta', color: 'FF4F81BD'});
+    porCategoria('Ingresos por categoría', ingresosOk, 'cuánto entró de cada categoría, mes por mes (los últimos 12 meses)');
     hoja('Transferencias', [['fecha', 'f', 12, 'fecha'], ['de', 'de', 22], ['a', 'a', 22], ['monto', 'monto', 14, 'mon'], ['nota', 'nota', 32],
         ...(CFG.multi ? [['monto que salió', 'mOrigen', 16], ['moneda que salió', 'monOrigen', 10], ['monto que llegó', 'mDestino', 16], ['moneda que llegó', 'monDestino', 10], ['tipo de cambio', 'tc', 14]] : [])],
       state.transferencias.map(t => ({f: fecha(t.fecha), de: cta(t.origen), a: cta(t.destino), monto: nFin(t.monto), nota: t.nota || '',
         ...(CFG.multi ? {mOrigen: numX(t.montoOrigen), monOrigen: t.monedaOrigen || '', mDestino: numX(t.montoDestino), monDestino: t.monedaDestino || '', tc: numX(t.tc)} : {})})), {total: 'monto', desc: 'dinero que moviste entre tus cuentas (no es gasto)'});
-    hoja('Deudas', [['persona', 'p', 18], ['fecha', 'f', 12, 'fecha'], ['tipo', 't', 16], ['monto', 'monto', 14, 'mon'], ['nota', 'nota', 32]],
-      Object.values(state.personas || {}).flatMap(p => (p.movimientos || []).map(m => ({p: p.nombre || '', f: fecha(m.fecha), t: m.tipo || '', monto: nFin(m.monto), nota: [m.subcat, m.nota].filter(Boolean).join(' · ')}))),
-      {desc: 'lo que te deben y lo que debes, por persona (filtra por persona)'});
+    hoja('Deudas', [['persona', 'p', 18], ['fecha', 'f', 12, 'fecha'], ['qué pasó', 't', 18], ['monto', 'monto', 14, 'mon'], ['cuenta', 'cta', 22], ['nota', 'nota', 32]],
+      Object.values(state.personas || {}).flatMap(p => (p.movimientos || []).map(m => ({p: p.nombre || '', f: fecha(m.fecha), t: DEUDA_HIST[m.tipo] || m.tipo || '', monto: nFin(m.monto),
+        cta: m.cuenta === 'externo' ? 'sin mover tus cuentas' : cta(m.cuenta), nota: [m.subcat, m.nota].filter(Boolean).join(' · ')}))),
+      {desc: 'cada préstamo o pago con una persona (filtra por persona)'});
+    // (23-nov-2026) el saldo de cada persona, con su interés si tiene tasa: la MISMA cifra de la pantalla Deudas (saldoP)
+    hoja('Personas', [['persona', 'p', 18], ['te debe (+) o le debes (−)', 'saldo', 18, 'mon'], ['de eso, interés', 'int', 16, 'mon'], ['grupo', 'g', 16]],
+      Object.values(state.personas || {}).map(p => { const r = interesDe(p); return {p: p.nombre || '', saldo: c2(saldoP(p)), int: r ? c2(nFin(r.interes)) : 0, g: p.grupo || ''}; }),
+      {total: 'saldo', desc: 'lo que te debe o le debes a cada persona hoy, con su interés si le pusiste tasa'});
+    // (23-nov-2026) prestamos y creditos: cuanto debes hoy (lo mismo que Deudas y el Resumen); sus pagos estan en Gastos
+    hoja('Préstamos', [['nombre', 'n', 22], ['tipo', 't', 20], ['monto', 'monto', 14, 'mon'], ['pago', 'pago', 14, 'mon'], ['pagos', 'np', 8], ['hechos', 'k', 8], ['tasa anual %', 'tasa', 12], ['debes hoy (aprox.)', 'debe', 16, 'mon']],
+      Object.keys(state.creditos || {}).map(id => { const e = estadoCredito(id); if (!e) return null; const c = e.c;
+        return {n: c.nombre || '', t: TIPOS_CREDITO[c.tipo] || c.tipo || '', monto: nFin(c.monto), pago: nFin(e.plan ? e.plan.A : c.pago), np: e.plan ? e.plan.n : (c.n || ''), k: e.k || 0,
+          tasa: Number.isFinite(c.tasaAnual) ? c.tasaAnual : '', debe: e.error ? '' : c2(e.debe)}; }).filter(Boolean),
+      {total: 'debe', desc: 'tus préstamos y créditos; sus pagos están en la hoja Gastos'});
+    // (23-nov-2026) compras a meses: lo que ya se cargo y lo que falta (lo mismo que la tarjeta y "lo que debes")
+    hoja('Compras a meses', [['tarjeta', 'tj', 20], ['compra', 'n', 26], ['total', 'total', 14, 'mon'], ['meses', 'm', 8], ['cargadas', 'k', 10], ['ya cargado', 'cargado', 14, 'mon'], ['falta por cargar', 'falta', 16, 'mon']],
+      [['tarjeta', state.tarjetaMeses], ['tarjetaRev', state.revTdcMeses]].flatMap(([k, l]) => (l || []).map(it => { const e = mesesEstado(it, corteDeTj(k), hoyLocal());
+        return {tj: cta(k), n: it.nota || 'compra a meses', total: nFin(it.total), m: it.n, k: e.k, cargado: c2(e.cargado), falta: c2(e.falta)}; })),
+      {total: 'falta', desc: 'tus compras a meses con tarjeta: cuánto ya se cargó y cuánto falta'});
+    // (23-nov-2026) el registro de cambios: cada saldo que ajustaste, lo que editaste y lo que borraste
+    hoja('Cambios', [['cuándo', 'f', 12, 'fecha'], ['qué', 'q', 34], ['detalle', 'd', 60], ['diferencia o monto', 'monto', 16, 'mon']],
+      (state.cambios || []).map(c => ({f: diaXl(new Date(c.en)), q: tituloCambio(c), d: metaCambio(c).filter(Boolean).join(' · '),
+        monto: c.t === 'ajuste' ? c2(nFin(c.despues) - nFin(c.antes)) : c.t === 'edicion' ? c2(nFin((c.mov || {}).monto) - nFin((c.previo || {}).monto)) : nFin((c.mov || {}).monto)})),
+      {desc: 'cada saldo que ajustaste (de cuánto a cuánto y por qué), lo que editaste y lo que borraste'});
     hoja('Fondos', [['fondo', 'fo', 18], ['fecha', 'f', 12, 'fecha'], ['qué pasó', 't', 22], ['cuenta', 'cta', 20], ['monto', 'monto', 14, 'mon'], ['nota', 'nota', 28]],
       ((state.fondo && state.fondo.movs) || []).map(m => ({fo: nombreFondo(fondoDeMov(m)), f: fecha(m.fecha || m.creado), t: FONDO_TIPOS_TXT[m.tipo] || m.tipo, cta: cta(m.cuenta) + (m.destino ? ' → ' + cta(m.destino) : ''), monto: nFin(m.monto), nota: m.nota || ''})),
       {desc: 'lo que entró, apartaste, generó y sacaste de cada fondo', color: 'FF8064A2'});
     // (2-nov-2026, sesion 3) en Fundview este Excel es lo que se ofrece antes de borrar la cuenta: tiene que llevar todo
-    if (CFG.multi) {
+    // (23-nov-2026, auditoria) suscripciones, bolsa y tarjetas en TODAS las carteras (antes solo Fundview). En la familia, si las
+    // suscripciones no se pueden leer, sale lo que hay en memoria (antes ni siquiera salian); en Fundview sigue lanzando
+    const susX = CFG.multi ? await susParaExportar() : await susParaExportar().catch(() => state.suscripciones || []);
+    {
       hoja('Suscripciones', [['nombre', 'n', 22], ['monto', 'monto', 14, 'mon'], ['día del mes', 'dia', 12], ['pagada con', 'cta', 22], ['categoría', 'cat', 18], ['activa', 'act', 10]],
-        (await susParaExportar()).map(s => ({n: s.nombre, monto: nFin(s.monto), dia: s.dia, cta: cta(s.fuente), cat: s.cat, act: s.activa ? 'sí' : 'no'})),
+        susX.map(s => ({n: s.nombre, monto: nFin(s.monto), dia: s.dia, cta: cta(s.fuente), cat: s.cat, act: s.activa ? 'sí' : 'no'})),
         {total: 'monto', desc: 'tus pagos fijos de cada mes'});
       hoja('Bolsa', [['fecha', 'f', 12, 'fecha'], ['operación', 't', 12], ['símbolo', 's', 12], ['acciones', 'a', 12], ['total en pesos', 'monto', 16, 'mon'], ['total en dólares', 'usd', 16], ['cuenta', 'cta', 22]],
         (state.stocksOps || []).map(o => ({f: fecha(o.fecha), t: o.tipo, s: o.simbolo, a: o.acciones, monto: nFin(o.montoMxn), usd: Number.isFinite(o.montoUsd) ? o.montoUsd : '', cta: o.cuenta === 'externo' ? 'dinero fuera de la app' : cta(o.cuenta)})),
@@ -17005,7 +17547,7 @@ window.exportarMisDatosExcel = async function() {
       hoja('Tarjetas', [['tarjeta', 'tj', 20], ['fecha', 'f', 12, 'fecha'], ['qué pasó', 't', 12], ['monto', 'monto', 14, 'mon'], ['nota', 'nota', 32]],
         [['tarjeta', state.tarjetaMovimientos], ['tarjetaRev', state.revTdcMovs]].flatMap(([id, movs]) => (movs || []).map(m => ({tj: cta(id), f: fecha(m.fecha), t: m.tipo || '', monto: nFin(m.monto), nota: m.nota || ''}))),
         {desc: 'los cargos y pagos de tus tarjetas (filtra por tarjeta)'});
-      const cobroX = CFG.cobro ? await fvCobroParaExportar() : null;   // (revision) con el cobro apagado no se lee nada, tampoco al exportar
+      const cobroX = CFG.multi && CFG.cobro ? await fvCobroParaExportar() : null;   // (revision) con el cobro apagado no se lee nada, tampoco al exportar
       if (cobroX) hoja('Mi suscripción a Fundview', [['plan', 'plan', 14], ['pagado hasta', 'hasta', 16], ['referencia', 'ref', 18]],
         [{plan: FV_COBRO_PLANES[cobroX.plan] || cobroX.plan || '', hasta: cobroX.pagadoHasta || '', ref: cobroX.referencia || ''}], {desc: 'tu plan y hasta cuándo está pagado'});
       if (cobroX && cobroX.avisos && cobroX.avisos.length) hoja('Mis avisos de pago', [['fecha', 'fecha', 12], ['hora', 'hora', 8], ['monto', 'monto', 10, 'mon'], ['clave de rastreo', 'clave', 32], ['concepto', 'concepto', 28], ['pagó otra persona', 'pagador', 24], ['estado', 'estado', 16], ['motivo', 'motivo', 30]],
@@ -17049,7 +17591,7 @@ async function susParaExportar() {
 }
 window.exportarMisDatos = async function() {
   try{
-    const susExport = CFG.multi ? await susParaExportar() : null;
+    const susExport = CFG.multi ? await susParaExportar() : await susParaExportar().catch(() => state.suscripciones || []);
     const cobroExport = CFG.multi && CFG.cobro ? await fvCobroParaExportar() : null;   // (revision) con el cobro apagado no se lee nada, tampoco al exportar
     const datos={
       exportado:new Date().toISOString(),
@@ -17063,7 +17605,10 @@ window.exportarMisDatos = async function() {
       // (20-oct-2026) cuentas en otra moneda (saldo en SU moneda) y el tipo de cambio usado
       cuentasOtraMoneda:state.cuentasX, tipoDeCambio:state.fx,
       // (2-nov-2026, sesion 3) en Fundview la copia completa es completa: es lo ultimo que se lleva antes de borrar la cuenta
-      ...(CFG.multi ? {rendimientos:state.rendimientos, metas:state.metas, metasFondos:state.metasFondos, suscripciones:susExport, cuentasFijas:CUENTAS_CFG, suscripcionFundview:cobroExport, clasificacion:state.clasif, creditos:state.creditos} : {})
+      // (23-nov-2026, auditoria) lo que mueve o explica dinero va en TODAS las carteras (antes la familia no llevaba creditos ni el resto)
+      rendimientos:state.rendimientos, metas:state.metas, metasFondos:state.metasFondos, suscripciones:susExport, clasificacion:state.clasif, creditos:state.creditos,
+      cambios:state.cambios,
+      ...(CFG.multi ? {cuentasFijas:CUENTAS_CFG, suscripcionFundview:cobroExport} : {})
     };
     const blob=new Blob([JSON.stringify(datos,null,2)],{type:'application/json'});
     const url=URL.createObjectURL(blob);
@@ -17517,7 +18062,7 @@ let avisoCatTimer=null;
 const LIMITE_UMBRALES=[50,75,90];
 // (30-oct-2026, Beto: "o te pones un límite general o te metes más profundo, sobre categoría") el del mes Y, opcional,
 // uno por categoria (limitesCat = [{cat, monto}] en el perfil: lista, para que quitar una categoria la borre de verdad)
-function gastoDelMes(cat){ const k=hoyLocal().slice(0,7); return c2(state.gastos.filter(g=>movValido(g)&&mesLocalDe(g.fecha)===k&&(cat==null||g.cat===cat)).reduce((s,g)=>s+nFin(montoConsumo(g)),0)); }
+function gastoDelMes(cat){ const k=hoyLocal().slice(0,7); return c2(state.gastos.filter(g=>movValido(g)&&mesLocalDe(g.fecha)===k&&(cat==null||catFV(g.cat)===catFV(cat))).reduce((s,g)=>s+nFin(montoConsumo(g)),0)); }
 const limitesCat=()=>{ const a=state.perfil&&state.perfil.limitesCat; return Array.isArray(a)?a:[]; };
 function medirLimite(L,g){
   const hoy=new Date(), diasMes=new Date(hoy.getFullYear(),hoy.getMonth()+1,0).getDate(), dia=hoy.getDate();
@@ -19444,15 +19989,34 @@ async function escribirCuentasCfg(nuevo, btn, msgError) {
   if (btn) btn.disabled = true;
   try {
     if (!datosCargados) throw new Error('datos no cargados');
-    // si otro aparato las cambio mientras esta pantalla estaba abierta, no se pisa: se aplica lo del servidor
-    const s = await getDoc(doc(db, NS, 'cuentas'));
-    const srv = s.exists() ? normalizaCuentasCfg(s.data().slots, CUENTAS_CFG) : CUENTAS_CFG;
-    if (JSON.stringify(srv) !== JSON.stringify(CUENTAS_CFG)) {
-      try { localStorage.setItem(lsKey('cuentasCfg'), JSON.stringify(srv)); } catch (e) {}
+    // si otro aparato las cambio mientras esta pantalla estaba abierta, no se pisa: se aplica lo del servidor.
+    // (23-nov-2026, auditoria) en UNA transaccion (antes se leia y luego se escribia aparte) y con constancia de cada cuenta fija
+    // que cambio (encendida o apagada, nombre, dia de corte) en el registro de cambios
+    const enCb = new Date().toISOString(), idCb = 'cb' + Date.now().toString(36) + '_k';
+    const r = await runTransaction(db, async tx => {
+      const s = await tx.get(doc(db, NS, 'cuentas'));
+      const cbS = CON_CAMBIOS ? await tx.get(doc(db, NS, 'cambios')) : null;
+      const srv = s.exists() ? normalizaCuentasCfg(s.data().slots, CUENTAS_CFG) : CUENTAS_CFG;
+      if (JSON.stringify(srv) !== JSON.stringify(CUENTAS_CFG)) return {otro: srv};
+      tx.set(doc(db, NS, 'cuentas'), {slots: nuevo});
+      if (!CON_CAMBIOS) return {ok: true};
+      const nv = normalizaCuentasCfg(nuevo, CUENTAS_CFG), nuevos = [];
+      Object.keys(nv).forEach((id, i) => {
+        const a0 = srv[id] || {}, a1 = nv[id] || {}, qd = [];
+        if (!!a0.on !== !!a1.on) qd.push(a1.on ? 'encendida' : 'apagada');
+        if ((a0.nombre || '') !== (a1.nombre || '')) qd.push('nombre ' + (a0.nombre || '—') + ' → ' + (a1.nombre || '—'));
+        if ((a0.corte || '') !== (a1.corte || '')) qd.push('corte ' + (a0.corte || '—') + ' → ' + (a1.corte || '—'));
+        if ((a0.modo || '') !== (a1.modo || '')) qd.push('tipo ' + (a0.modo || '—') + ' → ' + (a1.modo || '—'));
+        if (qd.length) nuevos.push({id: idCb + i, en: enCb, t: 'edicion', clase: 'cuenta', cuenta: id, nota: txtCorto(qd.join(' · '), 120)});
+      });
+      if (nuevos.length) tx.set(doc(db, NS, 'cambios'), {lista: recortaCambios(nuevos, cbS && cbS.exists() ? cbS.data() : null)});
+      return {ok: true};
+    });
+    if (r.otro) {
+      try { localStorage.setItem(lsKey('cuentasCfg'), JSON.stringify(r.otro)); } catch (e) {}
       showToast('tus cuentas cambiaron desde otro aparato: revisa y vuelve a guardar'); suelta();
       recargarCuandoSePueda(); return false;
     }
-    await setDoc(doc(db, NS, 'cuentas'), {slots: nuevo});
     setSyncDot('ok');
     try { localStorage.setItem(lsKey('cuentasCfg'), JSON.stringify(normalizaCuentasCfg(nuevo, CUENTAS_CFG))); }
     catch (e) { showToast('se guardaron, pero tu navegador no deja aplicarlas aquí: ábrela en otro navegador o sin modo privado'); suelta(); return true; }
