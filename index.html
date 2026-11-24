@@ -496,6 +496,12 @@ nav{position:sticky;top:0;z-index:100;background:var(--nav-bg);backdrop-filter:b
 html[data-tema='arena'] .tab.active,html[data-tema='rosa'] .tab.active,html[data-tema='fucsia'] .tab.active,
 html[data-tema='arena'] .subtabs .stab.active,html[data-tema='rosa'] .subtabs .stab.active,html[data-tema='fucsia'] .subtabs .stab.active{color:var(--accent-dark)}
 html[data-tema='grafito'] .tabs{--sombra-scroll:rgba(255,255,255,.16)}
+/* (25-nov-2026) cuando no caben en un renglon (telefono), dos renglones parejos y todas a la vista: con Deudas,
+   Resumen y Perfil quedaban fuera de la pantalla y nadie sabia que la barra se deslizaba. La clase y --cols las pone acomodarTabs() */
+.tabs.tabs-dos{display:grid;grid-template-columns:repeat(var(--cols,4),minmax(0,1fr));overflow:visible;background:var(--bg)}
+.tabs.tabs-dos .tab{padding:10px 2px;font-size:12.5px;min-width:0;overflow:hidden;text-overflow:ellipsis}
+.tabs.tabs-chica .tab{font-size:11px}
+@media(max-width:899px){.arr-tabs{height:88px}}
 /* Foco visible con teclado (antes outline:none en los campos). El selector gana a .field input / .login-field input. */
 .field input:focus-visible,.field select:focus-visible,.field textarea:focus-visible,.login-field input:focus-visible,button:focus-visible,a:focus-visible,summary:focus-visible,[role="button"]:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .tab:focus-visible{outline-offset:-3px}
@@ -521,6 +527,15 @@ html[data-tema='grafito'] .tabs{--sombra-scroll:rgba(255,255,255,.16)}
 .meta-ritmo{font-weight:600;color:var(--text);margin-top:6px;font-size:13px}
 .retiro-calc .field{margin-bottom:10px}.retiro-filas{display:grid;grid-template-columns:1fr 1fr;gap:0 12px}
 #metas-sub-metas[hidden],#metas-sub-retiro[hidden]{display:none}   /* (24-nov-2026, code-reviewer) .inicio-grid fija display:grid a 900 px y le ganaba a hidden */
+.retiro-fondo{margin-top:12px;padding-top:12px;border-top:0.5px solid var(--border)}.retiro-fondo-tit{font-weight:600;font-size:13px;color:var(--text)}
+.retiro-fondo-acc{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}.retiro-fondo-acc .btn{margin:0;width:auto;flex:1 1 auto;min-height:44px}
+.retiro-linea-dif{display:block;margin-top:4px}
+.retiro-lugar{margin-bottom:12px}.retiro-lugar select{width:100%}
+.retiro-infl{display:flex;flex-wrap:wrap;gap:6px;margin:-2px 0 8px}.retiro-infl .ri-op{min-height:44px;padding:6px 12px;border-radius:999px;border:1px solid var(--border);background:var(--bg2);color:var(--text);font:inherit;font-size:12.5px;cursor:pointer;text-align:left}
+.retiro-infl .ri-op[aria-pressed="true"]{border-color:var(--accent);color:var(--accent-dark);font-weight:600}
+.retiro-infl .ri-fuente{flex-basis:100%;font-size:11.5px;color:var(--muted);line-height:1.4}
+.retiro-res .retiro-valor{margin:8px 0 4px;padding:8px 10px;border-radius:var(--rs);background:var(--bg3);font-size:13px;line-height:1.45}
+.valor-filas{grid-template-columns:1fr 1fr 1fr}@media(max-width:420px){.valor-filas{grid-template-columns:1fr 1fr}}
 .retiro-res{margin-top:6px}.retiro-res .retiro-mes{margin:8px 0 2px;padding:8px 10px;border-radius:var(--rs);background:var(--bg3);font-size:13px;line-height:1.45}.retiro-res .retiro-big{font-size:15px;font-weight:600;line-height:1.4}
 .retiro-linea{margin:10px 0 0;padding:0;list-style:none;border-left:2px solid var(--border);padding-left:12px}
 .retiro-linea li{font-size:13px;padding:4px 0;font-variant-numeric:tabular-nums}.retiro-linea li b{font-weight:600}
@@ -948,6 +963,23 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
 .meta-acc{display:flex;align-items:center;flex-shrink:0}
 .meta-fila .bar-header{gap:8px}.meta-fila .bar-label{min-width:0;overflow-wrap:anywhere}.meta-fila .bar-amt{flex-shrink:0}
 .meta-cuando{min-width:0;overflow-wrap:anywhere}
+/* (25-nov-2026) metas por plazo, la que llego a su monto y las cumplidas */
+.metas-plazo{margin:16px 0 2px;padding-top:12px;border-top:0.5px solid var(--border)}
+.metas-plazo:first-child{margin-top:0;padding-top:0;border-top:0}
+.metas-plazo-tit{font-weight:600;font-size:13px;color:var(--text)}
+.metas-plazo-mes{margin-top:2px}
+#metas-panel .meta-fila{padding:10px 0 4px}
+#metas-panel .meta-fila+.meta-fila{border-top:0.5px solid var(--border)}
+.camino-plazo{margin:14px 0 0}.camino-plazo:first-child{margin-top:0}
+.meta-logro{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px;margin:8px 0 4px;padding:10px 12px;border-radius:var(--rs);background:var(--bg3)}
+.meta-logro-txt{font-weight:600;color:var(--text);font-size:13px;min-width:0;overflow-wrap:anywhere}
+.meta-logro .meta-cumplir{margin:0;width:auto;min-height:44px;padding:0 14px}
+.del-btn.meta-ya,.del-btn.meta-reabrir{font-size:12px;color:var(--accent-dark);min-height:44px;min-width:44px;padding:0 10px;display:inline-flex;align-items:center;white-space:nowrap}
+.metas-hechas{margin-top:16px;border-top:0.5px solid var(--border);padding-top:10px}
+.metas-hechas>summary{cursor:pointer;min-height:44px;display:block;padding:13px 0;box-sizing:border-box;font-weight:600;font-size:13px;line-height:18px;color:var(--text)}   /* bloque, no flex: en Fundview la mayuscula sale de ::first-letter */
+.meta-hecha{padding:10px 0;border-bottom:0.5px solid var(--border)}
+.meta-hecha:last-child{border-bottom:0}
+.meta-aviso-cuenta{margin-top:6px;font-size:12.5px;color:var(--text)}
 .del-btn.meta-editar{font-size:12px;color:var(--accent-dark);min-height:44px;min-width:44px;padding:0 10px;display:inline-flex;align-items:center}
 /* Inicio: lo que gano tu dinero este mes, bajo la cifra grande (lleva al detalle del Resumen) */
 .ganancia-mes{display:inline-flex;flex-wrap:wrap;align-items:baseline;gap:4px 6px;margin-top:12px;padding:10px 14px;border-radius:999px;background:var(--bg3);border:0;font:inherit;font-size:14px;color:var(--text);cursor:pointer;min-height:44px;text-align:left;font-variant-numeric:tabular-nums}
@@ -2426,6 +2458,10 @@ html[data-tema='grafito'] #cal-filtro .type-opt.active>span{color:#14171a}
     <!-- (20-nov-2026, tanda 4) una cuenta con TUS numeros: edad, lo que quieres recibir y el rendimiento que tu supones. No es asesoria -->
     <div class="section-title">línea de tiempo para tu retiro</div>
     <div class="panel retiro-calc" id="retiro-panel">
+      <!-- (25-nov-2026) cinco lugares, cada uno en su moneda y con su inflacion (decision de Beto del 24-nov) -->
+      <div class="field retiro-lugar"><label for="ret-lugar">¿dónde te vas a retirar?</label><select id="ret-lugar">
+        <option value="mx">México · pesos</option><option value="us">Estados Unidos · dólares</option><option value="eu">Zona euro · euros</option>
+        <option value="au">Australia · dólares australianos</option><option value="cn">China · yuanes</option></select></div>
       <div class="retiro-filas">
         <div class="field"><label for="ret-edad">tu edad</label><input type="number" id="ret-edad" inputmode="numeric" min="15" max="90" step="1"></div>
         <div class="field"><label for="ret-a">te quieres retirar a los</label><input type="number" id="ret-a" inputmode="numeric" min="30" max="90" step="1" placeholder="ej. 65"></div>
@@ -2435,8 +2471,20 @@ html[data-tema='grafito'] #cal-filtro .type-opt.active>span{color:#14171a}
         <div class="field"><label for="ret-infl">inflación al año que supones (%)</label><input type="number" id="ret-infl" inputmode="decimal" min="0" max="30" step="any" placeholder="la meta del Banco de México es 3"></div>
         <div class="field"><label for="ret-ya">ya tienes para esto</label><input type="number" id="ret-ya" inputmode="decimal" min="0" step="any" placeholder="0"></div>
       </div>
+      <div class="retiro-infl" id="ret-infl-ops"></div>
       <div class="retiro-res" id="retiro-res" aria-live="polite"></div>
-      <div class="item-meta retiro-nota">Es una cuenta con los números que tú pones, no una recomendación. El rendimiento lo supones tú y nadie lo garantiza; al rendimiento se le resta la inflación que pones, y las cifras van en pesos de hoy (abajo, cuánto serían en pesos de ese año). No incluye pensión, impuestos ni cambios en tus gastos.</div>
+      <div class="retiro-fondo" id="retiro-fondo"></div>
+      <div class="item-meta retiro-nota">Es una cuenta con los números que tú pones, no una recomendación. El rendimiento lo supones tú y nadie lo garantiza; al rendimiento se le resta la inflación que pones, y las cifras van en dinero de hoy de la moneda que elegiste. No incluye pensión, impuestos ni cambios en tus gastos.</div>
+    </div>
+    <!-- (25-nov-2026) una calculadora corta: no guarda nada -->
+    <div class="section-title mt">¿cuánto vale el dinero con los años?</div>
+    <div class="panel retiro-calc" id="valor-panel">
+      <div class="retiro-filas valor-filas">
+        <div class="field"><label for="val-cant">cantidad</label><input type="number" id="val-cant" inputmode="decimal" min="0" step="any" placeholder="ej. 100000"></div>
+        <div class="field"><label for="val-anios">en cuántos años</label><input type="number" id="val-anios" inputmode="numeric" min="1" max="80" step="1" placeholder="ej. 30"></div>
+        <div class="field"><label for="val-infl">inflación al año (%)</label><input type="number" id="val-infl" inputmode="decimal" min="0" max="30" step="any" placeholder="ej. 3"></div>
+      </div>
+      <div class="retiro-res" id="valor-res" aria-live="polite"></div>
     </div>
   </div>
   </div>
@@ -2824,6 +2872,7 @@ html[data-tema='grafito'] #cal-filtro .type-opt.active>span{color:#14171a}
     <div class="field" id="meta-campo-monto"><label for="meta-monto">cuánto quieres tener (en pesos)</label><input type="number" id="meta-monto" step="0.01" inputmode="decimal" placeholder="ej. 30000"></div>
     <div class="field" style="margin-top:10px"><label for="meta-fecha">¿para qué fecha?</label><input type="date" id="meta-fecha"></div>
     <div class="item-meta" id="meta-nota" style="margin-top:6px"></div>
+    <div class="meta-aviso-cuenta" id="meta-aviso-cuenta" role="status" hidden></div>
     <div class="login-error" id="meta-error" role="alert"></div>
     <div class="row2" style="gap:8px;margin-top:10px">
       <button type="button" class="btn" style="margin-top:0" onclick="cerrarMetaDlg()">cancelar</button>
@@ -7525,6 +7574,8 @@ async function loadFromFirebase() {
         // por categoria: [{cat, monto}], sin repetidas, maximo 20
         limitesCat:saneaLimitesCat(pf.limitesCat),
         nombre:(typeof pf.nombre==='string')?pf.nombre.slice(0,40):'',
+        // (25-nov-2026, decision de Beto) los numeros del retiro, en la cuenta para verse en todos los aparatos (antes solo en el telefono)
+        retiro:saneaRetiro(pf.retiro),
         // solo se acepta un dataURL jpeg/png generado por la propia app
         // el tablero de inversiones: solo cuenta si esta guardado como true (lista blanca)
         dashboard: pf.dashboard === true,
@@ -9656,6 +9707,28 @@ window.susQuitar = async function(btn) {
   renderSuscripciones(); renderAvisosSus();
 };
 // ── NAVIGATION ────────────────────────────────────────────────
+// (25-nov-2026) si las pestañas no caben en un renglon, van en dos renglones parejos (mitad y mitad) en vez de deslizarse.
+// Se mide con la barra en un renglon; se repite al cambiar el ancho y al prender o apagar una pestaña (inversiones, fondo).
+(function acomodarTabs(){
+  const t = document.querySelector('.tabs'); if (!t) return;
+  let ancho = -1, n = -1;
+  const medir = () => {
+    const vis = t.querySelectorAll('.tab:not([hidden])').length;
+    if (!t.clientWidth) return;
+    if (t.clientWidth === ancho && vis === n) return;
+    ancho = t.clientWidth; n = vis;
+    t.classList.remove('tabs-dos', 'tabs-chica');
+    if (t.scrollWidth > t.clientWidth + 1) {
+      t.style.setProperty('--cols', String(Math.ceil(vis / 2))); t.classList.add('tabs-dos');
+      // telefono angosto con todas prendidas: si alguna no cabe, letra un poco menor antes que cortarla
+      if ([...t.querySelectorAll('.tab:not([hidden])')].some(x => x.scrollWidth > x.clientWidth)) t.classList.add('tabs-chica');
+    }
+  };
+  medir();
+  if (typeof ResizeObserver === 'function') new ResizeObserver(medir).observe(t);
+  else window.addEventListener('resize', medir);
+  new MutationObserver(medir).observe(t, { subtree: true, attributes: true, attributeFilter: ['hidden'] });
+})();
 // cada pestaña recuerda hasta dónde bajaste (solo en esta sesión); `arriba` la abre desde el principio
 const scrollPorPagina = {};
 // paginas sin pestaña propia: se marca la pestaña desde donde se abren
@@ -16306,6 +16379,22 @@ const AYUDA_BASE = [
   {id:'metas', g:'ver', p:'¿Cómo pongo una meta?', donde:'Metas', ir:'metas', boton:'ir a metas',
     r:['Toca "+ Nueva meta", elige la cuenta (puede ser una que agregaste tú), escribe cuánto quieres tener y para qué fecha, y toca "Guardar". Si quieres, ponle un nombre ("viaje", "coche"). Cada meta tiene su propia fecha; para cambiarla, o cambiar el nombre o el monto, toca "Editar" en esa meta. Lo que pasas a una cajita cuenta como aportación del mes. La meta de un fondo va en su pestaña.'],
     claves:'meta metas objetivo objetivos llegar fecha ahorro'},
+  // (25-nov-2026) metas cumplidas, plazos, el retiro con su fondo, la inflacion y cuanto vale el dinero
+  {id:'meta-cumplida', g:'ver', p:'¿Cómo marco una meta cumplida?', donde:'Metas', ir:'metas', boton:'ir a metas',
+    r:['Cuando una meta llega a su monto sale "¡Lo lograste!" con el botón "Marcar como cumplida"; si la quieres dar por cumplida antes, toca "Ya la cumplí". Pasa a "Metas cumplidas", abajo, con lo que juntaste y en cuánto tiempo, y de ahí la puedes regresar a activa con "Regresar a activa". No mueve tu dinero. Una cuenta puede tener varias metas.'],
+    claves:'cumplida cumpli cumplir cumplidas lograda logre logro termine terminada completa completada hecha superada nuevas'},
+  {id:'plazos', g:'ver', p:'¿Qué es corto, mediano y largo plazo?', donde:'Metas', ir:'metas', boton:'ir a metas',
+    r:['Tus metas se acomodan solas por su fecha: corto plazo es hasta un año; mediano, de 1 a 5 años; largo, de 5 a 10; y aparte las de más de 10 años, como tu retiro, los estudios de tus hijos o una casa. Si cambias la fecha de una meta, cambia de grupo sola.'],
+    claves:'plazo plazos corto mediano largo grupo grupos acomodan separar'},
+  {id:'fondo-retiro', g:'ver', p:'¿Cómo mido mi ahorro para la jubilación?', donde:'Metas › Retiro', ir:'retiro', boton:'ir a retiro',
+    r:['Es un fondo como los demás, solo para tu retiro. En Metas › Retiro, con tus números escritos, toca "Crear mi fondo de retiro": su meta es lo que pide tu línea. Cada mes ves cuánto apartaste ahí contra lo que pide tu retiro, y si vas al día. Sin fondo, la cuenta compara contra todo lo que metes a ahorro e inversión. Tus números del retiro se guardan en tu cuenta y se ven en todos tus aparatos.'],
+    claves:'retirarme jubilacion jubilarme jubilo vejez linea mido medir'},
+  {id:'inflacion', g:'ver', p:'¿Qué pongo en inflación?', donde:'Metas › Retiro', ir:'retiro', boton:'ir a retiro',
+    r:['Debajo del campo hay dos opciones del lugar donde te vas a retirar: la meta de su banco central y el promedio de 2005 a 2024. Toca una y se llena sola, o escribe la tuya. Nadie sabe la inflación de los próximos años: la meta es lo que el banco busca, y el promedio, lo que pasó. Puedes elegir México, Estados Unidos, zona euro, Australia o China, cada uno en su moneda.'],
+    claves:'inflacion suben subiendo moneda pais lugar euros australia china yuanes'},
+  {id:'valor-dinero', g:'ver', p:'¿Cuánto valen $100,000 en 40 años?', donde:'Metas › Retiro', ir:'valor', boton:'ir a la calculadora',
+    r:['Usa la calculadora "¿Cuánto vale el dinero con los años?", al final de Metas › Retiro: escribes la cantidad, en cuántos años y la inflación, y te dice cuánto costará lo que hoy cuesta esa cantidad y cuánto valdrá esa cantidad en dinero de hoy. No guarda nada.'],
+    claves:'vale valen valdra valdran valor dinero futuro calculadora compra alcanza inflacion'},
   {id:'privado', g:'ver', p:'¿Cómo oculto mis montos?', donde:'El ojo de la barra de arriba', ir:'ojo', boton:'enseñarme el ojo',
     r:['Toca el ojo en la barra de arriba y los montos se ocultan en la pantalla. Tócalo otra vez para verlos.'],
     claves:'ocultar oculto esconder escondo tapar privado montos cifras ojo'},
@@ -16390,6 +16479,8 @@ const AYUDA_ESCALAR = [
 ];
 // frases que por si solas ya dicen de que se habla, aunque sus palabras sean de las vacias
 const AYUDA_DIRECTAS = [[/\bagreg\w* (un |otro |mi )?banco\b/, 'agregar'],
+  // (25-nov-2026) el fondo de retiro y la inflacion: 'retiro' y 'fondo' solos son de otras respuestas (sacar dinero, fondos)
+  [/\bfondo (de |para )?(mi |el )?(retiro|jubilacion)\b|\b(mido|medir) mi retiro\b/, 'fondo-retiro'], [/^(?!.*\b(vale|valen|valdra|valdran|valor)\b).*\binflacion\b/, 'inflacion'],
   // (22-nov-2026, Marcela) volver fijo un gasto (no un pago fijo, que es una suscripcion) y el panel de salud
   // (revision) exige "gasto" o "categoria" en la frase: "cuenta fija", "sueldo fijo", "tasa fija" o "renta fija" son otra cosa
   [/^(?!.*\b(pago|pagos|suscrip\w*|cobr\w*|mensual\w*|cuenta|cuentas|ingreso\w*|sueldo\w*|nomina|tasa|renta fija|prestamo\w*|credito\w*)\b)(?=.*\b(gasto|gastos|categoria\w*)\b).*\bfij[oa]s?\b/, 'tipo-gasto'],
@@ -16574,6 +16665,8 @@ const AYUDA_IR = {
   ganancia: () => { showPage('resumen', true); return ayAbrir(ayEl('res-utilidades')); },
   limite: () => { ayPerfil(); return ayAbrir(ayEl('limite-input')); },
   metas: () => { showPage('metas', true); metasSub('metas'); return ayEl('metas-panel'); },
+  retiro: () => { showPage('metas', true); metasSub('retiro'); return ayEl('retiro-panel'); },
+  valor: () => { showPage('metas', true); metasSub('retiro'); return ayEl('valor-panel'); },
   ojo: () => ayEl('privado-btn'),
   salir: () => document.querySelector('.logout-btn[onclick="doLogout()"]'),
   perfil: () => { ayPerfil(); return document.querySelector('.perfil-hero'); },
@@ -17961,11 +18054,13 @@ function valorMeta(cuenta, ctx) {
   return saldoTuyo(cuenta); // lo apartado del fondo (y lo que genero) no cuenta para tus metas
 }
 function metaBloqueada(cuenta, ctx) { if(esIdX(cuenta)) return xFalta(cuenta) || xSinTc(cuenta); return (cuenta==='stocks' || (CFG.multi && cuenta==='patrimonio')) && ctx.stocksPendiente; }
+let metasHechasAbierto=false;   // "metas cumplidas" abierta o cerrada: en memoria, sobrevive al repintar
 let metasCtxUlt=null;   // el ctx de la ultima pintada: el dialogo de metas lo usa para decir cuanto hay hoy en cada cuenta
 // (18-nov-2026, sesion D) cada meta lleva su nombre (opcional) y SU fecha. La fecha del documento queda de respaldo: la usan las metas de antes
 // (sin fecha propia) y la siguen escribiendo las versiones viejas abiertas. Crear una meta ya no la toca: antes una meta nueva le movia la fecha
 // a las demas. Una version vieja de la FAMILIA reescribe la lista sin nombre ni fecha propia (vuelven a la fecha del documento): no pierde metas
 const NOMBRE_META_MAX=40;
+const METAS_MAX=100;   // (25-nov-2026) activas y cumplidas juntas: las cumplidas ya no se borran, la lista crece con los años
 function metaNombreLimpio(v){
   return typeof v==='string' ? v.replace(/[\u0000-\u001f\u007f-\u009f\u200b-\u200f\u202a-\u202e\u2060-\u2064\ufeff]/g,'').replace(/\s+/g,' ').trim().slice(0,NOMBRE_META_MAX) : '';
 }
@@ -17973,7 +18068,37 @@ function metaSanea(i){
   const o={id:i.id,cuenta:i.cuenta,monto:i.monto};
   const n=metaNombreLimpio(i.nombre); if(n) o.nombre=n;
   if(typeof i.fecha==='string'&&fechaCalendarioValida(i.fecha)) o.fecha=i.fecha;
+  // (25-nov-2026, Beto: "ya cumpli mis tres metas y quiero poner nuevas sin perder las que hice") una meta cumplida se guarda, no se borra.
+  // Sin estado = activa. creada (desde hoy) da el "en cuanto tiempo"; montoAlCumplir es lo que habia el dia que se marco
+  if(typeof i.creada==='string'&&fechaCalendarioValida(i.creada)) o.creada=i.creada;
+  if(i.estado==='cumplida'){
+    o.estado='cumplida';
+    if(typeof i.cumplidaEn==='string'&&fechaCalendarioValida(i.cumplidaEn)) o.cumplidaEn=i.cumplidaEn;
+    if(Number.isFinite(i.montoAlCumplir)&&i.montoAlCumplir>=0) o.montoAlCumplir=Math.round(i.montoAlCumplir*100)/100;
+  }
   return o;
+}
+const metaActiva=m=>!!m&&m.estado!=='cumplida';
+const metasActivas=MT=>((MT||state.metas||{}).items||[]).filter(metaActiva);
+// (25-nov-2026, decision de Beto) el plazo sale de la fecha, no se escribe: si la fecha cambia, la meta cambia de grupo sola.
+// Corto: hasta un año (y una vencida); mediano: de 1 a 5; largo: de 5 a 10; y mas de 10
+const PLAZOS_META=[
+  {k:'corto',t:'corto plazo',d:'hasta un año'},
+  {k:'mediano',t:'mediano plazo',d:'de 1 a 5 años'},
+  {k:'largo',t:'largo plazo',d:'de 5 a 10 años'},
+  {k:'mas10',t:'más de 10 años',d:'como tu retiro, los estudios de tus hijos o una casa'}];
+function plazoDeMeta(f){
+  const h=hoyLocal(), en=n=>(+h.slice(0,4)+n)+h.slice(4);
+  return f<=en(1)?'corto':f<=en(5)?'mediano':f<=en(10)?'largo':'mas10';
+}
+// cuanto tardo, de la fecha en que se creo a la que se cumplio: "en 7 meses", "en 2 años y 1 mes", "en menos de un mes"
+function duracionMeta(desde,hasta){
+  if(!desde||!hasta||hasta<desde) return '';
+  const a=parseFechaLocal(desde), b=parseFechaLocal(hasta);
+  let m=(b.getFullYear()-a.getFullYear())*12+(b.getMonth()-a.getMonth()); if(b.getDate()<a.getDate()) m--;
+  if(m<1) return 'en menos de un mes';
+  const an=Math.floor(m/12), r=m%12, ms=n=>n+(n===1?' mes':' meses');
+  return an<2?'en '+ms(m):'en '+an+' años'+(r?' y '+ms(r):'');
 }
 const fechaDeMeta=(m,MT)=>(m&&m.fecha)||((MT||state.metas||{}).fecha)||META_FECHA_DEF;
 const tituloMeta=m=>m.nombre||nombreMeta(m.cuenta);
@@ -17986,12 +18111,14 @@ function renderMetas(ctx) {
   const el=document.getElementById('metas-panel'); if(!el) return;
   const MT=state.metas||{fecha:META_FECHA_DEF,items:[]};
   const fila=m=>{
+    const idJ=escapeHtml(JSON.stringify(String(m.id)));
     const pend=esIdX(m.cuenta)&&metaBloqueada(m.cuenta,ctx), actual=valorMeta(m.cuenta,ctx), meta=m.monto;
     const pct=pend?0:(meta>0?actual/meta*100:0), faltan=meta-actual;
     // la barra se recorta a 100% pero el texto muestra el avance real
-    const txt=pend?'Aún no se puede medir':faltan>0
+    const llego=!pend&&!metaBloqueada(m.cuenta,ctx)&&faltan<=0.005;
+    const txt=pend?'Aún no se puede medir':!llego
       ?`te faltan ${fmt(faltan)} · llevas ${pctCorto(pct)}% de la meta`
-      :`meta superada por ${fmt(-faltan)} · ${pctCorto(pct)}%`;
+      :(faltan< -0.005?`llevas ${fmt(-faltan)} más de lo que te pusiste · ${pctCorto(pct)}%`:'llegaste justo a tu meta');
     const bloq=metaBloqueada(m.cuenta,ctx)?(esIdX(m.cuenta)?(xFalta(m.cuenta)?'cuenta pendiente de cargar':'tipo de cambio pendiente'):'cotización pendiente'):'';
     const sub=[m.nombre?nombreMeta(m.cuenta):'',bloq].filter(Boolean).join(' · ');
     const f=fechaDeMeta(m,MT), d=diasAFecha(f);
@@ -18002,13 +18129,41 @@ function renderMetas(ctx) {
       // (20-nov-2026, tanda 4) con monto y fecha, lo primero que se ve es cuanto meter al mes (la misma cuenta que el camino: ritmoMeta)
       (!pend&&!bloq&&faltan>0.005&&d>0?`<div class="meta-ritmo">mete unos ${fmt(ritmoMeta(faltan,f))} al mes para llegar${mesesRestMeta(f)>1?' ('+mesesRestMeta(f)+' meses)':''}</div>`:'')+
       `<div class="item-meta" style="margin-top:4px">${txt}${sub?' · '+escapeHtml(sub):''}</div>`+
+      // (25-nov-2026) al llegar no se marca sola (el saldo puede bajar mañana): la persona decide. Celebrar con su cifra, sin juzgar
+      (llego?`<div class="meta-logro"><span class="meta-logro-txt">¡Lo lograste! Tienes ${fmt(actual)} para ${m.nombre?'«'+escapeHtml(m.nombre)+'»':'tu meta de '+escapeHtml(nombreMeta(m.cuenta))}.</span>`+
+        `<button type="button" class="btn btn-purple meta-cumplir" onclick="cumplirMeta(${idJ})">marcar como cumplida</button></div>`:'')+
       `<div class="meta-pie"><span class="item-meta meta-cuando">${cuando}</span><span class="meta-acc">`+
-      `<button type="button" class="del-btn meta-editar" aria-label="editar la meta ${escapeHtml(tit)}" onclick="editarMeta(${escapeHtml(JSON.stringify(String(m.id)))})">editar</button>`+
-      `<button type="button" class="del-btn del-x" aria-label="quitar la meta ${escapeHtml(tit)}" onclick="eliminarMeta(${escapeHtml(JSON.stringify(String(m.id)))})">&times;</button></span></div></div>`;
+      (llego?'':`<button type="button" class="del-btn meta-ya" aria-label="ya cumplí la meta ${escapeHtml(tit)}" onclick="cumplirMeta(${idJ})">ya la cumplí</button>`)+
+      `<button type="button" class="del-btn meta-editar" aria-label="editar la meta ${escapeHtml(tit)}" onclick="editarMeta(${idJ})">editar</button>`+
+      `<button type="button" class="del-btn del-x" aria-label="quitar la meta ${escapeHtml(tit)}" onclick="eliminarMeta(${idJ})">&times;</button></span></div></div>`;
   };
-  const items=(MT.items||[]);
-  el.innerHTML=(items.length?items.map(fila).join(''):'<div class="empty-state">todavía no tienes metas — crea la primera</div>')+
-    '<button type="button" class="btn" style="margin-top:12px" onclick="nuevaMeta()">+ nueva meta</button>';
+  // (25-nov-2026) las activas por plazo (la fecha decide el grupo) y lo que pide cada grupo al mes; las cumplidas aparte, plegadas
+  const activas=(MT.items||[]).filter(metaActiva), cumplidas=(MT.items||[]).filter(m=>!metaActiva(m));
+  const grupos=PLAZOS_META.map(g=>({...g,metas:activas.filter(m=>plazoDeMeta(fechaDeMeta(m,MT))===g.k)})).filter(g=>g.metas.length);
+  // lo que pide el grupo al mes: la suma de "mete unos $X al mes" de sus metas (solo se dice si son dos o mas: con una ya lo dice la meta)
+  const alMes=lista=>lista.reduce((s,m)=>{ const f=fechaDeMeta(m,MT); if(metaBloqueada(m.cuenta,ctx)||diasAFecha(f)<=0) return s;
+    const fa=m.monto-valorMeta(m.cuenta,ctx); return fa>0.005?{t:s.t+ritmoMeta(fa,f),n:s.n+1}:s; },{t:0,n:0});
+  const cabeza=g=>{ const a=alMes(g.metas);
+    return `<div class="metas-plazo" data-plazo="${g.k}"><div class="metas-plazo-tit">${g.t} <span class="item-meta">· ${g.d}</span></div>`+
+      (a.n>1?`<div class="item-meta metas-plazo-mes">entre las ${a.n}, unos ${fmt(a.t)} al mes</div>`:'')+`</div>`; };
+  const fCumplida=m=>{
+    const tit=tituloMeta(m), dur=duracionMeta(m.creada,m.cumplidaEn), v=m.montoAlCumplir, idJ=escapeHtml(JSON.stringify(String(m.id)));
+    const para=m.nombre?'para «'+escapeHtml(m.nombre)+'»':'en '+escapeHtml(nombreMeta(m.cuenta));
+    const frase=Number.isFinite(v)
+      ?(v>=m.monto-0.005?'Juntaste '+fmt(v)+' '+para:'La diste por cumplida con '+fmt(v)+' de '+fmt(m.monto)+' '+para)+(dur?' '+dur:'')+'.'
+      :'La marcaste como cumplida'+(dur?' '+dur:'')+'.';
+    return `<div class="meta-hecha"><div class="bar-header"><span class="bar-label">${escapeHtml(tit)}</span><span class="bar-amt">${fmt(m.monto)}</span></div>`+
+      `<div class="item-meta">${frase}</div>`+
+      `<div class="meta-pie"><span class="item-meta meta-cuando">${m.cumplidaEn?'cumplida el '+fechaMetaLarga(m.cumplidaEn):''}</span><span class="meta-acc">`+
+      `<button type="button" class="del-btn meta-reabrir" aria-label="regresar a activa la meta ${escapeHtml(tit)}" onclick="reabrirMeta(${idJ})">regresar a activa</button>`+
+      `<button type="button" class="del-btn del-x" aria-label="quitar la meta ${escapeHtml(tit)}" onclick="eliminarMeta(${idJ})">&times;</button></span></div></div>`;
+  };
+  el.innerHTML=(activas.length?grupos.map(g=>cabeza(g)+g.metas.map(fila).join('')).join('')
+      :'<div class="empty-state">'+(cumplidas.length?'no tienes metas activas: pon la siguiente':'todavía no tienes metas — crea la primera')+'</div>')+
+    '<button type="button" class="btn" style="margin-top:12px" onclick="nuevaMeta()">+ nueva meta</button>'+
+    (cumplidas.length?`<details class="metas-hechas" id="metas-hechas"${metasHechasAbierto?' open':''}><summary>metas cumplidas (${cumplidas.length})</summary>`+
+      cumplidas.slice().sort((a,b)=>String(b.cumplidaEn||'').localeCompare(String(a.cumplidaEn||''))).map(fCumplida).join('')+'</details>':'');
+  const det=document.getElementById('metas-hechas'); if(det) det.addEventListener('toggle',()=>{ metasHechasAbierto=det.open; });
   renderCamino(ctx);
   try{ pintarInvitaMetas(); cargarRetiro(); }catch(e){ console.error('metas que guian',e); }
 }
@@ -18029,8 +18184,22 @@ async function metasEnServidor(op) {
     const items=Array.isArray(d.items)?d.items.slice():((state.metas&&state.metas.items)||[]).slice();
     if(op.tipo==='alta'){
       if(items.some(i=>i&&i.id===op.item.id)) return {fecha,items};
-      if(items.some(i=>i&&i.cuenta===op.item.cuenta)) return {fecha,items,error:'Ya tienes una meta para esa cuenta: quítala primero si quieres otra.'};
+      // (25-nov-2026, decision de Beto) ya no hay tope de una meta por cuenta: el dialogo avisa que dos metas de la misma cuenta miden el mismo saldo
+      if(items.length>=METAS_MAX) return {fecha,items,error:'Llegaste al máximo de '+METAS_MAX+' metas: quita alguna cumplida para poner otra.'};
       items.push(op.item);
+    } else if(op.tipo==='cumplir'||op.tipo==='reabrir') {
+      const k=items.findIndex(i=>i&&i.id===op.id);
+      if(k<0) return {fecha,items,error:'Esa meta ya no existe: quizá la quitaste en otro aparato.'};
+      const n={...items[k]};
+      if(op.tipo==='cumplir'){
+        if(n.estado==='cumplida') return {fecha,items};   // otro aparato ya la marco: se queda su dia y su cifra
+        n.estado='cumplida'; n.cumplidaEn=op.en;
+        if(Number.isFinite(op.valor)) n.montoAlCumplir=op.valor; else delete n.montoAlCumplir;
+      } else {
+        if(n.estado!=='cumplida') return {fecha,items};
+        delete n.estado; delete n.cumplidaEn; delete n.montoAlCumplir;
+      }
+      items[k]=n;
     } else if(op.tipo==='editar') {
       const k=items.findIndex(i=>i&&i.id===op.id);
       if(k<0) return {fecha,items,error:'Esa meta ya no existe: quizá la quitaste en otro aparato.'};
@@ -18073,13 +18242,13 @@ async function guardarMetas(mensaje, op) {
 // agrego, con lo que hay hoy en cada una), el monto es en pesos y la fecha se ve y se puede cambiar. (18-nov-2026) para todas las carteras:
 // ya no hay prompt() en metas
 let metaDlgModo='nueva', metaDlgId=null;
+// (25-nov-2026, decision de Beto) una cuenta puede tener varias metas: ya no se quitan las que tienen meta (el dialogo avisa)
 function metaCuentasLibres(){
-  const MT=state.metas||{fecha:META_FECHA_DEF,items:[]}, usadas=(MT.items||[]).map(m=>m.cuenta);
   const sinBolsa=bolsaSinUso();   // (18-nov-2026) quien no tiene inversiones no ve "bolsa" entre las cuentas de una meta
-  const fijas=Object.keys(METAS_CUENTAS).filter(c=>!usadas.includes(c)&&!ctaApagada(c)&&!sinUsoFV.has(c)&&!(sinBolsa&&c==='stocks'));
+  const fijas=Object.keys(METAS_CUENTAS).filter(c=>!ctaApagada(c)&&!sinUsoFV.has(c)&&!(sinBolsa&&c==='stocks'));
   // lo de siempre primero (efectivo, bancos y las que agrego la persona); la bolsa y el patrimonio al final: no son lo que alguien nuevo busca
   const alFinal=c=>c==='stocks'||c==='patrimonio';
-  const agregadas=CFG.multi?cuentasXActivas().map(([id])=>id).filter(id=>!usadas.includes(id)):[];
+  const agregadas=CFG.multi?cuentasXActivas().map(([id])=>id):[];
   return [...fijas.filter(c=>!alFinal(c)),...agregadas,...fijas.filter(alFinal)];
 }
 function abrirMetaDlg(modo,id,pre){
@@ -18088,7 +18257,7 @@ function abrirMetaDlg(modo,id,pre){
   const m=modo==='editar'?(MT.items||[]).find(x=>x.id===id):null;
   if(modo==='editar'&&!m){ showToast('esa meta ya no existe'); return; }
   const libres=modo==='nueva'?metaCuentasLibres():[];
-  if(modo==='nueva'&&!libres.length){ showToast('ya tienes una meta para cada cuenta'); return; }
+  if(modo==='nueva'&&!libres.length){ showToast('no hay cuentas para una meta'); return; }
   metaDlgModo=modo; metaDlgId=m?m.id:null;
   $('meta-tit').textContent=modo==='nueva'?(CFG.multi?'Nueva meta':'nueva meta'):(CFG.multi?'Editar meta':'editar meta');
   $('meta-campo-cuenta').hidden=modo!=='nueva';
@@ -18111,15 +18280,25 @@ function abrirMetaDlg(modo,id,pre){
   $('meta-nota').textContent=m?notaV+(vencida?'L':(CFG.multi?'L':'l'))+'a cuenta de una meta no se cambia: si quieres otra, quita esta y crea una nueva.':'';
   $('meta-error').textContent='';
   $('meta-guardar').disabled=false;
+  avisoCuentaMeta();
   if(!d.open) d.showModal();
 }
+// (25-nov-2026) dos metas activas sobre la misma cuenta miden el mismo dinero: se dice, y se deja seguir
+function avisoCuentaMeta(){
+  const el=document.getElementById('meta-aviso-cuenta'); if(!el) return;
+  const c=metaDlgModo==='nueva'?(document.getElementById('meta-cuenta')||{}).value:'';
+  const otras=c?metasActivas().filter(m=>m.cuenta===c):[];
+  el.textContent=otras.length?(CFG.multi?'E':'e')+'sta cuenta ya cuenta para '+otras.map(m=>'«'+tituloMeta(m)+'»').join(' y ')+': '+(otras.length>1?'todas':'las dos')+' medirán el mismo saldo.':'';
+  el.hidden=!otras.length;
+}
+{ const s=document.getElementById('meta-cuenta'); if(s) s.addEventListener('change',avisoCuentaMeta); }
 window.nuevaMeta=()=>abrirMetaDlg('nueva');
 // (20-nov-2026, tanda 4) la invitacion de Inicio: solo se ve sin metas, con datos del servidor y si no dijo "ahora no" en 30 dias
 const META_INVITA_LUEGO_DIAS=30;
 function pintarInvitaMetas() {
   const el=document.getElementById('meta-invita'); if(!el) return;
   let luego=0; try{ luego=+localStorage.getItem(lsKey('metas-luego'))||0; }catch(e){}
-  const sinMetas=!((state.metas||{}).items||[]).length;
+  const sinMetas=!metasActivas().length;   // (25-nov-2026) con solo cumplidas tambien invita a la siguiente
   el.hidden=!(datosCargados&&!cargaDesdeCache&&sinMetas&&Date.now()-luego>META_INVITA_LUEGO_DIAS*864e5);
   const inv=document.getElementById('meta-invita-inv'); if(inv) inv.hidden=!metaCuentasLibres().includes('stocks');
 }
@@ -18157,6 +18336,13 @@ function calcRetiro(o) {
   const factorFut=Math.pow(1+infl/100,a-edad);
   return {capital, aporte, meses:m1, anios:a-edad, mesesRetiro:m2, yaFut, sobra:yaFut>capital?yaFut-capital:0, hitos, conInfl, infl, tReal:t, factorFut};
 }
+// (25-nov-2026) cuanto vale el dinero: lo que hoy cuesta cant, en n años (futuro), y cant de dentro de n años en dinero de hoy (hoy)
+function valorDinero(cant, anios, infl) {
+  if(![cant,anios,infl].every(Number.isFinite)) return {error:'faltan'};
+  if(cant<=0||cant>1e12||!Number.isInteger(anios)||anios<1||anios>80||infl<0||infl>30) return {error:'rango'};
+  const f=Math.pow(1+infl/100,anios);
+  return {cant, anios, infl, factor:f, futuro:cant*f, hoy:cant/f};
+}
 // </retiro-puras>
 const RETIRO_CAMPOS={edad:'ret-edad',a:'ret-a',ingreso:'ret-ingreso',hasta:'ret-hasta',tasa:'ret-tasa',infl:'ret-infl',ya:'ret-ya'};
 // (24-nov-2026) subpestañas de Metas: en memoria, como las de Movimientos
@@ -18168,50 +18354,297 @@ window.metasSub=function(cual){
     if(pe) pe.hidden=!es;
     if(te){ te.classList.toggle('active',es); if(es) te.setAttribute('aria-current','page'); else te.removeAttribute('aria-current'); }
   });
-  if(metasSubActual==='retiro') pintarRetiro();
+  if(metasSubActual==='retiro'){ pintarRetiro(); pintarValor(); }
 };
+// ── FONDO DE RETIRO (25-nov-2026): el retiro se mide con lo que de verdad apartas en su fondo, no con todo lo que ahorras ──
+// el fondo enlazado en perfil.retiro.fondo (si sigue abierto): lo que tiene (apartado + lo que genero) y desde cuando se mide
+function fondoRetiro(){
+  const r=state.perfil&&state.perfil.retiro, id=r&&r.fondo; if(!id) return null;
+  const f=listaFondos(true).find(x=>x.id===id&&!x.cerrado); if(!f) return null;
+  return {id, nombre:f.nombre, tiene:c2(totalFondo(id)+generadoFondo(id)), desde:r.desde||'', base:Number.isFinite(r.base)?r.base:0};
+}
+// lo que entro NETO a un fondo en el mes en curso: apartar y entradas, menos salidas y liberar. El interes (rendimiento) no es aportacion
+// y un traspaso entre cuentas del mismo fondo no cambia nada
+function netoFondoMes(fid){
+  const h=new Date(), ini=new Date(h.getFullYear(),h.getMonth(),1).getTime(), fin=new Date(h.getFullYear(),h.getMonth()+1,1).getTime();
+  const sg={entrada:1,apartar:1,salida:-1,liberar:-1};
+  return c2(((state.fondo&&state.fondo.movs)||[]).reduce((t,m)=>{ if(fondoDeMov(m)!==fid||!sg[m.tipo]) return t;
+    const ms=msFechaMov(m.fecha||m.creado); return ms!==null&&ms>=ini&&ms<fin?t+sg[m.tipo]*nFin(m.monto):t; },0));
+}
+// donde deberias ir: lo que tenia el fondo el dia que se enlazo, mas lo que pide tu retiro cada mes desde entonces, con el rendimiento sin inflacion
+function lineaRetiro(c, fr, tc, fmt){
+  if(!fr.desde) return '';
+  const a=parseFechaLocal(fr.desde), b=new Date();
+  let m=(b.getFullYear()-a.getFullYear())*12+(b.getMonth()-a.getMonth()); if(b.getDate()<a.getDate()) m--;
+  const cuando=fechaMetaLarga(fr.desde);
+  if(m<1) return ' <span class="item-meta">Tu línea arrancó el '+cuando+': al cumplir un mes te digo si vas al día.</span>';
+  const r=Math.pow(1+c.tReal/100,1/12)-1, hayR=Math.abs(r)>1e-12, k=Math.pow(1+r,m);
+  // en la moneda del lugar: lo del fondo (pesos) entre el tipo de cambio de hoy
+  const base=fr.base/tc, tiene=fr.tiene/tc;
+  const debe=hayR?base*k+c.aporte*(k-1)/r:base+c.aporte*m, dif=tiene-debe;
+  return ' <span class="retiro-linea-dif">Desde el '+cuando+' tu fondo tendría unos '+fmt(debe)+' según tu línea, y tiene '+fmt(tiene)+': '+
+    (Math.abs(dif)<1?'vas al día.':dif>0?'vas '+fmt(dif)+' adelante.':'para ir al día te faltan '+fmt(-dif)+'.')+'</span>';
+}
+let retiroUltCalc=null, fondoRetiroOcupado=false;
+function pintarFondoRetiro(c, v, fr, tc){
+  retiroUltCalc=c.error||!tc?null:{c, v, tc};
+  const el=document.getElementById('retiro-fondo'); if(!el) return;
+  const M=t=>CFG.multi?t.charAt(0).toUpperCase()+t.slice(1):t;
+  if(fr){
+    const mt=metaFondo(fr.id), obj=retiroUltCalc?c2(c.capital*tc):0;   // la meta del fondo va en pesos
+    const cambia=obj>0&&(!mt||Math.abs(mt.objetivo-obj)>Math.max(1,obj*0.01));
+    el.innerHTML='<div class="retiro-fondo-tit">'+M('tu fondo de retiro: ')+'«'+escapeHtml(fr.nombre)+'» · '+fmt(fr.tiene)+'</div>'+
+      (mt?'<div class="item-meta">Su meta: '+fmt(mt.objetivo)+(mt.fecha?' para '+MESES[+mt.fecha.slice(5,7)-1]+' '+mt.fecha.slice(0,4):'')+'.</div>':'')+
+      '<div class="retiro-fondo-acc">'+
+      (cambia?'<button type="button" class="btn" id="retiro-fondo-meta">'+M(mt?'cambiar su meta a ':'ponerle de meta ')+fmt(obj)+'</button>':'')+
+      '<button type="button" class="btn" id="retiro-fondo-ver">'+M('ver mi fondo')+'</button></div>';
+    const bm=document.getElementById('retiro-fondo-meta'); if(bm) bm.addEventListener('click',()=>metaFondoRetiro(fr.id));
+    document.getElementById('retiro-fondo-ver').addEventListener('click',()=>irAFondo(fr.id,false));
+    return;
+  }
+  // sin fondo enlazado: si ya hay un fondo que se llama como el retiro, se ofrece ese; si no, crear uno
+  const ya=listaFondos().find(x=>x.id!==FONDO_U&&/retiro/i.test(x.nombre));
+  el.innerHTML=ya
+    ?'<div class="item-meta">Ya tienes un fondo «'+escapeHtml(ya.nombre)+'»: úsalo para medir tu retiro con lo que apartas ahí.</div>'+
+      '<div class="retiro-fondo-acc"><button type="button" class="btn btn-purple" id="retiro-fondo-usar">'+M('medir mi retiro con este fondo')+'</button></div>'
+    :'<div class="item-meta">Aparta tu retiro en su propio fondo: cada mes verás cuánto apartaste contra lo que pide, y si vas al día con tu línea.</div>'+
+      (c.error?'<div class="item-meta">'+M('cuando tus números de arriba estén completos, aquí lo creas.')+'</div>'
+        :'<div class="retiro-fondo-acc"><button type="button" class="btn btn-purple" id="retiro-fondo-crear">'+M('crear mi fondo de retiro')+'</button></div>');
+  const bu=document.getElementById('retiro-fondo-usar'); if(bu) bu.addEventListener('click',()=>usarFondoRetiro(ya.id));
+  const bc=document.getElementById('retiro-fondo-crear'); if(bc) bc.addEventListener('click',crearFondoRetiro);
+}
+// la meta del fondo es lo que pide tu linea (en pesos de hoy), para el mes en que te retiras
+function metaDeLinea(){
+  if(!retiroUltCalc) return null;
+  const {c, v, tc}=retiroUltCalc, h=new Date();
+  return {objetivo:c2(c.capital*tc), fecha:(h.getFullYear()+(Number(v.a)-Number(v.edad)))+'-'+String(h.getMonth()+1).padStart(2,'0')};
+}
+async function crearFondoRetiro(){
+  if(fondoRetiroOcupado) return;
+  const meta=metaDeLinea(); if(!meta){ showToast(CFG.multi?'Primero escribe tus números del retiro':'primero escribe tus números del retiro'); return; }
+  if(!datosCargados||cargaDesdeCache||navigator.onLine===false){ showToast('sin señal: el fondo se crea cuando haya conexión'); return; }
+  fondoRetiroOcupado=true;
+  try{
+    const id=idFondoNuevo();
+    if(!(await cambiarListaFondos(altaEnLista(id,CFG.multi?'Retiro':'retiro'),CFG.multi?'Fondo creado: Retiro':'fondo creado: retiro'))) return;
+    try{ await guardarMetaFondo(id,meta); }catch(e){ console.error('meta retiro',e); showToast('el fondo se creó, pero su meta no: pónsela desde aquí'); }
+    if(!(await guardarRetiroNube({fondo:id,desde:hoyLocal(),base:0},true))) showToast('el fondo se creó; el retiro lo empieza a medir cuando haya señal');
+  } finally { fondoRetiroOcupado=false; refrescar(renderApartados, pintarRetiro); }
+}
+async function usarFondoRetiro(id){
+  if(fondoRetiroOcupado) return;
+  if(!datosCargados||cargaDesdeCache||navigator.onLine===false){ showToast('sin señal: inténtalo cuando haya conexión'); return; }
+  fondoRetiroOcupado=true;
+  try{
+    const base=c2(totalFondo(id)+generadoFondo(id));
+    if(!(await guardarRetiroNube({fondo:id,desde:hoyLocal(),base},true))){ showToast('no se guardó: revisa tu conexión'); return; }
+    const meta=metaDeLinea(); if(meta&&!metaFondo(id)) { try{ await guardarMetaFondo(id,meta); }catch(e){ console.error('meta retiro',e); } }
+    showToast(CFG.multi?'Listo: tu retiro se mide con ese fondo':'listo: tu retiro se mide con ese fondo');
+  } finally { fondoRetiroOcupado=false; refrescar(renderApartados, pintarRetiro); }
+}
+async function metaFondoRetiro(id){
+  const meta=metaDeLinea(); if(!meta||fondoRetiroOcupado) return;
+  fondoRetiroOcupado=true;
+  try{ await guardarMetaFondo(id,meta); showToast('meta del fondo: '+fmt(meta.objetivo)); }
+  catch(e){ console.error('meta retiro',e); showToast('no se guardó: revisa tu conexión'); }
+  finally{ fondoRetiroOcupado=false; refrescar(renderApartados, pintarRetiro); }
+}
+// (25-nov-2026, decision de Beto del 24-nov) donde te vas a retirar: cinco lugares, cada uno en su moneda y con su inflacion. Dos opciones de
+// inflacion con su fuente: la meta del banco central (o del gobierno, en China) y el promedio de 2005 a 2024 (promedio geometrico de la
+// inflacion anual al consumidor, Banco Mundial FP.CPI.TOTL.ZG, bajado de FRED el 25-nov-2026; la serie sale de INEGI, BLS, Eurostat,
+// ABS y la Oficina Nacional de Estadistica de China). 20 años y no 50: en Mexico 50 años traen la inflacion de los 80 (mas de 30% al año)
+const LUGARES_RETIRO={
+  mx:{n:'México', m:'MXN', pl:'pesos', meta:3, metaTxt:'la del Banco de México (3%, con margen de un punto arriba o abajo)', prom:4.44},
+  us:{n:'Estados Unidos', m:'USD', pl:'dólares', meta:2, metaTxt:'la de la Reserva Federal (2%)', prom:2.57},
+  eu:{n:'Zona euro', m:'EUR', pl:'euros', meta:2, metaTxt:'la del Banco Central Europeo (2% a mediano plazo)', prom:2.25},
+  au:{n:'Australia', m:'AUD', pl:'dólares australianos', meta:2.5, metaTxt:'el punto medio de la del Banco de la Reserva de Australia (entre 2% y 3%)', prom:2.74},
+  cn:{n:'China', m:'CNY', pl:'yuanes', meta:2, metaTxt:'la del gobierno de China para 2026 (alrededor de 2%)', prom:2.25}};
+const PROM_INFL_TXT='de 2005 a 2024, la inflación al consumidor de cada año (Banco Mundial, con datos de la oficina de estadística de cada lugar)';
+const fmtPesos=n=>fmt(n);
+function lugarRetiro(){ const s=document.getElementById('ret-lugar'), k=s&&s.value; return Object.hasOwn(LUGARES_RETIRO,k||'')?{k,...LUGARES_RETIRO[k]}:{k:'mx',...LUGARES_RETIRO.mx}; }
+// las dos opciones de inflacion del lugar, como botones que llenan el campo
+function pintarInflOps(L){
+  const el=document.getElementById('ret-infl-ops'); if(!el) return;
+  const i=document.getElementById('ret-infl'), cur=i&&i.value!==''?Number(i.value):null, M=t=>CFG.multi?t.charAt(0).toUpperCase()+t.slice(1):t;
+  const op=(v,t)=>'<button type="button" class="ri-op" data-infl="'+v+'" aria-pressed="'+(cur===v)+'">'+M(t)+': '+v+'%</button>';
+  el.innerHTML=op(L.meta,'meta')+op(L.prom,'promedio de 20 años')+
+    '<span class="ri-fuente">'+M('meta: '+L.metaTxt+'. Promedio: '+PROM_INFL_TXT+'.')+(L.k==='mx'?' No uso 50 años: incluirían la inflación de los 80, de más de 30% al año, que no describe hoy.':'')+'</span>';
+}
+{ const el=document.getElementById('ret-infl-ops');
+  if(el) el.addEventListener('click',ev=>{ const b=ev.target.closest('.ri-op'); if(!b) return; const i=document.getElementById('ret-infl'); if(!i) return;
+    i.value=b.dataset.infl; i.dispatchEvent(new Event('input')); });
+  const s=document.getElementById('ret-lugar');
+  if(s){ s.dataset.prev=s.value; s.addEventListener('change',()=>{
+    // jugar con las monedas: si la inflacion era la meta o el promedio del lugar anterior, pasa a la del nuevo
+    // (el lugar anterior vive en dataset.prev: cargarRetiro tambien cambia el valor y lo actualiza)
+    const A=LUGARES_RETIRO[s.dataset.prev], N=LUGARES_RETIRO[s.value], i=document.getElementById('ret-infl');
+    if(A&&N&&i&&i.value!==''){ const v=Number(i.value); if(v===A.meta) i.value=String(N.meta); else if(v===A.prom) i.value=String(N.prom); }
+    s.dataset.prev=s.value; s.dataset.tocado='1';
+    if(N&&N.m!=='MXN'&&!(tcDe(N.m)&&state.fx&&state.fx.bajado===hoyLocal())) asegurarTipoCambio(true).then(()=>pintarRetiro());
+    pintarRetiro(); guardarRetiroLocal(); guardarRetiroNube(); }); } }
 function pintarRetiro() {
   const res=document.getElementById('retiro-res'); if(!res) return;
+  const L=lugarRetiro(), tc=tcDe(L.m), enPesos=L.m==='MXN';
+  // las cifras del retiro van en la moneda del lugar; lo del fondo (en pesos) se pasa con el tipo de cambio de hoy
+  const fmt=n=>enPesos?fmtPesos(n):fmtX(n,L.m);
+  pintarInflOps(L);
+  const ing=document.getElementById('ret-ingreso'); if(ing) ing.placeholder=(CFG.multi?'En ':'en ')+L.pl+' de hoy';
   const v={}; Object.entries(RETIRO_CAMPOS).forEach(([k,id])=>{ const e=document.getElementById(id); v[k]=e&&e.value!==''?Number(e.value):(k==='ya'?0:(k==='infl'?'':NaN)); });
+  // (25-nov-2026) con fondo de retiro, lo que tiene el fondo cuenta como "ya tienes" (el campo queda para lo de fuera, como el Afore)
+  const fr=fondoRetiro(), lblYa=document.querySelector('label[for="ret-ya"]'), frOk=fr&&(enPesos||!!tc);
+  if(lblYa) lblYa.textContent=fr?(CFG.multi?'Además de tu fondo, ya tienes':'además de tu fondo, ya tienes'):(CFG.multi?'Ya tienes para esto':'ya tienes para esto');
+  if(frOk) v.ya=(Number(v.ya)||0)+fr.tiene/(enPesos?1:tc);
   const c=calcRetiro(v);
+  pintarFondoRetiro(c, v, fr, enPesos?1:tc);
   if(c.error==='faltan'){ res.innerHTML='<div class="item-meta">Escribe tu edad, a qué edad te quieres retirar, cuánto quieres recibir al mes, hasta qué edad y el rendimiento que supones.</div>'; return; }
   if(c.error){ res.innerHTML='<div class="item-meta">Revisa los números: la edad de retiro va después de tu edad, y "hasta los" después del retiro.</div>'; return; }
+  const dinero=enPesos?'pesos':L.pl;
   const big=c.aporte>0.005
-    ?'Necesitarías juntar unos '+fmt(c.capital)+' (en pesos de hoy) a los '+v.a+'. Con lo que ya tienes, eso es meter unos '+fmt(c.aporte)+' al mes durante '+c.anios+(c.anios===1?' año':' años')+'.'
-    :'Con lo que ya tienes y ese rendimiento, a los '+v.a+' tendrías unos '+fmt(c.yaFut)+' (en pesos de hoy): con esos números alcanzaría para recibir '+fmt(v.ingreso)+' al mes hasta los '+v.hasta+' sin meter más.';
-  // (24-nov-2026, Beto: "que te vaya diciendo: vas en el 50% de lo que tienes que juntar al mes") lo que llevas este mes contra lo que pide el retiro:
-  // es el mismo neto de "aportaste" de Inicio y del Resumen (lo que entro a tus cuentas de ahorro y a la bolsa), no solo lo del retiro
+    ?'Necesitarías juntar unos '+fmt(c.capital)+' (en '+dinero+' de hoy) a los '+v.a+'. Con lo que ya tienes, eso es meter unos '+fmt(c.aporte)+' al mes durante '+c.anios+(c.anios===1?' año':' años')+'.'
+    :'Con lo que ya tienes y ese rendimiento, a los '+v.a+' tendrías unos '+fmt(c.yaFut)+' (en '+dinero+' de hoy): con esos números alcanzaría para recibir '+fmt(v.ingreso)+' al mes hasta los '+v.hasta+' sin meter más.';
+  // (25-nov-2026) cuanto vale el dinero, al frente y de las dos formas
+  const valor=c.conInfl&&c.infl>0
+    ?'<div class="retiro-valor">Para comprar lo que hoy compras con '+fmt(v.ingreso)+', a los '+v.a+' necesitarás unos '+fmt(v.ingreso*c.factorFut)+' al mes. Dicho al revés: '+fmt(v.ingreso)+' de ese año valdrán como '+fmt(v.ingreso/c.factorFut)+' de hoy (con '+c.infl+'% de inflación al año).</div>'
+    :'';
+  // en otra moneda, lo mismo en pesos con el tipo de cambio de hoy (el de dentro de muchos años nadie lo sabe)
+  // (revision) si el tipo de cambio no es de hoy, se dice de que dia es
+  const dFx=fxDias(), tcCuando=(dFx!==null&&dFx>0&&state.fx&&state.fx.fecha)?'del '+parseFechaLocal(state.fx.fecha).toLocaleDateString('es-MX',{day:'numeric',month:'short'}):'de hoy';
+  const pesos=enPesos?'':(tc
+    ?'<div class="item-meta">En pesos, al tipo de cambio '+tcCuando+': juntar unos '+fmtPesos(c.capital*tc)+(c.aporte>0.005?' y meter unos '+fmtPesos(c.aporte*tc)+' al mes':'')+'. Es solo para darte una idea: nadie sabe el tipo de cambio de dentro de '+c.anios+' años.</div>'
+    :'<div class="item-meta">Todavía no tengo el tipo de cambio de hoy para pasarlo a pesos: se baja solo con señal.</div>');
+  // (24-nov-2026, Beto: "que te vaya diciendo: vas en el 50% de lo que tienes que juntar al mes") lo que llevas este mes contra lo que pide el retiro
   let mes='';
-  if(c.aporte>0.005){
-    const h=new Date(), ap=apTotal(aportacionesEnRango(new Date(h.getFullYear(),h.getMonth(),1),new Date(h.getFullYear(),h.getMonth()+1,1)));
+  if(c.aporte>0.005&&fr&&!frOk){
+    mes='<div class="retiro-mes">Para comparar tu fondo (en pesos) con lo que pide tu retiro en '+L.pl+' hace falta el tipo de cambio de hoy: se baja solo con señal.</div>';
+  } else if(c.aporte>0.005&&fr){
+    // lo que entro NETO al fondo este mes (apartar y entradas menos lo que salio; el interes no es aportacion)
+    const ap=netoFondoMes(fr.id)/(enPesos?1:tc), pct=Math.round(ap/c.aporte*100);
     mes='<div class="retiro-mes">'+(ap>0.005
-      ?'Este mes llevas '+fmt(ap)+' en ahorro e inversión: es el '+Math.round(ap/c.aporte*100)+'% de los '+fmt(c.aporte)+' al mes de tu retiro.'
-      :(ap< -0.005?'Este mes salió más de tu ahorro e inversión de lo que entró ('+fmt(-ap)+'); tu retiro pide unos '+fmt(c.aporte)+' al mes.'
-        :'Este mes todavía no metes nada a ahorro e inversión; tu retiro pide unos '+fmt(c.aporte)+' al mes.'))+'</div>';
+      ?'Este mes apartaste '+fmt(ap)+' en tu fondo de retiro: es el '+pct+'% de los '+fmt(c.aporte)+' al mes que pide tu retiro.'
+      :(ap< -0.005?'Este mes salió '+fmt(-ap)+' de tu fondo de retiro; tu retiro pide unos '+fmt(c.aporte)+' al mes.'
+        :'Este mes todavía no apartas nada en tu fondo de retiro; tu retiro pide unos '+fmt(c.aporte)+' al mes.'))+
+      (enPesos?'':' <span class="item-meta">Tu fondo está en pesos: lo paso a '+L.pl+' con el tipo de cambio '+tcCuando+'.</span>')+lineaRetiro(c, fr, enPesos?1:tc, fmt)+'</div>';
+  } else if(c.aporte>0.005){
+    const h=new Date(), apP=apTotal(aportacionesEnRango(new Date(h.getFullYear(),h.getMonth(),1),new Date(h.getFullYear(),h.getMonth()+1,1)));
+    if(enPesos||tc){ const ap=apP/(enPesos?1:tc);
+      mes='<div class="retiro-mes">'+(ap>0.005
+        ?'Este mes llevas '+fmt(ap)+' en ahorro e inversión: es el '+Math.round(ap/c.aporte*100)+'% de los '+fmt(c.aporte)+' al mes de tu retiro.'
+        :(ap< -0.005?'Este mes salió más de tu ahorro e inversión de lo que entró ('+fmt(-ap)+'); tu retiro pide unos '+fmt(c.aporte)+' al mes.'
+          :'Este mes todavía no metes nada a ahorro e inversión; tu retiro pide unos '+fmt(c.aporte)+' al mes.'))+
+        ' <span class="item-meta">Sin fondo de retiro, aquí cuenta todo lo que metes a ahorro e inversión.</span></div>';
+    }
   }
   const fut=c.conInfl&&c.infl>0
-    ?'<div class="item-meta">En pesos de ese año, con '+c.infl+'% de inflación: recibir '+fmt(v.ingreso)+' de hoy serán unos '+fmt(v.ingreso*c.factorFut)+' al mes, y lo que juntes, unos '+fmt(Math.max(c.capital,c.yaFut)*c.factorFut)+'. Tu rendimiento sin inflación queda en '+c.tReal.toFixed(1)+'% al año.</div>'
-    :(c.conInfl?'':'<div class="item-meta">Sin inflación: si el rendimiento que pusiste no le quita la inflación, escribe la que supones y la cuenta se ajusta.</div>');
-  res.innerHTML='<div class="retiro-big">'+big+'</div>'+mes+'<ul class="retiro-linea">'
+    ?'<div class="item-meta">Lo que juntes, en dinero de ese año: unos '+fmt(Math.max(c.capital,c.yaFut)*c.factorFut)+'. Tu rendimiento sin inflación queda en '+c.tReal.toFixed(1)+'% al año.</div>'
+    :(c.conInfl?'':'<div class="item-meta">Sin inflación: si el rendimiento que pusiste no le quita la inflación, escribe la que supones (arriba tienes dos opciones) y la cuenta se ajusta.</div>');
+  res.innerHTML='<div class="retiro-big">'+big+'</div>'+valor+pesos+mes+'<ul class="retiro-linea">'
     +c.hitos.map(h=>'<li>a los <b>'+h.edad+'</b>: '+(h.edad===Number(v.a)?'llegas con '+fmt(h.saldo):'llevarías '+fmt(h.saldo))+'</li>').join('')
     +'<li>de los '+v.a+' a los '+v.hasta+': recibes '+fmt(v.ingreso)+' al mes</li></ul>'+fut;
 }
-{ const guardar=()=>{ try{ const v={};
+// la calculadora corta: cantidad, años e inflacion. No guarda nada
+function pintarValor(){
+  const res=document.getElementById('valor-res'); if(!res) return;
+  const n=id=>{ const e=document.getElementById(id); return e&&e.value!==''?Number(e.value):NaN; };
+  const r=valorDinero(n('val-cant'),n('val-anios'),n('val-infl'));
+  if(r.error==='faltan'){ res.innerHTML='<div class="item-meta">Escribe una cantidad, en cuántos años y la inflación que supones (por ejemplo, la de arriba).</div>'; return; }
+  if(r.error){ res.innerHTML='<div class="item-meta">Revisa los números: años de 1 a 80 e inflación de 0 a 30%.</div>'; return; }
+  const L=lugarRetiro(), f=x=>L.m==='MXN'?fmtPesos(x):fmtX(x,L.m);
+  res.innerHTML='<div class="retiro-valor">Lo que hoy cuesta '+f(r.cant)+', en '+r.anios+(r.anios===1?' año':' años')+' costará unos '+f(r.futuro)+'.<br>Y '+f(r.cant)+' de dentro de '+r.anios+(r.anios===1?' año':' años')+' valdrán como '+f(r.hoy)+' de hoy.</div>';
+}
+['val-cant','val-anios','val-infl'].forEach(id=>{ const e=document.getElementById(id); if(e) e.addEventListener('input',pintarValor); });
+// (25-nov-2026, decision de Beto: "en mi cuenta") los numeros del retiro viven en <NS>/perfil.retiro, para verse igual en todos los aparatos.
+// La edad se guarda como año de nacimiento (ano): guardada como edad se congelaria. El fondo de retiro enlazado (fondo), el dia en que se
+// enlazo (desde) y lo que tenia ese dia (base) dan "donde deberias ir". localStorage queda de copia del aparato (sin señal, o antes de cargar)
+const RETIRO_RANGOS={a:[30,90],ingreso:[0.01,1e9],hasta:[40,110],tasa:[0,30],infl:[0,30],ya:[0,1e12]};
+function hoyLocalMas(d){ const x=new Date(Date.now()+d*864e5); return x.getFullYear()+'-'+String(x.getMonth()+1).padStart(2,'0')+'-'+String(x.getDate()).padStart(2,'0'); }
+function saneaRetiro(r){
+  if(!r||typeof r!=='object'||Array.isArray(r)) return null;
+  const o={}, anoAct=new Date().getFullYear();
+  Object.entries(RETIRO_RANGOS).forEach(([k,[mn,mx]])=>{ if(Number.isFinite(r[k])&&r[k]>=mn&&r[k]<=mx) o[k]=r[k]; });
+  if(Number.isInteger(r.ano)&&r.ano>anoAct-91&&r.ano<=anoAct-15) o.ano=r.ano;
+  if(esIdFondo(r.fondo)&&r.fondo!==FONDO_U) o.fondo=r.fondo;
+  // (qa) hasta dos dias adelante: otro aparato en otra zona horaria (Australia) pudo enlazarlo en su "hoy"; sin esto se borraba
+  if(typeof r.desde==='string'&&fechaCalendarioValida(r.desde)&&r.desde<=hoyLocalMas(2)) o.desde=r.desde;
+  if(Number.isFinite(r.base)&&r.base>=0&&r.base<=1e12) o.base=c2(r.base);
+  if(typeof r.lugar==='string'&&Object.hasOwn(LUGARES_RETIRO,r.lugar)) o.lugar=r.lugar;
+  return Object.keys(o).length?o:null;
+}
+// lo que dicen los campos, en el formato de la cuenta (la edad solo si la escribio la persona)
+function retiroDeCampos(){
+  const o={};
+  Object.entries(RETIRO_CAMPOS).forEach(([k,id])=>{ const e=document.getElementById(id); if(!e||e.value==='') return;
+    const n=Number(e.value); if(!Number.isFinite(n)) return;
+    if(k==='edad'){ if(e.dataset.tocado&&Number.isInteger(n)) o.ano=new Date().getFullYear()-n; return; }
+    o[k]=n; });
+  const s=document.getElementById('ret-lugar'); if(s&&Object.hasOwn(LUGARES_RETIRO,s.value)) o.lugar=s.value;
+  return o;
+}
+let retiroNubeProm=null, retiroNubeReloj=null, retiroNubePend=false, retiroNubeVuelo=false, retiroSubido=false, retiroNubeIntento=0, retiroExtra={}, retiroNubeRehacer=false, retiroTcPedido=false;   // un reintento desde la carga, a lo mucho cada minuto
+// extra: lo que no sale de los campos (fondo, desde, base). Con espera: se escribe al dejar de teclear. Sin señal o con la copia local no se
+// escribe (se intenta otra vez al siguiente cambio o al cargar); nunca se encola una escritura vieja
+function guardarRetiroNube(extra, ya){
+  if(extra){ retiroExtra={...retiroExtra,...extra}; retiroNubePend=true; }
+  clearTimeout(retiroNubeReloj);
+  const hacer=async(espera)=>{ retiroNubeReloj=null;
+    if(!datosCargados||cargaDesdeCache||navigator.onLine===false){ retiroNubePend=true; return false; }
+    // (revision) hay otra escritura en vuelo: se marca para repetir al terminar esa (si no, la edicion quedaba solo en el aparato)
+    // (qa) quien espera respuesta (crear o usar el fondo) aguarda a que termine la otra y escribe despues: asi el aviso dice la verdad
+    if(retiroNubeVuelo&&espera&&retiroNubeProm){ try{ await retiroNubeProm; }catch(e){} return hacer(true); }
+    if(retiroNubeVuelo){ retiroNubePend=true; retiroNubeRehacer=true; return false; }
+    retiroNubeVuelo=true; retiroNubeIntento=Date.now();
+    // (revision) el mapa se arma en una transaccion sobre lo que HAY en el servidor: fondo, desde y base que creo otro aparato no se borran.
+    // Lo que se borro en pantalla (campo vacio) sigue borrandose; la edad vacia solo si la persona la toco.
+    const extra={...retiroExtra}, campos=retiroDeCampos(), vacios=[];
+    Object.entries(RETIRO_CAMPOS).forEach(([k,id])=>{ const e=document.getElementById(id); if(e&&e.value===''&&(k!=='edad'||e.dataset.tocado)) vacios.push(k==='edad'?'ano':k); });
+    let fin; retiroNubeProm=new Promise(ok=>{ fin=ok; });
+    try{
+      const ref=doc(db,NS,'perfil');
+      const obj=await Promise.race([runTransaction(db,async tx=>{
+        const s=await tx.get(ref), srv=s.exists()?((s.data()||{}).retiro):null;
+        const m={...(saneaRetiro(srv)||{}),...extra,...campos};
+        vacios.forEach(k=>{ if(!Object.hasOwn(extra,k)&&!Object.hasOwn(campos,k)) delete m[k]; });
+        const o=saneaRetiro(m);
+        tx.set(ref,{retiro:o||{}},{mergeFields:['retiro']});
+        return o;
+      }),
+        new Promise((_,no)=>setTimeout(()=>no(new Error('tiempo agotado')),15000))]);
+      state.perfil={...state.perfil,retiro:obj}; retiroNubePend=false; retiroExtra={}; setSyncDot('ok');
+      return true;
+    }catch(e){ console.error('retiro',e); retiroNubePend=true; setSyncDot('err'); return false; }
+    finally{ retiroNubeVuelo=false; fin();
+      if(retiroNubeRehacer){ retiroNubeRehacer=false; if(!retiroNubeReloj) retiroNubeReloj=setTimeout(hacer,1500); } }
+  };
+  if(ya) return hacer(true);
+  retiroNubeReloj=setTimeout(hacer,1500);
+  return Promise.resolve(null);
+}
+function guardarRetiroLocal(){ try{ const v={};
     Object.entries(RETIRO_CAMPOS).forEach(([k,id])=>{ const e=document.getElementById(id); if(!e||e.value==='') return;
       // (revision) la edad que salio del perfil no se guarda: guardada se congelaria y un año despues seguiria igual
       if(k==='edad'&&!e.dataset.tocado) return;
       v[k]=e.value; });
-    localStorage.setItem(lsKey('retiro'),JSON.stringify(v)); }catch(e){} };
-  Object.values(RETIRO_CAMPOS).forEach(id=>{ const e=document.getElementById(id); if(e) e.addEventListener('input',()=>{ e.dataset.tocado='1'; pintarRetiro(); guardar(); }); }); }
+    const s=document.getElementById('ret-lugar'); if(s&&s.value!=='mx') v.lugar=s.value;
+    localStorage.setItem(lsKey('retiro'),JSON.stringify(v)); }catch(e){} }
+Object.values(RETIRO_CAMPOS).forEach(id=>{ const e=document.getElementById(id); if(e) e.addEventListener('input',()=>{ e.dataset.tocado='1'; pintarRetiro(); guardarRetiroLocal(); guardarRetiroNube(); }); });
 function cargarRetiro() {
   let v={}; try{ v=JSON.parse(localStorage.getItem(lsKey('retiro'))||'{}')||{}; }catch(e){}
+  // lo de la cuenta manda sobre la copia del aparato; si la cuenta aun no tiene nada y el aparato si, se sube una vez
+  const nube=state.perfil&&state.perfil.retiro;
+  if(nube){ v={}; Object.keys(RETIRO_CAMPOS).forEach(k=>{ if(k==='edad'){ if(nube.ano) v.edad=String(new Date().getFullYear()-nube.ano); } else if(nube[k]!==undefined) v[k]=String(nube[k]); }); if(nube.lugar) v.lugar=nube.lugar; }
+  const sl=document.getElementById('ret-lugar');
+  if(sl&&!sl.dataset.tocado&&typeof v.lugar==='string'&&Object.hasOwn(LUGARES_RETIRO,v.lugar)){ sl.value=v.lugar; sl.dataset.prev=sl.value; }
+  // (revision) con un lugar guardado en otra moneda, el tipo de cambio de hoy se pide una vez por carga (antes solo al cambiar el select)
+  { const L0=lugarRetiro();
+    if(L0.m!=='MXN'&&!retiroTcPedido&&datosCargados&&!cargaDesdeCache&&navigator.onLine!==false&&!(tcDe(L0.m)&&state.fx&&state.fx.bajado===hoyLocal())){
+      retiroTcPedido=true; asegurarTipoCambio(true).then(()=>pintarRetiro()).catch(()=>{}); } }
   Object.entries(RETIRO_CAMPOS).forEach(([k,id])=>{ const e=document.getElementById(id); if(e&&e.value===''&&!e.dataset.tocado&&typeof v[k]==='string'&&/^[0-9]+([.][0-9]+)?$/.test(v[k])&&v[k].length<16){ e.value=v[k]; if(k==='edad') e.dataset.tocado='1'; } });
+  if((!nube&&Object.keys(v).length&&datosCargados&&!cargaDesdeCache&&!retiroSubido)||(retiroNubePend&&!retiroNubeVuelo&&!retiroNubeReloj&&Date.now()-retiroNubeIntento>60000)){ retiroSubido=true; guardarRetiroNube(null,true); }
   // la edad sale del perfil si la persona no la escribio
   const ed=document.getElementById('ret-edad'), an=state.perfil&&state.perfil.anoNac;
   if(ed&&ed.value===''&&!ed.dataset.tocado&&Number.isInteger(an)) ed.value=String(new Date().getFullYear()-an);
   // (revision) en modo privado los montos que la persona escribio tampoco se ven en los campos
-  ['ret-ingreso','ret-ya'].forEach(id=>{ const e=document.getElementById(id); if(e) e.type=modoPrivado?'password':'number'; });
-  pintarRetiro();
+  ['ret-ingreso','ret-ya','val-cant'].forEach(id=>{ const e=document.getElementById(id); if(e) e.type=modoPrivado?'password':'number'; });
+  pintarRetiro(); pintarValor();   // la calculadora tambien: al prender el modo privado no debe quedar un monto
 }
 window.editarMeta=id=>abrirMetaDlg('editar',id);
 window.cerrarMetaDlg=()=>{ const d=document.getElementById('meta-dlg'); if(d&&d.open) d.close(); };
@@ -18232,7 +18665,7 @@ window.guardarMetaDlg=async function(){
   if(metaDlgModo==='nueva'){
     const cuenta=$('meta-cuenta').value;
     if(!metaCuentasLibres().includes(cuenta)){ err(CFG.multi?'Elige una de tus cuentas.':'elige una de tus cuentas.'); return; }
-    const item={id:(crypto.randomUUID?crypto.randomUUID():String(Date.now())+Math.random().toString(36).slice(2)),cuenta,monto,fecha};
+    const item={id:(crypto.randomUUID?crypto.randomUUID():String(Date.now())+Math.random().toString(36).slice(2)),cuenta,monto,fecha,creada:hoyLocal()};
     if(nombre) item.nombre=nombre;
     op={tipo:'alta',item}; mensaje=nombre?'meta «'+nombre+'» creada':'meta de '+nombreMeta(cuenta)+' creada';
   } else {
@@ -18242,6 +18675,20 @@ window.guardarMetaDlg=async function(){
   const bien=await guardarMetas(mensaje,op);
   b.disabled=false;
   if(bien) cerrarMetaDlg(); else err(metasUltimoError||(CFG.multi?'No se pudo guardar: revisa tu conexión e inténtalo otra vez.':'no se pudo guardar: revisa tu conexión e inténtalo otra vez.'));
+};
+// (25-nov-2026) marcar cumplida congela lo que habia ese dia (si se puede medir); regresarla a activa lo quita. Ninguna borra dinero
+window.cumplirMeta = async function(id) {
+  const m=((state.metas||{}).items||[]).find(x=>x.id===id); if(!m||!metaActiva(m)) return;
+  const ctx=metasCtxUlt||{stocks:0,patrimonio:0};
+  const valor=metaBloqueada(m.cuenta,ctx)?undefined:Math.round(valorMeta(m.cuenta,ctx)*100)/100;
+  const bien=await guardarMetas('meta «'+tituloMeta(m)+'» cumplida',{tipo:'cumplir',id,en:hoyLocal(),valor});
+  if(!bien&&metasUltimoError) showToast(metasUltimoError);
+  if(bien){ metasHechasAbierto=true; render(); const d=document.getElementById('metas-hechas'); if(d) d.scrollIntoView({block:'nearest'}); }
+};
+window.reabrirMeta = async function(id) {
+  const m=((state.metas||{}).items||[]).find(x=>x.id===id); if(!m||metaActiva(m)) return;
+  const bien=await guardarMetas('la meta «'+tituloMeta(m)+'» volvió a tus metas activas',{tipo:'reabrir',id});
+  if(!bien&&metasUltimoError) showToast(metasUltimoError);
 };
 window.eliminarMeta = async function(id) {
   const MT=state.metas||{fecha:META_FECHA_DEF,items:[]};
@@ -18265,7 +18712,7 @@ const fechaCortaMeta=f=>parseFechaLocal(f).toLocaleDateString('es-MX',{day:'nume
 function renderCamino(ctx) {
   const MT=state.metas||{fecha:META_FECHA_DEF,items:[]};
   const el=document.getElementById('camino-panel'); if(!el) return;
-  if(!(MT.items||[]).length){ el.innerHTML='<div class="empty-state">crea una meta y aquí aparece si vas a tiempo</div>'; return; }
+  if(!metasActivas(MT).length){ el.innerHTML='<div class="empty-state">crea una meta y aquí aparece si vas a tiempo</div>'; return; }
   const hoyD=new Date();
   // meses COMPLETOS que faltan despues del actual (los aportes del mes en curso ya estan en el saldo)
   const mesesHastaMeta=f=>{ const metaD=parseFechaLocal(f); return Math.max(0,(metaD.getFullYear()-hoyD.getFullYear())*12+(metaD.getMonth()-hoyD.getMonth())); };
@@ -18314,14 +18761,17 @@ function renderCamino(ctx) {
         :('a tu ritmo (unos '+promTxt+'/mes) llegarías al '+cuando+' con '+fmt(Math.max(0,proy))+' — sube tu aporte a '+fmt(nece)+'/mes')
     }</div></div></div>`;
   };
-  el.innerHTML=(MT.items||[]).map(m=>{
+  // (25-nov-2026) solo las activas, por plazo (el mismo grupo que en "mis metas")
+  const filaCamino=m=>{
       const nom=tituloMeta(m), f=fechaDeMeta(m,MT);
       const actual=valorMeta(m.cuenta,ctx);
       if(esIdX(m.cuenta)&&metaBloqueada(m.cuenta,ctx)) return `<div class="item-row"><div><div class="item-cat">${escapeHtml(nom)}</div><div class="item-meta">valor pendiente — proyección no disponible</div></div><span class="item-meta">—</span></div>`;
       // solo se proyecta lo que sabemos medir; el resto se muestra sin proyeccion
       const proyectable=METAS_PROYECTABLES.includes(m.cuenta);
       return fila(nom,actual,m.monto,proyectable?suma[m.cuenta]/3:null,metaBloqueada(m.cuenta,ctx),f);
-    }).join('')+
+    };
+  const activas=metasActivas(MT), grupos=PLAZOS_META.map(g=>({...g,metas:activas.filter(m=>plazoDeMeta(fechaDeMeta(m,MT))===g.k)})).filter(g=>g.metas.length);
+  el.innerHTML=grupos.map(g=>(grupos.length>1?`<div class="metas-plazo-tit camino-plazo">${g.t}</div>`:'')+g.metas.map(filaCamino).join('')).join('')+
     `<div class="item-meta" style="text-align:center;padding-top:8px">${huboOp
       ?'proyección conservadora: solo tus aportaciones, sin contar rendimientos'
       :(huboMes?txtMes+'; la proyección usa el promedio de tus meses completos y arranca cuando cierre tu primer mes'
@@ -19386,7 +19836,7 @@ function calcularCierre(start,end,modo) {
     const patTot=patrimonioFisico(stVal)-fondoTotal()-fondoGenerado();
     const ctxM={stocks:stVal, stocksPendiente:posA.length>0&&!stCompleto, patrimonio:patTot};
     // una entrada por meta: el coach las recorre en vez de hablar de dos cuentas fijas
-    const lista=(MT.items||[]).map(m=>({
+    const lista=(MT.items||[]).filter(metaActiva).map(m=>({
       nombre:nombreMeta(m.cuenta),
       ...(m.nombre?{nombre:m.nombre,nombreFrase:m.nombre}:{}),   // la meta con nombre se dice por su nombre (Fundview arma nombreFrase justo arriba: esto lo pisa)
       vencida:hoyLocal()>fechaDeMeta(m,MT),
