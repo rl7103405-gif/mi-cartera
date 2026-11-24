@@ -520,7 +520,8 @@ html[data-tema='grafito'] .tabs{--sombra-scroll:rgba(255,255,255,.16)}
 .meta-invita-ops{display:flex;flex-direction:column;align-items:flex-start;margin:6px 0 2px}.meta-invita-ops .volver-btn{min-height:44px;text-align:left}
 .meta-ritmo{font-weight:600;color:var(--text);margin-top:6px;font-size:13px}
 .retiro-calc .field{margin-bottom:10px}.retiro-filas{display:grid;grid-template-columns:1fr 1fr;gap:0 12px}
-.retiro-res{margin-top:6px}.retiro-res .retiro-big{font-size:15px;font-weight:600;line-height:1.4}
+#metas-sub-metas[hidden],#metas-sub-retiro[hidden]{display:none}   /* (24-nov-2026, code-reviewer) .inicio-grid fija display:grid a 900 px y le ganaba a hidden */
+.retiro-res{margin-top:6px}.retiro-res .retiro-mes{margin:8px 0 2px;padding:8px 10px;border-radius:var(--rs);background:var(--bg3);font-size:13px;line-height:1.45}.retiro-res .retiro-big{font-size:15px;font-weight:600;line-height:1.4}
 .retiro-linea{margin:10px 0 0;padding:0;list-style:none;border-left:2px solid var(--border);padding-left:12px}
 .retiro-linea li{font-size:13px;padding:4px 0;font-variant-numeric:tabular-nums}.retiro-linea li b{font-weight:600}
 .inicio-agregar{display:block;width:100%;margin-top:12px;min-height:48px;padding:12px 14px;background:transparent;border:1px dashed var(--green);border-radius:var(--rs);color:var(--accent-dark);font:inherit;font-size:14px;font-weight:500;text-align:left;cursor:pointer}
@@ -888,6 +889,10 @@ html[data-tema='grafito'] .desliza-dlg.tono-ok{--ok:#2f6f4f}
 .toast{position:fixed;bottom:calc(24px + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%) translateY(80px);background:var(--bg3);border:0.5px solid var(--border2);border-radius:20px;padding:10px 20px;font-size:14px;color:var(--text);transition:transform 0.3s ease;white-space:nowrap;z-index:999}
 .toast.show{transform:translateX(-50%) translateY(0)}
 .status{font-size:12px;color:var(--muted);text-align:center;margin-top:16px;padding-bottom:20px}
+.status-btn{cursor:pointer;width:fit-content;max-width:100%;margin-left:auto;margin-right:auto;min-height:44px;box-sizing:border-box;display:block;padding:13px 12px;line-height:18px;   /* bloque, no flex: en Fundview ::first-letter no llega a un contenedor flex */
+margin-bottom:12px;border-radius:var(--rs);text-decoration:underline;text-decoration-color:var(--border2);text-underline-offset:3px}
+.status-btn:hover{color:var(--text)}
+.status-btn:empty{display:none}
 .mt{margin-top:16px}
 
 /* CHARTS */
@@ -1715,13 +1720,14 @@ html[data-tema='grafito'] #cal-filtro .type-opt.active>span{color:#14171a}
   <button type="button" class="tab active" data-page="inicio" onclick="showPage('inicio')" aria-current="page">inicio</button>
   <button type="button" class="tab" data-page="movimientos" onclick="showPage('movimientos')">movimientos</button>
   <button type="button" class="tab" data-page="calendario" onclick="showPage('calendario')">calendario</button>
+  <!-- (24-nov-2026) deudas con pestaña propia: Marcela buscó su préstamo arriba y no lo vio dentro de movimientos -->
+  <button type="button" class="tab" data-page="deudas" onclick="showPage('deudas')">deudas</button>
   <!-- solo se ve si esta encendido en el perfil (ver aplicarVisibilidadDashboard) -->
   <button type="button" class="tab" data-page="dashboard" id="tab-dashboard" hidden onclick="showPage('dashboard')">inversiones</button>
   <button type="button" class="tab" data-page="fondo" id="tab-fondo" hidden onclick="showPage('fondo')">fondo</button>
   <button type="button" class="tab" data-page="metas" onclick="showPage('metas')">metas</button>
   <button type="button" class="tab" data-page="resumen" onclick="showPage('resumen')">resumen</button>
-  <!-- perfil siempre al final, a la derecha. Deudas y noticias ya no son pestañas: se abren desde
-       movimientos y desde resumen (ver PADRE_PAGINA en showPage) -->
+  <!-- perfil siempre al final, a la derecha. Noticias no es pestaña: se abre desde resumen (ver PADRE_PAGINA en showPage) -->
   <button type="button" class="tab" data-page="perfil" onclick="showPage('perfil')">perfil</button>
 </div>
 
@@ -1909,7 +1915,9 @@ html[data-tema='grafito'] #cal-filtro .type-opt.active>span{color:#14171a}
     hay una versión nueva de la app
     <button type="button" class="btn btn-purple" style="margin-top:8px" onclick="location.reload()">recargar</button>
   </div>
-  <div class="status" id="status-inicio">—</div>
+  <!-- (24-nov-2026) el letrero de precios es el boton de actualizar: se leia como un campo donde se escribe.
+       div con role=button y no <button>: en Fundview .status capitaliza con ::first-letter, que un boton no siempre dibuja -->
+  <div class="status status-btn" id="status-inicio" role="button" tabindex="0" onclick="fetchAll()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();fetchAll();}">—</div>
   <div class="status" id="version-app" style="margin-top:2px;padding-bottom:8px">—</div>
 </div>
 
@@ -1921,7 +1929,6 @@ html[data-tema='grafito'] #cal-filtro .type-opt.active>span{color:#14171a}
     <button type="button" class="stab active" id="mtab-registrar" onclick="movSub('registrar')" aria-current="page">registrar</button>
     <button type="button" class="stab" id="mtab-cats" onclick="movSub('cats')">categorías</button>
     <button type="button" class="stab" id="mtab-sus" onclick="movSub('sus')">suscripciones</button>
-    <button type="button" class="stab" id="mtab-deudas" onclick="showPage('deudas',true)">deudas</button>
   </div>
   <div id="mov-sub-registrar">
   <div class="inicio-grid">
@@ -2396,31 +2403,41 @@ html[data-tema='grafito'] #cal-filtro .type-opt.active>span{color:#14171a}
 <!-- METAS (meta anual + apartados de caprichos) -->
 <div class="page" id="page-metas">
   <div class="mt">
-  <div class="inicio-grid">
+  <!-- (24-nov-2026) dos subpestañas: las metas (con las de tus fondos) y la linea de tiempo del retiro, que es su propia meta mensual -->
+  <div class="subtabs" id="metas-subtabs">
+    <button type="button" class="stab active" id="metab-metas" onclick="metasSub('metas')" aria-current="page">mis metas</button>
+    <button type="button" class="stab" id="metab-retiro" onclick="metasSub('retiro')">retiro</button>
+  </div>
+  <div class="inicio-grid" id="metas-sub-metas">
   <div class="sec">
     <div class="section-title">mis metas</div>
     <div class="panel" id="metas-panel"><div class="empty-state">calculando...</div></div>
     <div class="section-title mt">camino a tus metas</div>
     <div class="panel" id="camino-panel"><div class="empty-state">calculando...</div></div>
+  </div>
+  <div class="sec" id="metas-fondos-sec">
+    <!-- (28-oct-2026) los apartados ahora son fondos: separan el dinero de verdad. Aqui solo se ve el avance -->
+    <div class="section-title">metas de tus fondos</div>
+    <div class="panel" id="apartados-panel"><div class="empty-state">cargando...</div></div>
+  </div>
+  </div>
+  <div id="metas-sub-retiro" hidden>
+  <div class="sec">
     <!-- (20-nov-2026, tanda 4) una cuenta con TUS numeros: edad, lo que quieres recibir y el rendimiento que tu supones. No es asesoria -->
-    <div class="section-title mt">línea de tiempo para tu retiro</div>
+    <div class="section-title">línea de tiempo para tu retiro</div>
     <div class="panel retiro-calc" id="retiro-panel">
       <div class="retiro-filas">
         <div class="field"><label for="ret-edad">tu edad</label><input type="number" id="ret-edad" inputmode="numeric" min="15" max="90" step="1"></div>
         <div class="field"><label for="ret-a">te quieres retirar a los</label><input type="number" id="ret-a" inputmode="numeric" min="30" max="90" step="1" placeholder="ej. 65"></div>
         <div class="field"><label for="ret-ingreso">quieres recibir al mes</label><input type="number" id="ret-ingreso" inputmode="decimal" min="0" step="any" placeholder="en pesos de hoy"></div>
         <div class="field"><label for="ret-hasta">que te alcance hasta los</label><input type="number" id="ret-hasta" inputmode="numeric" min="40" max="110" step="1" placeholder="ej. 90"></div>
-        <div class="field"><label for="ret-tasa">rendimiento al año que supones, ya sin inflación (%)</label><input type="number" id="ret-tasa" inputmode="decimal" min="0" max="30" step="any"></div>
+        <div class="field"><label for="ret-tasa">rendimiento al año que supones (%)</label><input type="number" id="ret-tasa" inputmode="decimal" min="0" max="30" step="any"></div>
+        <div class="field"><label for="ret-infl">inflación al año que supones (%)</label><input type="number" id="ret-infl" inputmode="decimal" min="0" max="30" step="any" placeholder="la meta del Banco de México es 3"></div>
         <div class="field"><label for="ret-ya">ya tienes para esto</label><input type="number" id="ret-ya" inputmode="decimal" min="0" step="any" placeholder="0"></div>
       </div>
       <div class="retiro-res" id="retiro-res" aria-live="polite"></div>
-      <div class="item-meta retiro-nota">Es una cuenta con los números que tú pones, no una recomendación. El rendimiento lo supones tú y nadie lo garantiza; todo va en pesos de hoy, por eso el rendimiento va sin inflación. No incluye pensión, impuestos ni cambios en tus gastos.</div>
+      <div class="item-meta retiro-nota">Es una cuenta con los números que tú pones, no una recomendación. El rendimiento lo supones tú y nadie lo garantiza; al rendimiento se le resta la inflación que pones, y las cifras van en pesos de hoy (abajo, cuánto serían en pesos de ese año). No incluye pensión, impuestos ni cambios en tus gastos.</div>
     </div>
-  </div>
-  <div class="sec" id="metas-fondos-sec">
-    <!-- (28-oct-2026) los apartados ahora son fondos: separan el dinero de verdad. Aqui solo se ve el avance -->
-    <div class="section-title">metas de tus fondos</div>
-    <div class="panel" id="apartados-panel"><div class="empty-state">cargando...</div></div>
   </div>
   </div>
   </div>
@@ -2448,7 +2465,6 @@ html[data-tema='grafito'] #cal-filtro .type-opt.active>span{color:#14171a}
 <!-- DEUDAS -->
 <div class="page" id="page-deudas">
   <div class="mt">
-    <button type="button" class="volver-btn" onclick="showPage('movimientos')">‹ movimientos</button>
     <div class="grand-total-deuda">
       <div class="label">balance neto de deudas</div>
       <div class="amount" id="deuda-grand-total">$—</div>
@@ -5965,11 +5981,11 @@ if (CFG.multi) document.getElementById('login-screen').addEventListener('keydown
 // Lo que dice #status-inicio al abrir: la verdad sobre los precios guardados (15-oct-2026)
 function textoEstadoPrecios() {
   const syms = Object.keys(state.posiciones || {}).filter(k => state.posiciones[k].acciones > 0);
-  if (!syms.length) return ctaApagada('stocks') ? '' : 'pulsa actualizar para traer precios';   // sin bolsa en esta cartera, nada que traer
+  if (!syms.length) return ctaApagada('stocks') ? '' : 'toca aquí para traer precios';   // sin bolsa en esta cartera, nada que traer
   const fechas = syms.map(s => ((state.accionesMkt || {})[s] || {}).fecha).filter(f => /^\d{4}-\d{2}-\d{2}$/.test(f || '')).sort();
-  if (!fechas.length) return 'sin precios todavía · pulsa actualizar';
-  if (fechas.length < syms.length) return 'faltan precios de algunas acciones · pulsa actualizar';
-  return 'precios del ' + cierreDash(fechas[0]).txt + ' · pulsa actualizar';
+  if (!fechas.length) return 'sin precios todavía · toca aquí para actualizar';
+  if (fechas.length < syms.length) return 'faltan precios de algunas acciones · toca aquí para actualizar';
+  return 'precios del ' + cierreDash(fechas[0]).txt + ' · toca aquí para actualizar';
 }
 // (16-nov-2026) quita el esqueleto de arranque (html.abriendo): lo llama alCambiarSesion en cuanto hay algo que ensenar (Inicio, la pantalla de entrar o el aviso de error)
 const finArranque = () => document.documentElement.classList.remove('abriendo');
@@ -9643,7 +9659,7 @@ window.susQuitar = async function(btn) {
 // cada pestaña recuerda hasta dónde bajaste (solo en esta sesión); `arriba` la abre desde el principio
 const scrollPorPagina = {};
 // paginas sin pestaña propia: se marca la pestaña desde donde se abren
-const PADRE_PAGINA = {deudas:'movimientos', noticias:'resumen'};
+const PADRE_PAGINA = {noticias:'resumen'};
 window.showPage = function(p, arriba) {
   const antes = document.querySelector('.page.active');
   if (antes) scrollPorPagina[antes.id.replace('page-','')] = window.scrollY;
@@ -10555,7 +10571,9 @@ function render() {
       +(Math.abs(cxTot.mxn)>0.005||cxTot.pendiente?f(Object.values(state.cuentasX||{}).some(x=>x.moneda!=='MXN')?'incluye las cuentas que agregaste (con otra moneda)':'incluye las cuentas que agregaste',cxTot.pendiente?'≈ '+fmt(cxTot.mxn)+' (falta un tipo de cambio)':(Object.values(state.cuentasX||{}).some(x=>x.moneda!=='MXN')?'≈ ':'')+fmt(cxTot.mxn)):'')
       +(teDeben>0.005?f('te deben','+'+fmt(teDeben)):'')+(debes>0.005?f('tú debes','−'+fmt(debes)):'')
       +(Math.abs(tdc)>0.005?f(tdc>0?'tarjetas de crédito':'saldo a favor en tarjetas',(tdc>0?'−':'+')+fmt(Math.abs(tdc))):'')+(msFalta>0.005?f('compras a meses, por cargar','−'+fmt(msFalta)):'')+(credTot>0.005?f('préstamos y créditos','−'+fmt(credTot)):'')+(bolsaPend?f('tu bolsa',stocksConPrecio>0?'Falta el precio de parte':'Precio pendiente'):'')+f(bolsaPend?(stocksConPrecio>0?'patrimonio neto, falta el precio de parte de tu bolsa':'patrimonio neto, sin tu bolsa'):'patrimonio neto',fmt(neto),'dg-total')
-      +(fondoTot>0?f(listaFondos().length>1?'tus fondos, aparte':'fondo de la universidad, aparte',fmt(fondoTot+fondoGenerado())+(fondoGenerado()>0.005?' (≈'+fmt(fondoGenerado())+' de interés estimado)':'')):'');
+      +(fondoTot>0?f(listaFondos().length>1?'tus fondos, aparte':'fondo de la universidad, aparte',fmt(fondoTot+fondoGenerado())+(fondoGenerado()>0.005?' (≈'+fmt(fondoGenerado())+' de interés estimado)':'')):'')
+      // (24-nov-2026, Beto) y al final todo junto: el neto mas los fondos, que son tuyos aunque esten apartados
+      +(fondoTot>0?f(bolsaPend?'patrimonio neto con tus fondos, sin el precio de tu bolsa':'patrimonio neto con tus fondos',fmt(neto+fondoTot+fondoGenerado()),'dg-total'):'');
     // (7-nov-2026, Pico) lo que debes en tarjetas, en rojo bajo el total: la misma tdc del desglose. El numero grande no cambia
     const td=document.getElementById('total-deuda');
     // si debes mas de lo que tienes no se escribe "$-500": se dice cuanto faltaria
@@ -16215,7 +16233,7 @@ const AYUDA_BASE = [
   {id:'suscripciones', g:'anotar', p:'¿Cómo anoto una suscripción o un pago fijo?', donde:'Movimientos › Suscripciones', ir:'suscripciones', boton:'ir a suscripciones',
     r:['Toca "+ Agregar suscripción" y llénala. El día que toca te aparece en inicio para registrarla, y tú confirmas cada cargo: si ese mes no la pagaste, no la registras.'],
     claves:'suscripcion suscripciones pago fijo mensual renta servicio recurrente cada mes domiciliado plataforma plataformas streaming netflix spotify musica peliculas'},
-  {id:'deudas', g:'anotar', p:'¿Cómo anoto lo que me deben o lo que debo?', donde:'Movimientos › Deudas', ir:'deudas', boton:'ir a deudas',
+  {id:'deudas', g:'anotar', p:'¿Cómo anoto lo que me deben o lo que debo?', donde:'Deudas', ir:'deudas', boton:'ir a deudas',
     r:['Toca "+ Persona" para agregarla, elige "Me deben", "Me pagaron", "Yo debo" o "Le pagué", escribe el monto y toca "Registrar". Aquí se anota lo que debes o te deben entre personas.'],
     claves:'deuda deudas debo deben debe prestamo prestar preste prestaron presto amigo persona pagaron hermana hermano hijo hija mama papa familia'},
   {id:'tarjeta', g:'anotar', p:'¿Cómo anoto lo de mi tarjeta de crédito?', donde:'Movimientos › Registrar › Tarjeta', ir:'tarjeta', boton:'ir a mi tarjeta',
@@ -16555,7 +16573,7 @@ const AYUDA_IR = {
   salud: () => { showPage('resumen', true); return ayEl('res-salud'); },
   ganancia: () => { showPage('resumen', true); return ayAbrir(ayEl('res-utilidades')); },
   limite: () => { ayPerfil(); return ayAbrir(ayEl('limite-input')); },
-  metas: () => { showPage('metas', true); return ayEl('metas-panel'); },
+  metas: () => { showPage('metas', true); metasSub('metas'); return ayEl('metas-panel'); },
   ojo: () => ayEl('privado-btn'),
   salir: () => document.querySelector('.logout-btn[onclick="doLogout()"]'),
   perfil: () => { ayPerfil(); return document.querySelector('.perfil-hero'); },
@@ -18109,42 +18127,74 @@ function pintarInvitaMetas() {
   const b5=document.getElementById('meta-invita-5'), bi=document.getElementById('meta-invita-inv'), br=document.getElementById('meta-invita-retiro'), bl=document.getElementById('meta-invita-luego');
   if(b5) b5.addEventListener('click',()=>abrirMetaDlg('nueva',null,{fecha:en5(),nombre:'en 5 años',cuenta:'patrimonio'}));
   if(bi) bi.addEventListener('click',()=>abrirMetaDlg('nueva',null,{cuenta:'stocks',nombre:'invertido'}));
-  if(br) br.addEventListener('click',()=>{ showPage('metas',true); const p=document.getElementById('retiro-panel'); if(p){ p.scrollIntoView({block:'start'}); const barras=(document.querySelector('nav')?.offsetHeight||0)+(document.querySelector('.tabs')?.offsetHeight||0); window.scrollBy(0,-(barras+40)); const i=document.getElementById('ret-edad'); if(i) i.focus({preventScroll:true}); } });
+  if(br) br.addEventListener('click',()=>{ showPage('metas',true); metasSub('retiro'); const p=document.getElementById('retiro-panel'); if(p){ p.scrollIntoView({block:'start'}); const barras=(document.querySelector('nav')?.offsetHeight||0)+(document.querySelector('.tabs')?.offsetHeight||0); window.scrollBy(0,-(barras+40)); const i=document.getElementById('ret-edad'); if(i) i.focus({preventScroll:true}); } });
   if(bl) bl.addEventListener('click',()=>{ try{ localStorage.setItem(lsKey('metas-luego'),String(Date.now())); }catch(e){} pintarInvitaMetas(); const a=document.getElementById('inicio-anotar'); if(a) a.focus(); }); }
 // ── RETIRO (20-nov-2026, tanda 4): una cuenta con los numeros de la persona. Cero escrituras a Firestore: lo escrito se recuerda
 // solo en este aparato (lsKey('retiro')). Interes compuesto mensual equivalente a la tasa anual que la persona supone
 // <retiro-puras>
 function calcRetiro(o) {
-  const edad=Number(o.edad), a=Number(o.a), hasta=Number(o.hasta), ingreso=Number(o.ingreso), t=Number(o.tasa), ya=Math.max(0,Number(o.ya)||0);
-  if(![edad,a,hasta,ingreso,t].every(Number.isFinite)) return {error:'faltan'};
+  const edad=Number(o.edad), a=Number(o.a), hasta=Number(o.hasta), ingreso=Number(o.ingreso), tNom=Number(o.tasa), ya=Math.max(0,Number(o.ya)||0);
+  // (24-nov-2026, Beto: "$100,000 hoy no valen lo mismo en 60 años") la inflacion que supones se le resta al rendimiento (tasa real, exacta:
+  // (1+n)/(1+i)-1) y todo sigue en pesos de hoy; sin inflacion escrita, el rendimiento se toma tal cual (asi era antes, ya sin inflacion)
+  const conInfl=o.infl!==undefined&&o.infl!==null&&o.infl!==''&&Number.isFinite(Number(o.infl)), infl=conInfl?Number(o.infl):0;
+  if(![edad,a,hasta,ingreso,tNom].every(Number.isFinite)) return {error:'faltan'};
+  if(infl<0||infl>30) return {error:'rango'};
+  const t=((1+tNom/100)/(1+infl/100)-1)*100;
   if(![edad,a,hasta].every(Number.isInteger)) return {error:'rango'};   // (QA) edades en años enteros: con decimales salia durante 0.0499 años
-  if(edad<15||edad>90||a<=edad||a>90||hasta<=a||hasta>110||ingreso<=0||ingreso>1e9||ya>1e12||t<0||t>30) return {error:'rango'};
+  if(edad<15||edad>90||a<=edad||a>90||hasta<=a||hasta>110||ingreso<=0||ingreso>1e9||ya>1e12||tNom<0||tNom>30) return {error:'rango'};
   const r=Math.pow(1+t/100,1/12)-1, m1=Math.round((a-edad)*12), m2=Math.round((hasta-a)*12);
   if(m1<1||m2<1) return {error:'rango'};   // (revision) un input number acepta decimales: nunca dividir entre cero meses
-  const capital=r>1e-12?ingreso*(1-Math.pow(1+r,-m2))/r:ingreso*m2;
+  const hayR=Math.abs(r)>1e-12;   // con inflacion arriba del rendimiento la tasa real es negativa: la formula sirve igual, solo r=0 va aparte
+  const capital=hayR?ingreso*(1-Math.pow(1+r,-m2))/r:ingreso*m2;
   const yaFut=ya*Math.pow(1+r,m1);
   const falta=Math.max(0,capital-yaFut);
-  const aporte=falta<=0?0:(r>1e-12?falta*r/(Math.pow(1+r,m1)-1):falta/m1);
+  const aporte=falta<=0?0:(hayR?falta*r/(Math.pow(1+r,m1)-1):falta/m1);
   // la linea: lo que tendrias cada 5 años metiendo ese aporte (y al retirarte)
-  const saldoEn=meses=>r>1e-12?ya*Math.pow(1+r,meses)+aporte*(Math.pow(1+r,meses)-1)/r:ya+aporte*meses;
+  const saldoEn=meses=>hayR?ya*Math.pow(1+r,meses)+aporte*(Math.pow(1+r,meses)-1)/r:ya+aporte*meses;
   const hitos=[]; for(let e=Math.ceil((edad+1)/5)*5;e<a;e+=5) hitos.push({edad:e,saldo:saldoEn(Math.round((e-edad)*12))});
   hitos.push({edad:a,saldo:Math.max(capital,yaFut)});
-  return {capital, aporte, meses:m1, anios:a-edad, mesesRetiro:m2, yaFut, sobra:yaFut>capital?yaFut-capital:0, hitos};
+  // cuanto es un peso de hoy en pesos del año en que te retiras, con la inflacion que supones
+  const factorFut=Math.pow(1+infl/100,a-edad);
+  return {capital, aporte, meses:m1, anios:a-edad, mesesRetiro:m2, yaFut, sobra:yaFut>capital?yaFut-capital:0, hitos, conInfl, infl, tReal:t, factorFut};
 }
 // </retiro-puras>
-const RETIRO_CAMPOS={edad:'ret-edad',a:'ret-a',ingreso:'ret-ingreso',hasta:'ret-hasta',tasa:'ret-tasa',ya:'ret-ya'};
+const RETIRO_CAMPOS={edad:'ret-edad',a:'ret-a',ingreso:'ret-ingreso',hasta:'ret-hasta',tasa:'ret-tasa',infl:'ret-infl',ya:'ret-ya'};
+// (24-nov-2026) subpestañas de Metas: en memoria, como las de Movimientos
+let metasSubActual='metas';
+window.metasSub=function(cual){
+  metasSubActual=cual==='retiro'?'retiro':'metas';
+  [['metas','metas-sub-metas','metab-metas'],['retiro','metas-sub-retiro','metab-retiro']].forEach(([k,p,t])=>{
+    const pe=document.getElementById(p), te=document.getElementById(t), es=metasSubActual===k;
+    if(pe) pe.hidden=!es;
+    if(te){ te.classList.toggle('active',es); if(es) te.setAttribute('aria-current','page'); else te.removeAttribute('aria-current'); }
+  });
+  if(metasSubActual==='retiro') pintarRetiro();
+};
 function pintarRetiro() {
   const res=document.getElementById('retiro-res'); if(!res) return;
-  const v={}; Object.entries(RETIRO_CAMPOS).forEach(([k,id])=>{ const e=document.getElementById(id); v[k]=e&&e.value!==''?Number(e.value):(k==='ya'?0:NaN); });
+  const v={}; Object.entries(RETIRO_CAMPOS).forEach(([k,id])=>{ const e=document.getElementById(id); v[k]=e&&e.value!==''?Number(e.value):(k==='ya'?0:(k==='infl'?'':NaN)); });
   const c=calcRetiro(v);
   if(c.error==='faltan'){ res.innerHTML='<div class="item-meta">Escribe tu edad, a qué edad te quieres retirar, cuánto quieres recibir al mes, hasta qué edad y el rendimiento que supones.</div>'; return; }
   if(c.error){ res.innerHTML='<div class="item-meta">Revisa los números: la edad de retiro va después de tu edad, y "hasta los" después del retiro.</div>'; return; }
   const big=c.aporte>0.005
     ?'Necesitarías juntar unos '+fmt(c.capital)+' (en pesos de hoy) a los '+v.a+'. Con lo que ya tienes, eso es meter unos '+fmt(c.aporte)+' al mes durante '+c.anios+(c.anios===1?' año':' años')+'.'
     :'Con lo que ya tienes y ese rendimiento, a los '+v.a+' tendrías unos '+fmt(c.yaFut)+' (en pesos de hoy): con esos números alcanzaría para recibir '+fmt(v.ingreso)+' al mes hasta los '+v.hasta+' sin meter más.';
-  res.innerHTML='<div class="retiro-big">'+big+'</div><ul class="retiro-linea">'
+  // (24-nov-2026, Beto: "que te vaya diciendo: vas en el 50% de lo que tienes que juntar al mes") lo que llevas este mes contra lo que pide el retiro:
+  // es el mismo neto de "aportaste" de Inicio y del Resumen (lo que entro a tus cuentas de ahorro y a la bolsa), no solo lo del retiro
+  let mes='';
+  if(c.aporte>0.005){
+    const h=new Date(), ap=apTotal(aportacionesEnRango(new Date(h.getFullYear(),h.getMonth(),1),new Date(h.getFullYear(),h.getMonth()+1,1)));
+    mes='<div class="retiro-mes">'+(ap>0.005
+      ?'Este mes llevas '+fmt(ap)+' en ahorro e inversión: es el '+Math.round(ap/c.aporte*100)+'% de los '+fmt(c.aporte)+' al mes de tu retiro.'
+      :(ap< -0.005?'Este mes salió más de tu ahorro e inversión de lo que entró ('+fmt(-ap)+'); tu retiro pide unos '+fmt(c.aporte)+' al mes.'
+        :'Este mes todavía no metes nada a ahorro e inversión; tu retiro pide unos '+fmt(c.aporte)+' al mes.'))+'</div>';
+  }
+  const fut=c.conInfl&&c.infl>0
+    ?'<div class="item-meta">En pesos de ese año, con '+c.infl+'% de inflación: recibir '+fmt(v.ingreso)+' de hoy serán unos '+fmt(v.ingreso*c.factorFut)+' al mes, y lo que juntes, unos '+fmt(Math.max(c.capital,c.yaFut)*c.factorFut)+'. Tu rendimiento sin inflación queda en '+c.tReal.toFixed(1)+'% al año.</div>'
+    :(c.conInfl?'':'<div class="item-meta">Sin inflación: si el rendimiento que pusiste no le quita la inflación, escribe la que supones y la cuenta se ajusta.</div>');
+  res.innerHTML='<div class="retiro-big">'+big+'</div>'+mes+'<ul class="retiro-linea">'
     +c.hitos.map(h=>'<li>a los <b>'+h.edad+'</b>: '+(h.edad===Number(v.a)?'llegas con '+fmt(h.saldo):'llevarías '+fmt(h.saldo))+'</li>').join('')
-    +'<li>de los '+v.a+' a los '+v.hasta+': recibes '+fmt(v.ingreso)+' al mes</li></ul>';
+    +'<li>de los '+v.a+' a los '+v.hasta+': recibes '+fmt(v.ingreso)+' al mes</li></ul>'+fut;
 }
 { const guardar=()=>{ try{ const v={};
     Object.entries(RETIRO_CAMPOS).forEach(([k,id])=>{ const e=document.getElementById(id); if(!e||e.value==='') return;
@@ -19288,6 +19338,9 @@ function calcularCierre(start,end,modo) {
   const estPre=estandarDe(state.perfil);
   const gPct=totalI>0?totalG/totalI*100:null;
   const aPct=totalI>0?aporte/totalI*100:null;
+  // (24-nov-2026, Beto: "gaste el 43% y aporte el 102%: tuve que haber metido 14,000") la aportacion es el neto de lo que entro a tus cuentas de ahorro
+  // y a la bolsa, venga de donde venga: si es mas de lo que te sobro del mes, lo demas salio de lo que ya tenias de antes. Se dice, no se esconde
+  const sobroMes=Math.max(0,totalI-totalG-abonos), deAntes=aporte>sobroMes+0.005?aporte-sobroMes:0;
   // "falta20" conserva el nombre historico, pero mide contra el objetivo del ESTANDAR del usuario
   const falta20=totalI>0?(estPre.ahorroObj/100)*totalI-aporte:0;
   // top 3 categorias vs promedio de los 3 meses ANTERIORES (solo en vista de mes;
@@ -19350,7 +19403,7 @@ function calcularCierre(start,end,modo) {
   const diaMes=esActual?new Date().getDate():31;
   const maduro=!esActual||esAno||diaMes>=15;
   const diasMes=new Date(start.getFullYear(),start.getMonth()+1,0).getDate();
-  return {start,end,modo,esAno,per,esActual,totalI,totalG,abonos,aporte,ap,vacio,gPct,aPct,falta20,tops,comp,metas,
+  return {start,end,modo,esAno,per,esActual,totalI,totalG,abonos,aporte,ap,vacio,gPct,aPct,falta20,sobroMes,deAntes,tops,comp,metas,
     maduro,diaMes,diasMes,est:estPre,
     // la racha termina en el mes que se esta viendo: si es el actual (a medias), en el
     // anterior; si es uno ya cerrado, en ese mismo mes incluido
@@ -19384,7 +19437,7 @@ function calcScore(m) {
     const r=Math.max(0,m.aPct)/est.ahorroObj;
     comps.push({nombre:'aportación a ahorro e inversión',max:40,
       puntos:Math.round(40*Math.max(0,Math.min(1,r))),
-      detalle:'aportaste '+Math.max(0,m.aPct).toFixed(0)+'% de tus ingresos · tu referencia es '+est.ahorroObj+'%'});
+      detalle:'aportaste '+Math.max(0,m.aPct).toFixed(0)+'% de tus ingresos'+(m.deAntes>0.005?' (parte de lo que ya tenías de antes)':'')+' · tu referencia es '+est.ahorroObj+'%'});
   } else excluidos.push('aportación (sin ingresos registrados este '+m.per+')');
   // 2) control de gasto vs gastoMax (30): 100 pts si gastas &lt;= objetivo, 0 si duplicas el limite
   if(m.gPct!==null){
@@ -19460,12 +19513,18 @@ function textoCoach(m) {
   if(!gMed) return (esActual?'Va saliendo':'Salió')+' más de lo que '+(esActual?'ha entrado':'entró')+' ('+gPct.toFixed(0)+'% en gastos). Hay meses así: cuando entra menos, lo fijo se paga igual. '+aunAsi+(dondeVa?'Donde más se fue: '+dondeVa+'. ':'')+'Si la diferencia salió de tu tarjeta, en Deudas ves cuánto debes.';
   // (22-nov-2026, code-reviewer) el gasto puede ir bien y aun asi, con los abonos a prestamos, salir mas de lo que entra: se dice
   if((m.abonos||0)>0.005&&m.totalG+m.abonos>m.totalI+0.005) return 'Abonaste '+fmt(m.abonos)+' a tus préstamos: eso baja lo que debes, aunque con eso '+(esActual?'va saliendo':'salió')+' más de lo que '+(esActual?'ha entrado':'entró')+'. Tus gastos fueron el '+gPct.toFixed(0)+'% de lo que entró. '+aunAsi+(dondeVa?'Donde más se fue: '+dondeVa+'.':'');
-  if(gOk&&aOk) return '🎉 '+(esActual?('Este '+per+' va excelente'):('Fue un gran '+per))+': gastaste el '+gPct.toFixed(0)+'% de tus ingresos y aportaste el '+aPct.toFixed(0)+'% — muy buen ritmo de ahorro e inversión.'+(infl?' Un dato: '+infl.cat+' fue arriba de tu promedio.':' Sigue así y diciembre llega solo.');
+  if(gOk&&aOk) return '🎉 '+(esActual?('Este '+per+' va excelente'):('Fue un gran '+per))+': gastaste el '+gPct.toFixed(0)+'% de tus ingresos y '+textoAporte(m)+' — muy buen ritmo de ahorro e inversión.'+(infl?' Un dato: '+infl.cat+' fue arriba de tu promedio.':' Sigue así y diciembre llega solo.');
   if(gOk) return 'Buen control de gasto ('+gPct.toFixed(0)+'%). El siguiente paso es la aportación: '+(esActual?'llevas':'cerraste con')+' el '+Math.max(0,aPct).toFixed(0)+'% — '+(esActual?'te faltan ':'te faltaron ')+fmt(Math.max(0,falta20))+' para tu '+est.ahorroObj+'%.';
-  if(aOk) return 'Buen ritmo de aportación ('+aPct.toFixed(0)+'%). Tus gastos fueron el '+gPct.toFixed(0)+'% de lo que entró'+(dondeVa?': donde más se va es '+dondeVa+'.':'.');
+  if(aOk) return 'Buen ritmo de aportación: '+textoAporte(m)+'. Tus gastos fueron el '+gPct.toFixed(0)+'% de lo que entró'+(dondeVa?': donde más se va es '+dondeVa+'.':'.');
   return 'Tus gastos '+(esActual?'van en el ':'fueron el ')+gPct.toFixed(0)+'% de lo que entró y apartaste el '+Math.max(0,aPct).toFixed(0)+'%. '+(dondeVa?(dondeVa!==focoTxt?'Donde más se va es '+dondeVa:'Lo que más pesa de lo que se puede mover es '+focoTxt)+'. ':'')+'Para tu '+est.ahorroObj+'% faltan '+fmt(Math.max(0,falta20))+'.';
 }
 
+// (24-nov-2026) "aportaste el N%": si pasa de lo que sobro del mes, dice de donde salio lo demas (una sola redaccion para el consejo)
+function textoAporte(m) {
+  const pct=Math.max(0,m.aPct).toFixed(0);
+  if(!(m.deAntes>0.005)) return 'aportaste el '+pct+'%';
+  return 'metiste '+fmt(m.aporte)+' a ahorro e inversión (el '+pct+'% de lo que entró): '+fmt(m.sobroMes)+' de lo que te sobró y '+fmt(m.deAntes)+' de lo que ya tenías de antes';
+}
 // analisis largo: varias frases, omitiendo las que no tengan datos suficientes
 function textoAnalisis(m) {
   if(m.vacio) return [];
@@ -19476,7 +19535,8 @@ function textoAnalisis(m) {
       (gPct<=m.est.gastoMax?'un margen sano':(gPct<=100?'un margen justo':'más de lo que entró'))+
       ((m.abonos||0)>0.005?', abonaste '+fmt(m.abonos)+' a tus préstamos':'')+   // (22-nov-2026) el balance resta el abono, igual que el Resumen
       ', y te quedó un balance de '+((totalI-totalG-(m.abonos||0))>=0?'+':'−')+fmt(Math.abs(totalI-totalG-(m.abonos||0)))+'.');
-    p.push('De ese ingreso aportaste '+fmt(Math.abs(aporte))+(aporte<0?' en retiros netos':'')+' a ahorro e inversión, el '+Math.max(0,aPct).toFixed(0)+'%'+
+    p.push((m.deAntes>0.005?'A ahorro e inversión metiste '+fmt(aporte)+' (el '+aPct.toFixed(0)+'% de lo que entró): '+fmt(m.sobroMes)+' de lo que te sobró y '+fmt(m.deAntes)+' de lo que ya tenías de antes'
+      :'De ese ingreso aportaste '+fmt(Math.abs(aporte))+(aporte<0?' en retiros netos':'')+' a ahorro e inversión, el '+Math.max(0,aPct).toFixed(0)+'%')+
       (aPct>=m.est.ahorroObj?(' — por encima de tu referencia del '+m.est.ahorroObj+'%, que es justo donde quieres estar.')
               :(', debajo de tu referencia del '+m.est.ahorroObj+'%: '+(esActual?'te faltan ':'te faltaron ')+fmt(Math.max(0,falta20))+' para llegar.')));
   } else p.push('Este '+per+' no hay ingresos registrados, así que los porcentajes del cierre no se pueden calcular; el análisis se limita a lo que gastaste ('+fmt(totalG)+') y a tus aportaciones.');
@@ -20517,7 +20577,7 @@ window.fetchAll = async function() {
     let okNvda=false;
     try{ okNvda=await fetchStocks(); }catch(e){ console.error('fetchAll',e); }
     document.getElementById('status-inicio').textContent=
-      okNvda?'precios de bolsa en vivo':'usando últimos precios guardados';
+      okNvda?'precios de bolsa en vivo':'usando últimos precios guardados · toca aquí para intentar otra vez';
     render();
     renderTransferencias();
     if(document.getElementById('page-movimientos').classList.contains('active')) renderMovimientos();
