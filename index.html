@@ -4268,7 +4268,9 @@ async function pasoTelefono(user) {
   fvTelEtapa('numero');
   // el alta pudo quedar hecha en el servidor con la respuesta perdida, o en otro aparato: enrolledFactors del aparato esta viejo
   try { await conPlazoEntrada(reload(user)); } catch (e) {}
-  if (auth.currentUser !== user) return;
+  // (25-nov-2026) solo si sigue en este paso: si mientras tanto se fue a la app autenticadora y ya la dio de alta, esta respuesta vieja
+  // la veia "ya inscrita" y cerraba la sesion recien hecha (asi fallaba e2e-sms G en la Legion, donde reload tarda mas)
+  if (auth.currentUser !== user || fvPasoActual !== 'telefono') return;
   if (FV_MFA.inscrito(user)) return fvVolverAEntrar(user, fvTextoYaAlta(user));
 }
 const fvTextoYaAlta = user => FV_MFA.tipos(user).includes('phone') ? FV_YA_ALTA_TEL : FV_YA_ALTA;
@@ -4366,6 +4368,7 @@ fvGlobal.fvTelActivar = () => fvOcupado('fv-btn-tel-activar', 'activando…', as
   document.getElementById('fv-tel-cod').value = '';
   // como con la app: si el token que dejo enroll ya trae la marca se sigue; si no, hay que entrar con el codigo
   let f = null; try { f = await FV_MFA.factor(user); } catch (e) {}
+  if (auth.currentUser !== user) return;   // (25-nov-2026) si la sesion cambio mientras tanto, no se actua sobre otra
   if (FV_2FA.includes(f)) return revisarEntrada();
   await fvVolverAEntrar(user, 'listo, tu teléfono quedó dado de alta. Entra otra vez: después de tu contraseña te pide el código');
 });
@@ -5274,7 +5277,7 @@ async function pasoTotpClave(user) {
   // el alta pudo quedar hecha en el servidor con la respuesta perdida: enrolledFactors del aparato esta viejo y pediria
   // la misma clave en bucle. Se refresca el usuario antes de generar otra
   try { await conPlazoEntrada(reload(user)); } catch (e) {}
-  if (auth.currentUser !== user) return;
+  if (auth.currentUser !== user || fvPasoActual !== 'totp') return;   // (25-nov-2026) igual que pasoTelefono: una respuesta vieja no actua en otro paso
   if (FV_MFA.inscrito(user)) return fvVolverAEntrar(user, fvTextoYaAlta(user));
   const clave = document.getElementById('fv-clave');
   fvSecreto = null;
@@ -5337,6 +5340,7 @@ window.fvActivar2fa = () => fvOcupado('fv-btn-activar', 'activando…', async ()
   // quedo dada de alta pero esta sesion no cuenta como verificada y hay que entrar con el codigo (sesion 2: se
   // confirma con el telefono de Beto cual de los dos pasa en fundview-app)
   let f = null; try { f = await FV_MFA.factor(user); } catch (e) {}
+  if (auth.currentUser !== user) return;   // (25-nov-2026) si la sesion cambio mientras tanto, no se actua sobre otra
   if (FV_2FA.includes(f)) return revisarEntrada();
   await fvVolverAEntrar(user, 'listo, tu app autenticadora quedó dada de alta. Entra otra vez: después de tu contraseña te pide el código');
 });
@@ -18517,7 +18521,7 @@ function pintarFondoRetiro(c, v, fr, tc){
     el.innerHTML='<div class="retiro-fondo-tit">'+M('tu fondo de retiro: ')+'«'+escapeHtml(fr.nombre)+'» · '+fmt(fr.tiene)+'</div>'+
       (obj>0&&pendiente?'<div class="item-meta">Ajustando su meta a tu plan: '+fmt(obj)+cuando(lm.fecha)+(sinSenal?', cuando haya señal':'')+'.</div>'
         :obj>0&&igual?'<div class="item-meta">Su meta es la de tu plan: '+fmt(obj)+cuando(lm.fecha)+'.</div>'
-        :dif?'<div class="item-meta">Su meta: '+fmt(mt.objetivo)+cuando(mt.fecha)+'. Tu plan pide '+fmt(obj)+'. <button type="button" class="del-btn" id="retiro-fondo-seguir" style="font-size:12px;color:var(--accent);padding:2px 0 2px 6px">'+M('que siga a mi plan')+'</button></div>'
+        :dif?'<div class="item-meta">Su meta: '+fmt(mt.objetivo)+cuando(mt.fecha)+'. Tu plan pide '+fmt(obj)+'. <button type="button" class="del-btn" id="retiro-fondo-seguir" style="font-size:12px;color:var(--accent);padding:0 8px;min-height:44px;min-width:44px;display:inline-flex;align-items:center;vertical-align:middle">'+M('que siga a mi plan')+'</button></div>'
         :mt?'<div class="item-meta">Su meta: '+fmt(mt.objetivo)+cuando(mt.fecha)+'.</div>'
         :(obj>0?'<div class="item-meta">Su meta será la de tu plan: '+fmt(obj)+cuando(lm.fecha)+'. Se pone sola cuando cambies tus números con señal.</div>':''))+
       '<div class="retiro-fondo-acc"><button type="button" class="btn" id="retiro-fondo-ver">'+M('ver mi fondo')+'</button></div>';
@@ -18592,7 +18596,7 @@ async function usarFondoRetiro(id){
 // (o un intento que fallo) y solo se apaga al quedar alineada o escrita; con ella prendida se reintenta al volver la señal, al llegar el tipo de
 // cambio y al terminar de crear o usar el fondo. Sin ella, abrir la pantalla nunca toca una meta puesta a mano en Fondo
 let metaRetiroReloj=null, metaRetiroVuelo=false, metaRetiroOtraVez=false, metaRetiroPend=false, metaRetiroIntento=0;
-function sincronizarMetaRetiro(){
+function sincronizarMetaRetiro(ms){
   metaRetiroPend=true;
   clearTimeout(metaRetiroReloj);
   metaRetiroReloj=setTimeout(async()=>{ metaRetiroReloj=null;
@@ -18611,9 +18615,11 @@ function sincronizarMetaRetiro(){
     catch(e){ console.error('meta retiro',e); showToast(CFG.multi?'No se pudo ajustar la meta de tu fondo; lo vuelvo a intentar cuando haya señal':'no se pudo ajustar la meta de tu fondo; lo vuelvo a intentar cuando haya señal'); }
     finally{ metaRetiroVuelo=false; if(ok&&!metaRetiroOtraVez) metaRetiroPend=false; refrescar(renderApartados, pintarRetiro);
       if(metaRetiroOtraVez){ metaRetiroOtraVez=false; sincronizarMetaRetiro(); } }
-  },1500);
+  },ms||1500);
 }
-window.addEventListener('online',()=>{ if(metaRetiroPend) sincronizarMetaRetiro(); });
+window.addEventListener('online',()=>{ if(metaRetiroPend) sincronizarMetaRetiro();
+  // (25-nov-2026) tus numeros escritos sin señal suben en cuanto vuelve, no hasta el reintento de un minuto (la meta ya lo hacia)
+  if(retiroNubePend&&!retiroNubeVuelo) guardarRetiroNube(); });
 // (25-nov-2026, decision de Beto del 24-nov) donde te vas a retirar: cinco lugares, cada uno en su moneda y con su inflacion. Dos opciones de
 // inflacion con su fuente: la meta del banco central (o del gobierno, en China) y el promedio de 2005 a 2024 (promedio geometrico de la
 // inflacion anual al consumidor, Banco Mundial FP.CPI.TOTL.ZG, bajado de FRED el 25-nov-2026; la serie sale de INEGI, BLS, Eurostat,
@@ -18835,8 +18841,10 @@ function guardarRetiroLocal(){ try{ const v={};
     const s=document.getElementById('ret-lugar'); if(s&&s.value!=='mx') v.lugar=s.value;
     localStorage.setItem(lsKey('retiro'),JSON.stringify(v)); }catch(e){} }
 Object.values(RETIRO_CAMPOS).forEach(id=>{ const e=document.getElementById(id); if(e) e.addEventListener('input',()=>{ e.dataset.tocado='1'; pintarRetiro(); guardarRetiroLocal(); guardarRetiroNube(); });
-  // (revision) la meta del fondo sigue al plan al TERMINAR de escribir ('change'), no en cada tecla
-  if(e) e.addEventListener('change',()=>sincronizarMetaRetiro()); });
+  // (revision) la meta del fondo sigue al plan al TERMINAR de escribir ('change'), no en cada tecla.
+  // (25-nov-2026, WebKit tipo iPhone) en Safari tocar fuera de un campo no siempre dispara 'change' (el teclado se queda): por eso tambien
+  // al dejar de escribir 6 s (con menos, una pausa a media palabra escribia una meta a medias: e2e-retiro-senal 8.1). Es el mismo reloj, que se reinicia con cada tecla: escribir "31000" no escribe "3", "31", ...
+  if(e){ e.addEventListener('input',()=>sincronizarMetaRetiro(6000)); e.addEventListener('change',()=>sincronizarMetaRetiro()); } });
 // (24-nov-2026) igual que el perfil: la edad de un menor no se guarda, se dice, y el reporte de errores avisa SIN la edad ni nada de la persona.
 // Al terminar de escribirla ('change'), no en cada tecla: escribir "35" pasa por "3"
 { const e=document.getElementById('ret-edad'); if(e&&CFG.multi) e.addEventListener('change',()=>{ const n=Number(e.value);
