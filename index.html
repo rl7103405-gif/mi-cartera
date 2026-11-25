@@ -469,7 +469,7 @@ html.abriendo #login-screen,html.abriendo #loading-overlay{display:none}
 .arr-tarjetas{display:flex;flex-direction:column;gap:10px}
 .arr-tarjeta{height:74px;border-radius:var(--r);background:var(--bg2);border:1px solid var(--sup-borde,var(--border));padding:16px;display:flex;align-items:center;gap:12px}
 .arr-tarjeta .arr-b:first-child{width:38px;height:38px;border-radius:12px;flex-shrink:0}.arr-tarjeta .arr-b:last-child{width:42%;height:12px}
-@media(min-width:900px){.arr-cuerpo{max-width:1060px}.arr-tarjetas{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}}
+@media(min-width:720px){.arr-cuerpo{max-width:1060px}.arr-tarjetas{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}}
 @media(prefers-reduced-motion:no-preference){.arr-cuerpo,.arr-tabs{animation:arr-pulso 1.8s ease-in-out infinite}}
 @keyframes arr-pulso{50%{opacity:.55}}
 /* si la espera pasa de un segundo, el esqueleto lo dice con palabras (16-nov-2026, prueba de usuario: tres segundos de gris sin texto parecen una app trabada) */
@@ -536,6 +536,16 @@ html[data-tema='grafito'] .tabs{--sombra-scroll:rgba(255,255,255,.16)}
 .retiro-infl{display:flex;flex-wrap:wrap;gap:6px;margin:-2px 0 8px}.retiro-infl .ri-op{min-height:44px;padding:6px 12px;border-radius:999px;border:1px solid var(--border);background:var(--bg2);color:var(--text);font:inherit;font-size:12.5px;cursor:pointer;text-align:left}
 .retiro-infl .ri-op[aria-pressed="true"]{border-color:var(--accent);color:var(--accent-dark);font-weight:600}
 .retiro-infl .ri-fuente{flex-basis:100%;font-size:11.5px;color:var(--muted);line-height:1.4}
+/* (25-nov-2026) los numeros del retiro se pliegan con el plan completo; el resumen va en el summary (bloque, no flex: ::first-letter de Fundview) */
+.retiro-datos>summary{display:block;cursor:pointer;list-style:none;padding:10px 12px;margin:0 0 10px;border-radius:var(--rs);background:var(--bg3);font-size:13px;line-height:1.45;min-height:44px}
+.retiro-datos>summary::-webkit-details-marker{display:none}
+.retiro-datos>summary .rds-tit{font-weight:600;color:var(--text)}.retiro-datos>summary .rds-res{color:var(--muted)}
+.retiro-datos>summary .rds-acc{color:var(--accent-dark);font-weight:600;white-space:nowrap}
+.retiro-datos[open]>summary .rds-res{display:none}
+.retiro-infl-campo{margin-top:2px}.retiro-infl-campo .ri-tit{font-size:12px;color:var(--muted);margin-bottom:6px}
+.retiro-infl-campo .retiro-infl{margin:0 0 6px}.retiro-infl-campo .ri-otra{margin:4px 0 6px}.retiro-infl-campo .ri-otra input{max-width:160px}
+.retiro-infl-campo .ri-fuente{font-size:11.5px;color:var(--muted);line-height:1.4}
+.retiro-linea-det{margin-top:10px}.retiro-linea-det>summary{cursor:pointer;min-height:44px;display:block;padding:12px 0 4px;font-size:13px;font-weight:600;color:var(--accent-dark)}
 .retiro-res .retiro-valor{margin:8px 0 4px;padding:8px 10px;border-radius:var(--rs);background:var(--bg3);font-size:13px;line-height:1.45}
 .valor-filas{grid-template-columns:1fr 1fr 1fr}@media(max-width:420px){.valor-filas{grid-template-columns:1fr 1fr}}
 .retiro-res{margin-top:6px}.retiro-res .retiro-mes{margin:8px 0 2px;padding:8px 10px;border-radius:var(--rs);background:var(--bg3);font-size:13px;line-height:1.45}.retiro-res .retiro-big{font-size:15px;font-weight:600;line-height:1.4}
@@ -748,7 +758,18 @@ html[data-tema='grafito'] .cat-tipo-op.on>span{color:#14171a}
 
 /* DEUDAS */
 .deuda-person{background:var(--bg2);border:0.5px solid var(--border);border-radius:var(--r);padding:16px;margin-bottom:10px;box-shadow:var(--sombra)}
-.deuda-header{display:flex;justify-content:space-between;align-items:center;cursor:pointer}
+.deuda-header{display:flex;justify-content:space-between;align-items:center;cursor:pointer;min-height:44px}
+/* (25-nov-2026, auditoria por aparato) zonas de toque de 44 px: el encabezado de cada cuenta medía 38, el de una categoría del
+   Resumen 17 (se agranda el area que se toca sin mover el dibujo), la pestaña "retiro" 41 de ancho y los campos del tablero y del fondo 40 */
+.card-header{min-height:44px}
+.resumen-bar>.bar-header[role="button"]{position:relative}
+.resumen-bar>.bar-header[role="button"]::after{content:'';position:absolute;left:0;right:0;top:-12px;bottom:-12px}
+.subtabs .stab{min-width:44px}
+#page-dashboard select,#page-dashboard input:not([type=checkbox]):not([type=radio]),#page-fondo select,#page-fondo input:not([type=checkbox]):not([type=radio]){min-height:44px}
+/* (25-nov-2026) en iPad mini y vertical (720 a 899) el total y la dona van uno sobre otro: lado a lado, la leyenda se apretaba a tres renglones */
+@media(min-width:720px) and (max-width:899px){#page-inicio .hero-grid{display:block}#page-inicio .hero-grid>*+*{margin-top:8px}}
+@media(min-width:720px){#page-perfil div.item-meta,.retiro-calc .ri-fuente,.retiro-nota{max-width:80ch}}
+@media(min-width:1100px){#page-dashboard div.item-meta,#page-perfil div.item-meta,.retiro-calc .ri-fuente,.retiro-nota{max-width:80ch}}
 .deuda-name{font-size:16px;font-weight:600}.deuda-total{font-size:17px;font-weight:700}
 /* Excel de la cuenta con una persona: periodo + descarga, dentro del detalle */
 .xl-panel{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:10px 0 8px;padding-bottom:10px;border-bottom:0.5px solid var(--border)}
@@ -1055,7 +1076,8 @@ html[data-tema='grafito'] .mov-mas-n{background:var(--accent);color:#0f1a14}
 .del-btn:active{color:var(--red)}
 
 /* ESCRITORIO: layout ancho tipo portafolio (inicio y resumen); formularios se mantienen angostos */
-@media(min-width:900px){
+/* (25-nov-2026, auditoria por aparato) desde 720 px y no 900: iPad mini (744) y iPad vertical (820) usaban una columna de 430 px */
+@media(min-width:720px){
   .page{max-width:560px}
   #page-inicio{max-width:1060px}
   .bandas-conexion{max-width:1060px}
@@ -2464,6 +2486,10 @@ html[data-tema='grafito'] #cal-filtro .type-opt.active>span{color:#14171a}
     <!-- (20-nov-2026, tanda 4) una cuenta con TUS numeros: edad, lo que quieres recibir y el rendimiento que tu supones. No es asesoria -->
     <div class="section-title">línea de tiempo para tu retiro</div>
     <div class="panel retiro-calc" id="retiro-panel">
+      <!-- (25-nov-2026, Beto: "ya hice todo y se ve como si no estuviera completo") con el plan completo, los numeros se pliegan y arriba
+           queda el resumen; abiertos mientras falte algo -->
+      <details class="retiro-datos" id="ret-datos" open>
+      <summary id="ret-datos-sum"><span class="rds-tit" id="ret-datos-tit">tus números</span> <span class="rds-res" id="ret-datos-res"></span> <span class="rds-acc" id="ret-datos-acc"></span></summary>
       <!-- (25-nov-2026) cinco lugares, cada uno en su moneda y con su inflacion (decision de Beto del 24-nov) -->
       <div class="field retiro-lugar"><label for="ret-lugar">¿dónde te vas a retirar?</label><select id="ret-lugar">
         <option value="mx">México · pesos</option><option value="us">Estados Unidos · dólares</option><option value="eu">Zona euro · euros</option>
@@ -2474,10 +2500,17 @@ html[data-tema='grafito'] #cal-filtro .type-opt.active>span{color:#14171a}
         <div class="field"><label for="ret-ingreso">quieres recibir al mes</label><input type="number" id="ret-ingreso" inputmode="decimal" min="0" step="any" placeholder="en pesos de hoy"></div>
         <div class="field"><label for="ret-hasta">que te alcance hasta los</label><input type="number" id="ret-hasta" inputmode="numeric" min="40" max="110" step="1" placeholder="ej. 90"></div>
         <div class="field"><label for="ret-tasa">rendimiento al año que supones (%)</label><input type="number" id="ret-tasa" inputmode="decimal" min="0" max="30" step="any"></div>
-        <div class="field"><label for="ret-infl">inflación al año que supones (%)</label><input type="number" id="ret-infl" inputmode="decimal" min="0" max="30" step="any" placeholder="la meta del Banco de México es 3"></div>
         <div class="field"><label for="ret-ya">ya tienes para esto</label><input type="number" id="ret-ya" inputmode="decimal" min="0" step="any" placeholder="0"></div>
       </div>
-      <div class="retiro-infl" id="ret-infl-ops"></div>
+      <!-- (25-nov-2026, Beto) la inflacion en un solo lugar y con tres opciones: la meta del banco central, el promedio de 20 años u otra.
+           #ret-infl sigue siendo el dato; solo se ve con "otra" -->
+      <div class="field retiro-infl-campo" role="group" aria-labelledby="ret-infl-tit">
+        <div class="ri-tit" id="ret-infl-tit">inflación al año</div>
+        <div class="retiro-infl" id="ret-infl-ops"></div>
+        <div class="ri-otra" id="ret-infl-otra" hidden><label for="ret-infl">la que tú supones (%)</label><input type="number" id="ret-infl" inputmode="decimal" min="0" max="30" step="any" placeholder="ej. 4"></div>
+        <div class="ri-fuente" id="ret-infl-fuente"></div>
+      </div>
+      </details>
       <div class="retiro-res" id="retiro-res" aria-live="polite"></div>
       <div class="retiro-fondo" id="retiro-fondo"></div>
       <div class="item-meta retiro-nota">Es una cuenta con los números que tú pones, no una recomendación. El rendimiento lo supones tú y nadie lo garantiza; al rendimiento se le resta la inflación que pones, y las cifras van en dinero de hoy de la moneda que elegiste. No incluye pensión, impuestos ni cambios en tus gastos.</div>
@@ -16454,10 +16487,10 @@ const AYUDA_BASE = [
     r:['Tus metas se acomodan solas por su fecha: corto plazo es hasta un año; mediano, de 1 a 5 años; largo, de 5 a 10; y aparte las de más de 10 años, como tu retiro, los estudios de tus hijos o una casa. Si cambias la fecha de una meta, cambia de grupo sola.'],
     claves:'plazo plazos corto mediano largo grupo grupos acomodan separar'},
   {id:'fondo-retiro', g:'ver', p:'¿Cómo mido mi ahorro para la jubilación?', donde:'Metas › Retiro', ir:'retiro', boton:'ir a retiro',
-    r:['Es un fondo como los demás, solo para tu retiro. En Metas › Retiro, con tus números escritos, toca "Crear mi fondo de retiro": su meta es lo que pide tu línea. Cada mes ves cuánto apartaste ahí contra lo que pide tu retiro, y si vas al día. Sin fondo, la cuenta compara contra todo lo que metes a ahorro e inversión. Tus números del retiro se guardan en tu cuenta y se ven en todos tus aparatos.'],
+    r:['Es un fondo como los demás, solo para tu retiro. En Metas › Retiro, con tus números escritos, toca "Crear mi fondo de retiro": su meta es lo que pide tu línea y se ajusta sola cuando cambias tus números. Cada mes ves cuánto apartaste ahí contra lo que pide tu retiro, y si vas al día. Sin fondo, compara contra todo lo que metes a ahorro e inversión. Tus números se ven en todos tus aparatos.'],
     claves:'retirarme jubilacion jubilarme jubilo vejez linea mido medir'},
   {id:'inflacion', g:'ver', p:'¿Qué pongo en inflación?', donde:'Metas › Retiro', ir:'retiro', boton:'ir a retiro',
-    r:['Debajo del campo hay dos opciones del lugar donde te vas a retirar: la meta de su banco central y el promedio de 2005 a 2024. Toca una y se llena sola, o escribe la tuya. Nadie sabe la inflación de los próximos años: la meta es lo que el banco busca, y el promedio, lo que pasó. Puedes elegir México, Estados Unidos, zona euro, Australia o China, cada uno en su moneda.'],
+    r:['En tus números, en "Inflación al año", hay tres opciones para el lugar donde te vas a retirar: la meta de su banco central, el promedio de 2005 a 2024 u "Otra", para escribir la tuya. Nadie sabe la inflación de los próximos años: la meta es lo que el banco busca, y el promedio, lo que pasó. Puedes elegir México, Estados Unidos, zona euro, Australia o China, cada uno en su moneda.'],
     claves:'inflacion suben subiendo moneda pais lugar euros australia china yuanes'},
   {id:'valor-dinero', g:'ver', p:'¿Cuánto valen $100,000 en 40 años?', donde:'Metas › Retiro', ir:'valor', boton:'ir a la calculadora',
     r:['Usa la calculadora "¿Cuánto vale el dinero con los años?", al final de Metas › Retiro: escribes la cantidad, en cuántos años y la inflación, y te dice cuánto costará lo que hoy cuesta esa cantidad y cuánto valdrá esa cantidad en dinero de hoy. No guarda nada.'],
@@ -16740,7 +16773,7 @@ const AYUDA_IR = {
   ganancia: () => { showPage('resumen', true); return ayAbrir(ayEl('res-utilidades')); },
   limite: () => { ayPerfil(); return ayAbrir(ayEl('limite-input')); },
   metas: () => { showPage('metas', true); metasSub('metas'); return ayEl('metas-panel'); },
-  retiro: () => { showPage('metas', true); metasSub('retiro'); return ayEl('retiro-panel'); },
+  retiro: () => { showPage('metas', true); metasSub('retiro'); const d = ayEl('ret-datos'); if (d) d.open = true; return ayEl('retiro-panel'); },
   valor: () => { showPage('metas', true); metasSub('retiro'); return ayEl('valor-panel'); },
   ojo: () => ayEl('privado-btn'),
   salir: () => document.querySelector('.logout-btn[onclick="doLogout()"]'),
@@ -18384,7 +18417,7 @@ function pintarInvitaMetas() {
   const b5=document.getElementById('meta-invita-5'), bi=document.getElementById('meta-invita-inv'), br=document.getElementById('meta-invita-retiro'), bl=document.getElementById('meta-invita-luego');
   if(b5) b5.addEventListener('click',()=>abrirMetaDlg('nueva',null,{fecha:en5(),nombre:'en 5 años',cuenta:'patrimonio'}));
   if(bi) bi.addEventListener('click',()=>abrirMetaDlg('nueva',null,{cuenta:'stocks',nombre:'invertido'}));
-  if(br) br.addEventListener('click',()=>{ showPage('metas',true); metasSub('retiro'); const p=document.getElementById('retiro-panel'); if(p){ p.scrollIntoView({block:'start'}); const barras=(document.querySelector('nav')?.offsetHeight||0)+(document.querySelector('.tabs')?.offsetHeight||0); window.scrollBy(0,-(barras+40)); const i=document.getElementById('ret-edad'); if(i) i.focus({preventScroll:true}); } });
+  if(br) br.addEventListener('click',()=>{ showPage('metas',true); metasSub('retiro'); const p=document.getElementById('retiro-panel'); if(p){ p.scrollIntoView({block:'start'}); const barras=(document.querySelector('nav')?.offsetHeight||0)+(document.querySelector('.tabs')?.offsetHeight||0); window.scrollBy(0,-(barras+40)); const dd=document.getElementById('ret-datos'); if(dd) dd.open=true; const i=document.getElementById('ret-edad'); if(i) i.focus({preventScroll:true}); } });
   if(bl) bl.addEventListener('click',()=>{ try{ localStorage.setItem(lsKey('metas-luego'),String(Date.now())); }catch(e){} pintarInvitaMetas(); const a=document.getElementById('inicio-anotar'); if(a) a.focus(); }); }
 // ── RETIRO (20-nov-2026, tanda 4): una cuenta con los numeros de la persona. Cero escrituras a Firestore: lo escrito se recuerda
 // solo en este aparato (lsKey('retiro')). Interes compuesto mensual equivalente a la tasa anual que la persona supone
@@ -18436,7 +18469,7 @@ window.metasSub=function(cual){
     if(pe) pe.hidden=!es;
     if(te){ te.classList.toggle('active',es); if(es) te.setAttribute('aria-current','page'); else te.removeAttribute('aria-current'); }
   });
-  if(metasSubActual==='retiro'){ pintarRetiro(); pintarValor(); }
+  if(metasSubActual==='retiro'){ pintarRetiro(); pintarValor(); plegarDatosRetiro(); }
 };
 // ── FONDO DE RETIRO (25-nov-2026): el retiro se mide con lo que de verdad apartas en su fondo, no con todo lo que ahorras ──
 // el fondo enlazado en perfil.retiro.fondo (si sigue abierto): lo que tiene (apartado + lo que genero) y desde cuando se mide
@@ -18473,21 +18506,43 @@ function pintarFondoRetiro(c, v, fr, tc){
   const el=document.getElementById('retiro-fondo'); if(!el) return;
   const M=t=>CFG.multi?t.charAt(0).toUpperCase()+t.slice(1):t;
   if(fr){
-    const mt=metaFondo(fr.id), obj=retiroUltCalc?c2(c.capital*tc):0;   // la meta del fondo va en pesos
-    const cambia=obj>0&&(!mt||Math.abs(mt.objetivo-obj)>Math.max(1,obj*0.01));
+    // (25-nov-2026, Beto: "le cambie algo y ya me dice cambiar su meta a…") la meta del fondo es la de tu plan: se ajusta sola cuando
+    // cambias tus numeros (sincronizarMetaRetiro), sin boton. Si alguien la cambio a mano en Fondo, se dice, sin pisarla aqui
+    const mt=metaFondo(fr.id), lm=metaDeLinea(), obj=lm?lm.objetivo:0;   // la meta del fondo va en pesos
+    const igual=mt&&obj>0&&Math.abs(mt.objetivo-obj)<=Math.max(1,obj*0.01);
+    const cuando=f=>f?' para '+MESES[+f.slice(5,7)-1]+' '+f.slice(0,4):'';
+    // (revision) mientras algo esta pendiente (espera, escritura en vuelo o reintento por falta de señal) no se afirma que la meta ya es la del plan
+    const pendiente=metaRetiroPend||!!metaRetiroReloj||metaRetiroVuelo, sinSenal=!datosCargados||cargaDesdeCache||navigator.onLine===false;
+    const dif=mt&&obj>0&&!igual;
     el.innerHTML='<div class="retiro-fondo-tit">'+M('tu fondo de retiro: ')+'«'+escapeHtml(fr.nombre)+'» · '+fmt(fr.tiene)+'</div>'+
-      (mt?'<div class="item-meta">Su meta: '+fmt(mt.objetivo)+(mt.fecha?' para '+MESES[+mt.fecha.slice(5,7)-1]+' '+mt.fecha.slice(0,4):'')+'.</div>':'')+
-      '<div class="retiro-fondo-acc">'+
-      (cambia?'<button type="button" class="btn" id="retiro-fondo-meta">'+M(mt?'cambiar su meta a ':'ponerle de meta ')+fmt(obj)+'</button>':'')+
-      '<button type="button" class="btn" id="retiro-fondo-ver">'+M('ver mi fondo')+'</button></div>';
-    const bm=document.getElementById('retiro-fondo-meta'); if(bm) bm.addEventListener('click',()=>metaFondoRetiro(fr.id));
+      (obj>0&&pendiente?'<div class="item-meta">Ajustando su meta a tu plan: '+fmt(obj)+cuando(lm.fecha)+(sinSenal?', cuando haya señal':'')+'.</div>'
+        :obj>0&&igual?'<div class="item-meta">Su meta es la de tu plan: '+fmt(obj)+cuando(lm.fecha)+'.</div>'
+        :dif?'<div class="item-meta">Su meta: '+fmt(mt.objetivo)+cuando(mt.fecha)+'. Tu plan pide '+fmt(obj)+'. <button type="button" class="del-btn" id="retiro-fondo-seguir" style="font-size:12px;color:var(--accent);padding:2px 0 2px 6px">'+M('que siga a mi plan')+'</button></div>'
+        :mt?'<div class="item-meta">Su meta: '+fmt(mt.objetivo)+cuando(mt.fecha)+'.</div>'
+        :(obj>0?'<div class="item-meta">Su meta será la de tu plan: '+fmt(obj)+cuando(lm.fecha)+'. Se pone sola cuando cambies tus números con señal.</div>':''))+
+      '<div class="retiro-fondo-acc"><button type="button" class="btn" id="retiro-fondo-ver">'+M('ver mi fondo')+'</button></div>';
     document.getElementById('retiro-fondo-ver').addEventListener('click',()=>irAFondo(fr.id,false));
+    const bs=document.getElementById('retiro-fondo-seguir');
+    if(bs) bs.addEventListener('click',async()=>{
+      if(fondoRetiroOcupado) return;
+      if(!datosCargados||cargaDesdeCache||navigator.onLine===false){ showToast('sin señal: inténtalo cuando haya conexión'); return; }
+      const meta=metaDeLinea(); if(!meta||!(meta.objetivo>0)) return;
+      fondoRetiroOcupado=true;
+      try{ await guardarMetaFondo(fr.id,meta); metaRetiroPend=false; }
+      catch(e){ console.error('meta retiro',e); metaRetiroPend=true; showToast(M('no se pudo ajustar la meta de tu fondo; lo vuelvo a intentar cuando haya señal')); }
+      finally{ fondoRetiroOcupado=false; refrescar(renderApartados, pintarRetiro); }
+    });
     return;
   }
   // sin fondo enlazado: si ya hay un fondo que se llama como el retiro, se ofrece ese; si no, crear uno
   const ya=listaFondos().find(x=>x.id!==FONDO_U&&/retiro/i.test(x.nombre));
+  // (revision) si ese fondo ya tenia una meta distinta, se dice antes de usarlo: la meta pasa a ser la del plan
+  let metaYa='Su meta pasa a ser la de tu plan.';
+  if(ya){ const my=metaFondo(ya.id), ly=metaDeLinea();
+    if(!my) metaYa='Su meta será la de tu plan.';
+    else if(ly&&ly.objetivo>0&&Math.abs(my.objetivo-ly.objetivo)>Math.max(1,ly.objetivo*0.01)) metaYa='Hoy su meta es '+fmt(my.objetivo)+'; pasa a ser la de tu plan ('+fmt(ly.objetivo)+').'; }
   el.innerHTML=ya
-    ?'<div class="item-meta">Ya tienes un fondo «'+escapeHtml(ya.nombre)+'»: úsalo para medir tu retiro con lo que apartas ahí.</div>'+
+    ?'<div class="item-meta">Ya tienes un fondo «'+escapeHtml(ya.nombre)+'»: úsalo para medir tu retiro con lo que apartas ahí. '+metaYa+'</div>'+
       '<div class="retiro-fondo-acc"><button type="button" class="btn btn-purple" id="retiro-fondo-usar">'+M('medir mi retiro con este fondo')+'</button></div>'
     :'<div class="item-meta">Aparta tu retiro en su propio fondo: cada mes verás cuánto apartaste contra lo que pide, y si vas al día con tu línea.</div>'+
       (c.error?'<div class="item-meta">'+M('cuando tus números de arriba estén completos, aquí lo creas.')+'</div>'
@@ -18499,7 +18554,8 @@ function pintarFondoRetiro(c, v, fr, tc){
 function metaDeLinea(){
   if(!retiroUltCalc) return null;
   const {c, v, tc}=retiroUltCalc, h=new Date();
-  return {objetivo:c2(c.capital*tc), fecha:(h.getFullYear()+(Number(v.a)-Number(v.edad)))+'-'+String(h.getMonth()+1).padStart(2,'0')};
+  const objetivo=c2(c.capital*tc); if(objetivo>1e10) return null;   // el mismo tope que leeMeta y saneaMetasFondos: mas arriba no se guarda
+  return {objetivo, fecha:(h.getFullYear()+(Number(v.a)-Number(v.edad)))+'-'+String(h.getMonth()+1).padStart(2,'0')};
 }
 async function crearFondoRetiro(){
   if(fondoRetiroOcupado) return;
@@ -18509,9 +18565,10 @@ async function crearFondoRetiro(){
   try{
     const id=idFondoNuevo();
     if(!(await cambiarListaFondos(altaEnLista(id,CFG.multi?'Retiro':'retiro'),CFG.multi?'Fondo creado: Retiro':'fondo creado: retiro'))) return;
-    try{ await guardarMetaFondo(id,meta); }catch(e){ console.error('meta retiro',e); showToast('el fondo se creó, pero su meta no: pónsela desde aquí'); }
+    try{ await guardarMetaFondo(id,meta); metaRetiroPend=false; }catch(e){ console.error('meta retiro',e); metaRetiroPend=true; showToast('el fondo se creó, pero su meta no: la intento otra vez cuando haya señal'); }
     if(!(await guardarRetiroNube({fondo:id,desde:hoyLocal(),base:0},true))) showToast('el fondo se creó; el retiro lo empieza a medir cuando haya señal');
-  } finally { fondoRetiroOcupado=false; refrescar(renderApartados, pintarRetiro); }
+    plegarDatosRetiro(true);
+  } finally { fondoRetiroOcupado=false; refrescar(renderApartados, pintarRetiro); if(metaRetiroPend) sincronizarMetaRetiro(); }
 }
 async function usarFondoRetiro(id){
   if(fondoRetiroOcupado) return;
@@ -18520,50 +18577,103 @@ async function usarFondoRetiro(id){
   try{
     const base=c2(totalFondo(id)+generadoFondo(id));
     if(!(await guardarRetiroNube({fondo:id,desde:hoyLocal(),base},true))){ showToast('no se guardó: revisa tu conexión'); return; }
-    const meta=metaDeLinea(); if(meta&&!metaFondo(id)) { try{ await guardarMetaFondo(id,meta); }catch(e){ console.error('meta retiro',e); } }
-    showToast(CFG.multi?'Listo: tu retiro se mide con ese fondo':'listo: tu retiro se mide con ese fondo');
-  } finally { fondoRetiroOcupado=false; refrescar(renderApartados, pintarRetiro); }
+    const meta=metaDeLinea();
+    let fallo=false;
+    if(meta) { try{ await guardarMetaFondo(id,meta); metaRetiroPend=false; }catch(e){ console.error('meta retiro',e); metaRetiroPend=true; fallo=true; showToast(CFG.multi?'Listo: tu retiro se mide con ese fondo, pero no se pudo ajustar su meta; lo vuelvo a intentar cuando haya señal':'listo: tu retiro se mide con ese fondo, pero no se pudo ajustar su meta; lo vuelvo a intentar cuando haya señal'); } }
+    else metaRetiroPend=true;   // aun no hay con que calcularla (por ejemplo, falta el tipo de cambio): se pone cuando llegue
+    if(!fallo) showToast(CFG.multi?'Listo: tu retiro se mide con ese fondo':'listo: tu retiro se mide con ese fondo');
+    plegarDatosRetiro(true);
+  } finally { fondoRetiroOcupado=false; refrescar(renderApartados, pintarRetiro); if(metaRetiroPend) sincronizarMetaRetiro(); }
 }
-async function metaFondoRetiro(id){
-  const meta=metaDeLinea(); if(!meta||fondoRetiroOcupado) return;
-  fondoRetiroOcupado=true;
-  try{ await guardarMetaFondo(id,meta); showToast('meta del fondo: '+fmt(meta.objetivo)); }
-  catch(e){ console.error('meta retiro',e); showToast('no se guardó: revisa tu conexión'); }
-  finally{ fondoRetiroOcupado=false; refrescar(renderApartados, pintarRetiro); }
+// (25-nov-2026) la meta del fondo de retiro sigue a tu plan: se escribe al dejar de teclear, solo si cambio (1% o la fecha). La llaman los
+// campos y el lugar, nunca el pintado: una meta puesta a mano en Fondo no se pisa hasta que cambies tus numeros. Sin señal no escribe
+// (vuelve a intentarlo con tu siguiente cambio)
+// (revision) metaRetiroPend: la persona cambio sus numeros y la meta aun no quedo alineada ni escrita. Solo la prenden los campos y el lugar
+// (o un intento que fallo) y solo se apaga al quedar alineada o escrita; con ella prendida se reintenta al volver la señal, al llegar el tipo de
+// cambio y al terminar de crear o usar el fondo. Sin ella, abrir la pantalla nunca toca una meta puesta a mano en Fondo
+let metaRetiroReloj=null, metaRetiroVuelo=false, metaRetiroOtraVez=false, metaRetiroPend=false, metaRetiroIntento=0;
+function sincronizarMetaRetiro(){
+  metaRetiroPend=true;
+  clearTimeout(metaRetiroReloj);
+  metaRetiroReloj=setTimeout(async()=>{ metaRetiroReloj=null;
+    if(metaRetiroVuelo){ metaRetiroOtraVez=true; return; }
+    if(fondoRetiroOcupado||!datosCargados||cargaDesdeCache||navigator.onLine===false){ refrescar(pintarRetiro); return; }
+    const fr=fondoRetiro(), meta=metaDeLinea();
+    if(!fr){ metaRetiroPend=false; refrescar(pintarRetiro); return; }   // sin fondo de retiro no hay meta que alinear
+    if(!meta||!(meta.objetivo>0)){
+      // sin con que calcularla: si es por numeros incompletos o fuera de rango no hay nada que esperar; si falta el tipo de cambio, se espera
+      const L=lugarRetiro(); if(!(L.m!=='MXN'&&!tcDe(L.m))) metaRetiroPend=false;
+      refrescar(pintarRetiro); return; }
+    const mt=metaFondo(fr.id);
+    if(mt&&Math.abs(mt.objetivo-meta.objetivo)<=Math.max(1,meta.objetivo*0.01)&&mt.fecha===meta.fecha){ metaRetiroPend=false; refrescar(pintarRetiro); return; }
+    metaRetiroVuelo=true; metaRetiroIntento=Date.now(); let ok=false;
+    try{ await guardarMetaFondo(fr.id,meta); ok=true; }
+    catch(e){ console.error('meta retiro',e); showToast(CFG.multi?'No se pudo ajustar la meta de tu fondo; lo vuelvo a intentar cuando haya señal':'no se pudo ajustar la meta de tu fondo; lo vuelvo a intentar cuando haya señal'); }
+    finally{ metaRetiroVuelo=false; if(ok&&!metaRetiroOtraVez) metaRetiroPend=false; refrescar(renderApartados, pintarRetiro);
+      if(metaRetiroOtraVez){ metaRetiroOtraVez=false; sincronizarMetaRetiro(); } }
+  },1500);
 }
+window.addEventListener('online',()=>{ if(metaRetiroPend) sincronizarMetaRetiro(); });
 // (25-nov-2026, decision de Beto del 24-nov) donde te vas a retirar: cinco lugares, cada uno en su moneda y con su inflacion. Dos opciones de
 // inflacion con su fuente: la meta del banco central (o del gobierno, en China) y el promedio de 2005 a 2024 (promedio geometrico de la
 // inflacion anual al consumidor, Banco Mundial FP.CPI.TOTL.ZG, bajado de FRED el 25-nov-2026; la serie sale de INEGI, BLS, Eurostat,
 // ABS y la Oficina Nacional de Estadistica de China). 20 años y no 50: en Mexico 50 años traen la inflacion de los 80 (mas de 30% al año)
 const LUGARES_RETIRO={
-  mx:{n:'México', m:'MXN', pl:'pesos', meta:3, metaTxt:'la del Banco de México (3%, con margen de un punto arriba o abajo)', prom:4.44},
-  us:{n:'Estados Unidos', m:'USD', pl:'dólares', meta:2, metaTxt:'la de la Reserva Federal (2%)', prom:2.57},
-  eu:{n:'Zona euro', m:'EUR', pl:'euros', meta:2, metaTxt:'la del Banco Central Europeo (2% a mediano plazo)', prom:2.25},
-  au:{n:'Australia', m:'AUD', pl:'dólares australianos', meta:2.5, metaTxt:'el punto medio de la del Banco de la Reserva de Australia (entre 2% y 3%)', prom:2.74},
-  cn:{n:'China', m:'CNY', pl:'yuanes', meta:2, metaTxt:'la del gobierno de China para 2026 (alrededor de 2%)', prom:2.25}};
+  mx:{corto:'del Banco de México', n:'México', m:'MXN', pl:'pesos', meta:3, metaTxt:'la del Banco de México (3%, con margen de un punto arriba o abajo)', prom:4.44},
+  us:{corto:'de la Reserva Federal', n:'Estados Unidos', m:'USD', pl:'dólares', meta:2, metaTxt:'la de la Reserva Federal (2%)', prom:2.57},
+  eu:{corto:'del Banco Central Europeo', n:'Zona euro', m:'EUR', pl:'euros', meta:2, metaTxt:'la del Banco Central Europeo (2% a mediano plazo)', prom:2.25},
+  au:{corto:'del banco central de Australia', n:'Australia', m:'AUD', pl:'dólares australianos', meta:2.5, metaTxt:'el punto medio de la del Banco de la Reserva de Australia (entre 2% y 3%)', prom:2.74},
+  cn:{corto:'del gobierno de China', n:'China', m:'CNY', pl:'yuanes', meta:2, metaTxt:'la del gobierno de China para 2026 (alrededor de 2%)', prom:2.25}};
 const PROM_INFL_TXT='de 2005 a 2024, la inflación al consumidor de cada año (Banco Mundial, con datos de la oficina de estadística de cada lugar)';
 const fmtPesos=n=>fmt(n);
 function lugarRetiro(){ const s=document.getElementById('ret-lugar'), k=s&&s.value; return Object.hasOwn(LUGARES_RETIRO,k||'')?{k,...LUGARES_RETIRO[k]}:{k:'mx',...LUGARES_RETIRO.mx}; }
-// las dos opciones de inflacion del lugar, como botones que llenan el campo
+// (25-nov-2026, Beto: "deberian aparecer las opciones: meta de Mexico 3%, promedio de 20 años 4.44% o tu propia suposicion") tres
+// opciones en un solo lugar. #ret-infl es el dato; su campo solo se ve con "otra" (o si lo guardado no es ninguna de las dos)
+let retInflOtra=false;
+function inflEsOtra(L){ const i=document.getElementById('ret-infl'), cur=i&&i.value!==''?Number(i.value):null; return retInflOtra||(cur!==null&&cur!==L.meta&&cur!==L.prom); }
 function pintarInflOps(L){
   const el=document.getElementById('ret-infl-ops'); if(!el) return;
   const i=document.getElementById('ret-infl'), cur=i&&i.value!==''?Number(i.value):null, M=t=>CFG.multi?t.charAt(0).toUpperCase()+t.slice(1):t;
-  const op=(v,t)=>'<button type="button" class="ri-op" data-infl="'+v+'" aria-pressed="'+(cur===v)+'">'+M(t)+': '+v+'%</button>';
-  el.innerHTML=op(L.meta,'meta')+op(L.prom,'promedio de 20 años')+
-    '<span class="ri-fuente">'+M('meta: '+L.metaTxt+'. Promedio: '+PROM_INFL_TXT+'.')+(L.k==='mx'?' No uso 50 años: incluirían la inflación de los 80, de más de 30% al año, que no describe hoy.':'')+'</span>';
+  const otra=inflEsOtra(L);
+  const op=(v,t)=>'<button type="button" class="ri-op" data-infl="'+v+'">'+M(t)+' · '+v+'%</button>';
+  const html=op(L.meta,'meta '+L.corto)+op(L.prom,'promedio de 20 años')+'<button type="button" class="ri-op" data-infl="otra">'+M('otra')+'</button>';
+  // (no se repinta si no cambio: asi el boton tocado no pierde el foco; aria-pressed va aparte, con setAttribute, y no entra en la comparacion)
+  if(el.dataset.html!==html){ el.innerHTML=html; el.dataset.html=html; }
+  el.querySelectorAll('.ri-op').forEach(b=>{ const d=b.dataset.infl; b.setAttribute('aria-pressed',String(d==='otra'?otra:(!otra&&cur===Number(d)))); });
+  const box=document.getElementById('ret-infl-otra'); if(box) box.hidden=!otra;
+  const fu=document.getElementById('ret-infl-fuente');
+  if(fu) fu.textContent=M('meta: '+L.metaTxt+'. Promedio: '+PROM_INFL_TXT+'.')+(L.k==='mx'?' No uso 50 años: incluirían la inflación de los 80, de más de 30% al año, que no describe hoy.':'');
 }
 { const el=document.getElementById('ret-infl-ops');
   if(el) el.addEventListener('click',ev=>{ const b=ev.target.closest('.ri-op'); if(!b) return; const i=document.getElementById('ret-infl'); if(!i) return;
-    i.value=b.dataset.infl; i.dispatchEvent(new Event('input')); });
+    if(b.dataset.infl==='otra'){ retInflOtra=true; pintarInflOps(lugarRetiro()); i.focus(); return; }
+    retInflOtra=false; i.value=b.dataset.infl; i.dispatchEvent(new Event('input')); i.dispatchEvent(new Event('change')); });
   const s=document.getElementById('ret-lugar');
   if(s){ s.dataset.prev=s.value; s.addEventListener('change',()=>{
     // jugar con las monedas: si la inflacion era la meta o el promedio del lugar anterior, pasa a la del nuevo
     // (el lugar anterior vive en dataset.prev: cargarRetiro tambien cambia el valor y lo actualiza)
     const A=LUGARES_RETIRO[s.dataset.prev], N=LUGARES_RETIRO[s.value], i=document.getElementById('ret-infl');
-    if(A&&N&&i&&i.value!==''){ const v=Number(i.value); if(v===A.meta) i.value=String(N.meta); else if(v===A.prom) i.value=String(N.prom); }
+    if(A&&N&&i&&i.value!==''&&!retInflOtra){ const v=Number(i.value); if(v===A.meta) i.value=String(N.meta); else if(v===A.prom) i.value=String(N.prom); }
     s.dataset.prev=s.value; s.dataset.tocado='1';
-    if(N&&N.m!=='MXN'&&!(tcDe(N.m)&&state.fx&&state.fx.bajado===hoyLocal())) asegurarTipoCambio(true).then(()=>pintarRetiro());
-    pintarRetiro(); guardarRetiroLocal(); guardarRetiroNube(); }); } }
+    if(N&&N.m!=='MXN'&&!(tcDe(N.m)&&state.fx&&state.fx.bajado===hoyLocal())) asegurarTipoCambio(true).then(()=>{ pintarRetiro(); if(metaRetiroPend) sincronizarMetaRetiro(); });
+    pintarRetiro(); guardarRetiroLocal(); guardarRetiroNube(); sincronizarMetaRetiro(); }); } }
+// (25-nov-2026) "tus numeros": con el plan completo se pliegan y el summary dice el plan en una linea. Se pliegan al entrar a Retiro, al
+// cargar la primera vez y al crear o usar el fondo; nunca mientras escribes. Con algo pendiente se quedan abiertos
+let retiroDatosOk=false, retiroDatosPlegados=false;
+function plegarDatosRetiro(forzar){
+  const d=document.getElementById('ret-datos'); if(!d) return;
+  if(d.contains(document.activeElement)) return;   // nunca mientras escribes, tampoco con forzar
+  d.open=!retiroDatosOk; pintarSumDatos();
+}
+function pintarSumDatos(txt){
+  const d=document.getElementById('ret-datos'), M=t=>CFG.multi?t.charAt(0).toUpperCase()+t.slice(1):t;
+  const tit=document.getElementById('ret-datos-tit'), res=document.getElementById('ret-datos-res'), acc=document.getElementById('ret-datos-acc');
+  if(typeof txt==='string'&&res) res.textContent=txt;
+  const lleno=retiroDatosOk&&res&&res.textContent;
+  if(tit) tit.textContent=M(lleno&&d&&!d.open?'tus números:':'tus números');
+  if(acc) acc.textContent=retiroDatosOk?M(d&&d.open?'ocultar':'cambiar'):(d&&!d.open?M('revisar'):'');
+}
+{ const d=document.getElementById('ret-datos'); if(d) d.addEventListener('toggle',()=>pintarSumDatos()); }
 function pintarRetiro() {
   const res=document.getElementById('retiro-res'); if(!res) return;
   const L=lugarRetiro(), tc=tcDe(L.m), enPesos=L.m==='MXN';
@@ -18576,8 +18686,12 @@ function pintarRetiro() {
   const fr=fondoRetiro(), lblYa=document.querySelector('label[for="ret-ya"]'), frOk=fr&&(enPesos||!!tc);
   if(lblYa) lblYa.textContent=fr?(CFG.multi?'Además de tu fondo, ya tienes':'además de tu fondo, ya tienes'):(CFG.multi?'Ya tienes para esto':'ya tienes para esto');
   if(frOk) v.ya=(Number(v.ya)||0)+fr.tiene/(enPesos?1:tc);
-  if(retiroEsMenor(v.edad)){ pintarFondoRetiro({error:'menor'}, v, fr, enPesos?1:tc); res.innerHTML='<div class="item-meta">Fundview es solo para mayores de 18 años: con esa edad no se calcula ni se guarda.</div>'; return; }
+  if(retiroEsMenor(v.edad)){ retiroDatosOk=false; pintarSumDatos(''); pintarFondoRetiro({error:'menor'}, v, fr, enPesos?1:tc); res.innerHTML='<div class="item-meta">Fundview es solo para mayores de 18 años: con esa edad no se calcula ni se guarda.</div>'; return; }
   const c=calcRetiro(v);
+  retiroDatosOk=!c.error;
+  // (revision) con el plan sin completar o invalido, "tus numeros" no se queda cerrado (salvo que estes escribiendo dentro)
+  { const dd=document.getElementById('ret-datos'); if(!retiroDatosOk&&dd&&!dd.open&&!dd.contains(document.activeElement)) dd.open=true; }
+  pintarSumDatos(c.error?'':L.n+' · de '+v.edad+' a '+v.a+' años · '+fmt(v.ingreso)+' al mes hasta los '+v.hasta+' · rinde '+v.tasa+'%'+(c.conInfl?', inflación '+c.infl+'%':', sin inflación'));
   pintarFondoRetiro(c, v, fr, enPesos?1:tc);
   if(c.error==='faltan'){ res.innerHTML='<div class="item-meta">Escribe tu edad, a qué edad te quieres retirar, cuánto quieres recibir al mes, hasta qué edad y el rendimiento que supones.</div>'; return; }
   if(c.error){ res.innerHTML='<div class="item-meta">Revisa los números: la edad de retiro va después de tu edad, y "hasta los" después del retiro.</div>'; return; }
@@ -18618,11 +18732,15 @@ function pintarRetiro() {
     }
   }
   const fut=c.conInfl&&c.infl>0
-    ?'<div class="item-meta">Lo que juntes, en dinero de ese año: unos '+fmt(Math.max(c.capital,c.yaFut)*c.factorFut)+'. Tu rendimiento sin inflación queda en '+c.tReal.toFixed(1)+'% al año.</div>'
-    :(c.conInfl?'':'<div class="item-meta">Sin inflación: si el rendimiento que pusiste no le quita la inflación, escribe la que supones (arriba tienes dos opciones) y la cuenta se ajusta.</div>');
-  res.innerHTML='<div class="retiro-big">'+big+'</div>'+valor+pesos+mes+'<ul class="retiro-linea">'
+    ?'<div class="item-meta">Lo que juntes, en dinero de ese año: unos '+fmt(Math.max(c.capital,c.yaFut)*c.factorFut)+'. Tu rendimiento sin inflación queda en '+c.tReal.toFixed(1)+'% al año.</div>':'';
+  // (revision) el aviso de "sin inflación" va FUERA del plegado de la línea: es parte de cómo leer el resultado
+  const sinInfl=c.conInfl?'':'<div class="item-meta">Sin inflación: si el rendimiento que pusiste no le quita la inflación, elige una de las tres opciones de inflación en tus números y la cuenta se ajusta.</div>';
+  // (25-nov-2026) primero lo que pide y como vas; la linea cada 5 años va plegada (antes empujaba tu fondo hasta abajo)
+  const Mx=t=>CFG.multi?t.charAt(0).toUpperCase()+t.slice(1):t;
+  const linAb=!!document.querySelector('#retiro-res .retiro-linea-det[open]');
+  res.innerHTML='<div class="retiro-big">'+big+'</div>'+mes+valor+pesos+'<details class="retiro-linea-det"'+(linAb?' open':'')+'><summary>'+Mx('ver tu línea, cada 5 años')+'</summary><ul class="retiro-linea">'
     +c.hitos.map(h=>'<li>a los <b>'+h.edad+'</b>: '+(h.edad===Number(v.a)?'llegas con '+fmt(h.saldo):'llevarías '+fmt(h.saldo))+'</li>').join('')
-    +'<li>de los '+v.a+' a los '+v.hasta+': recibes '+fmt(v.ingreso)+' al mes</li></ul>'+fut;
+    +'<li>de los '+v.a+' a los '+v.hasta+': recibes '+fmt(v.ingreso)+' al mes</li></ul>'+fut+'</details>'+sinInfl;
 }
 // la calculadora corta: cantidad, años e inflacion. No guarda nada
 function pintarValor(){
@@ -18653,6 +18771,11 @@ function saneaRetiro(r){
   return Object.keys(o).length?o:null;
 }
 // lo que dicen los campos, en el formato de la cuenta (la edad solo si la escribio la persona)
+// (25-nov-2026, qa) lo que este aparato sabia que habia en tu cuenta (al cargar, y lo que el mismo escribio). Solo se manda lo que
+// cambio contra eso: un aparato abierto desde antes que cambia la tasa ya no regresa el ingreso viejo que otro aparato ya habia cambiado
+const RETIRO_BASE_K=['ano','a','ingreso','hasta','tasa','infl','ya','lugar'];
+let retiroBase=null;
+function retiroBaseDe(r){ const o={}; if(r) RETIRO_BASE_K.forEach(k=>{ if(r[k]!==undefined) o[k]=r[k]; }); return o; }
 function retiroDeCampos(){
   const o={};
   Object.entries(RETIRO_CAMPOS).forEach(([k,id])=>{ const e=document.getElementById(id); if(!e||e.value==='') return;
@@ -18677,8 +18800,10 @@ function guardarRetiroNube(extra, ya){
     retiroNubeVuelo=true; retiroNubeIntento=Date.now();
     // (revision) el mapa se arma en una transaccion sobre lo que HAY en el servidor: fondo, desde y base que creo otro aparato no se borran.
     // Lo que se borro en pantalla (campo vacio) sigue borrandose; la edad vacia solo si la persona la toco.
-    const extra={...retiroExtra}, campos=retiroDeCampos(), vacios=[];
-    Object.entries(RETIRO_CAMPOS).forEach(([k,id])=>{ const e=document.getElementById(id); if(e&&e.value===''&&(k!=='edad'||e.dataset.tocado)) vacios.push(k==='edad'?'ano':k); });
+    const extra={...retiroExtra}, todos=retiroDeCampos(), vacios=[], campos={}, base=retiroBase;
+    Object.entries(todos).forEach(([k,x])=>{ if(!base||base[k]!==x) campos[k]=x; });
+    Object.entries(RETIRO_CAMPOS).forEach(([k,id])=>{ const e=document.getElementById(id), kk=k==='edad'?'ano':k;
+      if(e&&e.value===''&&(k!=='edad'||e.dataset.tocado)&&(!base||Object.hasOwn(base,kk))) vacios.push(kk); });
     let fin; retiroNubeProm=new Promise(ok=>{ fin=ok; });
     try{
       const ref=doc(db,NS,'perfil');
@@ -18692,6 +18817,7 @@ function guardarRetiroNube(extra, ya){
       }),
         new Promise((_,no)=>setTimeout(()=>no(new Error('tiempo agotado')),15000))]);
       state.perfil={...state.perfil,retiro:obj}; retiroNubePend=false; retiroExtra={}; setSyncDot('ok');
+      retiroBase={...(retiroBase||{}),...campos}; vacios.forEach(k=>{ delete retiroBase[k]; });
       return true;
     }catch(e){ console.error('retiro',e); retiroNubePend=true; setSyncDot('err'); return false; }
     finally{ retiroNubeVuelo=false; fin();
@@ -18708,7 +18834,9 @@ function guardarRetiroLocal(){ try{ const v={};
       v[k]=e.value; });
     const s=document.getElementById('ret-lugar'); if(s&&s.value!=='mx') v.lugar=s.value;
     localStorage.setItem(lsKey('retiro'),JSON.stringify(v)); }catch(e){} }
-Object.values(RETIRO_CAMPOS).forEach(id=>{ const e=document.getElementById(id); if(e) e.addEventListener('input',()=>{ e.dataset.tocado='1'; pintarRetiro(); guardarRetiroLocal(); guardarRetiroNube(); }); });
+Object.values(RETIRO_CAMPOS).forEach(id=>{ const e=document.getElementById(id); if(e) e.addEventListener('input',()=>{ e.dataset.tocado='1'; pintarRetiro(); guardarRetiroLocal(); guardarRetiroNube(); });
+  // (revision) la meta del fondo sigue al plan al TERMINAR de escribir ('change'), no en cada tecla
+  if(e) e.addEventListener('change',()=>sincronizarMetaRetiro()); });
 // (24-nov-2026) igual que el perfil: la edad de un menor no se guarda, se dice, y el reporte de errores avisa SIN la edad ni nada de la persona.
 // Al terminar de escribirla ('change'), no en cada tecla: escribir "35" pasa por "3"
 { const e=document.getElementById('ret-edad'); if(e&&CFG.multi) e.addEventListener('change',()=>{ const n=Number(e.value);
@@ -18717,13 +18845,14 @@ function cargarRetiro() {
   let v={}; try{ v=JSON.parse(localStorage.getItem(lsKey('retiro'))||'{}')||{}; }catch(e){}
   // lo de la cuenta manda sobre la copia del aparato; si la cuenta aun no tiene nada y el aparato si, se sube una vez
   const nube=state.perfil&&state.perfil.retiro;
+  if(nube&&!retiroBase) retiroBase=retiroBaseDe(nube);
   if(nube){ v={}; Object.keys(RETIRO_CAMPOS).forEach(k=>{ if(k==='edad'){ if(nube.ano) v.edad=String(new Date().getFullYear()-nube.ano); } else if(nube[k]!==undefined) v[k]=String(nube[k]); }); if(nube.lugar) v.lugar=nube.lugar; }
   const sl=document.getElementById('ret-lugar');
   if(sl&&!sl.dataset.tocado&&typeof v.lugar==='string'&&Object.hasOwn(LUGARES_RETIRO,v.lugar)){ sl.value=v.lugar; sl.dataset.prev=sl.value; }
   // (revision) con un lugar guardado en otra moneda, el tipo de cambio de hoy se pide una vez por carga (antes solo al cambiar el select)
   { const L0=lugarRetiro();
     if(L0.m!=='MXN'&&!retiroTcPedido&&datosCargados&&!cargaDesdeCache&&navigator.onLine!==false&&!(tcDe(L0.m)&&state.fx&&state.fx.bajado===hoyLocal())){
-      retiroTcPedido=true; asegurarTipoCambio(true).then(()=>pintarRetiro()).catch(()=>{}); } }
+      retiroTcPedido=true; asegurarTipoCambio(true).then(()=>{ pintarRetiro(); if(metaRetiroPend) sincronizarMetaRetiro(); }).catch(()=>{}); } }
   Object.entries(RETIRO_CAMPOS).forEach(([k,id])=>{ const e=document.getElementById(id); if(e&&e.value===''&&!e.dataset.tocado&&typeof v[k]==='string'&&/^[0-9]+([.][0-9]+)?$/.test(v[k])&&v[k].length<16){ e.value=v[k]; if(k==='edad') e.dataset.tocado='1'; } });
   if((!nube&&Object.keys(v).length&&datosCargados&&!cargaDesdeCache&&!retiroSubido)||(retiroNubePend&&!retiroNubeVuelo&&!retiroNubeReloj&&Date.now()-retiroNubeIntento>60000)){ retiroSubido=true; guardarRetiroNube(null,true); }
   // la edad sale del perfil si la persona no la escribio
@@ -18732,6 +18861,10 @@ function cargarRetiro() {
   // (revision) en modo privado los montos que la persona escribio tampoco se ven en los campos
   ['ret-ingreso','ret-ya','val-cant'].forEach(id=>{ const e=document.getElementById(id); if(e) e.type=modoPrivado?'password':'number'; });
   pintarRetiro(); pintarValor();   // la calculadora tambien: al prender el modo privado no debe quedar un monto
+  // (revision) render() llama renderApartados() justo despues de renderMetas(): su renglon ya usa la cuenta de tu plan, que esta al dia
+  // una meta pendiente (la señal volvio despues de recargar) se reintenta aqui, a lo mucho cada minuto
+  if(metaRetiroPend&&!metaRetiroReloj&&!metaRetiroVuelo&&datosCargados&&!cargaDesdeCache&&navigator.onLine!==false&&Date.now()-metaRetiroIntento>60000) sincronizarMetaRetiro();
+  if(!retiroDatosPlegados&&datosCargados){ retiroDatosPlegados=true; plegarDatosRetiro(); }
 }
 window.editarMeta=id=>abrirMetaDlg('editar',id);
 window.cerrarMetaDlg=()=>{ const d=document.getElementById('meta-dlg'); if(d&&d.open) d.close(); };
@@ -18879,6 +19012,10 @@ function renderApartados() {
   const fondos=listaFondos().filter(x=>metaFondo(x.id));
   const filas=fondos.map(x=>{
     const tiene=totalFondo(x.id)+generadoFondo(x.id), mt=metaFondo(x.id), av=mt?avanceMeta(tiene,mt):null;
+    // (25-nov-2026) el fondo de retiro dice lo mismo que tu plan: lo que pide al mes CON el rendimiento que supones (antes "guarda unos"
+    // dividia sin rendimiento y daba casi el triple)
+    const rp=av&&/ · guarda unos /.test(av.txt)&&x.id===((state.perfil&&state.perfil.retiro&&state.perfil.retiro.fondo)||'')&&retiroUltCalc&&retiroUltCalc.c.aporte>0.005?retiroUltCalc:null;
+    if(rp) av.txt=av.txt.replace(/ · guarda unos .*$/,'')+' · tu plan de retiro pide unos '+fmt(c2(rp.c.aporte*rp.tc))+' al mes, con el rendimiento que supones';
     return `<div class="resumen-bar" style="padding:10px 0;border-bottom:0.5px solid var(--border)"><div class="bar-header"><span class="bar-label">${escapeHtml(x.nombre)}</span><span class="bar-amt" style="color:var(--accent-dark)">${fmt(tiene)}${mt?' / '+fmt(mt.objetivo):''}</span></div>`+
       (mt?`<div class="bar-track" style="height:6px"><div class="bar-fill" style="width:${Math.max(0,Math.min(100,av.pct)).toFixed(1)}%"></div></div>`:'')+
       `<div class="bar-header" style="margin-top:4px"><span class="item-meta">${escapeHtml(av.txt)}</span>`+
