@@ -64,7 +64,7 @@ window.CFG = Object.freeze({ns:'cartera', pfx:'', correo:'rl7103405@gmail.com',
 // <fv-errores>
 var FV_ERR_TIPOS=['Error','TypeError','ReferenceError','RangeError','SyntaxError','URIError','EvalError','AggregateError','FirebaseError','DOMException',
   'AbortError','NetworkError','NotAllowedError','NotFoundError','NotSupportedError','InvalidStateError','QuotaExceededError','SecurityError','TimeoutError','DataError','UnknownError',
-  'ScriptNoCargo','Rechazo','Otro','SmsRechazo'];
+  'ScriptNoCargo','Rechazo','Otro','SmsRechazo','Menor'];
 var FV_ERR_PASOS=['entrar','crear','correo','telefono','totp','codigo','factor','invitacion','terminos','olvide','borrando','borrando-otra','borrado','clave','liga'];
 var FV_ERR_PAGINAS=['inicio','movimientos','calendario','perfil','metas','noticias','deudas','dashboard','fondo','resumen'];
 // lo que un error tecnico dice en ingles. Lista cerrada a proposito: lo que no este aqui no sale, sea lo que sea
@@ -182,6 +182,8 @@ window.addEventListener('unhandledrejection',function(e){ try{ reportar({error:e
 // (5-nov-2026, mejora 4) un SMS que no salio NO es un error que truene: la app lo atrapa y enseña un texto. Para saber la forma real del rechazo del tope
 // (en produccion no trae fv-sms-tope en el mensaje) se reporta a mano, con las mismas reglas: lista de palabras, 5 por carga, uno cada 30 s, nada sin señal
 window.__fvErrSms=function(err){ try{ reportar({tipo:'SmsRechazo',error:err}); }catch(x){} };
+// (20-nov-2026) alguien escribio en su perfil un año de nacimiento de menor de 18: solo el tipo, sin el año ni nada de la persona
+window.__fvErrMenor=function(){ try{ reportar({tipo:'Menor',error:new Error('menor')}); }catch(x){} };
 })();
 </script>
 <script>
@@ -1274,6 +1276,7 @@ html[data-tema='grafito'] .cal-a.i{color:var(--accent)}
 .cal-ley .i-v{border:1px dashed var(--accent);background:var(--g2)}
 .cal-ley .i-p{width:9px;height:9px;border-radius:50%;border:1.5px solid var(--cal-ambar)}
 #mov-cal.priv .cal-ley-max,#mov-cal.priv .cal-ley-g,#mov-cal.priv .cal-ley-i{display:none}
+#mov-cal.solo-ing .cal-ley-esc,#mov-cal.solo-ing .cal-ley-max,#mov-cal.solo-gas .cal-ley-i{display:none}
 .cal-ley .i-i{width:auto;height:auto;color:var(--accent-dark);font-style:normal;font-weight:700;line-height:1}
 .cal-det-tit{font-size:14px;font-weight:600;margin-bottom:2px}
 .cal-nota{font-size:12px;color:var(--muted);line-height:1.5}
@@ -1386,6 +1389,7 @@ html[data-tema='grafito'] #cal-filtro .type-opt.active>span{color:#14171a}
       <div class="login-field"><label class="fv-label" for="fv-correo">tu correo</label><input type="email" id="fv-correo" autocomplete="email" autocapitalize="off" spellcheck="false"></div>
       <div class="login-field"><label class="fv-label" for="fv-pass">una contraseña nueva</label><input type="password" id="fv-pass" autocomplete="new-password" aria-describedby="fv-pass-ayuda"><div class="fv-ayuda" id="fv-pass-ayuda">al menos 10 caracteres</div></div>
       <label class="fv-check"><input type="checkbox" id="fv-terminos"><span>Acepto los términos y el aviso de privacidad de Fundview.</span></label>
+      <label class="fv-check"><input type="checkbox" id="fv-mayor"><span>Soy mayor de 18 años.</span></label>
       <button type="button" class="fv-liga fv-leer" id="fv-leer-crear" onclick="fvLegal()">leer los términos y el aviso</button>
       <button type="button" class="login-btn" id="fv-btn-crear" onclick="fvCrear()">crear mi cuenta</button>
       <div class="login-error" role="alert"></div>
@@ -1487,6 +1491,7 @@ html[data-tema='grafito'] #cal-filtro .type-opt.active>span{color:#14171a}
       <div class="login-field"><label class="fv-label" for="fv-inv-cod">código de invitación</label><input type="text" id="fv-inv-cod" placeholder="FV-XXXX-XXXX-XXXX-XXXX" autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="40"></div>
       <div id="fv-inv-terminos-fila">
         <label class="fv-check"><input type="checkbox" id="fv-inv-terminos"><span>Acepto los términos y el aviso de privacidad de Fundview.</span></label>
+        <label class="fv-check"><input type="checkbox" id="fv-inv-mayor"><span>Soy mayor de 18 años.</span></label>
         <button type="button" class="fv-liga fv-leer" id="fv-leer-canje" onclick="fvLegal()">leer los términos y el aviso</button>
       </div>
       <button type="button" class="login-btn" id="fv-btn-canjear" onclick="fvCanjear()">abrir Fundview</button>
@@ -1499,6 +1504,7 @@ html[data-tema='grafito'] #cal-filtro .type-opt.active>span{color:#14171a}
       <p>Para seguir usando Fundview necesitamos que los aceptes. Esto es lo que cambió:</p>
       <ul class="fv-cambios" id="fv-terminos-cambios"></ul>
       <button type="button" class="fv-liga fv-leer-todo" id="fv-terminos-leer" onclick="fvLegal()">leer los términos y el aviso completos</button>
+      <label class="fv-check"><input type="checkbox" id="fv-t-mayor"><span>Soy mayor de 18 años.</span></label>
       <button type="button" class="login-btn" id="fv-btn-acepto" onclick="fvAceptarTerminos()">Acepto</button>
       <div class="login-error" role="alert"></div>
       <div class="fv-nota">Si no estás de acuerdo, no tienes que aceptar para irte: puedes descargar tus datos y borrar tu cuenta.</div>
@@ -2835,9 +2841,9 @@ html[data-tema='grafito'] #cal-filtro .type-opt.active>span{color:#14171a}
         style="max-height:calc(100dvh - 40px);overflow:auto" onclick="event.stopPropagation()"
         onsubmit="event.preventDefault();confirmarNuevaPersona()">
     <div class="modal-tit" id="persona-tit">nueva persona</div>
-    <div class="modal-sub">quien te debe, o a quien le debes</div>
+    <div class="modal-sub">quién te debe, o a quién le debes</div>
     <div class="field"><label for="persona-nombre">nombre</label>
-      <input type="text" id="persona-nombre" placeholder="ej. Mama" maxlength="30"
+      <input type="text" id="persona-nombre" placeholder="ej. Mamá" maxlength="30"
              autocomplete="off" autocapitalize="words" enterkeyhint="done" style="font-size:16px">
     </div>
     <button type="submit" class="btn btn-purple" id="persona-btn">agregar</button>
@@ -4460,8 +4466,13 @@ fvGlobal.fvElegirFactor = tipo => {
 fvGlobal.fvCodReenviar = () => { if (fvSms.ctx && fvSmsFalta(fvSms.ctx.quien) === 0) { fvErr('codigo', ''); return fvSmsReenviar(fvSms.ctx); } };
 // version de terminos que se acepta al crear la cuenta y al volver a pedirlos (usuarios/<uid>.terminos). Formato AAAA-MM o AAAA-MM-DD: se comparan como texto.
 // Al cambiar el texto de copias\fundview-legal.html: subir FV_TERMINOS y reescribir FV_TERMINOS_CAMBIOS. Lo dice la pantalla "Actualizamos los términos y el aviso"
-const FV_TERMINOS = '2026-11-19';
+const FV_TERMINOS = '2026-11-24';   // (24-nov-2026) casilla de mayor de 18, publicada ese dia (Beto: "sube eso de la casilla")
 const FV_TERMINOS_CAMBIOS = [
+  // 20-nov-2026: casilla de mayor de 18 (decision de Beto). La prueba de que se marco es la version aceptada en usuarios/<uid>.terminos
+  'Fundview es solo para personas de 18 años o más, y ahora lo confirmas en una casilla aparte. Si una cuenta resulta ser de una persona menor de edad, la cerramos, borramos sus datos y le devolvemos lo que haya pagado.',
+  // 24-nov-2026: revision de cumplimiento (documentos/legal/revision-cumplimiento-2026-11-24.md): el aviso nombra con detalle lo que ya se guardaba
+  'El aviso de privacidad ahora nombra con detalle lo que ya se guardaba: el registro de tus cambios, lo que anotas de otras personas y los datos de tu plan de retiro. También dice que no hay usos secundarios de tus datos y que ningún cambio a los términos aplica hasta que lo aceptes.',
+  'Si aceptaste antes del 19 de noviembre, también cambió esto:',
   // 19-nov-2026: prestamos, creditos, compras a meses y la tasa de un prestamo a una persona (documentos\plan-de-codeo\terminos-creditos-2026-11-19.md)
   'Ahora puedes anotar tus préstamos, tu hipoteca, tu crédito de auto, compras a plazos, tus compras a meses con tarjeta y el interés de un préstamo a una persona. Son datos financieros y se tratan igual que el resto de lo que anotas: confidenciales, solo para prestarte el servicio.',
   'Si aceptaste antes del 16 de noviembre, también cambió esto:',
@@ -4499,6 +4510,7 @@ const FV_REENVIO_MS = 60000;         // entre un correo de verificacion y el sig
 const FV_ABC = '23456789ABCDEFGHJKMNPQRSTUVWXYZ';   // el de invitar.mjs: sin 0/O ni 1/I/L
 const FV_COD_MAL = 'revisa el código: es FV- y 16 letras y números (sin 0, O, 1, I ni L)';
 const FV_TERM_FALTA = 'para seguir, acepta los términos y el aviso de privacidad';
+const FV_MAYOR_FALTA = 'Fundview es solo para mayores de 18 años: para seguir, confírmalo en la casilla';
 const FV_CORREO_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 let fvPasoActual = null, fvResolver = null, fvSecreto = null, fvPendienteReauth = null, fvCorreoRevisado = null, fvCanjeAuto = null;
 // mayusculas, sin espacios ni guiones, con o sin el FV- de adelante; igual que hashCodigo de invitar.mjs
@@ -4932,6 +4944,7 @@ window.fvCrear = () => fvOcupado('fv-btn-crear', 'creando…', async () => {
   if (!FV_CORREO_RE.test(correo)) return fvErr('crear', 'escribe tu correo');
   if (pass.length < FV_PASS_MIN) return fvErr('crear', 'tu contraseña necesita al menos ' + FV_PASS_MIN + ' caracteres');
   if (!document.getElementById('fv-terminos').checked) return fvErr('crear', FV_TERM_FALTA);
+  if (!document.getElementById('fv-mayor').checked) return fvErr('crear', FV_MAYOR_FALTA);
   fvErr('crear', '');
   // se guarda ANTES de crear: al crear la cuenta, puedeEntrar vuelve a abrir la pagina con el espacio del uid nuevo.
   // Va el hash, no el codigo: el codigo en claro no se deja en el aparato
@@ -5374,6 +5387,7 @@ const fvCanjearHash = h => fvOcupado('fv-btn-canjear', 'abriendo…', async () =
   const user = auth.currentUser;
   if (!user) return;
   if (!document.getElementById('fv-inv-terminos-fila').hidden && !document.getElementById('fv-inv-terminos').checked) return fvErr('invitacion', FV_TERM_FALTA);
+  if (!document.getElementById('fv-inv-terminos-fila').hidden && !document.getElementById('fv-inv-mayor').checked) return fvErr('invitacion', FV_MAYOR_FALTA);
   fvErr('invitacion', '');
   // un lote no se puede volver a mandar: cada intento arma el suyo
   const lanzar = () => {
@@ -5414,12 +5428,14 @@ function pasoTerminos() {
   if (datosCargados && !fvSoloBorrar) fvDetenerApp();
   const caja = document.getElementById('fv-terminos-cambios');
   fvPaso('terminos');
+  { const m = document.getElementById('fv-t-mayor'); if (m) m.checked = false; }   // (revision) cada vez que se pide aceptar, se vuelve a confirmar
   caja.replaceChildren(...FV_TERMINOS_CAMBIOS.map(t => { const li = document.createElement('li'); li.textContent = t; return li; }));
 }
 fvGlobal.fvAceptarTerminos = () => fvOcupado('fv-btn-acepto', 'Guardando…', async () => {
   const user = auth.currentUser;
   if (!user) return;
   fvErr('terminos', '');
+  if (!document.getElementById('fv-t-mayor').checked) return fvErr('terminos', FV_MAYOR_FALTA);
   // en transaccion a proposito: sin señal falla y no queda en la cola. Una aceptacion en cola diria que entro con los terminos aceptados sin haberlos guardado
   if (navigator.onLine === false) return fvErr('terminos', FV_SIN_RED);
   const ref = doc(db, 'usuarios', user.uid);
@@ -6030,7 +6046,8 @@ if (CFG.multi) document.getElementById('login-screen').addEventListener('keydown
 // Lo que dice #status-inicio al abrir: la verdad sobre los precios guardados (15-oct-2026)
 function textoEstadoPrecios() {
   const syms = Object.keys(state.posiciones || {}).filter(k => state.posiciones[k].acciones > 0);
-  if (!syms.length) return ctaApagada('stocks') ? '' : 'toca aquí para traer precios';   // sin bolsa en esta cartera, nada que traer
+  // sin bolsa en esta cartera, nada que traer. (24-nov-2026, Marcela) tampoco si nunca la uso: la tarjeta de la bolsa ni sale (bolsaSinUso)
+  if (!syms.length) return ctaApagada('stocks') || bolsaSinUso() ? '' : 'toca aquí para traer precios';
   const fechas = syms.map(s => ((state.accionesMkt || {})[s] || {}).fecha).filter(f => /^\d{4}-\d{2}-\d{2}$/.test(f || '')).sort();
   if (!fechas.length) return 'sin precios todavía · toca aquí para actualizar';
   if (fechas.length < syms.length) return 'faltan precios de algunas acciones · toca aquí para actualizar';
@@ -7165,7 +7182,12 @@ window.pagarCredito = async function(id) {
   const nota = e.c.nombre + (extraPago ? ' · pago que faltaba' : ' · pago ' + (e.k + 1) + ' de ' + e.plan.n);
   const btn = document.getElementById('g-cr-btn');
   const ok = esIdX(cuenta) ? await altaMovX('gasto', e.c.cat, monto, nota, cuenta, btn, fecha, extra) : await altaGasto(e.c.cat, monto, nota, cuenta, btn, fecha, extra);
-  if (ok) { creditoPagando = null; refrescar(renderCreditos, renderDeudas, render); }
+  if (ok) { creditoPagando = null; refrescar(renderCreditos, renderDeudas, render);
+    // (24-nov-2026, Marcela: aceptó $1,000 como "pago 1" de uno de $2,450 sin decir nada) informa, no bloquea: un pago distinto al del plan se
+    // anota igual, y lo que no pagaste sigue en lo que debes (estadoCredito lo saca de lo abonado). Al terminar los pagos, "Préstamos que no cuadran"
+    if (!extraPago) { const sug = pagoSugerido(e.plan, e.k, e.debe), dif = c2(monto - sug);
+      if (Math.abs(dif) >= 0.01) showToast('anotado el pago ' + (e.k + 1) + ' de ' + fmt(monto) + ': es ' + (dif < 0 ? 'menos' : 'más') + ' que los ' + fmt(sug) + ' de tu plan. '
+        + (e.c.tipo === 'tienda' ? 'Al terminar tus pagos te digo si ' + (dif < 0 ? 'quedó algo por pagar' : 'pagaste de más') : dif < 0 ? 'Lo que no pagaste sigue contando en lo que debes' : 'Lo de más baja lo que debes')); } }
 };
 
 window.irTiposCat = function() {
@@ -11896,7 +11918,7 @@ function renderCuentasXSinCuidar() {
           ${movs.length ? movs.map(m => `<div class="detail-row"><span class="detail-label">${m.t} · ${fmtFechaMov(m.f, {day:'numeric', month:'short'})}</span><span class="detail-val">${m.v}</span></div>`).join('') : '<div class="item-meta">sin movimientos todavía</div>'}
           <div class="field" style="margin-top:10px"><label for="cx-saldo-${id}">actualizar saldo · lo que muestra tu app hoy (${MONEDAS_X[x.moneda].sim})</label>
             <input type="number" id="cx-saldo-${id}" step="0.01" inputmode="decimal" placeholder="ej. ${sx || 500}"></div>
-          <div class="field"><label for="cx-razon-${id}">¿por qué cambia?</label><select id="cx-razon-${id}">${opcionesRazon()}</select></div>
+          <div class="field"><label for="cx-razon-${id}">¿por qué cambia?</label><select id="cx-razon-${id}">${opcionesRazon(x.tipo === 'efectivo')}</select></div>
           <button type="button" class="btn btn-purple" style="margin-top:4px" onclick="guardarSaldoX('${id}')">guardar saldo</button>
           ${mxn ? '' : '<div class="item-meta" style="margin-top:8px">' + escapeHtml(textoFx()) + '</div>'}
         </div>` : '';
@@ -13313,15 +13335,29 @@ function cambiosHist() {
 }
 // las opciones de "¿por qué cambia?" (sin "saldo inicial", que solo pone la app al crear una cuenta)
 // (Fundview lleva mayuscula inicial en lo que escribe la app; la familia no cambia)
-const opcionesRazon=()=>{ const M=t=>CFG.multi?t.charAt(0).toUpperCase()+t.slice(1):t;
-  return '<option value="">'+M('elige una razón')+'</option>'+Object.entries(RAZONES_AJUSTE).filter(([k])=>!RAZONES_SOLO_APP.includes(k)).map(([k,t])=>`<option value="${k}">${escapeHtml(M(t))}</option>`).join(''); };
+// (24-nov-2026, Marcela) "conté mi efectivo" solo en una cuenta de efectivo
+const opcionesRazon=(efectivo)=>{ const M=t=>CFG.multi?t.charAt(0).toUpperCase()+t.slice(1):t;
+  return '<option value="">'+M('elige una razón')+'</option>'+Object.entries(RAZONES_AJUSTE).filter(([k])=>!RAZONES_SOLO_APP.includes(k)&&(efectivo||k!=='contado')).map(([k,t])=>`<option value="${k}">${escapeHtml(M(t))}</option>`).join(''); };
 const CLASE_TXT={cuenta:'una cuenta',bolsa:'una operación de bolsa',gasto:'un gasto',ingreso:'un ingreso',transferencia:'una transferencia',tarjeta:'un movimiento de tarjeta',meses:'una compra a meses',credito:'un préstamo',persona:'un movimiento con',movimiento:'un movimiento'};
 // "12 nov" (con año si no es este): para decir de que dia era lo borrado o editado
 function diaCorto(f) {
   if(typeof f!=='string'||!f) return '';
-  const d=/^\d{4}-\d{2}-\d{2}$/.test(f)?parseFechaLocal(f):new Date(f);
-  if(isNaN(d.getTime())) return '';
+  // (24-nov-2026, Marcela: un pago con fecha del 24-oct decia "era del 23 oct") un movimiento con fecha elegida se guarda como medianoche
+  // UTC de ese dia (AAAA-MM-DDT00:00:00.000Z): se lee como dia local con msFechaMov, igual que la lista de movimientos
+  const ms=/^\d{4}-\d{2}-\d{2}$/.test(f)?parseFechaLocal(f).getTime():msFechaMov(f);
+  if(ms===null||!Number.isFinite(ms)) return '';
+  const d=new Date(ms);
   return d.toLocaleDateString('es-MX',{day:'numeric',month:'short',...(d.getFullYear()!==new Date().getFullYear()?{year:'numeric'}:{})}).replace(/ de /g,' ').replace(/\./g,'');
+}
+// (24-nov-2026, Marcela) encender una cuenta fija es darla de alta (razon 'alta', desde hoy). Las constancias de antes ("encendida · nombre
+// Tarjeta 1 → BBVA tarjeta · corte 18 → 8") se leen igual: el nombre y el corte de fabrica nunca los vio la persona
+function altaDeCuenta(c) {
+  if(!c||c.clase!=='cuenta'||!SLOTS_CFG[c.cuenta]) return null;
+  const tarjeta=SLOTS_CFG[c.cuenta].tipo==='tarjeta';
+  if(c.razon==='alta'){ const m=/^con corte el (\d{1,2})$/.exec(c.nota||''); return {tarjeta, corte:m?+m[1]:null}; }
+  if(!/^encendida( · |$)/.test(c.nota||'')) return null;
+  const m=/(?:^| · )corte \S+ → (\d{1,2})(?: · |$)/.exec(c.nota||'');
+  return {tarjeta, corte:m?+m[1]:null};
 }
 function tituloCambio(c) {
   if(c.t==='ajuste'&&c.clase==='persona'&&c.razon==='quitada') return 'quitaste a '+(c.persona||'una persona');
@@ -13329,7 +13365,7 @@ function tituloCambio(c) {
   if(c.t==='ajuste'&&c.clase==='persona') return 'cambió lo que se debe con '+(c.persona||'una persona');
   if(c.t==='ajuste'&&c.clase==='credito') return c.razon==='reabrir'?'reabriste un préstamo':'cerraste un préstamo';
   if(c.t==='ajuste') return (c.razon==='inicial'?'saldo inicial de ':'ajustaste ')+(nombreCuenta(c.cuenta)||'una cuenta');
-  if(c.clase==='cuenta') return 'cambiaste '+(nombreCuenta(c.cuenta)||'una cuenta');
+  if(c.clase==='cuenta'){ const al=altaDeCuenta(c); if(al) return (al.tarjeta?'creaste tu tarjeta ':'encendiste ')+(nombreCuenta(c.cuenta)||'una cuenta'); return 'cambiaste '+(nombreCuenta(c.cuenta)||'una cuenta'); }
   if(c.t==='borrado'&&c.clase==='tarjeta'){ const mv=c.mov&&typeof c.mov==='object'?c.mov:{}; return (mv.tipo==='pago'?'deshiciste un pago de ':'quitaste un cargo de ')+(CUENTAS[c.tarjeta]||'tu tarjeta'); }
   const qu=CLASE_TXT[c.clase]||CLASE_TXT.movimiento;
   const quien=c.clase==='persona'?' '+(c.persona||''):'';
@@ -13340,7 +13376,7 @@ const montoCopia=mv=>mv.moneda&&mv.moneda!=='MXN'&&Number.isFinite(mv.montoOrig)
 function metaCambio(c) {
   const mv=c.mov&&typeof c.mov==='object'?c.mov:{}, pv=c.previo&&typeof c.previo==='object'?c.previo:{};
   const f=v=>c.moneda?fmtX(nFin(v),c.moneda):fmt(nFin(v));
-  if(c.clase==='cuenta') return [c.nota||'', 'no mueve dinero'];
+  if(c.clase==='cuenta'){ const al=altaDeCuenta(c); if(al) return [al.tarjeta&&al.corte?'con corte el '+al.corte:'', 'no mueve dinero']; return [c.nota||'', 'no mueve dinero']; }
   // (23-nov-2026) quitar o regresar a una persona y cerrar o reabrir un prestamo: no movieron ninguna cuenta
   if(c.t==='ajuste'&&c.clase==='persona'&&(c.razon==='quitada'||c.razon==='regresada')){
     const v=c.razon==='quitada'?nFin(c.antes):nFin(c.despues);
@@ -13657,6 +13693,8 @@ function renderCalendario() {
   // en modo privado tampoco se ve el signo: decir que el balance es negativo ya es decir algo del dinero
   const conSigno=(el,v)=>{ el.textContent=modoPrivado?fmt(v):(v<0?'−':'')+fmt(Math.abs(v)); el.className='cal-kpi-v'+(modoPrivado?'':(v<0?' neg':(v>0?' pos':''))); };
   raiz.classList.toggle('priv',modoPrivado);
+  // (24-nov-2026, Marcela) con "solo ingresos" la leyenda no habla de lo gastado; con "solo gastos", no de lo que entro
+  raiz.classList.toggle('solo-ing',calTipo==='ingresos'); raiz.classList.toggle('solo-gas',calTipo==='gastos');
   document.getElementById('cal-label').textContent=label;
   document.getElementById('cal-gastos').textContent=fmt(t.totalG);
   document.getElementById('cal-ingresos').textContent=fmt(t.totalI);
@@ -13756,9 +13794,11 @@ function renderCalendario() {
     const k=calDia, enDia=it=>diaLocalMov(it.fecha)===k;
     const movs=[...(verGastos?t.gastos.filter(enDia).map(it=>({tipo:'gasto',it})):[]),...(verIngresos?t.ingresos.filter(enDia).map(it=>({tipo:'ingreso',it})):[]),...(calTipo==='ambos'?pagosTarjetaHist().filter(m=>enDia(m.it)):[])]
       .sort((a,b)=>((msFechaMov(b.it.fecha)||0)-(msFechaMov(a.it.fecha)||0))||String(b.it.creado||'').localeCompare(String(a.it.creado||'')));
-    const ag=agenda[k]||[], g=porDia[k]||0;
+    const ag=agenda[k]||[], g=porDia[k]||0, iD=porDiaI[k]||0;
+    // (24-nov-2026, Marcela: el dia de su quincena decia "gastaste $219.00" y no lo que entro) el encabezado del dia dice las dos cosas
+    const resD=[g>0&&verGastos?'gastaste '+fmt(g)+(!modoPrivado&&esMaxDia(g)?', tu día de más gasto del mes':''):'', iD>0&&verIngresos?'entró '+fmt(iD):''].filter(Boolean).join(' · ');
     det.innerHTML='<div class="cal-det-tit">'+escapeHtml(parseFechaLocal(k).toLocaleDateString('es-MX',{weekday:'long',day:'numeric',month:'long'}))+'</div>'
-      +(g>0&&verGastos?'<div class="cal-det-res">gastaste '+fmt(g)+(!modoPrivado&&esMaxDia(g)?', tu día de más gasto del mes':'')+'</div>':'')
+      +(resD?'<div class="cal-det-res">'+resD+'</div>':'')
       +movs.map(m=>m.tipo==='pago'?renglonPagoTarjeta(m):renglonMov(m)).join('')
       +(verGastos?ag:[]).map(x=>calRenglonAgenda(x,k)).join('')
       +(movs.length||(verGastos&&ag.length)?'':'<div class="empty-state">'+(k>hoy?'no anotaste nada para este día':'sin movimientos este día')+'</div>'+(k>hoy?CAL_AGREGA:''));
@@ -14265,7 +14305,8 @@ function renderPersonaSelect() {
   // de al lado. Mezclarla como una opcion mas hacia que, con la lista vacia, fuera la
   // unica opcion, ya estuviera seleccionada, y al pulsarla el valor no cambiara: el
   // evento change no disparaba y "no pasaba nada".
-  const _ph=_opc?'':'<option value="" disabled selected>agrega tu primera persona…</option>';
+  // (24-nov-2026, Marcela) con todas las personas quitadas ya no es "la primera": se dice que no hay nadie activo
+  const _ph=_opc?'':'<option value="" disabled selected>'+(Object.keys(state.personas||{}).length?'agrega una persona…':'agrega tu primera persona…')+'</option>';
   sel.innerHTML=_ph+_opc;
   if(Object.hasOwn(vivas,prev)){ sel.value=prev; personaSelPrev=prev; }
 }
@@ -14408,7 +14449,10 @@ window.registrarDeuda = async function() {
   ['deuda-monto','deuda-nota','deuda-fecha','deuda-cuenta'].forEach(id=>document.getElementById(id).value='');
   // el saldo de la persona afecta el patrimonio neto aunque la cuenta sea externo
   refrescar(renderDeudas,render);
-  showToast('movimiento registrado');
+  // (24-nov-2026, Marcela: el prestamo a Ana decia "Movimiento registrado", sin monto) se dice que y cuanto. fmt tapa el monto en modo privado.
+  // Empieza con texto de la app: en Fundview el aviso lleva mayuscula por CSS y el nombre de la persona no debe cambiar
+  const quien=(state.personas[persona]&&state.personas[persona].nombre)||'esa persona';
+  showToast('anotado: '+({cargo:'le prestaste '+fmt(m)+' a '+quien, pago:quien+' te pagó '+fmt(m), debo:quien+' te prestó '+fmt(m), pague:'le pagaste '+fmt(m)+' a '+quien}[tipo]||fmt(m)));
 };
 
 function renderDeudas() {
@@ -15785,7 +15829,7 @@ function renderDecisiones() {
   F.push(fila('📅','constancia','meses en los que aportaste, de los '+d.obs+' que llevas invirtiendo',d.conAporte+' de '+d.obs));
   const nota=d.suficiente
     ? 'Es una comparación de resultado hasta hoy, no una calificación de tu habilidad: el mercado se mueve por razones que nadie controla.'
-    : 'Llevas '+d.mesesDesde+' mes(es) invirtiendo: es muy pronto para sacar conclusiones. A corto plazo el resultado depende más del azar que de tus decisiones, así que toma estos números como información, no como veredicto.';
+    : 'Llevas '+d.mesesDesde+(d.mesesDesde===1?' mes':' meses')+' invirtiendo: es muy pronto para sacar conclusiones. A corto plazo el resultado depende más del azar que de tus decisiones, así que toma estos números como información, no como veredicto.';
   // el broker convierte con su propio tipo de cambio (con su margen); esta app usa el de
   // referencia del mercado. Decirlo antes evita que una diferencia de centavos parezca un error
   // si la descomposicion no se puede hacer, se dice POR QUE: dos filas que desaparecen
@@ -15816,9 +15860,22 @@ function renderScore() {
     +`<span class="pie-pct" style="font-size:13px">${escapeHtml(sc.nivel)}</span></div>`
     +barra
     +`<div class="item-meta">calificado sobre ${escapeHtml(MESES[pi.getMonth()])} (último mes completo)</div>`
+    +textoScoreDebes()
     +filas
     +(sc.excluidos.length?`<div class="item-meta" style="padding-top:6px">no se calificó: ${escapeHtml(sc.excluidos.join(' · '))}</div>`:'')
-    +`<div class="item-meta" style="padding-top:8px">índice propio de hábitos, orientativo: mide lo que registras en la app. Tu referencia sale de tu perfil — ${escapeHtml(sc.est.fuente)}.</div>`;
+    +`<div class="item-meta" style="padding-top:8px">índice propio de hábitos, orientativo: mide lo que registras en la app y no mide lo que debes. Tu referencia sale de tu perfil — ${escapeHtml(sc.est.fuente)}.</div>`;
+}
+// (24-nov-2026, Marcela: "72/100 · Muy bien" el mismo dia que el Resumen le decia que debe el 121% de su dinero) la calificacion mide habitos
+// del mes, no lo que debes: se dice junto a la nota, con la MISMA cifra de datosDebes() y la misma comparacion de "tu salud financiera".
+// Hechos, sin veredicto. Con la copia local o la bolsa sin precio no se afirma la cifra
+function textoScoreDebes() {
+  let d=null; try { d=datosDebes(); } catch(e) { return ''; }
+  const fila=t=>`<div class="item-meta score-debes">${escapeHtml(t)}</div>`;
+  if(!d||!(d.total>0.005)) return '';
+  if(!d.seguro) return fila('esta calificación no mide lo que debes: lo ves en Resumen › Tu salud financiera');
+  const tuyo=totalesInicio.tuyo||0;
+  const rel=d.bolsaPend?'':(tuyo>0.005?', el equivalente al '+Math.round(d.total/tuyo*100)+'% de tu dinero':', más de lo que tienes');
+  return fila('esta calificación no mide lo que debes: hoy debes '+fmt(d.total)+rel+'. Lo ves en Resumen › Tu salud financiera');
 }
 function renderPerfil() {
   const el=document.getElementById('perfil-resumen');
@@ -16309,6 +16366,10 @@ const AYUDA_BASE = [
   {id:'deudas', g:'anotar', p:'¿Cómo anoto lo que me deben o lo que debo?', donde:'Deudas', ir:'deudas', boton:'ir a deudas',
     r:['Toca "+ Persona" para agregarla, elige "Me deben", "Me pagaron", "Yo debo" o "Le pagué", escribe el monto y toca "Registrar". Aquí se anota lo que debes o te deben entre personas.'],
     claves:'deuda deudas debo deben debe prestamo prestar preste prestaron presto amigo persona pagaron hermana hermano hijo hija mama papa familia'},
+  // (24-nov-2026, Marcela) lo nuevo del 23-nov no tenia respuesta: quitar a una persona, la razon al cambiar un saldo y la calificacion del perfil
+  {id:'quitar-persona', g:'anotar', p:'¿Cómo quito a una persona de la lista?', donde:'Deudas', ir:'quitarPersona', boton:'ir a quitar a una persona',
+    r:['En Deudas, toca a la persona para abrir su tarjeta y, al final, toca "Quitar a esta persona de tus deudas". Deja de contar en lo que debes y en lo que te deben; sus movimientos se quedan, porque sí movieron tus cuentas.', 'Si te equivocaste, la regresas desde "Personas que quitaste", al final de Deudas.'],
+    claves:'quitar quito quitarla quitarlo borrar borro eliminar persona personas regresar quitada quitaste'},
   {id:'tarjeta', g:'anotar', p:'¿Cómo anoto lo de mi tarjeta de crédito?', donde:'Movimientos › Registrar › Tarjeta', ir:'tarjeta', boton:'ir a mi tarjeta',
     r:['Primero agrégala: en "Mis cuentas", en "Agregar una cuenta", elige el tipo "Tarjeta de crédito". Mientras no la tengas no sale la opción "Tarjeta". Una compra con tarjeta se registra como gasto: en "Pagado con" elige tu tarjeta. Para anotar que la pagaste, en la opción "Tarjeta" toca "− Pagué" y elige de dónde salió el dinero. "+ Cargo" sube lo que debes, pero no cuenta como gasto.'],
     claves:'tarjeta tarjetas credito tdc cargo pague pagar corte deuda compra pago meses'},
@@ -16319,6 +16380,9 @@ const AYUDA_BASE = [
   {id:'saldo', g:'cuentas', p:'¿Cómo actualizo un saldo?', donde:'Inicio › Actualizar saldos', ir:'saldos', boton:'ir a actualizar saldos',
     r:['Escribe solo lo que cambió y toca "Guardar". Las cuentas que tú agregaste salen ahí mismo, en una lista: toca la que quieras y usa "Guardar saldo" en su tarjeta.'],
     claves:'saldo saldos actualizar actualizo cambiar poner banco efectivo corregir corrijo capturar'},
+  {id:'razon-saldo', g:'cuentas', p:'¿Por qué me pide una razón al cambiar mi saldo?', donde:'Inicio › Actualizar saldos', ir:'razon', boton:'ir a actualizar saldos',
+    r:['Cuando cambias un saldo a mano, ese dinero no entró ni salió con un gasto o un ingreso. Por eso te pide una razón, como "Lo puse igual que el banco" o "Se me olvidó anotar algo": queda anotada en Movimientos junto con de cuánto a cuánto cambió, para que después sepas por qué.', 'No cuenta como gasto ni como ingreso. Si el saldo queda igual, no se anota nada.'],
+    claves:'razon razones motivo motivos pide pregunta porque cambia cambio cambiar saldo saldos ajuste ajustaste'},
   {id:'agregar', g:'cuentas', p:'¿Cómo agrego otra cuenta, en pesos o en otra moneda?', donde:'Perfil › Mis cuentas › Agregar una cuenta', ir:'agregar', boton:'ir a agregar una cuenta',
     r:['Elige qué vas a agregar ("Banco", "Cajita o savings", "Efectivo"), escribe el nombre, la "Moneda" y el saldo de hoy, y toca "Agregar cuenta". Hay pesos, dólares de varios países, euros y yuanes; las de otra moneda se suman a tu total en pesos con el tipo de cambio del día. Luego sale en inicio y la puedes usar en gastos e ingresos.'],
     claves:'agregar agrego anadir nueva otra cuenta cuentas banco bancos efectivo moneda extranjero extranjera dolar dolares euro euros yuan yuanes tipo de cambio'},
@@ -16364,6 +16428,9 @@ const AYUDA_BASE = [
   {id:'salud', g:'ver', p:'¿Qué es mi salud financiera y por qué dice que puede estar viejo?', donde:'Resumen', ir:'salud', boton:'ir a mi salud financiera',
     r:['Está en el Resumen: hechos con lo que anotaste, cada uno contra una referencia (pagos a préstamos, colchón, ahorro y lo que debes). Se miden con un mes completo.', 'Dice que puede estar viejo si hace más de un mes que no pones al día tus saldos o más de dos semanas que no anotas nada. Se arregla en Inicio, en Actualizar saldos, o guardando el saldo de una cuenta que agregaste.'],
     claves:'salud financiera viejo desactualizado colchon referencia condusef'},
+  {id:'manejo', g:'ver', p:'¿Qué es tu manejo del dinero?', donde:'Perfil › Tu manejo del dinero', ir:'manejo', boton:'ir a tu manejo del dinero',
+    r:['Es una calificación de 0 a 100 de tus hábitos del último mes completo: cuánto apartaste a ahorro e inversión, cuánto gastaste de lo que entró, cuántos meses seguidos vas dentro de tu referencia y para cuántos meses te alcanza lo que tienes.', 'No mide lo que debes: eso está en el Resumen, en "Tu salud financiera", junto a lo que tienes. Tu referencia sale de tus datos del perfil.'],
+    claves:'manejo calificacion califica puntos puntaje score nota habitos perfil'},
   {id:'real', g:'ver', p:'¿Es real este número?', donde:'Inicio', ir:'inicio', boton:'ir a inicio',
     r:['Es lo que tú has anotado, sumado. Fundview no se conecta a tu banco ni lo lee, así que no puede saber si coincide con lo que tienes de verdad.', 'El interés de una cajita es un estimado con la tasa que escribiste. Para acercarlo a tu banco, pon tu saldo al día en "Actualizar saldos".'],
     claves:'real reales numero cifra cifras cantidad verdad correcto correcta cierto exacto exacta confiable estimado estimada estimacion cajita dice dinero total interes intereses'},
@@ -16485,6 +16552,10 @@ const AYUDA_DIRECTAS = [[/\bagreg\w* (un |otro |mi )?banco\b/, 'agregar'],
   // (revision) exige "gasto" o "categoria" en la frase: "cuenta fija", "sueldo fijo", "tasa fija" o "renta fija" son otra cosa
   [/^(?!.*\b(pago|pagos|suscrip\w*|cobr\w*|mensual\w*|cuenta|cuentas|ingreso\w*|sueldo\w*|nomina|tasa|renta fija|prestamo\w*|credito\w*)\b)(?=.*\b(gasto|gastos|categoria\w*)\b).*\bfij[oa]s?\b/, 'tipo-gasto'],
   [/\bsalud financiera\b|\bpuede estar (viejo|desactualizad\w*)\b/, 'salud'],
+  // (24-nov-2026, Marcela) quitar a una persona (no un movimiento suyo), la razon de un saldo y la calificacion del perfil
+  [/^(?!.*\b(movimiento\w*|gasto\w*|pago\w*|prestamo\w*|credito\w*|cuenta|cuentas|tarjeta\w*|meta\w*|categoria\w*)\b)(?=.*\b(quit|borr|elimin|sac)\w*\b)(?=.*\b(persona|personas|deudor\w*)\b)|^(?!.*\b(movimiento\w*|gasto\w*|pago\w*|prestamo\w*|credito\w*)\b).*\b(quit|borr|elimin)\w* a (mi |una |un )?(hermano|hermana|mama|papa|amigo|amiga|primo|prima|tio|tia|hijo|hija|vecino|vecina|novio|novia|esposo|esposa|jefe)\b|\b(quit|borr|elimin|sac)\w* a \w+ de (mis |las |la lista de )?deudas\b/, 'quitar-persona'],
+  [/^(?!.*\b(gasto|ingreso|movimiento)\w*\b)(?=.*\b(razon|razones|motivo)\b)(?=.*\b(saldo|saldos|pide|pregunta)\b)/, 'razon-saldo'],
+  [/\bmanejo del dinero\b|\b(mi|tu|la|esta) calificacion\b|\bque (es|significa) (el )?(puntaje|score)\b/, 'manejo'],
   // (20-nov-2026) compras a meses y la quincena en el calendario (calificacion de Marcela)
   [/\bmsi\b|\bmeses sin intereses\b|\bcompras? a meses\b|^(?!.*\b(meta|metas|juntar|ahorrar)\b).*\bcompr\w*\b.*\ba meses\b|(?=.*\b(a|en) \d{1,2} meses\b)(?=.*\b(compr\w*|tarjeta|mensualidad\w*|intereses)\b)(?!.*\b(meta|metas|juntar|ahorrar|app|fundview|cuesta)\b)/, 'meses'],
   [/^(?!.*\btarjeta\w*\b)(?!.*\b(hermano|hermana|amigo|amiga|prim[oa]s?|mama|papa|hijo|hija|novi[oa]|tio|tia|vecin\w*|le (di|preste|prestamos))\b)(?=.*\b(prestamo|credito)s?\b.*\b(banco|nomina|auto|carro|coche|personal|hipotecari\w*)\b|.*\bhipoteca\b)/, 'prestamo'],
@@ -16662,6 +16733,10 @@ const AYUDA_IR = {
   deuda: () => { showPage('inicio', true); const d = ayEl('total-deuda'); return d && !d.hidden && d.offsetParent !== null ? d : document.querySelector('.total-section'); },
   resumen: () => { showPage('resumen', true); return ayEl('res-periodo-toggle'); },
   salud: () => { showPage('resumen', true); return ayEl('res-salud'); },
+  manejo: () => { ayPerfil(); return ayEl('score-panel'); },
+  razon: () => { showPage('inicio', true); const d = ayAbrir(ayEl('manuales-btn')); return ayEl('saldos-razon') || d; },
+  // (24-nov-2026) abre la tarjeta de la primera persona (como tocarla) y señala su boton; no lo aprieta. Sin personas, el panel de Deudas
+  quitarPersona: () => { showPage('deudas', true); const b = document.querySelector('#page-deudas .g-quitar-p'); if (!b) return ayEl('deuda-persona').closest('.panel'); const d = b.closest('.deuda-detail'); if (d) d.classList.add('open'); return b; },
   ganancia: () => { showPage('resumen', true); return ayAbrir(ayEl('res-utilidades')); },
   limite: () => { ayPerfil(); return ayAbrir(ayEl('limite-input')); },
   metas: () => { showPage('metas', true); metasSub('metas'); return ayEl('metas-panel'); },
@@ -18010,6 +18085,9 @@ window.editarPerfil = async function() {
   if(aTrim!==''&&!/^\d{4}$/.test(aTrim)){ showToast('año no válido'); return; }
   const ano=aTrim===''?null:parseInt(aTrim,10);
   if(ano!==null&&(ano<=anoAct-100||ano>anoAct-10)){ showToast('año no válido'); return; }
+  // (20-nov-2026, Fundview) solo para mayores de 18: un año de menor no se guarda, se dice, y el reporte de errores avisa SIN el año ni nada de la persona.
+  // Con solo el año no se sabe la edad exacta (diciembre de hace 18 años pasa): lo que vale es la casilla
+  if(CFG.multi&&ano!==null&&ano>anoAct-18){ showToast('Fundview es solo para mayores de 18 años. Si te equivocaste de año, vuelve a escribirlo'); try{ if(typeof window.__fvErrMenor==='function') window.__fvErrMenor(); }catch(e){} return; }
   const vRaw=prompt('¿Dónde vives? escribe: familia (sin pagar renta), renta o propia',p.vivienda||'familia');
   if(vRaw===null) return;
   const viv=vRaw.trim().toLowerCase();
@@ -18344,6 +18422,10 @@ function valorDinero(cant, anios, infl) {
   return {cant, anios, infl, factor:f, futuro:cant*f, hoy:cant/f};
 }
 // </retiro-puras>
+// (24-nov-2026, revision legal, inciso k) Fundview es solo para mayores de 18: la edad del retiro tambien. La familia sigue desde 15
+const RETIRO_EDAD_MIN=CFG.multi?18:15;
+const retiroEsMenor=n=>CFG.multi&&Number.isFinite(n)&&n>0&&n<RETIRO_EDAD_MIN;
+{ const e=document.getElementById('ret-edad'); if(e) e.min=String(RETIRO_EDAD_MIN); }
 const RETIRO_CAMPOS={edad:'ret-edad',a:'ret-a',ingreso:'ret-ingreso',hasta:'ret-hasta',tasa:'ret-tasa',infl:'ret-infl',ya:'ret-ya'};
 // (24-nov-2026) subpestañas de Metas: en memoria, como las de Movimientos
 let metasSubActual='metas';
@@ -18494,6 +18576,7 @@ function pintarRetiro() {
   const fr=fondoRetiro(), lblYa=document.querySelector('label[for="ret-ya"]'), frOk=fr&&(enPesos||!!tc);
   if(lblYa) lblYa.textContent=fr?(CFG.multi?'Además de tu fondo, ya tienes':'además de tu fondo, ya tienes'):(CFG.multi?'Ya tienes para esto':'ya tienes para esto');
   if(frOk) v.ya=(Number(v.ya)||0)+fr.tiene/(enPesos?1:tc);
+  if(retiroEsMenor(v.edad)){ pintarFondoRetiro({error:'menor'}, v, fr, enPesos?1:tc); res.innerHTML='<div class="item-meta">Fundview es solo para mayores de 18 años: con esa edad no se calcula ni se guarda.</div>'; return; }
   const c=calcRetiro(v);
   pintarFondoRetiro(c, v, fr, enPesos?1:tc);
   if(c.error==='faltan'){ res.innerHTML='<div class="item-meta">Escribe tu edad, a qué edad te quieres retirar, cuánto quieres recibir al mes, hasta qué edad y el rendimiento que supones.</div>'; return; }
@@ -18561,7 +18644,7 @@ function saneaRetiro(r){
   if(!r||typeof r!=='object'||Array.isArray(r)) return null;
   const o={}, anoAct=new Date().getFullYear();
   Object.entries(RETIRO_RANGOS).forEach(([k,[mn,mx]])=>{ if(Number.isFinite(r[k])&&r[k]>=mn&&r[k]<=mx) o[k]=r[k]; });
-  if(Number.isInteger(r.ano)&&r.ano>anoAct-91&&r.ano<=anoAct-15) o.ano=r.ano;
+  if(Number.isInteger(r.ano)&&r.ano>anoAct-91&&r.ano<=anoAct-RETIRO_EDAD_MIN) o.ano=r.ano;
   if(esIdFondo(r.fondo)&&r.fondo!==FONDO_U) o.fondo=r.fondo;
   // (qa) hasta dos dias adelante: otro aparato en otra zona horaria (Australia) pudo enlazarlo en su "hoy"; sin esto se borraba
   if(typeof r.desde==='string'&&fechaCalendarioValida(r.desde)&&r.desde<=hoyLocalMas(2)) o.desde=r.desde;
@@ -18574,7 +18657,7 @@ function retiroDeCampos(){
   const o={};
   Object.entries(RETIRO_CAMPOS).forEach(([k,id])=>{ const e=document.getElementById(id); if(!e||e.value==='') return;
     const n=Number(e.value); if(!Number.isFinite(n)) return;
-    if(k==='edad'){ if(e.dataset.tocado&&Number.isInteger(n)) o.ano=new Date().getFullYear()-n; return; }
+    if(k==='edad'){ if(e.dataset.tocado&&Number.isInteger(n)&&!retiroEsMenor(n)) o.ano=new Date().getFullYear()-n; return; }   // (24-nov) la edad de un menor no se guarda
     o[k]=n; });
   const s=document.getElementById('ret-lugar'); if(s&&Object.hasOwn(LUGARES_RETIRO,s.value)) o.lugar=s.value;
   return o;
@@ -18621,11 +18704,15 @@ function guardarRetiroNube(extra, ya){
 function guardarRetiroLocal(){ try{ const v={};
     Object.entries(RETIRO_CAMPOS).forEach(([k,id])=>{ const e=document.getElementById(id); if(!e||e.value==='') return;
       // (revision) la edad que salio del perfil no se guarda: guardada se congelaria y un año despues seguiria igual
-      if(k==='edad'&&!e.dataset.tocado) return;
+      if(k==='edad'&&(!e.dataset.tocado||retiroEsMenor(Number(e.value)))) return;   // (24-nov) ni la de un menor
       v[k]=e.value; });
     const s=document.getElementById('ret-lugar'); if(s&&s.value!=='mx') v.lugar=s.value;
     localStorage.setItem(lsKey('retiro'),JSON.stringify(v)); }catch(e){} }
 Object.values(RETIRO_CAMPOS).forEach(id=>{ const e=document.getElementById(id); if(e) e.addEventListener('input',()=>{ e.dataset.tocado='1'; pintarRetiro(); guardarRetiroLocal(); guardarRetiroNube(); }); });
+// (24-nov-2026) igual que el perfil: la edad de un menor no se guarda, se dice, y el reporte de errores avisa SIN la edad ni nada de la persona.
+// Al terminar de escribirla ('change'), no en cada tecla: escribir "35" pasa por "3"
+{ const e=document.getElementById('ret-edad'); if(e&&CFG.multi) e.addEventListener('change',()=>{ const n=Number(e.value);
+  if(e.value!==''&&retiroEsMenor(n)){ showToast('Fundview es solo para mayores de 18 años. Si te equivocaste de edad, vuelve a escribirla'); try{ if(typeof window.__fvErrMenor==='function') window.__fvErrMenor(); }catch(x){} } }); }
 function cargarRetiro() {
   let v={}; try{ v=JSON.parse(localStorage.getItem(lsKey('retiro'))||'{}')||{}; }catch(e){}
   // lo de la cuenta manda sobre la copia del aparato; si la cuenta aun no tiene nada y el aparato si, se sube una vez
@@ -19899,7 +19986,7 @@ function calcScore(m) {
   // 3) constancia (20): meses buenos seguidos, tope a 6 para no premiar eternamente lo mismo
   comps.push({nombre:'constancia',max:20,puntos:Math.round(20*Math.min(1,m.racha/3)),
     // (28-oct-2026) se dice cuanto falta: los 20 puntos son con 6 meses seguidos (con 3 meses = 10, que no es un error)
-    detalle:(m.racha>=1?('llevas '+(m.racha>=24?'24 o más':m.racha)+' mes(es) seguidos cerrando bien'+(m.racha<3?' · los 20 puntos son con 3 meses: te faltan '+(3-m.racha):'')):('la racha suma los meses dentro de tu referencia; este '+m.per+': '+porQueNoConto(m)))
+    detalle:(m.racha>=1?('llevas '+(m.racha>=24?'24 o más meses seguidos':m.racha===1?'1 mes':m.racha+' meses seguidos')+' cerrando bien'+(m.racha<3?' · los 20 puntos son con 3 meses: te faltan '+(3-m.racha):'')):('la racha suma los meses dentro de tu referencia; '+(m.esActual||m.esAno?'este '+m.per:'en '+MESES[m.start.getMonth()])+': '+porQueNoConto(m)))
       +' · se recalcula con tu referencia actual, así que cambia si editas tu perfil'});
   // 4) colchon (10): meses de gasto cubiertos por dinero DISPONIBLE (sin bolsa, sin el
   // deposito congelado de la TDC, sin lo que te deben) contra el objetivo del estandar
@@ -19910,7 +19997,7 @@ function calcScore(m) {
       +Object.values(state.cuentasX||{}).reduce((s,x)=>{ const tc=tcDe(x.moneda); return s+(tc?Math.max(0,saldoX(x)*tc):0); },0);
     const meses=liquido/gastoRef;
     comps.push({nombre:'colchón de emergencia',max:10,puntos:Math.round(10*Math.min(1,meses/est.emergenciaMeses)),
-      detalle:'tu dinero disponible cubre '+meses.toFixed(1)+' mes(es) de gasto · la referencia para ti es '+est.emergenciaMeses});
+      detalle:'tu efectivo, tus cuentas y tus cajitas cubren '+meses.toFixed(1)+(meses.toFixed(1)==='1.0'?' mes':' meses')+' de gasto · la referencia para ti es '+est.emergenciaMeses});   // (24-nov-2026, Marcela) no se llama "disponible": en Inicio, Disponible es sin las cajitas
   } else excluidos.push('colchón de emergencia (aún sin historial de gastos)');
   const maxTotal=comps.reduce((s,c)=>s+c.max,0);
   if(!maxTotal) return null;
@@ -20257,11 +20344,16 @@ function datosSalud() {
   const movs=[...(state.gastos||[]),...(state.ingresos||[])].filter(movValido).map(m=>diaLocalMov(m.fecha)).filter(k=>k&&k<=hoy).sort();
   const ultMov=movs.length?movs[movs.length-1]:'';
   const dAl=p.alDia?diasDesde(p.alDia):null, dMov=ultMov?diasDesde(ultMov):null;
-  const confianza=dAl===null||dAl>30||dMov===null||dMov>14?'vieja':(dAl>14||dMov>7?'revisa':'al dia');
+  // (24-nov-2026, Marcela: recien salida del asistente decia "puede estar viejo" y abajo "pusiste al día tus saldos hoy") sin ningun
+  // movimiento todavia no hay nada viejo que anotar: manda solo cuando pusiste al dia tus saldos
+  const confianza=dMov===null?(dAl===null||dAl>30?'vieja':(dAl>7?'revisa':'al dia'))
+    :(dAl===null||dAl>30||dMov>14?'vieja':(dAl>14||dMov>7?'revisa':'al dia'));
   // el ultimo mes completo, como la calificacion: un mes a medias no dice nada
   const now=new Date(), pi=new Date(now.getFullYear(),now.getMonth()-1,1), pf=new Date(now.getFullYear(),now.getMonth(),1);
   const t=totalesPeriodo(pi,pf);
-  const pagosDeuda=pagosDeudaEnRango(pi,pf,t.gastos);   // (revision) la misma de "dónde recortar": pagar la tarjeta al corte es consumo que ya contó
+  const pagosDeuda=pagosDeudaEnRango(pi,pf,t.gastos);
+  // (24-nov-2026, Marcela: "Pagos a deudas 0%" el mes en que pago su tarjeta) pagar la tarjeta no entra aqui, y se dice cuando hubo pagos
+  const pagoTdcMes=pagosTarjetaHist().some(m=>m.it.tipo==='pago'&&(ms=>ms!==null&&ms>=pi.getTime()&&ms<pf.getTime())(msFechaMov(m.it.fecha)));   // (revision) la misma de "dónde recortar": pagar la tarjeta al corte es consumo que ya contó
   const deudaPct=t.totalI>0?pagosDeuda/t.totalI*100:null;
   const cierre=calcularCierre(pi,pf,'mes');
   const aPct=cierre&&!cierre.vacio&&cierre.gPct!==null?Math.max(0,cierre.aPct):null;
@@ -20273,7 +20365,7 @@ function datosSalud() {
   const debesPct=T.listo&&!T.bolsaPend&&(T.tuyo||0)>0.005?debes/T.tuyo*100:null, debesMas=T.listo&&!T.bolsaPend&&debes>0.005&&(T.tuyo||0)<=0.005;
   // (22-nov-2026, Marcela) primer mes: todo lo anotado es de este mes, asi que no hay mes completo que medir
   const primerMes=!movs.length||movs[0]>=hoy.slice(0,7)+'-01';
-  return {dAl, dMov, alDia:p.alDia||'', ultMov, confianza, mes:MESES[pi.getMonth()], mesActual:MESES[now.getMonth()], primerMes, deudaPct, aPct, est, colchon, debesPct, debesMas, debes};
+  return {pagoTdcMes, dAl, dMov, alDia:p.alDia||'', ultMov, confianza, mes:MESES[pi.getMonth()], mesActual:MESES[now.getMonth()], primerMes, deudaPct, aPct, est, colchon, debesPct, debesMas, debes};
 }
 function renderSalud() {
   const el=document.getElementById('res-salud'); if(!el) return;
@@ -20289,10 +20381,10 @@ function renderSalud() {
     +(s.confianza==='al dia'?'':'. Lo de abajo sale de lo que anotaste: si tu banco dice otra cosa, vale lo del banco')+'</div></div>';
   if(s.primerMes) h+=fila('pagos a deudas, colchón y ahorro','se miden con un mes completo de lo que anotas: '+(s.dMov===null?'empiezan cuando anotes tus gastos e ingresos':'se llenan al cerrar '+s.mesActual),'','');
   else h+=s.deudaPct===null?fila('pagos a deudas','sin ingresos anotados en '+s.mes+': no se puede comparar','—','')
-    :fila('pagos a deudas','en '+s.mes+' pagaste a préstamos y créditos el '+pc(s.deudaPct)+' de lo que entró · la referencia de la CONDUSEF es hasta '+DEUDA_PCT_IDEAL+'%',pc(s.deudaPct),s.deudaPct>DEUDA_PCT_IDEAL?'alto':'');
+    :fila('pagos a deudas','en '+s.mes+' pagaste a préstamos y créditos el '+pc(s.deudaPct)+' de lo que entró · la referencia de la CONDUSEF es hasta '+DEUDA_PCT_IDEAL+'%'+(s.pagoTdcMes?' · pagar tu tarjeta no cuenta aquí: lo que compraste con ella ya contó como gasto':''),pc(s.deudaPct),s.deudaPct>DEUDA_PCT_IDEAL?'alto':'');
   if(!s.primerMes){
   h+=s.colchon===null?fila('colchón','aún no hay meses completos de gasto para medirlo','—','')
-    :fila('colchón','tu dinero disponible cubre '+s.colchon.toFixed(1)+' meses de tu gasto de siempre · tu referencia es '+s.est.emergenciaMeses,s.colchon.toFixed(1)+' meses','');
+    :fila('colchón','tu efectivo, tus cuentas y tus cajitas cubren '+s.colchon.toFixed(1)+(s.colchon.toFixed(1)==='1.0'?' mes':' meses')+' de tu gasto de siempre · tu referencia es '+s.est.emergenciaMeses,s.colchon.toFixed(1)+' meses','');
   h+=s.aPct===null?fila('ahorro','sin ingresos anotados en '+s.mes+': no se puede medir','—','')
     :fila('ahorro','en '+s.mes+' apartaste el '+pc(s.aPct)+' de lo que entró · tu referencia es '+s.est.ahorroObj+'%',pc(s.aPct),'');
   }
@@ -20783,6 +20875,12 @@ async function escribirCuentasCfg(nuevo, btn, msgError) {
       const nv = normalizaCuentasCfg(nuevo, CUENTAS_CFG), nuevos = [];
       Object.keys(nv).forEach((id, i) => {
         const a0 = srv[id] || {}, a1 = nv[id] || {}, qd = [];
+        // (24-nov-2026, Marcela: "cambiaste BBVA tarjeta · encendida · nombre Tarjeta 1 → BBVA tarjeta · corte 18 → 8", cuando ella nunca vio
+        // "Tarjeta 1" ni escribio un 18) encender una cuenta fija es darla de alta: se anota como alta, con lo que la persona eligio
+        if (!a0.on && a1.on && SLOTS_CFG[id]) {
+          nuevos.push({id: idCb + i, en: enCb, t: 'edicion', clase: 'cuenta', cuenta: id, razon: 'alta', ...(SLOTS_CFG[id].tipo === 'tarjeta' ? {nota: 'con corte el ' + a1.corte} : {})});
+          return;
+        }
         if (!!a0.on !== !!a1.on) qd.push(a1.on ? 'encendida' : 'apagada');
         if ((a0.nombre || '') !== (a1.nombre || '')) qd.push('nombre ' + (a0.nombre || '—') + ' → ' + (a1.nombre || '—'));
         if ((a0.corte || '') !== (a1.corte || '')) qd.push('corte ' + (a0.corte || '—') + ' → ' + (a1.corte || '—'));
@@ -21026,7 +21124,9 @@ window.fetchAll = async function() {
     // mientras el usuario registra algo (carrera); las cotizaciones van a su propio doc
     let okNvda=false;
     try{ okNvda=await fetchStocks(); }catch(e){ console.error('fetchAll',e); }
-    document.getElementById('status-inicio').textContent=
+    // (24-nov-2026) sin acciones no hay precios que traer: lo mismo que al abrir (vacio si no usa la bolsa)
+    const sinAcciones=!Object.values(state.posiciones||{}).some(p=>p&&p.acciones>0);
+    document.getElementById('status-inicio').textContent=sinAcciones?textoEstadoPrecios():
       okNvda?'precios de bolsa en vivo':'usando últimos precios guardados · toca aquí para intentar otra vez';
     render();
     renderTransferencias();
