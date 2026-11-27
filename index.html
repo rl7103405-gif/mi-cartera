@@ -993,6 +993,17 @@ table.mini th:first-child,table.mini td:first-child{text-align:left}
 .metas-plazo-mes{margin-top:2px}
 #metas-panel .meta-fila{padding:10px 0 4px}
 #metas-panel .meta-fila+.meta-fila{border-top:0.5px solid var(--border)}
+/* (27-nov-2026) una sola lista: en la computadora y el iPad las tarjetas de un plazo van de dos en dos cuando caben (una sola, a lo ancho) */
+.meta-camino{margin-top:2px}
+.mc-t{display:block}
+.metas-nota{text-align:center;padding-top:10px}
+.metas-props{margin-top:10px}.metas-props-tit{font-weight:600;font-size:14px;margin:4px 0 6px}
+.meta-prop{padding:10px 0;border-top:0.5px solid var(--border)}.meta-prop-tit{font-weight:600;font-size:14px}
+.meta-prop-btn{min-height:44px;text-align:left;padding-left:0}
+@media(min-width:720px){
+  .metas-grupo{display:grid;grid-template-columns:repeat(auto-fit,minmax(380px,1fr));gap:10px 28px}
+  #metas-panel .metas-grupo>.meta-fila{border-top:0}   /* en dos columnas una raya arriba de una sola quedaria chueca: separa el hueco */
+}
 .camino-plazo{margin:14px 0 0}.camino-plazo:first-child{margin-top:0}
 .meta-logro{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px;margin:8px 0 4px;padding:10px 12px;border-radius:var(--rs);background:var(--bg3)}
 .meta-logro-txt{font-weight:600;color:var(--text);font-size:13px;min-width:0;overflow-wrap:anywhere}
@@ -2468,16 +2479,15 @@ html[data-tema='grafito'] #cal-filtro .type-opt.active>span{color:#14171a}
     <button type="button" class="stab active" id="metab-metas" onclick="metasSub('metas')" aria-current="page">mis metas</button>
     <button type="button" class="stab" id="metab-retiro" onclick="metasSub('retiro')">retiro</button>
   </div>
-  <div class="inicio-grid" id="metas-sub-metas">
+  <!-- (27-nov-2026, Beto: "Metas se siente vacía") UNA lista: cada meta trae su camino adentro (ya no hay panel aparte que lo repita) y los
+       fondos con meta entran en su plazo. Lo de la derecha queda solo para los apartados de antes, que no separan dinero -->
+  <div id="metas-sub-metas">
   <div class="sec">
     <div class="section-title">mis metas</div>
     <div class="panel" id="metas-panel"><div class="empty-state">calculando...</div></div>
-    <div class="section-title mt">camino a tus metas</div>
-    <div class="panel" id="camino-panel"><div class="empty-state">calculando...</div></div>
   </div>
-  <div class="sec" id="metas-fondos-sec">
-    <!-- (28-oct-2026) los apartados ahora son fondos: separan el dinero de verdad. Aqui solo se ve el avance -->
-    <div class="section-title">metas de tus fondos</div>
+  <div class="sec" id="metas-fondos-sec" hidden>
+    <div class="section-title">apartados de antes</div>
     <div class="panel" id="apartados-panel"><div class="empty-state">cargando...</div></div>
   </div>
   </div>
@@ -4502,8 +4512,11 @@ fvGlobal.fvElegirFactor = tipo => {
 fvGlobal.fvCodReenviar = () => { if (fvSms.ctx && fvSmsFalta(fvSms.ctx.quien) === 0) { fvErr('codigo', ''); return fvSmsReenviar(fvSms.ctx); } };
 // version de terminos que se acepta al crear la cuenta y al volver a pedirlos (usuarios/<uid>.terminos). Formato AAAA-MM o AAAA-MM-DD: se comparan como texto.
 // Al cambiar el texto de copias\fundview-legal.html: subir FV_TERMINOS y reescribir FV_TERMINOS_CAMBIOS. Lo dice la pantalla "Actualizamos los términos y el aviso"
-const FV_TERMINOS = '2026-11-24';   // (24-nov-2026) casilla de mayor de 18, publicada ese dia (Beto: "sube eso de la casilla")
+const FV_TERMINOS = '2026-11-27';   // (27-nov-2026) ya no es prueba privada: la lista de espera invita sola (decision de Beto)
 const FV_TERMINOS_CAMBIOS = [
+  // 27-nov-2026: se quita el letrero de "prueba privada, solo con personas que Roberto conoce" (la lista de espera invita sola a quien se anote)
+  'Fundview ya no es una prueba privada: cualquier persona de 18 años o más puede anotarse en la lista de espera y recibir su invitación. Lo que se hace con tus datos no cambió.',
+  'Si aceptaste antes del 24 de noviembre, también cambió esto:',
   // 20-nov-2026: casilla de mayor de 18 (decision de Beto). La prueba de que se marco es la version aceptada en usuarios/<uid>.terminos
   'Fundview es solo para personas de 18 años o más, y ahora lo confirmas en una casilla aparte. Si una cuenta resulta ser de una persona menor de edad, la cerramos, borramos sus datos y le devolvemos lo que haya pagado.',
   // 24-nov-2026: revision de cumplimiento (documentos/legal/revision-cumplimiento-2026-11-24.md): el aviso nombra con detalle lo que ya se guardaba
@@ -18202,6 +18215,8 @@ const PLAZOS_META=[
   {k:'mediano',t:'mediano plazo',d:'de 1 a 5 años'},
   {k:'largo',t:'largo plazo',d:'de 5 a 10 años'},
   {k:'mas10',t:'más de 10 años',d:'como tu retiro, los estudios de tus hijos o una casa'}];
+// (27-nov-2026) en la lista tambien van los fondos con meta; uno sin fecha va al final (el de retiro siempre trae la de tu plan)
+const PLAZOS_LISTA=[...PLAZOS_META,{k:'sinfecha',t:'sin fecha',d:'fondos con meta y sin fecha'}];
 function plazoDeMeta(f){
   const h=hoyLocal(), en=n=>(+h.slice(0,4)+n)+h.slice(4);
   return f<=en(1)?'corto':f<=en(5)?'mediano':f<=en(10)?'largo':'mas10';
@@ -18221,10 +18236,13 @@ const tituloMeta=m=>m.nombre||nombreMeta(m.cuenta);
 const metaFechaNueva=()=>{ const d=new Date(); return (d.getFullYear()+(d.getMonth()===11?1:0))+'-12-31'; };
 const diasAFecha=f=>Math.round((parseFechaLocal(f).getTime()-parseFechaLocal(hoyLocal()).getTime())/86400000);
 const fechaMetaLarga=f=>parseFechaLocal(f).toLocaleDateString('es-MX',{day:'numeric',month:'long',year:'numeric'});
-function renderMetas(ctx) {
+// (27-nov-2026, Beto: "Metas se siente vacía") la lista sola: cada meta con su camino adentro y los fondos con meta en su plazo. La llaman
+// renderMetas y renderApartados (un fondo que cambia repinta la lista sin tocar los campos del retiro, que se estan escribiendo)
+function pintarListaMetas(ctx) {
   metasCtxUlt=ctx;
   const el=document.getElementById('metas-panel'); if(!el) return;
   const MT=state.metas||{fecha:META_FECHA_DEF,items:[]};
+  const cam=datosCamino();
   const fila=m=>{
     const idJ=escapeHtml(JSON.stringify(String(m.id)));
     const pend=esIdX(m.cuenta)&&metaBloqueada(m.cuenta,ctx), actual=valorMeta(m.cuenta,ctx), meta=m.monto;
@@ -18241,8 +18259,8 @@ function renderMetas(ctx) {
     const tit=tituloMeta(m);
     return `<div class="resumen-bar meta-fila"><div class="bar-header"><span class="bar-label">${escapeHtml(tit)}</span><span class="bar-amt" style="color:var(--accent-dark)">${pend?'$—':fmt(actual)} / ${fmt(meta)}</span></div>`+
       `<div class="bar-track" style="height:6px"><div class="bar-fill" style="width:${Math.max(0,Math.min(100,pct)).toFixed(1)}%"></div></div>`+
-      // (20-nov-2026, tanda 4) con monto y fecha, lo primero que se ve es cuanto meter al mes (la misma cuenta que el camino: ritmoMeta)
-      (!pend&&!bloq&&faltan>0.005&&d>0?`<div class="meta-ritmo">mete unos ${fmt(ritmoMeta(faltan,f))} al mes para llegar${mesesRestMeta(f)>1?' ('+mesesRestMeta(f)+' meses)':''}</div>`:'')+
+      // (27-nov-2026) el camino va aqui: cuanto meter al mes y, si hay con que, a donde llegas a tu ritmo (antes en un panel aparte que lo repetia)
+      lineaCamino(m,ctx,MT,cam)+
       `<div class="item-meta" style="margin-top:4px">${txt}${sub?' · '+escapeHtml(sub):''}</div>`+
       // (25-nov-2026) al llegar no se marca sola (el saldo puede bajar mañana): la persona decide. Celebrar con su cifra, sin juzgar
       (llego?`<div class="meta-logro"><span class="meta-logro-txt">¡Lo lograste! Tienes ${fmt(actual)} para ${m.nombre?'«'+escapeHtml(m.nombre)+'»':'tu meta de '+escapeHtml(nombreMeta(m.cuenta))}.</span>`+
@@ -18252,13 +18270,33 @@ function renderMetas(ctx) {
       `<button type="button" class="del-btn meta-editar" aria-label="editar la meta ${escapeHtml(tit)}" onclick="editarMeta(${idJ})">editar</button>`+
       `<button type="button" class="del-btn del-x" aria-label="quitar la meta ${escapeHtml(tit)}" onclick="eliminarMeta(${idJ})">&times;</button></span></div></div>`;
   };
+  // (27-nov-2026) un fondo con meta es una meta mas, en su plazo: separa el dinero de verdad y su meta se cambia en la pestaña fondo
+  const fondos=metasDeFondos();
+  const filaFondo=x=>{
+    const pct=x.tiene/x.mt.objetivo*100, faltan=x.mt.objetivo-x.tiene, llego=faltan<=0.005, tit=x.nombre;
+    // (en Fundview la mayuscula la pone el armado por CSS: .meta-fondo .meta-avance; por eso aqui va con + y no repite la plantilla de la meta)
+    const txt=!llego?'te faltan '+fmt(faltan)+' · llevas '+pctCorto(pct)+'% de la meta'
+      :(faltan< -0.005?'llevas '+fmt(-faltan)+' más de lo que te pusiste · '+pctCorto(pct)+'%':'llegaste justo a la meta');
+    const r=ritmoFondo(x), cuando=!x.fin?(x.retiro?'sin fecha: sale de tu plan de retiro':'sin fecha: pónsela en la pestaña fondo')
+      :x.fin<hoyLocal()?'la fecha ya pasó: ponle otra en la pestaña fondo':'para '+MESES[+x.fin.slice(5,7)-1]+' de '+x.fin.slice(0,4);
+    return `<div class="resumen-bar meta-fila meta-fondo" data-fondo="${escapeHtml(x.id)}"><div class="bar-header"><span class="bar-label">${escapeHtml(tit)}</span><span class="bar-amt" style="color:var(--accent-dark)">${fmt(x.tiene)} / ${fmt(x.mt.objetivo)}</span></div>`+
+      `<div class="bar-track" style="height:6px"><div class="bar-fill" style="width:${Math.max(0,Math.min(100,pct)).toFixed(1)}%"></div></div>`+
+      (!llego&&r?`<div class="meta-ritmo">${r.txt}</div>`:'')+
+      `<div class="item-meta meta-avance" style="margin-top:4px">${txt} · fondo</div>`+
+      // el texto va en un bloque (.mc-t): en Fundview su mayuscula es por CSS y ::first-letter no llega a un hijo de flex en el iPhone
+      `<div class="meta-pie"><span class="item-meta meta-cuando"><span class="mc-t">${cuando}</span></span><span class="meta-acc">`+
+      `<button type="button" class="del-btn meta-editar" aria-label="ver el fondo ${escapeHtml(tit)}" onclick="irAFondo(${escapeHtml(JSON.stringify(String(x.id)))},false)">ver fondo</button></span></div></div>`;
+  };
   // (25-nov-2026) las activas por plazo (la fecha decide el grupo) y lo que pide cada grupo al mes; las cumplidas aparte, plegadas
   const activas=(MT.items||[]).filter(metaActiva), cumplidas=(MT.items||[]).filter(m=>!metaActiva(m));
-  const grupos=PLAZOS_META.map(g=>({...g,metas:activas.filter(m=>plazoDeMeta(fechaDeMeta(m,MT))===g.k)})).filter(g=>g.metas.length);
-  // lo que pide el grupo al mes: la suma de "mete unos $X al mes" de sus metas (solo se dice si son dos o mas: con una ya lo dice la meta)
-  const alMes=lista=>lista.reduce((s,m)=>{ const f=fechaDeMeta(m,MT); if(metaBloqueada(m.cuenta,ctx)||diasAFecha(f)<=0) return s;
-    const fa=m.monto-valorMeta(m.cuenta,ctx); return fa>0.005?{t:s.t+ritmoMeta(fa,f),n:s.n+1}:s; },{t:0,n:0});
-  const cabeza=g=>{ const a=alMes(g.metas);
+  const grupos=PLAZOS_LISTA.map(g=>({...g,metas:activas.filter(m=>plazoDeMeta(fechaDeMeta(m,MT))===g.k),fondos:fondos.filter(x=>x.plazo===g.k)}))
+    .filter(g=>g.metas.length||g.fondos.length);
+  // lo que pide el grupo al mes: la suma de "mete unos $X al mes" de sus metas y fondos (solo se dice si son dos o mas: con una ya lo dice ella)
+  const alMes=g=>{ const s=g.metas.reduce((s,m)=>{ const f=fechaDeMeta(m,MT); if(metaBloqueada(m.cuenta,ctx)||diasAFecha(f)<=0) return s;
+      const fa=m.monto-valorMeta(m.cuenta,ctx); return fa>0.005?{t:s.t+ritmoMeta(fa,f),n:s.n+1}:s; },{t:0,n:0});
+    g.fondos.forEach(x=>{ const r=x.tiene<x.mt.objetivo-0.005&&ritmoFondo(x); if(r){ s.t+=r.monto; s.n++; } });
+    return s; };
+  const cabeza=g=>{ const a=alMes(g);
     return `<div class="metas-plazo" data-plazo="${g.k}"><div class="metas-plazo-tit">${g.t} <span class="item-meta">· ${g.d}</span></div>`+
       (a.n>1?`<div class="item-meta metas-plazo-mes">entre las ${a.n}, unos ${fmt(a.t)} al mes</div>`:'')+`</div>`; };
   const fCumplida=m=>{
@@ -18273,13 +18311,52 @@ function renderMetas(ctx) {
       `<button type="button" class="del-btn meta-reabrir" aria-label="regresar a activa la meta ${escapeHtml(tit)}" onclick="reabrirMeta(${idJ})">regresar a activa</button>`+
       `<button type="button" class="del-btn del-x" aria-label="quitar la meta ${escapeHtml(tit)}" onclick="eliminarMeta(${idJ})">&times;</button></span></div></div>`;
   };
-  el.innerHTML=(activas.length?grupos.map(g=>cabeza(g)+g.metas.map(fila).join('')).join('')
-      :'<div class="empty-state">'+(cumplidas.length?'no tienes metas activas: pon la siguiente':'todavía no tienes metas — crea la primera')+'</div>')+
+  // la nota del ritmo, una vez abajo de la lista: solo si alguna meta se mide con lo que metes (las cuentas que sabemos medir)
+  const nota=activas.some(m=>METAS_PROYECTABLES.includes(m.cuenta))?`<div class="item-meta metas-nota" id="metas-nota">${cam.huboOp
+      ?'proyección conservadora: solo tus aportaciones, sin contar rendimientos'
+      :(cam.huboMes?cam.txtMes+'; la proyección usa el promedio de tus meses completos y arranca cuando cierre tu primer mes'
+        :'aún no hay aportaciones registradas en los últimos 3 meses — la proyección arranca cuando muevas dinero desde la app')}</div>`:'';
+  el.innerHTML=(grupos.length?grupos.map(g=>cabeza(g)+`<div class="metas-grupo">`+g.metas.map(fila).join('')+g.fondos.map(filaFondo).join('')+`</div>`).join('')+nota
+      :'<div class="empty-state">'+(cumplidas.length?'no tienes metas activas: pon la siguiente':'todavía no tienes metas — crea la primera')+'</div>'+propuestasMetas(ctx,cam))+
     '<button type="button" class="btn" style="margin-top:12px" onclick="nuevaMeta()">+ nueva meta</button>'+
     (cumplidas.length?`<details class="metas-hechas" id="metas-hechas"${metasHechasAbierto?' open':''}><summary>metas cumplidas (${cumplidas.length})</summary>`+
       cumplidas.slice().sort((a,b)=>String(b.cumplidaEn||'').localeCompare(String(a.cumplidaEn||''))).map(fCumplida).join('')+'</details>':'');
   const det=document.getElementById('metas-hechas'); if(det) det.addEventListener('toggle',()=>{ metasHechasAbierto=det.open; });
-  renderCamino(ctx);
+}
+// (27-nov-2026, idea (c) de Beto: "Metas se siente vacía") a quien no tiene metas se le proponen tres con SUS numeros. Solo se sugieren
+// (decision de Beto): el boton abre el dialogo ya lleno y nada se guarda hasta que la persona lo guarda. Sin datos para una cifra, se dice
+// de donde va a salir y el boton abre el dialogo sin monto
+let metasPropuesta={};
+function propuestasMetas(ctx,cam){
+  if(!datosCargados||cargaDesdeCache) return '';   // con la copia local no se calcula nada que parezca cierto
+  const libres=metaCuentasLibres(), r100=v=>Math.ceil(v/100)*100, r1000=v=>Math.round(v/1000)*1000;
+  // colchon: tres meses de lo que de verdad sale (gasto y pagos a deudas, como el colchon de la salud), en tu primera cajita
+  const gm=promedioGastoMensual(true), colchon=gm>0?r100(gm*3):0;
+  const cajita=libres.find(c=>c==='cajita1'||c==='revSavings'||c==='mifel'||(esIdX(c)&&state.cuentasX[c]&&state.cuentasX[c].tipo==='cajita'&&(state.cuentasX[c].moneda||'MXN')==='MXN'));
+  // en 5 años: lo que tienes hoy mas lo que vienes metiendo al mes, sin rendimientos
+  // (qa) con la bolsa sin precio, lo que tienes hoy esta incompleto: no se da cifra de 5 años
+  const bolsaPend=!!(ctx&&ctx.stocksPendiente), tienes=Number(ctx&&ctx.patrimonio)||0, ap=cam&&cam.apMes>0.005?cam.apMes:0, cinco=ap&&!bolsaPend?r1000(tienes+ap*60):0;
+  const d=new Date(), enN=n=>(d.getFullYear()+n)+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(Math.min(d.getDate(),28)).padStart(2,'0'), en5=enN(5);
+  metasPropuesta={
+    colchon:{nombre:'colchón de 3 meses',cuenta:cajita,monto:colchon||undefined,fecha:enN(1)},
+    cinco:{nombre:'en 5 años',cuenta:'patrimonio',monto:cinco||undefined,fecha:en5}};
+  const rc=retiroUltCalc&&retiroUltCalc.c&&retiroUltCalc.c.capital>0?retiroUltCalc:null;
+  const op=(k,tit,txt,btn)=>`<div class="meta-prop" data-prop="${k}"><div class="meta-prop-tit">${tit}</div><div class="item-meta">${txt}</div>`+
+    `<button type="button" class="volver-btn meta-prop-btn" data-prop="${k}">${btn}</button></div>`;
+  return `<div class="metas-props"><div class="metas-props-tit">¿por dónde empezar? tres ideas con tus números</div>`+
+    op('colchon','un colchón de 3 meses',colchon?'unos '+fmt(colchon)+': lo que sale de tus cuentas en 3 meses (gastos y pagos a deudas)'
+      :'tres meses de lo que gastas: sale cuando cierres tu primer mes con gastos','crear esta meta')+
+    op('retiro','tu retiro',rc?'tu plan pide juntar unos '+fmt(c2(rc.c.capital*rc.tc))+' para retirarte a los '+escapeHtml(String(rc.v.a))
+      :'cuánto necesitas juntar para retirarte, con tu edad y lo que quieres recibir al mes',rc?'ver mi plan':'calcularlo')+
+    op('cinco','lo que quieres tener en 5 años',cinco?'si sigues metiendo unos '+fmt(ap)+' al mes, en 5 años tendrías unos '+fmt(cinco)+' (hoy tienes '+fmt(tienes)+', sin contar rendimientos)'
+      :(bolsaPend?'falta el precio de parte de tu bolsa; ¿cuánto quieres tener en 5 años?':'hoy tienes '+fmt(tienes)+': ¿cuánto quieres tener en 5 años?'),'crear esta meta')+`</div>`;
+}
+{ const pnl=document.getElementById('metas-panel');
+  if(pnl) pnl.addEventListener('click',e=>{ const b=e.target.closest('.meta-prop-btn'); if(!b) return;
+    const k=b.dataset.prop; if(k==='retiro'){ irARetiro(); return; }
+    const pr=metasPropuesta[k]; if(pr) abrirMetaDlg('nueva',null,pr); }); }
+function renderMetas(ctx) {
+  pintarListaMetas(ctx);
   try{ pintarInvitaMetas(); cargarRetiro(); }catch(e){ console.error('metas que guian',e); }
 }
 
@@ -18390,6 +18467,7 @@ function abrirMetaDlg(modo,id,pre){
   $('meta-fecha').value=m&&!vencida?fm:((pre&&pre.fecha)||metaFechaNueva());
   if(pre&&pre.cuenta&&libres.includes(pre.cuenta)) sel.value=pre.cuenta;
   if(pre&&pre.nombre&&!m) $('meta-nombre').value=pre.nombre;
+  if(pre&&pre.monto>0&&!m&&!modoPrivado) $('meta-monto').value=String(pre.monto);
   $('meta-fecha').min=hoyLocal();
   const notaV=vencida?(CFG.multi?'Su fecha ya pasó (era el '+fechaMetaLarga(fm)+'): elige una nueva para guardarla. ':'su fecha ya pasó (era el '+fechaMetaLarga(fm)+'): elige una nueva para guardarla. '):'';
   $('meta-nota').textContent=m?notaV+(vencida?'L':(CFG.multi?'L':'l'))+'a cuenta de una meta no se cambia: si quieres otra, quita esta y crea una nueva.':'';
@@ -18410,10 +18488,11 @@ function avisoCuentaMeta(){
 window.nuevaMeta=()=>abrirMetaDlg('nueva');
 // (20-nov-2026, tanda 4) la invitacion de Inicio: solo se ve sin metas, con datos del servidor y si no dijo "ahora no" en 30 dias
 const META_INVITA_LUEGO_DIAS=30;
+function irARetiro(){ showPage('metas',true); metasSub('retiro'); const p=document.getElementById('retiro-panel'); if(p){ p.scrollIntoView({block:'start'}); const barras=(document.querySelector('nav')?.offsetHeight||0)+(document.querySelector('.tabs')?.offsetHeight||0); window.scrollBy(0,-(barras+40)); const dd=document.getElementById('ret-datos'); if(dd) dd.open=true; const i=document.getElementById('ret-edad'); if(i) i.focus({preventScroll:true}); } }
 function pintarInvitaMetas() {
   const el=document.getElementById('meta-invita'); if(!el) return;
   let luego=0; try{ luego=+localStorage.getItem(lsKey('metas-luego'))||0; }catch(e){}
-  const sinMetas=!metasActivas().length;   // (25-nov-2026) con solo cumplidas tambien invita a la siguiente
+  const sinMetas=!metasActivas().length&&!metasDeFondos().length;   // (25-nov-2026) con solo cumplidas tambien invita a la siguiente; (27-nov) un fondo con meta tambien cuenta
   el.hidden=!(datosCargados&&!cargaDesdeCache&&sinMetas&&Date.now()-luego>META_INVITA_LUEGO_DIAS*864e5);
   const inv=document.getElementById('meta-invita-inv'); if(inv) inv.hidden=!metaCuentasLibres().includes('stocks');
 }
@@ -18421,7 +18500,7 @@ function pintarInvitaMetas() {
   const b5=document.getElementById('meta-invita-5'), bi=document.getElementById('meta-invita-inv'), br=document.getElementById('meta-invita-retiro'), bl=document.getElementById('meta-invita-luego');
   if(b5) b5.addEventListener('click',()=>abrirMetaDlg('nueva',null,{fecha:en5(),nombre:'en 5 años',cuenta:'patrimonio'}));
   if(bi) bi.addEventListener('click',()=>abrirMetaDlg('nueva',null,{cuenta:'stocks',nombre:'invertido'}));
-  if(br) br.addEventListener('click',()=>{ showPage('metas',true); metasSub('retiro'); const p=document.getElementById('retiro-panel'); if(p){ p.scrollIntoView({block:'start'}); const barras=(document.querySelector('nav')?.offsetHeight||0)+(document.querySelector('.tabs')?.offsetHeight||0); window.scrollBy(0,-(barras+40)); const dd=document.getElementById('ret-datos'); if(dd) dd.open=true; const i=document.getElementById('ret-edad'); if(i) i.focus({preventScroll:true}); } });
+  if(br) br.addEventListener('click',irARetiro);
   if(bl) bl.addEventListener('click',()=>{ try{ localStorage.setItem(lsKey('metas-luego'),String(Date.now())); }catch(e){} pintarInvitaMetas(); const a=document.getElementById('inicio-anotar'); if(a) a.focus(); }); }
 // ── RETIRO (20-nov-2026, tanda 4): una cuenta con los numeros de la persona. Cero escrituras a Firestore: lo escrito se recuerda
 // solo en este aparato (lsKey('retiro')). Interes compuesto mensual equivalente a la tasa anual que la persona supone
@@ -18935,22 +19014,17 @@ const pctCorto=v=>{ const r=Math.round(v*10)/10; return Number.isInteger(r)?Stri
 function mesesRestMeta(f){ const hoyD=new Date(), metaD=parseFechaLocal(f); return Math.max(1,(metaD.getFullYear()-hoyD.getFullYear())*12+(metaD.getMonth()-hoyD.getMonth())+1); }
 const ritmoMeta=(falta,f)=>Math.max(0,falta)/mesesRestMeta(f);
 const fechaCortaMeta=f=>parseFechaLocal(f).toLocaleDateString('es-MX',{day:'numeric',month:'short',year:'numeric'}).replace('.','');
-// proyeccion CONSERVADORA hacia cada meta, hasta SU fecha: solo aportaciones registradas (promedio de los
-// ultimos 3 meses completos, incluyendo meses en cero), sin contar rendimientos futuros
-function renderCamino(ctx) {
-  const MT=state.metas||{fecha:META_FECHA_DEF,items:[]};
-  const el=document.getElementById('camino-panel'); if(!el) return;
-  if(!metasActivas(MT).length){ el.innerHTML='<div class="empty-state">crea una meta y aquí aparece si vas a tiempo</div>'; return; }
+// (27-nov-2026) el camino de cada meta, dentro de su tarjeta. Proyeccion CONSERVADORA hasta SU fecha: solo aportaciones registradas
+// (promedio de los ultimos 3 meses completos, incluyendo meses en cero), sin contar rendimientos futuros. Lo de todas se calcula una vez
+function datosCamino() {
   const hoyD=new Date();
-  // meses COMPLETOS que faltan despues del actual (los aportes del mes en curso ya estan en el saldo)
-  const mesesHastaMeta=f=>{ const metaD=parseFechaLocal(f); return Math.max(0,(metaD.getFullYear()-hoyD.getFullYear())*12+(metaD.getMonth()-hoyD.getMonth())); };
   // promedio de aportacion de los ultimos 3 meses, por cuenta proyectable
-  const suma={}, huboOpRef={v:false};
+  const suma={}, huboOpRef={v:false}; let apTot=0;
   METAS_PROYECTABLES.forEach(c=>{ suma[c]=0; });
   for(let i=1;i<=3;i++){
     const ini=new Date(hoyD.getFullYear(),hoyD.getMonth()-i,1);
     const fin=new Date(hoyD.getFullYear(),hoyD.getMonth()-i+1,1);
-    const ap=aportacionesEnRango(ini,fin);
+    const ap=aportacionesEnRango(ini,fin); apTot+=apTotal(ap);
     METAS_PROYECTABLES.forEach(c=>{ suma[c]+=(ap[c]||0); if(ap[c]) huboOpRef.v=true; });
     // (20-nov-2026, Marcela) lo que metiste a una cajita que agregaste tambien es aportacion (Inicio y Resumen ya la cuentan): no se dice "aun no hay aportaciones"
     if(ap.cajitasX) huboOpRef.v=true;
@@ -18970,40 +19044,40 @@ function renderCamino(ctx) {
     const a=noms.length>1?noms.slice(0,-1).join(', ')+' y '+noms[noms.length-1]:(noms[0]||'tus ahorros');
     txtMes=tot>0.005?'este mes metiste '+fmt(tot)+' a '+escapeHtml(a):(tot<-0.005?'este mes sacaste '+fmt(-tot)+' de tus ahorros':'este mes lo que metiste y sacaste de tus ahorros se compensa');
   }
-  const fila=(nombre,actual,meta,prom,bloqueada,f)=>{
-    // comparacion por fecha calendario: el propio dia de la meta todavia cuenta
-    if(hoyLocal()>f) return `<div class="item-row"><div><div class="item-cat">${escapeHtml(nombre)}</div><div class="item-meta">la fecha de esta meta ya pasó — ponle otra con «editar»</div></div><span class="item-meta">—</span></div>`;
-    // (18-nov-2026, calificacion "como se ve": aqui decia "no se puede proyectar" y el Resumen "necesitas $1,875/mes" para la misma meta)
-    // sin registro de aportaciones no hay ritmo que proyectar, pero lo que hace falta al mes sale de la MISMA cuenta que el Resumen
-    if(prom===null&&meta-actual>0&&!bloqueada) return `<div class="item-row"><div><div class="item-cat">🎯 ${escapeHtml(nombre)}</div><div class="item-meta">te faltan ${fmt(meta-actual)} · necesitas ${fmt(ritmoMeta(meta-actual,f))}/mes para llegar al ${fechaCortaMeta(f)}</div></div></div>`;
-    if(bloqueada) return `<div class="item-row"><div><div class="item-cat">${escapeHtml(nombre)}</div><div class="item-meta">cotización pendiente — proyección no disponible</div></div><span class="item-meta">—</span></div>`;
-    const falta=Math.max(0,meta-actual);
-    if(falta<=0) return `<div class="item-row"><div><div class="item-cat">🏁 ${escapeHtml(nombre)}</div><div class="item-meta">meta lograda — todo lo demás es ventaja</div></div><div style="font-weight:600">${fmt(actual)}</div></div>`;
-    const mesesFut=mesesHastaMeta(f);
-    if(mesesFut<=0) return `<div class="item-row"><div><div class="item-cat">${escapeHtml(nombre)}</div><div class="item-meta">último mes: te faltan ${fmt(falta)} para la meta</div></div><span class="item-meta">—</span></div>`;
-    const proy=actual+prom*mesesRestMeta(f), nece=ritmoMeta(falta,f), ok=proy>=meta-0.005;   // (18-nov, revision) proyeccion y aporte necesario con el MISMO contador de meses que el Resumen: si no, pedia "subir" a menos que el ritmo actual
-    const promTxt=(prom<0?'−':'')+fmt(Math.abs(prom)); // signo manual: fmt pone el $ antes del -
-    const cuando=fechaCortaMeta(f);
-    return `<div class="item-row"><div><div class="item-cat">${ok?'✅':'🎯'} ${escapeHtml(nombre)}</div><div class="item-meta">${
-      ok?('a tu ritmo (unos '+promTxt+'/mes) llegas al '+cuando+' con '+fmt(proy))
-        :('a tu ritmo (unos '+promTxt+'/mes) llegarías al '+cuando+' con '+fmt(Math.max(0,proy))+' — sube tu aporte a '+fmt(nece)+'/mes')
-    }</div></div></div>`;
-  };
-  // (25-nov-2026) solo las activas, por plazo (el mismo grupo que en "mis metas")
-  const filaCamino=m=>{
-      const nom=tituloMeta(m), f=fechaDeMeta(m,MT);
-      const actual=valorMeta(m.cuenta,ctx);
-      if(esIdX(m.cuenta)&&metaBloqueada(m.cuenta,ctx)) return `<div class="item-row"><div><div class="item-cat">${escapeHtml(nom)}</div><div class="item-meta">valor pendiente — proyección no disponible</div></div><span class="item-meta">—</span></div>`;
-      // solo se proyecta lo que sabemos medir; el resto se muestra sin proyeccion
-      const proyectable=METAS_PROYECTABLES.includes(m.cuenta);
-      return fila(nom,actual,m.monto,proyectable?suma[m.cuenta]/3:null,metaBloqueada(m.cuenta,ctx),f);
-    };
-  const activas=metasActivas(MT), grupos=PLAZOS_META.map(g=>({...g,metas:activas.filter(m=>plazoDeMeta(fechaDeMeta(m,MT))===g.k)})).filter(g=>g.metas.length);
-  el.innerHTML=grupos.map(g=>(grupos.length>1?`<div class="metas-plazo-tit camino-plazo">${g.t}</div>`:'')+g.metas.map(filaCamino).join('')).join('')+
-    `<div class="item-meta" style="text-align:center;padding-top:8px">${huboOp
-      ?'proyección conservadora: solo tus aportaciones, sin contar rendimientos'
-      :(huboMes?txtMes+'; la proyección usa el promedio de tus meses completos y arranca cuando cierre tu primer mes'
-        :'aún no hay aportaciones registradas en los últimos 3 meses — la proyección arranca cuando muevas dinero desde la app')}</div>`;
+  return {suma, huboOp, huboMes, txtMes, apMes:apTot/3};
+}
+// meses COMPLETOS que faltan despues del actual (los aportes del mes en curso ya estan en el saldo)
+function mesesHastaMeta(f){ const hoyD=new Date(), metaD=parseFechaLocal(f); return Math.max(0,(metaD.getFullYear()-hoyD.getFullYear())*12+(metaD.getMonth()-hoyD.getMonth())); }
+// lo que va bajo la barra de una meta: cuanto meter al mes (la misma cuenta que el cierre del Resumen) y, si la cuenta se puede medir y hay
+// aportaciones, a donde llegas a tu ritmo. Sin ritmo que medir no se dice "a tu ritmo de $0": solo cuanto hace falta
+function lineaCamino(m,ctx,MT,cam){
+  const f=fechaDeMeta(m,MT);
+  if(metaBloqueada(m.cuenta,ctx)||diasAFecha(f)<=0) return '';
+  const actual=valorMeta(m.cuenta,ctx), falta=m.monto-actual;
+  if(falta<=0.005) return '';
+  const n=mesesRestMeta(f), pide=`<div class="meta-ritmo">mete unos ${fmt(ritmoMeta(falta,f))} al mes para llegar${n>1?' ('+n+' meses)':''}</div>`;
+  if(!METAS_PROYECTABLES.includes(m.cuenta)||!cam.huboOp||!((cam.suma[m.cuenta]||0)>0.005)||mesesHastaMeta(f)<=0) return pide;   // (qa) un ritmo negativo no se dice como "a tu ritmo de −$500"
+  const prom=cam.suma[m.cuenta]/3, proy=actual+prom*n, cuando=fechaCortaMeta(f);   // (18-nov, revision) el MISMO contador de meses que el Resumen
+  if(proy>=m.monto-0.005) return `<div class="meta-ritmo meta-va">a tu ritmo (unos ${fmt(prom)} al mes) llegas al ${cuando} con ${fmt(proy)}</div>`;
+  return pide+`<div class="item-meta meta-camino">a tu ritmo de ahora (unos ${fmt(prom)} al mes) llegarías al ${cuando} con ${fmt(Math.max(0,proy))}</div>`;
+}
+// (27-nov-2026) los fondos con meta, para la lista de metas: lo que tienen (con su interes estimado), su meta y en que plazo caen
+const finDeMes=ym=>{ const y=+ym.slice(0,4), mm=+ym.slice(5,7); return ym.slice(0,7)+'-'+String(new Date(y,mm,0).getDate()).padStart(2,'0'); };
+function metasDeFondos(){
+  const ret=(state.perfil&&state.perfil.retiro&&state.perfil.retiro.fondo)||'';
+  return listaFondos().map(x=>({...x,mt:metaFondo(x.id)})).filter(x=>x.mt&&x.mt.objetivo>0).map(x=>{
+    const fin=/^\d{4}-\d{2}$/.test(x.mt.fecha||'')?finDeMes(x.mt.fecha):'';
+    return {...x, tiene:c2(totalFondo(x.id)+generadoFondo(x.id)), fin, retiro:x.id===ret, plazo:fin?plazoDeMeta(fin):(x.id===ret?'mas10':'sinfecha')};
+  });
+}
+// lo que pide un fondo al mes: el de retiro, lo que pide tu plan CON el rendimiento que supones (dividir sin rendimiento daba casi el triple);
+// los demas, lo que falta entre los meses que quedan (como avanceMeta en la pestaña fondo)
+function ritmoFondo(x){
+  if(x.retiro&&retiroUltCalc&&retiroUltCalc.c.aporte>0.005){ const v=c2(retiroUltCalc.c.aporte*retiroUltCalc.tc);
+    return {monto:v, txt:'tu plan de retiro pide unos '+fmt(v)+' al mes, con el rendimiento que supones'}; }
+  if(!x.fin||x.fin<hoyLocal()) return null;
+  const v=ritmoMeta(x.mt.objetivo-x.tiene,x.fin), n=mesesRestMeta(x.fin);
+  return {monto:v, txt:'mete unos '+fmt(v)+' al mes para llegar'+(n>1?' ('+n+' meses)':'')};
 }
 
 // ── APARTADOS (metas de caprichos: contadores visuales, no tocan cuentas) ──
@@ -19016,27 +19090,14 @@ function mesesHasta(fechaYM) { // meses INCLUSIVOS desde el mes actual hasta YYY
 // aqui no se crean fondos ni se les pone meta (eso es de la pestaña fondo, para que no se confundan). Los apartados
 // viejos (solo letrero) se ven aparte para pasarlos a fondo
 function renderApartados() {
+  // (27-nov-2026) los fondos con meta ya van dentro de "mis metas", en su plazo: aqui solo quedan los apartados de antes (solo letrero)
+  if(metasCtxUlt) try{ pintarListaMetas(metasCtxUlt); pintarInvitaMetas(); }catch(e){ console.error('lista de metas',e); }   // (qa) Inicio deja de invitar al ponerle meta a un fondo
   const el=document.getElementById('apartados-panel'); if(!el) return;
-  const fondos=listaFondos().filter(x=>metaFondo(x.id));
-  const filas=fondos.map(x=>{
-    const tiene=totalFondo(x.id)+generadoFondo(x.id), mt=metaFondo(x.id), av=mt?avanceMeta(tiene,mt):null;
-    // (25-nov-2026) el fondo de retiro dice lo mismo que tu plan: lo que pide al mes CON el rendimiento que supones (antes "guarda unos"
-    // dividia sin rendimiento y daba casi el triple)
-    const rp=av&&/ · guarda unos /.test(av.txt)&&x.id===((state.perfil&&state.perfil.retiro&&state.perfil.retiro.fondo)||'')&&retiroUltCalc&&retiroUltCalc.c.aporte>0.005?retiroUltCalc:null;
-    if(rp) av.txt=av.txt.replace(/ · guarda unos .*$/,'')+' · tu plan de retiro pide unos '+fmt(c2(rp.c.aporte*rp.tc))+' al mes, con el rendimiento que supones';
-    return `<div class="resumen-bar" style="padding:10px 0;border-bottom:0.5px solid var(--border)"><div class="bar-header"><span class="bar-label">${escapeHtml(x.nombre)}</span><span class="bar-amt" style="color:var(--accent-dark)">${fmt(tiene)}${mt?' / '+fmt(mt.objetivo):''}</span></div>`+
-      (mt?`<div class="bar-track" style="height:6px"><div class="bar-fill" style="width:${Math.max(0,Math.min(100,av.pct)).toFixed(1)}%"></div></div>`:'')+
-      `<div class="bar-header" style="margin-top:4px"><span class="item-meta">${escapeHtml(av.txt)}</span>`+
-      `<button type="button" class="del-btn" style="font-size:12px;color:var(--accent);padding:2px 0 2px 10px" onclick="irAFondo('${x.id}',false)">ver fondo</button></div></div>`;
-  }).join('');
   const viejos=state.apartados.map(a=>
     `<div class="resumen-bar"><div class="bar-header"><span class="bar-label">${escapeHtml(a.nombre)}</span><span style="display:flex;align-items:center"><span class="bar-amt">${fmt(a.ahorrado)} / ${fmt(a.meta)}</span><button type="button" class="del-btn del-x" aria-label="borrar" onclick="eliminarApartado('${a.id}')">&times;</button></span></div>`+
     `<div class="bar-header" style="margin-top:4px"><span class="item-meta">no separa dinero: solo es un letrero</span><button type="button" class="del-btn" style="font-size:12px;color:var(--accent);padding:2px 0 2px 10px" onclick="pasarAFondo('${a.id}')">pasar a fondo</button></div></div>`).join('');
-  // (18-nov-2026, calificacion "como se ve") sin ningun fondo con meta ni apartados de antes, la seccion entera no sale (antes: vacia)
-  const sec=document.getElementById('metas-fondos-sec'); if(sec) sec.hidden=datosCargados&&!filas&&!viejos;
-  // en la copia local (sin confirmar con el servidor) las metas no estan cargadas: no se afirma que no hay
-  el.innerHTML=(filas||`<div class="empty-state">${datosCargados?(CFG.multi&&!state.perfil.fondoTab?'todavía no tienes metas de fondos':'ninguno de tus fondos tiene meta — pónsela en la pestaña fondo'):'cargando…'}</div>`)+
-    (viejos?`<div class="section-title mt">apartados de antes</div>${viejos}`:'');
+  const sec=document.getElementById('metas-fondos-sec'); if(sec) sec.hidden=!viejos;
+  el.innerHTML=viejos;
 }
 window.eliminarApartado = async function(id) {
   if(apartadoOcupado) return;
