@@ -100,13 +100,13 @@ function fvErrCodigo(e){
 // archivo:linea:columna. Del archivo solo el nombre: la direccion puede traer ?parametros o #marcas. Lo que no sea de la app o de sus librerias es 'otro'
 // (4-nov-2026, revision) el nombre sale SOLO si esta en una lista corta, segun de quien es el sitio: la ruta de la direccion la puede escribir cualquiera (/Juan-Perez) y no es dato de la app
 var FV_ERR_ARCHIVOS_APP=['index.html','sw.js'];
-var FV_ERR_ARCHIVOS_LIB=['firebase-app.js','firebase-auth.js','firebase-firestore.js','firebase-app-check.js','exceljs.min.js','enterprise.js','api.js','recaptcha__es.js','recaptcha__es_419.js','recaptcha__en.js'];
+var FV_ERR_ARCHIVOS_LIB=['firebase-app.js','firebase-auth.js','firebase-firestore.js','firebase-app-check.js','exceljs.min.js','enterprise.js','api.js','recaptcha__es.js','recaptcha__es_419.js','recaptcha__en.js'];   // (28-nov) cualquier recaptcha__<idioma>.js de esos hosts tambien pasa (patron en fvErrMarco)
 function fvErrMarco(url,linea,col,host){
   var m=/^https?:\/\/([^\/?#]+)([^?#]*)/.exec(String(url||''));
   if(!m) return null;
   var b=m[2].split('/').pop(),f='otro';
   if(m[1]===host){ if(!b) b='index.html'; if(FV_ERR_ARCHIVOS_APP.indexOf(b)>=0) f=b; }
-  else if(/^(www\.gstatic\.com|cdnjs\.cloudflare\.com|www\.google\.com)$/.test(m[1])&&FV_ERR_ARCHIVOS_LIB.indexOf(b)>=0) f=b;
+  else if(/^(www\.gstatic\.com|cdnjs\.cloudflare\.com|www\.google\.com)$/.test(m[1])&&(FV_ERR_ARCHIVOS_LIB.indexOf(b)>=0||/^recaptcha__[a-z0-9_]{1,12}\.js$/.test(b))) f=b;
   return f+':'+(parseInt(linea,10)||0)+':'+(parseInt(col,10)||0);
 }
 // hasta tres marcos, sin nombres de funcion. {ajeno:true} si lo primero que aparece es de una extension del navegador: ese error no es de la app
@@ -138,6 +138,9 @@ function fvErrArmar(a){
   if(pila.ajeno) return null;
   var marcos=pila.marcos;
   if(!marcos.length&&a.archivo){ if(/-extension:/.test(a.archivo)) return null; var f=fvErrMarco(a.archivo,a.linea,a.columna,a.host); if(f) marcos=[f]; }
+  // (28-nov-2026) reCAPTCHA Enterprise (App Check) deja un rechazo sin atender "reCAPTCHA Timeout" cuando su iframe tarda: no es la app, y App Check ya sigue sin token.
+  // Solo ese caso exacto: ese mensaje Y su propio archivo como primer marco. Otro error de reCAPTCHA, o ese texto desde otro archivo, se sigue mandando
+  if(e&&typeof e==='object'&&/^reCAPTCHA Timeout\b/.test(String(e.message))&&/^recaptcha__[a-z_0-9]+\.js:/.test(marcos[0]||'')) return null;
   var r={tipo:a.tipo||(e===undefined||e===null?(a.mensaje===undefined?'Rechazo':'Error'):fvErrTipo(e)),version:String(a.version||'sin-version'),pantalla:a.pantalla,navegador:fvErrNavegador(a.ua)};
   var k=fvErrCodigo(e),t=fvErrMensaje(e&&typeof e==='object'&&'message' in e?e.message:(e===undefined||e===null?a.mensaje:e));
   if(k) r.codigo=k;
@@ -469,7 +472,7 @@ html.abriendo #login-screen,html.abriendo #loading-overlay{display:none}
 .arr-tarjetas{display:flex;flex-direction:column;gap:10px}
 .arr-tarjeta{height:74px;border-radius:var(--r);background:var(--bg2);border:1px solid var(--sup-borde,var(--border));padding:16px;display:flex;align-items:center;gap:12px}
 .arr-tarjeta .arr-b:first-child{width:38px;height:38px;border-radius:12px;flex-shrink:0}.arr-tarjeta .arr-b:last-child{width:42%;height:12px}
-@media(min-width:720px){.arr-cuerpo{max-width:1060px}.arr-tarjetas{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}}
+@media(min-width:720px){.arr-cuerpo{max-width:var(--pagina-ancho)}.arr-tarjetas{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}}
 @media(prefers-reduced-motion:no-preference){.arr-cuerpo,.arr-tabs{animation:arr-pulso 1.8s ease-in-out infinite}}
 @keyframes arr-pulso{50%{opacity:.55}}
 /* si la espera pasa de un segundo, el esqueleto lo dice con palabras (16-nov-2026, prueba de usuario: tres segundos de gris sin texto parecen una app trabada) */
@@ -616,6 +619,7 @@ html[data-tema='grafito'] .cat-tipo-op.on>span{color:#14171a}
 .g-credito .item-row{gap:12px;border:0;padding-bottom:4px}.g-credito .item-row>div{min-width:0;overflow-wrap:anywhere}
 .g-credito .debes-amt{font-size:15px;font-weight:650;color:var(--red-txt);white-space:nowrap;font-variant-numeric:tabular-nums}
 .g-credito .debes-amt.cero{color:var(--muted)}
+.g-cr-pie{margin-top:12px;padding-top:4px;border-top:1px dashed var(--border)}
 .g-quitada .cat-act,.g-quitar-p{min-height:44px}
 .g-cr-linea{margin:3px 0;line-height:1.45}.g-cr-pagar{margin-top:10px}
 .g-pagar{background:var(--bg3);border-radius:var(--rs);padding:12px;margin-top:10px}
@@ -771,6 +775,7 @@ html[data-tema='grafito'] .cat-tipo-op.on>span{color:#14171a}
 @media(min-width:720px){#page-perfil div.item-meta,.retiro-calc .ri-fuente,.retiro-nota{max-width:80ch}}
 @media(min-width:1100px){#page-dashboard div.item-meta,#page-perfil div.item-meta,.retiro-calc .ri-fuente,.retiro-nota{max-width:80ch}}
 .deuda-name{font-size:16px;font-weight:600}.deuda-total{font-size:17px;font-weight:700}
+.deuda-person.deuda-cero{padding:4px 16px;box-shadow:none;margin-bottom:6px}.deuda-cero .deuda-name{font-size:15px;font-weight:500}.deuda-cero .deuda-total{font-size:14px;font-weight:500;color:var(--muted)}
 /* Excel de la cuenta con una persona: periodo + descarga, dentro del detalle */
 .xl-panel{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:10px 0 8px;padding-bottom:10px;border-bottom:0.5px solid var(--border)}
 .xl-panel select,.xl-panel input{flex:1;min-width:130px;padding:8px 10px;border-radius:10px;border:1px solid var(--border2);background:var(--bg2s);color:var(--text);font-size:13px}
@@ -888,6 +893,12 @@ html[data-tema='grafito'] .cat-tipo-op.on>span{color:#14171a}
 #mov-tipo-toggle .type-opt{min-width:calc(25% - 5px)}#mov-tipo-toggle .type-opt[hidden]{display:none}
 #form-inversion-wrap .inv-nota{line-height:1.5;margin-bottom:10px}#form-inversion-wrap .inv-cajita{margin-top:16px}
 .type-toggle.falta-cuenta{outline:2px solid var(--red-txt);outline-offset:3px;border-radius:var(--rs)}
+/* (28-nov-2026) elegir cuenta con botones en todas las formas: el select queda de 1 px (las pruebas usan selectOption, que pide que se vea) */
+.cta-field{position:relative}
+.field select.cta-sel{position:absolute;left:0;top:0;width:1px;height:1px;min-height:0;padding:0;margin:0;border:0;overflow:hidden;clip-path:inset(50%);opacity:0;pointer-events:none}
+.cta-botones .type-toggle{margin-bottom:0}.cta-botones .cta-fila-x{margin-top:6px}
+.cta-botones.falta-cuenta{outline:2px solid var(--red-txt);outline-offset:3px;border-radius:var(--rs)}
+.cta-botones .type-opt:disabled{opacity:.45;cursor:not-allowed}
 .falta-cuenta-txt{font-size:13px;line-height:1.4;color:var(--red-txt);margin-top:8px;font-weight:600}
 .field input[type=date]{min-height:44px;font-family:inherit;text-align:left}
 .field input[type=date]::-webkit-date-and-time-value{text-align:left}
@@ -1086,16 +1097,31 @@ html[data-tema='grafito'] .mov-mas-n{background:var(--accent);color:#0f1a14}
 .mov-quitar[hidden]{display:none}
 .del-btn:active{color:var(--red)}
 
+/* (28-nov-2026) la forma de Movimientos pegada solo si cabe entera (lo decide pegarFormaMov) */
+#mov-reg-sec.pegada{position:sticky;top:var(--pega-arriba,120px)}
+/* (28-nov-2026) Deudas: en el telefono una sola columna en el orden de siempre (lo que debes, tarjetas, personas, prestamos,
+   registrar). Las dos .deu-lado no cuentan (display:contents) y el orden lo pone `order`, como #mov-cal */
+.deu-grid{display:flex;flex-direction:column}
+.deu-lado{display:contents}
+.deu-lado>*{min-width:0}
+#page-deudas .grand-total-deuda{order:1}#deudas-tj-title{order:2}#deudas-tarjetas{order:3}#personas-title{order:4}#personas-container{order:5}
+#creditos-title{order:6}#creditos-panel{order:7}.deu-personas>.section-title:not([id]){order:8}.deu-personas>.panel{order:9}
+
 /* ESCRITORIO: layout ancho tipo portafolio (inicio y resumen); formularios se mantienen angostos */
 /* (25-nov-2026, auditoria por aparato) desde 720 px y no 900: iPad mini (744) y iPad vertical (820) usaban una columna de 430 px */
+/* (28-nov-2026, auditoria por aparato) UN ancho para todas las pestanas (--pagina-ancho): al cambiar de pestana el contenido ya no brinca
+   (Deudas medía 560, Resumen 1080, Calendario 1240, Fondo 1180). 1060 es el de Inicio, Movimientos, Metas y Perfil, donde ya se acomodaron
+   dos columnas; a esa medida el calendario sigue con su columna de lado (minmax 320) y Fondo con dos tarjetas por renglon. La unica que
+   no lo usa es Inversiones (--pagina-ancho-tablero): su rejilla se acomoda sola al ancho para "ver mas datos a la vez" (Beto, 14-sep).
+   Noticias tampoco: es una subpagina de Resumen con "‹ resumen", no una pestana, y es texto corrido. */
+:root{--pagina-ancho:1060px;--pagina-ancho-tablero:1880px}
 @media(min-width:720px){
-  .page{max-width:560px}
-  #page-inicio{max-width:1060px}
-  .bandas-conexion{max-width:1060px}
-  #page-movimientos{max-width:1060px}
-  #page-metas{max-width:1060px}
-  #page-perfil{max-width:1060px}
-  #page-resumen{max-width:1080px}
+  .page{max-width:var(--pagina-ancho)}
+  #page-noticias{max-width:560px}
+  .bandas-conexion{max-width:var(--pagina-ancho)}
+  /* Deudas en dos columnas: lo que debes, tarjetas y prestamos a la izquierda; personas y registrar a la derecha */
+  .deu-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:0 20px;align-items:start}
+  .deu-lado{display:block;min-width:0}
   /* las dos columnas arrancan a la misma altura: el primer titulo de cada una no lleva el margen superior */
   .summary-grid>.sec>.section-title.mt:first-child,.inicio-grid>.sec>.section-title.mt:first-child{margin-top:0}
   nav,.tabs{padding-left:32px;padding-right:32px}
@@ -1119,8 +1145,8 @@ html[data-tema='grafito'] .mov-mas-n{background:var(--accent);color:#0f1a14}
    de la app, igual que la dona de inicio), las cifras sueltas van en una fila de fichas y las
    tarjetas se acomodan solas al ancho con auto-fill: sin cortes fijos que dependan del zoom
    del navegador. Las graficas tienen alto maximo para que ninguna tarjeta se estire. */
-#page-dashboard{max-width:1880px}
-#page-fondo{max-width:1180px}
+#page-dashboard{max-width:var(--pagina-ancho-tablero)}
+#page-fondo{max-width:var(--pagina-ancho)}
 #page-fondo .dkpis{grid-template-columns:repeat(auto-fill,minmax(128px,1fr))}
 /* (28-oct-2026) 8 fichas, dos dobles = 10 espacios: a 5 columnas son dos renglones parejos, sin titulos cortados */
 @media(min-width:1000px){#page-fondo #fondo-kpis{grid-template-columns:repeat(5,minmax(0,1fr))}}
@@ -1350,7 +1376,6 @@ html[data-tema='grafito'] #cal-filtro .type-opt.active>span{color:#14171a}
 #mov-cal .cal-rejilla{order:2}
 #mov-cal .cal-lado>:not(.cal-kpis){order:3}
 @media(min-width:900px){
-  #page-calendario{max-width:1240px}
   #mov-cal{display:grid;grid-template-columns:minmax(0,1.7fr) minmax(320px,1fr);gap:0 20px;align-items:start}
   #mov-cal .cal-mes{grid-column:1;grid-row:1}
   #cal-filtro{grid-column:2;grid-row:1}
@@ -1956,13 +1981,12 @@ html[data-tema='grafito'] #cal-filtro .type-opt.active>span{color:#14171a}
   </summary>
   <div class="acc-body">
   <div class="panel">
-    <div class="row2" style="gap:8px">
-      <div class="field"><label>desde</label>
-        <select id="transfer-origen" onchange="ajustarTransferX()"></select>
-      </div>
-      <div class="field"><label>hacia</label>
-        <select id="transfer-destino" onchange="ajustarTransferX()"></select>
-      </div>
+    <!-- (28-nov-2026) uno debajo del otro: los botones de cuenta no caben en media columna a 390 -->
+    <div class="field"><label>desde</label>
+      <select id="transfer-origen" onchange="ajustarTransferX()"></select>
+    </div>
+    <div class="field"><label>hacia</label>
+      <select id="transfer-destino" onchange="ajustarTransferX()"></select>
     </div>
     <div class="field"><label id="transfer-monto-lbl" for="transfer-monto">monto</label><input type="number" id="transfer-monto" placeholder="ej. 4000" step="0.01" inputmode="decimal"></div>
     <!-- (20-oct-2026) solo entre monedas distintas: lo que llego del otro lado (la diferencia es la comision) -->
@@ -2003,7 +2027,7 @@ html[data-tema='grafito'] #cal-filtro .type-opt.active>span{color:#14171a}
   </div>
   <div id="mov-sub-registrar">
   <div class="inicio-grid">
-  <div class="sec">
+  <div class="sec" id="mov-reg-sec">
     <div class="section-title">registrar movimiento</div>
     <div class="type-toggle" id="mov-tipo-toggle">
       <button type="button" class="type-opt active" id="mov-tipo-gasto" aria-pressed="true" onclick="setMovTipo('gasto')">gasto</button>
@@ -2029,10 +2053,12 @@ html[data-tema='grafito'] #cal-filtro .type-opt.active>span{color:#14171a}
       <div class="item-meta" id="gasto-x-ayuda" hidden style="margin:-4px 0 10px"></div>
       <div class="field"><label>nota (opcional)</label><input type="text" id="gasto-nota" maxlength="200" placeholder="ej. taquería"></div>
       <div class="field"><label>fecha (si no la eliges, es hoy)</label><input type="date" id="gasto-fecha" data-hasta-hoy onchange="pintarMesesGasto()"></div>
-      <div class="field"><label>pagado con</label>
+      <div class="field"><label id="gasto-fuente-lbl">pagado con</label>
+        <div id="gasto-fuente-grupo" role="radiogroup" aria-labelledby="gasto-fuente-lbl">
         <div class="type-toggle" id="gasto-fuente-toggle"><!-- botones: pintarListasCuentas() --></div>
         <!-- (20-oct-2026) cuentas en otra moneda: se pintan solas (pintarFuentesX) -->
         <div class="type-toggle" id="gasto-fuente-x" hidden style="margin-top:6px"></div>
+        </div>
       </div>
       <!-- (19-nov-2026) compra a meses: solo con una tarjeta en "pagado con". El gasto es lo que de verdad cuesta; la deuda sube mes a mes -->
       <div class="field" id="gasto-meses-field" hidden>
@@ -2058,9 +2084,11 @@ html[data-tema='grafito'] #cal-filtro .type-opt.active>span{color:#14171a}
       <div class="item-meta" id="ingreso-x-ayuda" hidden style="margin:-4px 0 10px"></div>
       <div class="field"><label>nota (opcional)</label><input type="text" id="ingreso-nota" maxlength="200" placeholder="ej. pago proyecto"></div>
       <div class="field"><label>fecha (si no la eliges, es hoy)</label><input type="date" id="ingreso-fecha" data-hasta-hoy></div>
-      <div class="field"><label>entra a</label>
+      <div class="field"><label id="ingreso-destino-lbl">entra a</label>
+        <div id="ingreso-destino-grupo" role="radiogroup" aria-labelledby="ingreso-destino-lbl">
         <div class="type-toggle" id="ingreso-destino-toggle"><!-- botones: pintarListasCuentas() --></div>
         <div class="type-toggle" id="ingreso-destino-x" hidden style="margin-top:6px"></div>
+        </div>
       </div>
       <button class="btn btn-green" id="ingreso-btn" onclick="registrarIngreso()">registrar ingreso</button>
     </div>
@@ -2561,7 +2589,10 @@ html[data-tema='grafito'] #cal-filtro .type-opt.active>span{color:#14171a}
 
 <!-- DEUDAS -->
 <div class="page" id="page-deudas">
-  <div class="mt">
+  <!-- (28-nov-2026, auditoria por aparato) desde 720 px dos columnas: lo que debes, tarjetas y prestamos a un lado; personas y
+       registrar al otro. En el telefono .deu-lado no cuenta (display:contents) y `order` deja el orden de siempre -->
+  <div class="mt deu-grid">
+    <div class="deu-lado deu-cuentas">
     <div class="grand-total-deuda">
       <div class="label">balance neto de deudas</div>
       <div class="amount" id="deuda-grand-total">$—</div>
@@ -2569,9 +2600,6 @@ html[data-tema='grafito'] #cal-filtro .type-opt.active>span{color:#14171a}
     </div>
     <div class="section-title" id="deudas-tj-title" hidden>tus tarjetas de crédito</div>
     <div class="panel" id="deudas-tarjetas" hidden></div>
-    <!-- (22-nov-2026, Marcela) sin titulo propio, las personas quedaban bajo "tus tarjetas de credito" -->
-    <div class="section-title" id="personas-title" hidden>personas</div>
-    <div id="personas-container"></div>
     <div class="section-title" id="creditos-title">préstamos y créditos</div>
     <div class="panel" id="creditos-panel">
       <div id="creditos-lista"></div>
@@ -2590,6 +2618,11 @@ html[data-tema='grafito'] #cal-filtro .type-opt.active>span{color:#14171a}
         <button type="button" class="btn btn-purple" onclick="agregarCredito(this)">agregar</button>
       </div></details>
     </div>
+    </div>
+    <div class="deu-lado deu-personas">
+    <!-- (22-nov-2026, Marcela) sin titulo propio, las personas quedaban bajo "tus tarjetas de credito" -->
+    <div class="section-title" id="personas-title" hidden>personas</div>
+    <div id="personas-container"></div>
     <div class="section-title">registrar movimiento</div>
     <div class="panel">
       <div class="field"><label>persona</label>
@@ -2621,6 +2654,7 @@ html[data-tema='grafito'] #cal-filtro .type-opt.active>span{color:#14171a}
       <div class="field"><label>nota (opcional)</label><input type="text" id="deuda-nota" maxlength="200" placeholder="ej. licencia, medicina..."></div>
       <div class="field"><label>fecha (si no la eliges, es hoy)</label><input type="date" id="deuda-fecha" data-hasta-hoy></div>
       <button class="btn btn-purple" id="deuda-btn" onclick="registrarDeuda()">registrar</button>
+    </div>
     </div>
   </div>
 </div>
@@ -3298,21 +3332,120 @@ const TXT_ELIGE_CUENTA='elige una cuenta';
 function faltaCuenta(id, texto, sinMover) {
   const el=document.getElementById(id); if(!el){ showToast(texto); return; }
   el.classList.add('falta-cuenta'); el.setAttribute('aria-invalid','true');
+  const grp=ctaGrupoDe(el); if(grp){ grp.classList.add('falta-cuenta'); grp.setAttribute('aria-invalid','true'); }
   const cont=el.closest('.field')||el.parentNode;
   let msg=cont.querySelector('.falta-cuenta-txt');
   if(!msg){ msg=document.createElement('div'); msg.className='falta-cuenta-txt'; msg.setAttribute('role','alert'); cont.appendChild(msg); }
   msg.textContent=texto; msg.dataset.para=id;
   if(sinMover) return;   // un cambio que no hizo la persona (el tipo de deuda) marca el selector sin moverle la pantalla ni el foco
-  try { el.scrollIntoView({block:'center', behavior:'smooth'}); } catch(e) {}
-  if(el.tagName==='SELECT') el.focus({preventScroll:true});
+  try { (grp||el).scrollIntoView({block:'center', behavior:'smooth'}); } catch(e) {}
+  if(grp) ctaEnfocar(el.id, true); else if(el.tagName==='SELECT') el.focus({preventScroll:true});
 }
 function quitarFaltaCuenta(id) {
   const el=document.getElementById(id); if(!el||!el.classList.contains('falta-cuenta')) return;
   el.classList.remove('falta-cuenta'); el.removeAttribute('aria-invalid');
+  const grp=ctaGrupoDe(el); if(grp){ grp.classList.remove('falta-cuenta'); grp.removeAttribute('aria-invalid'); }
   const cont=el.closest('.field')||el.parentNode, msg=cont&&cont.querySelector('.falta-cuenta-txt[data-para="'+id+'"]');
   if(msg) msg.remove();
 }
 document.addEventListener('change',e=>{ const el=e.target; if(el&&el.tagName==='SELECT'){ delete el.dataset.cxAntes; if(el.id&&el.value) quitarFaltaCuenta(el.id); } });
+// (28-nov-2026, Marcela: en gasto elegia con botones y en transferir con un menu) TODAS las formas eligen la cuenta con botones, como
+// "Pagado con". En transferir, pagar tarjeta y deudas el <select> sigue siendo la fuente de verdad (lo leen registrar*, txDinero, los
+// repintados y las pruebas con selectOption): queda de 1 px, sin display:none, y los botones lo copian. Un boton escribe select.value y
+// dispara su change; cualquier cambio del select (opciones nuevas, una apagada, un value='' tras guardar) repinta los botones. La opcion
+// vacia ('elige una cuenta') no lleva boton: sin cuenta elegida ningun boton se marca. Las cuentas agregadas (optgroup) van en su propio
+// renglon, como en gasto e ingreso. Teclado: cada grupo es un radiogroup con UNA parada de Tab; flechas, Inicio y Fin eligen.
+const CTA_BOTONES=['transfer-origen','transfer-destino','tarjeta-pago-fuente','tarjeta-rev-pago-fuente','deuda-cuenta'];
+const ctaGrupoDe=el=>el&&el.dataset&&el.dataset.botones?document.getElementById(el.id+'-botones'):null;
+const valorRadio=b=>!b||!b.dataset?null:b.dataset.valor!==undefined?b.dataset.valor:(b.dataset.cuenta!==undefined?b.dataset.cuenta:(b.dataset.cx||''));
+// una parada de Tab: la elegida; sin elegida, la primera que se pueda tocar
+function radiosTabs(grupo) {
+  const bs=[...grupo.querySelectorAll('[role="radio"]')];
+  bs.forEach(b=>{ b.tabIndex=b.getAttribute('aria-checked')==='true'&&!b.disabled?0:-1; });
+  if(!bs.some(b=>b.tabIndex===0)){ const p=bs.find(b=>!b.disabled); if(p) p.tabIndex=0; }   // sin mirar [hidden]: la forma puede estar escondida al pintar
+}
+// marca la elegida (clase active y aria-checked) en un grupo de botones de cuenta
+function marcarRadios(grupo, v) {
+  if(!grupo) return;
+  grupo.querySelectorAll('[role="radio"]').forEach(b=>{ const on=!!v&&valorRadio(b)===v; b.classList.toggle('active',on); b.setAttribute('aria-checked',String(on)); });
+  radiosTabs(grupo);
+}
+// flechas, Inicio y Fin eligen (patron de radio); se brinca lo apagado o escondido
+function radiosTeclado(grupo) {
+  grupo.addEventListener('keydown',ev=>{
+    if(ev.altKey||ev.ctrlKey||ev.metaKey) return;
+    const bs=[...grupo.querySelectorAll('[role="radio"]')].filter(b=>!b.disabled&&!b.closest('[hidden]'));
+    const i=bs.indexOf(ev.target&&ev.target.closest?ev.target.closest('[role="radio"]'):null);
+    if(i<0) return;
+    const a={ArrowRight:i+1,ArrowDown:i+1,ArrowLeft:i-1,ArrowUp:i-1,Home:0,End:bs.length-1}[ev.key];
+    if(a===undefined) return;
+    ev.preventDefault();
+    const sig=bs[(a+bs.length)%bs.length], v=valorRadio(sig);
+    sig.click();
+    const b=[...grupo.querySelectorAll('[role="radio"]')].find(x=>valorRadio(x)===v); if(b) b.focus();
+  });
+}
+['gasto-fuente-grupo','ingreso-destino-grupo'].forEach(id=>{ const g=document.getElementById(id); if(g) radiosTeclado(g); });
+function ctaElegir(sel, v) {
+  if(![...sel.options].some(o=>o.value===v&&!o.disabled)) return;
+  if(sel.value===v){ ctaBotonesPintar(sel); return; }
+  sel.value=v;
+  sel.dispatchEvent(new Event('input',{bubbles:true})); sel.dispatchEvent(new Event('change',{bubbles:true}));
+}
+// lleva el foco a los botones de una cuenta (la elegida o la primera), o al select si esa forma no tiene botones
+function ctaEnfocar(id, sinMover) {
+  const s=document.getElementById(id); if(!s) return;
+  const g=ctaGrupoDe(s); if(!g){ s.focus(); return; }
+  ctaBotonesPintar(s);
+  const b=g.querySelector('[role="radio"][tabindex="0"]'); if(b) b.focus({preventScroll:true});
+  if(!sinMover) try { g.scrollIntoView({block:'center', behavior:'smooth'}); } catch(e) {}
+}
+function ctaBotonesPintar(sel) {
+  const g=ctaGrupoDe(sel); if(!g) return;
+  delete sel.dataset.pintando;
+  const filas=[]; let fila=null;
+  for(const n of sel.children){
+    if(n.tagName==='OPTGROUP'){ const f={x:true,ops:[...n.children].filter(o=>o.tagName==='OPTION')}; filas.push(f); fila=null; continue; }
+    if(!fila){ fila={x:false,ops:[]}; filas.push(fila); }
+    fila.ops.push(n);
+  }
+  const llenas=filas.map(f=>({x:f.x,ops:f.ops.filter(o=>o.value!==''&&!o.hidden)})).filter(f=>f.ops.length);
+  const firma=JSON.stringify(llenas.map(f=>[f.x,f.ops.map(o=>[o.value,o.textContent,o.disabled])]));
+  if(g.dataset.firma!==firma){
+    const dentro=g.contains(document.activeElement), antes=dentro?valorRadio(document.activeElement):null;
+    g.textContent='';
+    llenas.forEach(f=>{
+      const r=document.createElement('div'); r.className='type-toggle'+(f.x?' cta-fila-x':'');
+      f.ops.forEach(o=>{ const b=document.createElement('button'); b.type='button'; b.className='type-opt'; b.setAttribute('role','radio');
+        b.dataset.valor=o.value; b.textContent=o.textContent; b.disabled=o.disabled; r.appendChild(b); });
+      g.appendChild(r);
+    });
+    g.dataset.firma=firma;
+    marcarRadios(g, sel.value);
+    if(dentro){ const b=[...g.querySelectorAll('[role="radio"]')].find(x=>valorRadio(x)===antes&&!x.disabled)||g.querySelector('[role="radio"][tabindex="0"]'); if(b) b.focus({preventScroll:true}); }
+  } else marcarRadios(g, sel.value);
+}
+// repinta una vez por vuelta (pintarListasCuentas vacia y llena el select de un jalon)
+const ctaPintarPronto=sel=>{ if(sel.dataset.pintando) return; sel.dataset.pintando='1'; queueMicrotask(()=>ctaBotonesPintar(sel)); };
+function ctaBotonesMontar(sel) {
+  if(!sel||sel.dataset.botones) return;
+  const field=sel.closest('.field'), lbl=field&&field.querySelector('label');
+  const g=document.createElement('div'); g.id=sel.id+'-botones'; g.className='cta-botones'; g.setAttribute('role','radiogroup');
+  if(lbl){ if(!lbl.id) lbl.id=sel.id+'-lbl'; g.setAttribute('aria-labelledby',lbl.id); }
+  sel.dataset.botones='1'; sel.classList.add('cta-sel'); sel.setAttribute('aria-hidden','true'); sel.tabIndex=-1;
+  if(field) field.classList.add('cta-field');
+  sel.after(g);
+  g.addEventListener('click',ev=>{ const b=ev.target.closest('[role="radio"]'); if(b&&g.contains(b)&&!b.disabled) ctaElegir(sel, b.dataset.valor); });
+  radiosTeclado(g);
+  sel.addEventListener('change',()=>ctaBotonesPintar(sel));
+  new MutationObserver(()=>ctaPintarPronto(sel)).observe(sel,{childList:true,subtree:true,characterData:true,attributes:true,attributeFilter:['disabled','hidden','value','label']});
+  // el codigo pone value='' al guardar y value=<antes> al repintar, sin change: el setter de ESTE select tambien repinta
+  for(const prop of ['value','selectedIndex']){
+    const d=Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype,prop);
+    Object.defineProperty(sel,prop,{configurable:true,get(){ return d.get.call(this); },set(v){ d.set.call(this,v); ctaPintarPronto(this); }});
+  }
+  ctaBotonesPintar(sel);
+}
 function pintarListasCuentas(repinta) {   // repinta: ya hay estado (la primera vez, al cargar el script, aun no existe)
   const reg=id=>REG_CUENTAS.find(c=>c.id===id);
   const etq=(id,donde)=>{ const c=reg(id); return (c.etq&&c.etq[donde])||c.nombre; };
@@ -3335,14 +3468,16 @@ function pintarListasCuentas(repinta) {   // repinta: ya hay estado (la primera 
   select('tarjeta-pago-fuente', ctasVis('pagoTj'), 'pago', {despues:CTA_EXTERNO.pago});
   select('tarjeta-rev-pago-fuente', ctasVis('pagoTjRev'), 'pago', {despues:CTA_EXTERNO.pago});
   select('deuda-cuenta', ctasVis('deudaAlta'), 'deuda', {antes:CTA_EXTERNO.otro});
+  CTA_BOTONES.forEach(id=>ctaBotonesMontar(document.getElementById(id)));
   select('stock-cuenta', ctasVis('stockSel'), 'stock', {despues:CTA_EXTERNO.otro});
   // botones de gasto e ingreso: cada uno lleva su cuenta en data-cuenta (ya no dependen de la posicion)
   const botones=(contId,ids,fn,actual)=>{
     const cont=document.getElementById(contId); if(!cont) return;
     cont.textContent='';
     const sel=ids.includes(actual)?actual:null;   // (17-nov-2026) sin cuenta elegida, ningun boton se marca (antes caia en el primero, efectivo)
-    ids.forEach((id,i)=>{ const b=document.createElement('div'); b.className='type-opt'+(id===sel?' active':'');
-      b.dataset.cuenta=id; b.textContent=etq(id,'boton'); b.addEventListener('click',()=>window[fn](id)); cont.appendChild(b); });
+    ids.forEach((id,i)=>{ const b=document.createElement('button'); b.type='button'; b.setAttribute('role','radio'); b.className='type-opt'+(id===sel?' active':'');
+      b.setAttribute('aria-checked',String(id===sel)); b.dataset.cuenta=id; b.textContent=etq(id,'boton'); b.addEventListener('click',()=>window[fn](id)); cont.appendChild(b); });
+    const grupo=cont.closest('[role="radiogroup"]'); if(grupo) radiosTabs(grupo);
   };
   botones('gasto-fuente-toggle', FUENTES_GASTO.filter(id=>!sinUsoFV.has(id)), 'setFuente', repinta ? state.fuenteGasto : undefined);
   botones('ingreso-destino-toggle', DESTINOS_INGRESO.filter(id=>!sinUsoFV.has(id)), 'setDestinoIngreso', repinta ? state.destinoIngreso : undefined);
@@ -6705,7 +6840,7 @@ function grupoDe(p) {
   if (g && gs.includes(g)) return g;
   return gs.find(x => normTxtG(x) === 'otros') || gs[gs.length - 1];
 }
-const tasaTxt = t => String(t.pct).replace(/\.0+$/, '') + '% ' + (t.per === 'mes' ? 'mensual' : 'anual') + ' desde el ' + parseFechaLocal(t.desde).toLocaleDateString('es-MX', {day: 'numeric', month: 'short', year: 'numeric'});
+const tasaTxt = t => String(t.pct).replace(/\.0+$/, '') + '% ' + (t.per === 'mes' ? 'mensual' : 'anual') + ' desde el ' + diaCorto(t.desde);
 let ajustesPersonaAbierto = null, subDeudaEdit = null, personaGOcupado = false;
 window.abrirAjustesPersona = function(key, ev) { if (ev) ev.stopPropagation(); ajustesPersonaAbierto = ajustesPersonaAbierto === key ? null : key; renderDeudas(); const d = document.getElementById('d-' + key); if (d) d.classList.add('open'); };
 // (18-nov-2026) prestamos, creditos y la tasa de una persona: en Fundview esperan los terminos que los mencionen (armar.mjs --creditos)
@@ -6960,6 +7095,13 @@ function estadoCredito(id) {
   }
   return {c, plan, k, debe: Math.round(debe * 100) / 100, cierre, ajusteViejo, prox: k < plan.n && c.primero ? fechaPagoCredito(c.primero, c.cada, k) : null};
 }
+// (28-nov-2026) los pagos del plan (los primeros n, por fecha) cuyo monto no fue el pactado. Tolerancia: $1 o medio por ciento del pago
+// (redondeos de centavos). Un pago de mas alla del plan ("el pago que faltaba") no entra: ya tiene su propia linea en el cierre
+function pagosDistintos(id, p) {
+  const tol = Math.max(1, p.A * 0.005);
+  return pagosDeCredito(id).slice().sort((a, b) => ((msFechaMov(a.fecha) || 0) - (msFechaMov(b.fecha) || 0)) || String(a.creado || '').localeCompare(String(b.creado || '')))
+    .slice(0, p.n).map((g, i) => ({num: i + 1, dia: diaCorto(g.fecha), dif: c2(nFin(g.monto) - p.A)})).filter(d => Math.abs(d.dif) > tol);
+}
 function deudaCreditos() { return Object.keys(state.creditos || {}).reduce((s, id) => { const e = estadoCredito(id); return s + (e && !e.error ? e.debe : 0); }, 0); }
 let creditoPagando = null, creditoAjustando = null, creditoOcupado = false, creditoIntento = null;   // creditoIntento = {id, firma} del ultimo alta que fallo
 function fuentesCredito() { return susFuentes(); }
@@ -6970,11 +7112,11 @@ function creditoTarjetaHTML(id) {
     + '<button type="button" class="cat-act" onclick="borrarCredito(\'' + k + '\')">quitar</button></div>';
   const p = e.plan, cada = CADA_TXT[c.cada];
   const lineas = [];
-  lineas.push(p.n + ' pagos ' + cada[1] + ' de ' + fmt(p.A));
+  // (28-nov-2026, Marcela: "no te cobran intereses" se repetia en cada prestamo) sin intereses va en la misma linea del plan, sin renglon aparte
+  lineas.push(p.n + ' pagos ' + cada[1] + ' de ' + fmt(p.A) + (p.intereses > 0.005 ? '' : ', sin intereses'));
   if (p.intereses > 0.005)
     lineas.push((c.tipo === 'tienda' ? 'de contado costaba ' : 'debías ') + fmt(p.P) + ' · vas a pagar ' + fmt(p.total) + ': ' + fmt(p.intereses)
       + ' son intereses, el ' + Math.round(p.pctCosto) + '% de lo que ' + (c.tipo === 'tienda' ? 'costaba' : 'debías'));
-  else lineas.push('no te cobran intereses: pagas lo mismo que ' + (c.tipo === 'tienda' ? 'costaba' : 'debías'));
   if (p.r > 1e-9) lineas.push('equivale a ' + (p.r * 100).toFixed(2) + '% ' + cada[2] + ', unos ' + Math.round(p.anualEfectiva) + '% al año contando intereses sobre intereses');
   if (p.difiere) lineas.push('con estos pagos tu tasa real sale de ' + p.anualSimple.toFixed(1) + '% al año, distinta de la del contrato (' + p.tasaContrato + '%): pueden venir seguros o comisiones dentro del pago');
   const deQue = c.tipo === 'tienda' ? 'de lo que ibas a pagar' : 'de lo prestado', cr = e.cierre;
@@ -6983,7 +7125,7 @@ function creditoTarjetaHTML(id) {
     + '. Si ya te lo dieron por pagado, ciérralo como ajustado; si todavía lo debes, anota el pago que falta');
   else if (cr && cr.tipo === 'demas') lineas.push('ya hiciste los ' + p.n + ' pagos y pagaste ' + fmt(-cr.monto) + ' más ' + deQue + '. Si así quedó, ciérralo como ajustado');
   else if (cr && cr.tipo === 'ajustado') {
-    const f = new Date(cr.ajuste.en).toLocaleDateString('es-MX', {day: 'numeric', month: 'short', year: 'numeric'});
+    const f = diaCorto(cr.ajuste.en);
     lineas.push('cerrado el ' + f + ': ' + (cr.monto > 0.005 ? 'quedó ajustado con ' + fmt(cr.monto) + ' que se dieron por pagados' : cr.monto < -0.005 ? 'quedó ajustado; pagaste ' + fmt(-cr.monto) + ' de más' : 'quedó ajustado')
       + (RAZONES_CREDITO[cr.ajuste.razon] && cr.ajuste.razon !== 'otra' ? ' (' + RAZONES_CREDITO[cr.ajuste.razon] + ')' : '') + (cr.ajuste.nota ? ' · ' + cr.ajuste.nota : ''));
   } else lineas.push('ya hiciste los ' + p.n + ' pagos');
@@ -6994,10 +7136,14 @@ function creditoTarjetaHTML(id) {
     const ps = pagosDeCredito(id), pagado = ps.reduce((s, g) => s + g.monto, 0), int = ps.reduce((s, g) => s + partesGasto(g).consumo, 0);
     // (23-nov-2026, Marcela) lo que baja la deuda no pasa de lo prestado: lo de mas se dice aparte ("si debia 2,000, no pudieron bajar 2,300")
     const bajo = Math.max(0, pagado - int), deMas = Math.max(0, c2(bajo - p.P));
-    if (pagado > 0.005) lineas.push('de lo que llevas pagado (' + fmt(pagado) + '), ' + fmt(int) + ' fueron intereses y ' + fmt(bajo - deMas) + ' bajaron lo que debías'
+    if (pagado > 0.005) lineas.push('de lo que llevas pagado (' + fmt(pagado) + '), ' + (int > 0.005 ? fmt(int) + ' fueron intereses y ' : '') + fmt(bajo - deMas) + ' bajaron lo que debías'
       + (deMas > 0.005 ? '; ' + fmt(deMas) + ' fueron de más' : ''));
   }
-  if (e.prox) lineas.push('el siguiente pago toca el ' + parseFechaLocal(e.prox).toLocaleDateString('es-MX', {day: 'numeric', month: 'short', year: 'numeric'}));
+  // (28-nov-2026, Marcela: "no dice en qué meses pagué menos") los pagos que no fueron lo pactado, en una linea: cual, de que dia y cuanto
+  const difs = pagosDistintos(id, p);
+  if (difs.length) lineas.push('pagos distintos a los ' + fmt(p.A) + ' pactados: ' + difs.slice(0, 3).map(d => 'el ' + d.num + (d.dia ? ' (' + d.dia + ')' : '') + ', '
+    + (d.dif < 0 ? fmt(-d.dif) + ' menos' : fmt(d.dif) + ' de más')).join('; ') + (difs.length > 3 ? '; y ' + (difs.length - 3) + ' más' : ''));
+  if (e.prox) lineas.push('el siguiente pago toca el ' + diaCorto(e.prox));
   let pagar = '';
   // (23-nov-2026) terminados los pagos: cerrar como ajustado (falta o de mas), o deshacer el ajuste
   const ajusteHTML = () => {
@@ -7039,7 +7185,8 @@ function creditoTarjetaHTML(id) {
   return '<div class="g-credito" id="cr-' + k + '"><div class="item-row"><div><div class="item-cat">' + nom + '</div><div class="item-meta g-cr-tipo">' + TIPOS_CREDITO[c.tipo] + '</div></div>'
     + '<span class="debes-amt' + (e.debe > 0.005 ? '' : ' cero') + '">' + fmt(e.debe) + '</span></div>'
     + lineas.map(t => '<div class="item-meta g-cr-linea">' + escapeHtml(t) + '</div>').join('') + pagar
-    + '<button type="button" class="ticket-gal g-cr-quitar" onclick="borrarCredito(\'' + k + '\')">quitar este crédito</button></div>';
+    // (28-nov-2026, Marcela: "quitar este crédito" quedaba pegado a "quedó ajustado") quitar va aparte, abajo y separado por una linea
+    + '<div class="g-cr-pie"><button type="button" class="ticket-gal g-cr-quitar" onclick="borrarCredito(\'' + k + '\')">quitar este crédito</button></div></div>';
 }
 function renderCreditos() {
   const el = document.getElementById('creditos-lista'); if (!el) return;
@@ -7951,6 +8098,22 @@ function suscribirEnVivo() {
     try { aplica(docs); pinta(); if(!snap.metadata.fromCache) setSyncDot('ok'); } catch(e) { console.error('snapshot rendimientos',e); }
   }, err=>{ console.error('onSnapshot rendimientos',err); setSyncDot('err'); });
   unsubs.push(uR);
+  // (28-nov-2026) el retiro y las metas de los fondos, en vivo: un aparato abierto desde antes ve lo que cambio el otro (antes su pantalla
+  // seguia vieja hasta recargar). SOLO se lee: nada de lo que llega escribe (ni el retiro, ni la meta del fondo, ni el tipo de cambio).
+  // Del perfil solo se toma el retiro; los demas campos siguen como siempre (se leen al cargar). Lo de la copia local no se aplica
+  // (code-reviewer) includeMetadataChanges: un cambio remoto que llego junto con una escritura local pendiente se ve cuando el servidor la confirma
+  unsubs.push(onSnapshot(doc(db,NS,'perfil'), {includeMetadataChanges:true}, snap=>{
+    if(!datosCargados||snap.metadata.fromCache||snap.metadata.hasPendingWrites) return;
+    try { aplicarRetiroRemoto(snap.exists()?((snap.data()||{}).retiro):null); } catch(e) { console.error('snapshot retiro',e); }
+  }, err=>{ console.error('onSnapshot perfil',err); }));
+  unsubs.push(onSnapshot(doc(db,NS,'metasFondos'), {includeMetadataChanges:true}, snap=>{
+    if(!datosCargados||snap.metadata.fromCache||snap.metadata.hasPendingWrites) return;
+    try { const n=saneaMetasFondos(snap.exists()?snap.data():null);
+      if(JSON.stringify(n)===JSON.stringify(state.metasFondos||{})) return;
+      // la forma de la meta del fondo abierta no se repinta (se borraria lo que la persona escribe): se ve al cerrarla o al cambiar de fondo
+      const fm=document.getElementById('fondo-meta-form');
+      state.metasFondos=n; refrescar(renderApartados, pintarRetiro, ...(fm&&!fm.hidden?[]:[renderFondo])); } catch(e) { console.error('snapshot metasFondos',e); }
+  }, err=>{ console.error('onSnapshot metasFondos',err); }));
   // (2-nov-2026) Fundview: si la cuenta se borra desde otro aparato, este deja de escribir y se vuelve a abrir (ahi lo
   // retoma puedeEntrar). Es el aviso amable: lo que de verdad impide recrear datos son las reglas. Un error de este
   // listener no le dice nada a la persona: las reglas y la siguiente carga deciden
@@ -9801,6 +9964,34 @@ window.susQuitar = async function(btn) {
   else window.addEventListener('resize', medir);
   new MutationObserver(medir).observe(t, { subtree: true, attributes: true, attributeFilter: ['hidden'] });
 })();
+// (28-nov-2026, auditoria por aparato) Movimientos en la compu: la lista mide el doble que la forma y abajo de la forma quedaba
+// un hueco de ~1400 px. La forma se queda a la vista (sticky, debajo de nav y .tabs) SOLO si cabe en la pantalla: con la forma
+// de tarjeta abierta mide mas que la pantalla y pegada su parte de abajo no se alcanzaria nunca. "Cabe" admite que solo el
+// titulo ("registrar movimiento") quede debajo de las barras: en la laptop de Beto (1536 x ~730) la forma de gasto mide 653 y
+// con las barras (99) le faltan ~22 px; pegada al borde de abajo, todo lo que se toca (gasto/ingreso, campos, registrar) queda a
+// la vista. Se vuelve a medir cuando cambia el alto de la forma, de la lista o de las pestañas, y al cambiar la ventana.
+(function pegarFormaMov(){
+  const sec = document.getElementById('mov-reg-sec'); if (!sec) return;
+  const grid = sec.parentElement, nav = document.querySelector('nav'), tabs = document.querySelector('.tabs');
+  const titulo = sec.querySelector('.section-title');
+  let pend = 0;
+  const medir = () => {
+    pend = 0;
+    const cols = getComputedStyle(grid).gridTemplateColumns;
+    const dos = !!cols && cols !== 'none' && cols.trim().split(/\s+/).length > 1;
+    const barras = (nav ? nav.offsetHeight : 0) + (tabs ? tabs.offsetHeight : 0);
+    const alto = sec.offsetHeight;
+    const tol = titulo && titulo.offsetParent ? titulo.offsetHeight + (parseFloat(getComputedStyle(titulo).marginBottom) || 0) : 0;
+    const arriba = Math.min(barras + 12, window.innerHeight - alto);   // con aire si cabe entera; si no, el borde de abajo al ras
+    const pega = dos && alto > 0 && arriba >= barras - tol && grid.offsetHeight > alto + 1;
+    if (pega) sec.style.setProperty('--pega-arriba', arriba + 'px');
+    sec.classList.toggle('pegada', pega);
+  };
+  const pedir = () => { if (!pend) pend = requestAnimationFrame(medir); };
+  if (typeof ResizeObserver === 'function') { const ro = new ResizeObserver(pedir); ro.observe(sec); ro.observe(grid); if (tabs) ro.observe(tabs); }
+  window.addEventListener('resize', pedir);
+  medir();
+})();
 // cada pestaña recuerda hasta dónde bajaste (solo en esta sesión); `arriba` la abre desde el principio
 const scrollPorPagina = {};
 // paginas sin pestaña propia: se marca la pestaña desde donde se abren
@@ -10123,7 +10314,7 @@ function pintarMovsCuenta(key) {
     });
     items.sort((a,b)=>b.t-a.t);
     const filas=items.slice(0,15).map(i=>
-      `<div class="detail-row"><span class="detail-label">${escapeHtml(i.txt)} · ${new Date(i.t).toLocaleDateString('es-MX',{day:'numeric',month:'short'})}</span><span class="detail-val ${i.monto<0?'neg':'pos'}">${i.monto<0?'−':'+'}${fmt(Math.abs(i.monto))}</span></div>`
+      `<div class="detail-row"><span class="detail-label">${escapeHtml(i.txt)} · ${diaCorto(new Date(i.t))}</span><span class="detail-val ${i.monto<0?'neg':'pos'}">${i.monto<0?'−':'+'}${fmt(Math.abs(i.monto))}</span></div>`
     ).join('');
     cont.innerHTML=`<div class="detail-row" style="margin-top:6px"><span class="detail-label" style="font-weight:600">último mes (gastos, ingresos, transferencias y ajustes)</span></div>`+
       (filas||'<div class="detail-row"><span class="detail-label">sin movimientos en el último mes</span></div>');
@@ -10172,10 +10363,8 @@ window.setMovTipo = t => {
 };
 // (20-oct-2026) las cuentas en otra moneda tienen su propia fila de botones (data-cx: NO data-cta, que las copias
 // con cuentas configurables usan para esconder lo que no es una de sus cuentas fijas): se marca la elegida en las dos
-window.setFuente = f => { state.fuenteGasto=f; if(f) quitarFaltaCuenta('gasto-fuente-toggle'); document.querySelectorAll('#gasto-fuente-toggle .type-opt').forEach(el=>el.classList.toggle('active',el.dataset.cuenta===f));
-  document.querySelectorAll('#gasto-fuente-x .type-opt').forEach(el=>el.classList.toggle('active',el.dataset.cx===f)); pintarAyudaMontoX('gasto'); window.pintarMesesGasto(); };
-window.setDestinoIngreso = f => { state.destinoIngreso=f; if(f) quitarFaltaCuenta('ingreso-destino-toggle'); document.querySelectorAll('#ingreso-destino-toggle .type-opt').forEach(el=>el.classList.toggle('active',el.dataset.cuenta===f));
-  document.querySelectorAll('#ingreso-destino-x .type-opt').forEach(el=>el.classList.toggle('active',el.dataset.cx===f)); pintarAyudaMontoX('ingreso'); };
+window.setFuente = f => { state.fuenteGasto=f; if(f) quitarFaltaCuenta('gasto-fuente-toggle'); marcarRadios(document.getElementById('gasto-fuente-grupo'), f); pintarAyudaMontoX('gasto'); window.pintarMesesGasto(); };
+window.setDestinoIngreso = f => { state.destinoIngreso=f; if(f) quitarFaltaCuenta('ingreso-destino-toggle'); marcarRadios(document.getElementById('ingreso-destino-grupo'), f); pintarAyudaMontoX('ingreso'); };
 window.setTipoDeuda = t => { state.tipoDeuda=t; ['cargo','pago','debo','pague'].forEach(id=>document.getElementById('tipo-'+id).classList.toggle('active',id===t)); ajustarCuentasDeuda(); };
 // (16-oct-2026) una tarjeta de credito solo sirve cuando el dinero SALE (le presto, le pago): en
 // "me pagaron" / "yo debo" el dinero entra y una tarjeta no recibe dinero. Se apagan esas opciones
@@ -10543,7 +10732,7 @@ window.pagarTotal=k=>{
   const i=document.getElementById(c.monto); if(!i) return;
   i.value=d.toFixed(2);
   i.dispatchEvent(new Event('input',{bubbles:true}));
-  const f=document.getElementById(c.fuente); if(f) f.focus();
+  ctaEnfocar(c.fuente);   // (28-nov-2026) a los botones de cuenta (el select ya no se ve)
 };
 function render() {
   try { fijarDeudasTj(); pintarMesesTarjeta(); } catch(e) { console.error('meses',e); }   // (19-nov-2026) una mensualidad que cae con la app abierta
@@ -11623,11 +11812,12 @@ const cuentasXActivas = () => Object.entries(state.cuentasX || {}).filter(([, x]
 // ── formularios: botones de cuenta en otra moneda junto a los de siempre ──
 function pintarFuentesX() {
   const activas = cuentasXActivas();
-  const boton = (id, x, fn, actual) => `<div class="type-opt${actual === id ? ' active' : ''}" data-cx="${id}" onclick="${fn}('${id}')">${escapeHtml(x.nombre)}${x.moneda === 'MXN' ? '' : ' · ' + x.moneda}</div>`;
+  const boton = (id, x, fn, actual) => `<button type="button" role="radio" aria-checked="${actual === id}" class="type-opt${actual === id ? ' active' : ''}" data-cx="${id}" onclick="${fn}('${id}')">${escapeHtml(x.nombre)}${x.moneda === 'MXN' ? '' : ' · ' + x.moneda}</button>`;
   [['gasto-fuente-x', 'setFuente', state.fuenteGasto], ['ingreso-destino-x', 'setDestinoIngreso', state.destinoIngreso]].forEach(([el, fn, actual]) => {
     const c = document.getElementById(el); if (!c) return;
     c.innerHTML = activas.map(([id, x]) => boton(id, x, fn, actual)).join('');
     c.hidden = !activas.length;
+    const grupo = c.closest('[role="radiogroup"]'); if (grupo) radiosTabs(grupo);
   });
   // si la cuenta elegida se apago o desaparecio (en este u otro aparato), queda sin cuenta: la persona elige otra (17-nov: ya no cae a efectivo)
   if (esIdX(state.fuenteGasto) && !activas.some(([id]) => id === state.fuenteGasto)) window.setFuente('');
@@ -13283,7 +13473,7 @@ function movCoincide(m) {
     // en privado no se busca por monto: teclear cifras y ver que renglon sale descubriria el importe
     const q=movNorm(f.q), b=modoPrivado?null:movMontoBuscado(f.q);
     // un pago de tarjeta se encuentra tambien por su titulo ("pago de tarjeta NU")
-    const enTexto=movNorm(it.nota).includes(q)||(!neutro?movNorm(catFV(it.cat)).includes(q):movNorm(tituloNeutro(m)).includes(q));
+    const enTexto=movNorm(it.nota).includes(q)||(!neutro?movNorm(catFV(it.cat)).includes(q)||movNorm(tituloCreditoMov(m)||'').includes(q):movNorm(tituloNeutro(m)).includes(q));
     if(!enTexto&&!(b&&movMontoCoincide(it,b))) return false;
   }
   return true;
@@ -13342,7 +13532,15 @@ function pintarFiltrosMov() {
 }
 const TXT_TODAS_CUENTAS='todas', TXT_TODAS_CATS='todas', TXT_CTA_RARA='cuentas que no reconozco', TXT_MAS_FILTROS='más filtros';
 // encabezado de cada dia: "hoy", "ayer" o "lunes 16 nov", con lo que se gasto y lo que entro ese dia (de lo filtrado)
+// (28-nov-2026, Marcela: "fechas en cinco formas") la app ensena las fechas de DOS formas, nada mas:
+//   corta (diaCorto):      "15 nov", y "30 jun 2027" si no es de este año. Para cualquier fecha dentro de un texto.
+//   del dia (movDiaTitulo): "hoy", "ayer" o "domingo 15 nov". Solo para el titulo de un dia (Movimientos, el dia del calendario,
+//                           el periodo "dia" del Resumen).
+// Lo que se guarda no cambia (AAAA-MM-DD). Una fecha nueva en pantalla va por una de las dos; los meses ("noviembre 2026") y los
+// ejes de las graficas son otra cosa y no entran aqui.
+function claveDia(x){ const d=x instanceof Date?x:new Date(x); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
 function movDiaTitulo(k) {
+  if(typeof k==='number'||k instanceof Date) k=claveDia(k);
   if(k===hoyLocal()) return 'hoy';
   const d=parseFechaLocal(k), ay=new Date(); ay.setHours(0,0,0,0); ay.setDate(ay.getDate()-1);
   if(d.getTime()===ay.getTime()) return 'ayer';
@@ -13391,6 +13589,8 @@ const opcionesRazon=(efectivo)=>{ const M=t=>CFG.multi?t.charAt(0).toUpperCase()
 const CLASE_TXT={cuenta:'una cuenta',bolsa:'una operación de bolsa',gasto:'un gasto',ingreso:'un ingreso',transferencia:'una transferencia',tarjeta:'un movimiento de tarjeta',meses:'una compra a meses',credito:'un préstamo',persona:'un movimiento con',movimiento:'un movimiento'};
 // "12 nov" (con año si no es este): para decir de que dia era lo borrado o editado
 function diaCorto(f) {
+  if(f instanceof Date) f=f.getTime();
+  if(typeof f==='number'){ if(!Number.isFinite(f)) return ''; f=claveDia(f); }
   if(typeof f!=='string'||!f) return '';
   // (24-nov-2026, Marcela: un pago con fecha del 24-oct decia "era del 23 oct") un movimiento con fecha elegida se guarda como medianoche
   // UTC de ese dia (AAAA-MM-DDT00:00:00.000Z): se lee como dia local con msFechaMov, igual que la lista de movimientos
@@ -13485,9 +13685,13 @@ function renglonNeutro(m) {
     return `<div class="item-row mov-row mov-neutro mov-cambio" data-cambio="${escapeHtml(c.t)}"><div><div class="item-cat">${escapeHtml(tituloCambio(c))}</div><div class="item-meta">${meta}</div></div><div class="mov-amt item-amt-pago">${montoCambio(c)}</div><div class="mov-acc mov-acc-vacia" aria-hidden="true"></div></div>`;
   }
   const it=m.it, ef=m.tipo==='persona'?DEUDA_TIPOS[it.tipo]:null;
-  const cta=ef?(it.cuenta==='externo'?'sin mover tus cuentas':(ef.cuenta<0?'de ':'a ')+(nombreCuenta(it.cuenta)||'otra cuenta')):'';
+  // (28-nov-2026, Marcela: "¿le prestaste a Ana $500 sale o entra?") con una cuenta tuya se dice hacia donde fue el dinero ("salió de",
+  // "entró a") y el monto lleva su signo, en gris: no es gasto ni ingreso y no entra a ningun total. Con una tarjeta subio su deuda (sin signo)
+  const tjP=ef&&DEUDA_TARJETAS.includes(it.cuenta);
+  const sgP=ef&&!tjP&&it.cuenta&&it.cuenta!=='externo'?(ef.cuenta<0?'−':'+'):'';
+  const cta=ef?(it.cuenta==='externo'?'sin mover tus cuentas':tjP?'con '+(CUENTAS[it.cuenta]||'tu tarjeta')+', subió lo que le debes':(ef.cuenta<0?'salió de ':'entró a ')+(nombreCuenta(it.cuenta)||'otra cuenta')):'';
   const meta=[m.tipo==='persona'&&it.subcat?it.subcat:'',it.nota||'',cta,m.tipo==='transf'?'entre tus cuentas, no cuenta como gasto':'no cuenta como gasto ni ingreso'].filter(Boolean).map(escapeHtml).join(' · ');
-  const monto=m.tipo==='transf'?textoMontoTransfer(it):fmt(it.monto);
+  const monto=m.tipo==='transf'?textoMontoTransfer(it):sgP+fmt(it.monto);
   // (23-nov-2026) la transferencia de una compra o venta de acciones lleva "deshacer" (deshacerOpStock decide si se puede)
   const delOp=m.tipo==='transf'&&typeof it.opId==='string'&&/^[A-Za-z0-9_-]{1,64}$/.test(it.opId)?`<button type="button" class="del-btn del-x" aria-label="deshacer esta operación de bolsa" title="deshacer" onclick="deshacerOpStock('${it.opId}')">${ICONO_BORRAR}</button>`:'';
   return `<div class="item-row mov-row mov-neutro"><div><div class="item-cat">${escapeHtml(tituloNeutro(m))}</div><div class="item-meta">${meta}</div></div><div class="mov-amt item-amt-pago">${monto}</div>${delOp?`<div class="mov-acc">${delOp}</div>`:'<div class="mov-acc mov-acc-vacia" aria-hidden="true"></div>'}</div>`;
@@ -13556,6 +13760,12 @@ window.deshacerMovTarjeta = async function(k, movId) {
   refrescar(render,renderTransferencias,renderMovimientos,renderDeudas);
   showToast(esPago?'pago deshecho · '+nomTj+' vuelve a '+fmt(k==='tarjeta'?state.tarjetaDeuda:state.revTdcDeuda):'cargo quitado · '+nomTj+' queda en '+fmt(k==='tarjeta'?state.tarjetaDeuda:state.revTdcDeuda));
 };
+// (28-nov-2026) el titulo del pago de un prestamo o credito: "pago a <prestamo>" (null si no es el pago de un prestamo que siga anotado)
+function tituloCreditoMov(m) {
+  const it=m&&m.it; if(!it||m.tipo!=='gasto'||typeof it.credito!=='string'||!it.credito) return null;
+  const c=state.creditos&&Object.prototype.hasOwnProperty.call(state.creditos,it.credito)?state.creditos[it.credito]:null;
+  return c&&typeof c.nombre==='string'&&c.nombre?'pago a '+c.nombre:null;
+}
 // un gasto o ingreso en su renglon, con sus botones de editar y borrar: la lista y el dia del calendario pintan lo mismo
 function renglonMov(m) {
   const it=m.it;
@@ -13572,9 +13782,15 @@ function renglonMov(m) {
   const marcaMs=it.meses&&esGasto?(ms?' · a '+ms.n+' meses':' · a meses'):'';
   // (22-nov-2026) el pago de un prestamo dice que parte es gasto (interes) y que parte bajo lo que debes
   const pg=esGasto&&it.credito?partesGasto(it):null;
-  const marcaCr=pg&&pg.abono>0.005?' · '+fmt(pg.consumo)+' de interés (gasto) y '+fmt(pg.abono)+' a lo que debías':'';
-  const meta=[it.nota?escapeHtml(it.nota):'',cuenta].filter(Boolean).join(' · ')+marcaMs+marcaCr+marca;
-  return`<div class="item-row mov-row"><div><div class="item-cat">${escapeHtml(catFV(it.cat))}${it.sub?'<span class="mov-sub"> · '+escapeHtml(String(it.sub))+'</span>':''}</div><div class="item-meta">${meta}</div></div><div class="mov-amt ${esGasto?'item-amt-neg':'item-amt-pos'}">${esGasto?'−':'+'}${fmtMov(it)}</div><div class="mov-acc">${edit}${del}</div></div>`;
+  // (28-nov-2026, Marcela) sin jerga: lo que bajo la deuda y, solo si hubo, lo que fue interes
+  const marcaCr=pg&&pg.abono>0.005?' · '+(pg.consumo>0.005?fmt(pg.consumo)+' de interés y ':'')+fmt(pg.abono)+' bajaron lo que debes':'';
+  // (28-nov-2026, Marcela: "se titula Otros, no con el préstamo") el pago de un prestamo se titula con su prestamo y la categoria baja a la
+  // linea de abajo. Si el prestamo ya no esta (se quito), se queda la categoria como antes
+  const crMov=tituloCreditoMov(m);
+  const catTxt=crMov?escapeHtml(catFV(it.cat))+(it.sub?' · '+escapeHtml(String(it.sub)):'')
+    :escapeHtml(catFV(it.cat))+(it.sub?'<span class="mov-sub"> · '+escapeHtml(String(it.sub))+'</span>':'');
+  const meta=[it.nota?escapeHtml(it.nota):'',crMov?catTxt:'',cuenta].filter(Boolean).join(' · ')+marcaMs+marcaCr+marca;
+  return`<div class="item-row mov-row"><div><div class="item-cat">${crMov?escapeHtml(crMov):catTxt}</div><div class="item-meta">${meta}</div></div><div class="mov-amt ${esGasto?'item-amt-neg':'item-amt-pos'}">${esGasto?'−':'+'}${fmtMov(it)}</div><div class="mov-acc">${edit}${del}</div></div>`;
 }
 function renderMovimientos() {
   const c=document.getElementById('movimientos-historial');
@@ -13690,7 +13906,11 @@ function calAgenda(y,mes0) {
   // (20-nov-2026, tanda 1, Marcela) el pago de un prestamo o credito sale en su dia, como una suscripcion. Solo los que faltan:
   // el pago i toca en fechaPagoCredito(primero,cada,i); los ya hechos (e.k) no salen. Uno que ya paso sin registrar es 'pendiente'
   Object.keys(state.creditos||{}).forEach(id=>{
-    const e=estadoCredito(id); if(!e||e.error||!e.c.primero||e.k>=e.plan.n) return;
+    const e=estadoCredito(id);
+    // (28-nov-2026, Marcela) pagos completos pero con lo que falta (cierre 'falta'): sale HOY, en el mes en curso, como recordatorio. No suma a
+    // "por venir" ni a los pagos sin registrar: no hay un pago pactado ni fecha, y puede cerrarse como ajustado sin que salga dinero
+    if(e&&!e.error&&e.k>=e.plan.n&&e.cierre&&e.cierre.tipo==='falta'&&mesKey===mesHoy){ poner(hoy,{tipo:'cierre',id,nombre:e.c.nombre,monto:e.cierre.monto,estado:'pendiente'}); return; }
+    if(!e||e.error||!e.c.primero||e.k>=e.plan.n) return;
     let atras=null;
     for(let i=e.k;i<e.plan.n;i++){
       const k=fechaPagoCredito(e.c.primero,e.c.cada,i); if(!k) break;
@@ -13712,6 +13932,8 @@ function calRenglonAgenda(x,k) {
   if(x.tipo==='corte') return '<div class="item-row cal-ag"><div><div class="item-cat cal-ag-corte">corte de '+escapeHtml(x.nombre)+'</div>'
     +'<div class="item-meta cal-ag-meta">aquí cierra tu estado de cuenta, aún no pagas · '+(x.deuda!==null?'hoy debes '+fmt(x.deuda)+' · ':'')
     +(x.mesesN?'entran '+fmt(x.meses)+' de '+(x.mesesN>1?x.mesesN+' compras':'tu compra')+' a meses · ':'')+escapeHtml(f)+'</div></div></div>';
+  if(x.tipo==='cierre') return '<div class="item-row cal-ag cal-ag-cierre"><div><div class="item-cat">'+escapeHtml(x.nombre)+'</div>'
+    +'<div class="item-meta cal-ag-meta">te falta cerrar este préstamo: ya hiciste todos los pagos y según lo que anotaste debes '+fmt(x.monto)+'. Anota el pago que falta o ciérralo como ajustado en Deudas</div></div></div>';
   if(x.tipo==='credito') return '<div class="item-row cal-ag"><div><div class="item-cat">'+escapeHtml(x.nombre)+'</div>'
     +'<div class="item-meta cal-ag-meta">'+(x.atrasado?'se te pasó el pago '+x.num+' de '+x.n+' (tocaba el '+escapeHtml(parseFechaLocal(x.atrasado).toLocaleDateString('es-MX',{day:'numeric',month:'short'}))+')'+(x.mas>0?' y '+x.mas+' más'+' después':'')+', ¿ya lo hiciste? regístralo en Deudas':x.estado==='pendiente'?(k===hoyLocal()?'te toca hoy':'te tocaba')+' el pago '+x.num+' de '+x.n+', ¿ya lo hiciste? regístralo en Deudas':'pago '+x.num+' de '+x.n+' de tu préstamo')+' · '+escapeHtml(f)+'</div></div>'
     +'<div class="cal-ag-m">'+fmt(x.monto)+'</div></div>';
@@ -13731,7 +13953,7 @@ function calEtiquetaDia(k,gastado,esMax,agenda,entro) {
   if(gastado>0) p.push('gastaste '+fmt(gastado));
   if(entro>0) p.push('entró '+fmt(entro));
   if(esMax) p.push('tu día de más gasto del mes');
-  agenda.forEach(x=>{ if(x.tipo==='corte') p.push('corte de '+x.nombre); else if(x.tipo==='credito') p.push('pago de '+x.nombre+' '+fmt(x.monto)+(x.estado==='pendiente'?' sin registrar':'')); else if(x.estado!=='pagada') p.push(x.s.nombre+' '+fmt(x.monto)+(x.estado==='pendiente'?' sin registrar':'')); });
+  agenda.forEach(x=>{ if(x.tipo==='corte') p.push('corte de '+x.nombre); else if(x.tipo==='credito') p.push('pago de '+x.nombre+' '+fmt(x.monto)+(x.estado==='pendiente'?' sin registrar':'')); else if(x.tipo==='cierre') p.push('te falta cerrar '+x.nombre); else if(x.estado!=='pagada') p.push(x.s.nombre+' '+fmt(x.monto)+(x.estado==='pendiente'?' sin registrar':'')); });
   return p.join(', ');
 }
 function renderCalendario() {
@@ -13847,7 +14069,7 @@ function renderCalendario() {
     const ag=agenda[k]||[], g=porDia[k]||0, iD=porDiaI[k]||0;
     // (24-nov-2026, Marcela: el dia de su quincena decia "gastaste $219.00" y no lo que entro) el encabezado del dia dice las dos cosas
     const resD=[g>0&&verGastos?'gastaste '+fmt(g)+(!modoPrivado&&esMaxDia(g)?', tu día de más gasto del mes':''):'', iD>0&&verIngresos?'entró '+fmt(iD):''].filter(Boolean).join(' · ');
-    det.innerHTML='<div class="cal-det-tit">'+escapeHtml(parseFechaLocal(k).toLocaleDateString('es-MX',{weekday:'long',day:'numeric',month:'long'}))+'</div>'
+    det.innerHTML='<div class="cal-det-tit">'+escapeHtml(movDiaTitulo(k))+'</div>'
       +(resD?'<div class="cal-det-res">'+resD+'</div>':'')
       +movs.map(m=>m.tipo==='pago'?renglonPagoTarjeta(m):renglonMov(m)).join('')
       +(verGastos?ag:[]).map(x=>calRenglonAgenda(x,k)).join('')
@@ -13861,7 +14083,7 @@ function renderCalendario() {
   } else {
     const mayores=!modoPrivado&&verGastos?Object.keys(porDia).filter(k=>esMaxDia(porDia[k])).sort():[];
     if(!verGastos){ det.innerHTML='<div class="cal-nota">toca un día para ver lo que entró</div>'; return; }   // (QA) "solo ingresos" no habla de gastos
-    det.innerHTML=(mayores.length?'<div class="cal-det-tit">tu día de más gasto: '+escapeHtml(mayores.map(k=>parseFechaLocal(k).toLocaleDateString('es-MX',{weekday:'long',day:'numeric'})).join(' y '))+'</div><div class="cal-det-res">'+fmt(maxG)+'</div>':'')
+    det.innerHTML=(mayores.length?'<div class="cal-det-tit">tu día de más gasto: '+escapeHtml(mayores.map(k=>movDiaTitulo(k)).join(' y '))+'</div><div class="cal-det-res">'+fmt(maxG)+'</div>':'')
       +(vals.length?'<div class="cal-nota">toca un día para ver sus movimientos</div>':'<div class="empty-state">sin gastos este mes</div>');
   }
 }
@@ -14051,7 +14273,7 @@ function textoMovido(fecha) {
     const {start,end}=rangoPeriodo(movPeriodo,movOffset);
     if(t>=start.getTime()&&t<end.getTime()) return '';
     const dia=movPeriodo==='dia'||movPeriodo==='semana';
-    const d=fmtFechaMov(fecha, dia?{day:'numeric',month:'long',year:'numeric'}:{month:'long',year:'numeric'});
+    const d=dia?diaCorto(fecha):fmtFechaMov(fecha,{month:'long',year:'numeric'});
     return ': lo moviste a '+(dia?d:d.replace(' de ',' '));
   }catch(e){ return ''; }
 }
@@ -14540,7 +14762,7 @@ function renderDeudas() {
   const tarjeta=([key,p])=>{
     const s=sal[key], isPos=s>=0, it=interesDe(p), t=saneaTasa(p.tasa);
     const movs=p.movimientos.slice().sort((a,b)=>(String(b.fecha||'')+'|'+String(b.creado||'')).localeCompare(String(a.fecha||'')+'|'+String(a.creado||''))).map(m=>{
-      const fecha=fmtFechaMov(m.fecha,{day:'numeric',month:'short',year:'numeric'});
+      const fecha=diaCorto(m.fecha);
       const isNeg=(DEUDA_TIPOS[m.tipo]||{deuda:-1}).deuda<0;
       // movimientos nuevos traen cuenta; los viejos no la tienen (dato legado, se distingue de 'externo')
       let cuentaTxt='';
@@ -14563,7 +14785,9 @@ function renderDeudas() {
         ?((it.total>=0?'te debe ':'le debes ')+fmt(Math.abs(it.capital))+' de lo prestado y '+fmt(Math.abs(it.interes))+' de interés')
         :'ya está al corriente')+' · '+tasaTxt(t)+(it.interesPagado>0.005?' · de interés ya se pagó '+fmt(it.interesPagado):'')+'</div>':'';
     const aj=ajustesPersonaAbierto===key?ajustesPersonaHTML(key,p):'';
-    return`<div class="deuda-person"><div class="deuda-header" role="button" tabindex="0" onclick="toggleDeuda('d-${key}')"><div><div class="deuda-name">${escapeHtml(p.nombre)}</div><div class="deuda-sub">${isPos?'te debe':'le debes'}${t?' · con interés':''}</div></div><div class="deuda-total ${isPos?'pos':'neg'}">${fmt(Math.abs(s))}</div></div><div class="deuda-detail" id="d-${key}">${intTxt}<button type="button" class="ticket-gal g-ajustes-btn" aria-expanded="${ajustesPersonaAbierto===key}" onclick="abrirAjustesPersona('${key}',event)">${CON_CREDITOS?'grupo e interés':'grupo'}</button>${aj}${excelPanelHTML(key)}${movs||'<div class="empty-state" style="padding:12px 0">sin movimientos</div>'}<button type="button" class="ticket-gal g-cr-quitar g-quitar-p" onclick="quitarPersona('${key}',this)">quitar a esta persona de tus deudas</button></div></div>`;
+    // (28-nov-2026, Marcela: "Luis te debe $0.00" ocupaba una tarjeta entera) en cero: renglon compacto, "están a mano", monto en gris
+    const cero=Math.abs(s)<0.005;
+    return`<div class="deuda-person${cero?' deuda-cero':''}"><div class="deuda-header" role="button" tabindex="0" onclick="toggleDeuda('d-${key}')"><div><div class="deuda-name">${escapeHtml(p.nombre)}</div><div class="deuda-sub">${cero?'están a mano':isPos?'te debe':'le debes'}${t?' · con interés':''}</div></div><div class="deuda-total ${cero?'cero':isPos?'pos':'neg'}">${fmt(Math.abs(s))}</div></div><div class="deuda-detail" id="d-${key}">${intTxt}<button type="button" class="ticket-gal g-ajustes-btn" aria-expanded="${ajustesPersonaAbierto===key}" onclick="abrirAjustesPersona('${key}',event)">${CON_CREDITOS?'grupo e interés':'grupo'}</button>${aj}${excelPanelHTML(key)}${movs||'<div class="empty-state" style="padding:12px 0">sin movimientos</div>'}<button type="button" class="ticket-gal g-cr-quitar g-quitar-p" onclick="quitarPersona('${key}',this)">quitar a esta persona de tus deudas</button></div></div>`;
   };
   // (18-nov-2026) por grupo, en el orden de la lista; un solo grupo en uso no lleva encabezado
   const porGrupo=new Map(); state.clasif.gruposPersona.forEach(g=>porGrupo.set(g,[]));
@@ -15394,7 +15618,7 @@ window.setBolsaTipo=t=>{ bolsaTipo=t==='barras'?'barras':'lineas'; guardarBolsaS
 window.setBolsaGrano=g=>{ if(!GRANOS_BOLSA.some(x=>x[0]===g)) return; bolsaGrano=g; guardarBolsaSel(); refrescar(renderPeriodoBolsa); };
 // (5-nov-2026) la grafica de la tarjeta usa el dibujo de las del resumen: curva, relleno, rejilla y el dato al tocar (initChartInteraccion).
 // El viewBox sale del ancho real, como la del fondo, y queda del alto de las del resumen; si la ventana cambia de ancho se repinta (abajo, en 'resize').
-const fechaTipBolsa=ms=>new Date(ms).toLocaleDateString('es-MX',{day:'numeric',month:'short',year:'numeric'});
+const fechaTipBolsa=ms=>diaCorto(ms);
 const fechaEjeBolsa=ms=>new Date(ms).toLocaleDateString('es-MX',{day:'numeric',month:'short',year:'2-digit'});
 function rejillaBolsa(w,h,minY,spanY,etq) {
   let s='';
@@ -15451,11 +15675,11 @@ function granoBolsa(serie) {
 }
 function grupoBolsa(ms,grano) {
   const d=new Date(ms);
-  if(grano==='dia') return {k:ms,lbl:d.toLocaleDateString('es-MX',{weekday:'short',day:'numeric',month:'short'})};
+  if(grano==='dia') return {k:ms,lbl:diaCorto(ms)};
   if(grano==='mes') return {k:d.getFullYear()*12+d.getMonth(),lbl:d.toLocaleDateString('es-MX',{month:'short',year:'numeric'})};
   if(grano==='ano') return {k:d.getFullYear(),lbl:String(d.getFullYear())};
   const lunes=new Date(d.getFullYear(),d.getMonth(),d.getDate()-((d.getDay()+6)%7));
-  return {k:lunes.getTime(),lbl:'semana del '+lunes.toLocaleDateString('es-MX',{day:'numeric',month:'short'})};
+  return {k:lunes.getTime(),lbl:'semana del '+diaCorto(lunes)};
 }
 // cuantas barras salen con cada opcion: con menos de 2 no hay nada que comparar y con mas de BARRAS_MAX no caben
 function cuentaBarras(serie,grano) { return new Set(serie.map(q=>grupoBolsa(q.x,grano).k)).size; }
@@ -15509,7 +15733,7 @@ function renderPeriodoBolsa() {
   if(p.vacio){ cuerpo.innerHTML='<div class="empty-state">'+escapeHtml(p.vacio)+'</div>'; devolverFoco(); return; }
   const sgn=v=>(v>=0?'+':'−')+fmt(Math.abs(v)), pct=v=>(v>=0?'+':'−')+Math.abs(v*100).toFixed(2)+'%';
   const cls=v=>v===null?'':(v>=0?'pos':'neg');
-  const fdia=f=>parseFechaLocal(f).toLocaleDateString('es-MX',{weekday:'short',day:'numeric',month:'short'});
+  const fdia=f=>diaCorto(f);
   let cuando;
   if(bolsaRango==='1d') cuando=p.hasta===hoyLocal()?'hoy':'último día de mercado, '+fdia(p.hasta);
   else if(p.recortado||bolsaRango==='todo') cuando='desde tu primera compra ('+fdia(p.desde)+')';
@@ -15653,7 +15877,7 @@ function initChartInteraccion(contId) {
     line.setAttribute('x1',cx);line.setAttribute('x2',cx);line.setAttribute('visibility','visible');
     if(dot){dot.setAttribute('cx',cx);dot.setAttribute('cy',cy);dot.setAttribute('visibility','visible');}
     const tip=cont.querySelector('.chart-tip');
-    tip.innerHTML=entry.tip?entry.tip(best):new Date(best.x).toLocaleDateString('es-MX',{day:'numeric',month:'short',year:'numeric'})+'<div class="tip-val">'+(best.y<0?'−'+fmt(Math.abs(best.y)):fmt(best.y))+'</div>';
+    tip.innerHTML=entry.tip?entry.tip(best):escapeHtml(diaCorto(best.x))+'<div class="tip-val">'+(best.y<0?'−'+fmt(Math.abs(best.y)):fmt(best.y))+'</div>';
     tip.style.display='block';
     const rect=svg.getBoundingClientRect();
     const lx=Math.max(0,Math.min(rect.width-tip.offsetWidth,cx/W*rect.width-tip.offsetWidth/2));
@@ -16931,7 +17155,7 @@ async function fvReferencia(uid) {
   return s;
 }
 const fvCobroFechaOk = f => typeof f === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(f) && !isNaN(parseFechaLocal(f));
-const fvCobroFechaTxt = f => parseFechaLocal(f).toLocaleDateString('es-MX', {day: 'numeric', month: 'long', year: 'numeric'});
+const fvCobroFechaTxt = f => diaCorto(f);   // (28-nov-2026) la fecha corta de toda la app
 // (revision) los dias se cuentan con la fecha de MEXICO, igual que marcar-pago.mjs (hoyMexico): con la del aparato, quien viaja o tiene el reloj en otra zona veria "vence hoy" un dia antes o despues
 const fvCobroHoy = () => { try { return new Intl.DateTimeFormat('en-CA', {timeZone: 'America/Mexico_City', year: 'numeric', month: '2-digit', day: '2-digit'}).format(new Date()); } catch (e) { return hoyLocal(); } };
 const fvCobroDias = f => Math.round((parseFechaLocal(f) - parseFechaLocal(fvCobroHoy())) / 86400000);
@@ -17669,7 +17893,7 @@ function renderFondo() {
       ? movs.slice(0, 60).map(m =>
           '<div class="item-row"><div><div class="item-cat">' + escapeHtml(FONDO_TIPOS_TXT[m.tipo] || m.tipo) + ' · ' + escapeHtml(CUENTAS[m.cuenta] || m.cuenta) +
           (m.tipo === 'traspaso' && m.destino ? ' → ' + escapeHtml(CUENTAS[m.destino] || m.destino) : '') + '</div>' +
-          '<div class="item-meta">' + escapeHtml(fmtFechaMov(m.fecha, {day:'numeric', month:'short', year:'numeric'})) + (m.nota ? ' · ' + escapeHtml(m.nota) : '') + '</div></div>' +
+          '<div class="item-meta">' + escapeHtml(diaCorto(m.fecha)) + (m.nota ? ' · ' + escapeHtml(m.nota) : '') + '</div></div>' +
           '<span class="' + (neg(m.tipo) ? 'item-amt-neg' : m.tipo === 'traspaso' ? '' : 'item-amt-pos') + '">' +
           (neg(m.tipo) ? '−' : m.tipo === 'traspaso' ? '' : '+') + fmt(m.monto) + '</span></div>').join('') +
         '<div class="item-meta" style="margin-top:8px">los movimientos del fondo no se borran: si te equivocas, registra el contrario (por ejemplo "liberar" para deshacer un "apartar")</div>'
@@ -18235,7 +18459,7 @@ const tituloMeta=m=>m.nombre||nombreMeta(m.cuenta);
 // la fecha que propone una meta nueva: el 31 de diciembre que viene (en diciembre, el del año siguiente)
 const metaFechaNueva=()=>{ const d=new Date(); return (d.getFullYear()+(d.getMonth()===11?1:0))+'-12-31'; };
 const diasAFecha=f=>Math.round((parseFechaLocal(f).getTime()-parseFechaLocal(hoyLocal()).getTime())/86400000);
-const fechaMetaLarga=f=>parseFechaLocal(f).toLocaleDateString('es-MX',{day:'numeric',month:'long',year:'numeric'});
+const fechaMetaLarga=f=>diaCorto(f);   // (28-nov-2026) la fecha corta de toda la app (antes "30 de junio de 2027" junto a "30 jun 2027")
 // (27-nov-2026, Beto: "Metas se siente vacía") la lista sola: cada meta con su camino adentro y los fondos con meta en su plazo. La llaman
 // renderMetas y renderApartados (un fondo que cambia repinta la lista sin tocar los campos del retiro, que se estan escribiendo)
 function pintarListaMetas(ctx) {
@@ -18316,7 +18540,11 @@ function pintarListaMetas(ctx) {
       ?'proyección conservadora: solo tus aportaciones, sin contar rendimientos'
       :(cam.huboMes?cam.txtMes+'; la proyección usa el promedio de tus meses completos y arranca cuando cierre tu primer mes'
         :'aún no hay aportaciones registradas en los últimos 3 meses — la proyección arranca cuando muevas dinero desde la app')}</div>`:'';
-  el.innerHTML=(grupos.length?grupos.map(g=>cabeza(g)+`<div class="metas-grupo">`+g.metas.map(fila).join('')+g.fondos.map(filaFondo).join('')+`</div>`).join('')+nota
+  // (28-nov-2026) con la copia local (sin señal, o antes de que conteste el servidor) las cifras pueden no ser las de hoy: se dice, como en Deudas y el Resumen
+  // Antes de que conteste el servidor (la copia que se pinta al abrir sin señal) las metas aun no se leyeron: no se dice "no tienes metas"
+  if(!datosCargados){ if(!cargaDesdeCache&&navigator.onLine!==false){ el.innerHTML=''; return; } el.innerHTML='<div class="item-meta metas-sin-confirmar" id="metas-sin-confirmar">copia local, sin confirmar: tus metas se ven cuando vuelva la señal</div>'; return; }
+  const sinConf=cargaDesdeCache?'<div class="item-meta metas-sin-confirmar" id="metas-sin-confirmar">copia local, sin confirmar: tus cifras se actualizan cuando vuelva la señal</div>':'';
+  el.innerHTML=sinConf+(grupos.length?grupos.map(g=>cabeza(g)+`<div class="metas-grupo">`+g.metas.map(fila).join('')+g.fondos.map(filaFondo).join('')+`</div>`).join('')+nota
       :'<div class="empty-state">'+(cumplidas.length?'no tienes metas activas: pon la siguiente':'todavía no tienes metas — crea la primera')+'</div>'+propuestasMetas(ctx,cam))+
     '<button type="button" class="btn" style="margin-top:12px" onclick="nuevaMeta()">+ nueva meta</button>'+
     (cumplidas.length?`<details class="metas-hechas" id="metas-hechas"${metasHechasAbierto?' open':''}><summary>metas cumplidas (${cumplidas.length})</summary>`+
@@ -18887,6 +19115,9 @@ function guardarRetiroNube(extra, ya){
     // Lo que se borro en pantalla (campo vacio) sigue borrandose; la edad vacia solo si la persona la toco.
     const extra={...retiroExtra}, todos=retiroDeCampos(), vacios=[], campos={}, base=retiroBase;
     Object.entries(todos).forEach(([k,x])=>{ if(!base||base[k]!==x) campos[k]=x; });
+    // (28-nov-2026, code-reviewer) un numero fuera de rango (un "6" camino a "65") no se manda: saneaRetiro lo tiraba y se llevaba el bueno del
+    // servidor (y ahora, en vivo, tambien el de los otros aparatos). Se queda como cambio tuyo sin subir hasta que sea valido
+    { const okC=saneaRetiro(campos)||{}; Object.keys(campos).forEach(k=>{ if(!Object.hasOwn(okC,k)) delete campos[k]; }); }
     Object.entries(RETIRO_CAMPOS).forEach(([k,id])=>{ const e=document.getElementById(id), kk=k==='edad'?'ano':k;
       if(e&&e.value===''&&(k!=='edad'||e.dataset.tocado)&&(!base||Object.hasOwn(base,kk))) vacios.push(kk); });
     let fin; retiroNubeProm=new Promise(ok=>{ fin=ok; });
@@ -18903,6 +19134,7 @@ function guardarRetiroNube(extra, ya){
         new Promise((_,no)=>setTimeout(()=>no(new Error('tiempo agotado')),15000))]);
       state.perfil={...state.perfil,retiro:obj}; retiroNubePend=false; retiroExtra={}; setSyncDot('ok');
       retiroBase={...(retiroBase||{}),...campos}; vacios.forEach(k=>{ delete retiroBase[k]; });
+      retiroRemoto=obj||null;   // (28-nov-2026, code-reviewer) lo ultimo que se sabe del servidor es esto: un focusout despues no regresa lo de antes
       return true;
     }catch(e){ console.error('retiro',e); retiroNubePend=true; setSyncDot('err'); return false; }
     finally{ retiroNubeVuelo=false; fin();
@@ -18953,6 +19185,62 @@ function cargarRetiro() {
   if(metaRetiroPend&&!metaRetiroReloj&&!metaRetiroVuelo&&datosCargados&&!cargaDesdeCache&&navigator.onLine!==false&&Date.now()-metaRetiroIntento>60000) sincronizarMetaRetiro();
   if(!retiroDatosPlegados&&datosCargados){ retiroDatosPlegados=true; plegarDatosRetiro(); }
 }
+// (28-nov-2026, IDEAS 25-nov "retiro con dos aparatos") lo que otro aparato cambio en <NS>/perfil.retiro llega aqui (onSnapshot del perfil, solo
+// del servidor). Se toma campo por campo: uno que la persona esta escribiendo en este aparato (con el foco, o cambiado y aun sin confirmar: lo
+// que guardarRetiroNube mandaria, distinto de retiroBase) se queda como esta; los demas toman lo del servidor y retiroBase con ellos (asi este
+// aparato no lo vuelve a mandar). Al soltar el foco se toma lo que falto. Nada de esto escribe en la cuenta: ni el retiro, ni la meta del
+// fondo (sincronizarMetaRetiro solo la llaman los cambios de la persona: la meta la ajusto el aparato que cambio el plan y llega por su propio
+// escucha), ni el tipo de cambio de un lugar nuevo (si falta, la pantalla lo dice y se baja al cargar otra vez)
+let retiroRemoto=null, retiroRemotoPend=false;
+const RETIRO_ID_K={ano:'ret-edad',a:'ret-a',ingreso:'ret-ingreso',hasta:'ret-hasta',tasa:'ret-tasa',infl:'ret-infl',ya:'ret-ya',lugar:'ret-lugar'};
+// el campo k (formato de la cuenta) tiene un cambio de la persona que aun no esta en el servidor
+function retiroCampoPendiente(k){
+  const e=document.getElementById(RETIRO_ID_K[k]); if(!e) return false;
+  const base=retiroBase||{};
+  if(k==='lugar') return e.value!==(base.lugar||'mx');
+  const todos=retiroDeCampos();
+  if(Object.hasOwn(todos,k)) return base[k]!==todos[k];
+  // escrito pero invalido (una edad de menor, un numero a medio escribir): es tuyo, no se pisa
+  if(e.value!==''&&(k!=='ano'||!!e.dataset.tocado)) return true;
+  // vacio: es un borrado pendiente si la cuenta lo tenia (la edad, solo si la persona la toco)
+  return e.value===''&&(k!=='ano'||!!e.dataset.tocado)&&Object.hasOwn(base,k);
+}
+function aplicarRetiroRemoto(raw){
+  const r=saneaRetiro(raw);
+  const igual=JSON.stringify(r||null)===JSON.stringify((state.perfil&&state.perfil.retiro)||null);
+  retiroRemoto=r;
+  if(!igual) state.perfil={...state.perfil,retiro:r};
+  // (code-reviewer) siempre se compara contra los CAMPOS (no solo contra state): tras una carga, state puede estar al dia y la pantalla no
+  retiroTomarRemoto(!igual);
+}
+function retiroTomarRemoto(forzar){
+  const r=retiroRemoto||{}, act=document.activeElement, anoAct=new Date().getFullYear();
+  let cambio=false, quedo=false;
+  if(!retiroBase) retiroBase={};
+  RETIRO_BASE_K.forEach(k=>{
+    const e=document.getElementById(RETIRO_ID_K[k]); if(!e) return;
+    const v=r[k];
+    if(e===act){ if((k==='lugar'?(e.value!==(v||'mx')):true)) quedo=true; return; }   // lo que estas escribiendo no se toca
+    if(retiroCampoPendiente(k)) return;   // tu cambio sin confirmar manda: guardarRetiroNube lo sube
+    if(k==='lugar'){ const n=Object.hasOwn(LUGARES_RETIRO,v||'')?v:'mx'; if(e.value!==n){ e.value=n; cambio=true; } e.dataset.prev=e.value; }
+    else if(k==='ano'){
+      if(Number.isInteger(v)){ const t=String(anoAct-v); if(e.value!==t){ e.value=t; cambio=true; } e.dataset.tocado='1'; }
+      else if(e.dataset.tocado){ delete e.dataset.tocado; e.value=''; cambio=true;
+        const an=state.perfil&&state.perfil.anoNac; if(Number.isInteger(an)) e.value=String(anoAct-an); }
+    } else {
+      const t=v===undefined?'':String(v);
+      if(e.value!==t){ e.value=t; cambio=true; if(k==='infl') retInflOtra=false; }
+    }
+    if(v===undefined) delete retiroBase[k]; else retiroBase[k]=v;
+  });
+  retiroRemotoPend=quedo;
+  if(cambio) guardarRetiroLocal();   // la copia del aparato (localStorage): no es la cuenta
+  // (revision) recibir no escribe: cargarRetiro baja el tipo de cambio (setDoc de mercado.fx) la primera vez por carga; aqui se marca como ya pedido y se baja en la siguiente carga
+  if(cambio||forzar){ retiroTcPedido=true; refrescar(pintarRetiro, renderApartados); }
+  return cambio;
+}
+{ const d=document.getElementById('ret-datos');
+  if(d) d.addEventListener('focusout',()=>{ if(retiroRemotoPend) setTimeout(()=>{ if(retiroRemotoPend) retiroTomarRemoto(); },0); }); }
 window.editarMeta=id=>abrirMetaDlg('editar',id);
 window.cerrarMetaDlg=()=>{ const d=document.getElementById('meta-dlg'); if(d&&d.open) d.close(); };
 window.guardarMetaDlg=async function(){
@@ -19013,7 +19301,7 @@ const pctCorto=v=>{ const r=Math.round(v*10)/10; return Number.isInteger(r)?Stri
 // Meses que quedan INCLUYENDO el actual (minimo 1): la fecha de la meta en su mes cuenta como un mes mas
 function mesesRestMeta(f){ const hoyD=new Date(), metaD=parseFechaLocal(f); return Math.max(1,(metaD.getFullYear()-hoyD.getFullYear())*12+(metaD.getMonth()-hoyD.getMonth())+1); }
 const ritmoMeta=(falta,f)=>Math.max(0,falta)/mesesRestMeta(f);
-const fechaCortaMeta=f=>parseFechaLocal(f).toLocaleDateString('es-MX',{day:'numeric',month:'short',year:'numeric'}).replace('.','');
+const fechaCortaMeta=f=>diaCorto(f);
 // (27-nov-2026) el camino de cada meta, dentro de su tarjeta. Proyeccion CONSERVADORA hasta SU fecha: solo aportaciones registradas
 // (promedio de los ultimos 3 meses completos, incluyendo meses en cero), sin contar rendimientos futuros. Lo de todas se calcula una vez
 function datosCamino() {
@@ -19055,10 +19343,11 @@ function lineaCamino(m,ctx,MT,cam){
   if(metaBloqueada(m.cuenta,ctx)||diasAFecha(f)<=0) return '';
   const actual=valorMeta(m.cuenta,ctx), falta=m.monto-actual;
   if(falta<=0.005) return '';
-  const n=mesesRestMeta(f), pide=`<div class="meta-ritmo">mete unos ${fmt(ritmoMeta(falta,f))} al mes para llegar${n>1?' ('+n+' meses)':''}</div>`;
+  const n=mesesRestMeta(f), basta=ritmoMeta(falta,f), pide=`<div class="meta-ritmo">mete unos ${fmt(basta)} al mes para llegar${n>1?' ('+n+' meses)':''}</div>`;
   if(!METAS_PROYECTABLES.includes(m.cuenta)||!cam.huboOp||!((cam.suma[m.cuenta]||0)>0.005)||mesesHastaMeta(f)<=0) return pide;   // (qa) un ritmo negativo no se dice como "a tu ritmo de −$500"
   const prom=cam.suma[m.cuenta]/3, proy=actual+prom*n, cuando=fechaCortaMeta(f);   // (18-nov, revision) el MISMO contador de meses que el Resumen
-  if(proy>=m.monto-0.005) return `<div class="meta-ritmo meta-va">a tu ritmo (unos ${fmt(prom)} al mes) llegas al ${cuando} con ${fmt(proy)}</div>`;
+  // (28-nov-2026) si a tu ritmo llegas, no se dice "mete unos": se dice que llegas y con cuanto al mes basta (es lo que suma el encabezado del plazo)
+  if(proy>=m.monto-0.005) return `<div class="meta-ritmo meta-va">a tu ritmo (unos ${fmt(prom)} al mes) llegas al ${cuando} con ${fmt(proy)}; te bastan unos ${fmt(basta)} al mes</div>`;
   return pide+`<div class="item-meta meta-camino">a tu ritmo de ahora (unos ${fmt(prom)} al mes) llegarías al ${cuando} con ${fmt(Math.max(0,proy))}</div>`;
 }
 // (27-nov-2026) los fondos con meta, para la lista de metas: lo que tienen (con su interes estimado), su meta y en que plazo caen
@@ -19961,13 +20250,13 @@ function rangoPeriodo(periodo, o) {
   if(periodo==='dia'){
     start=new Date(now.getFullYear(),now.getMonth(),now.getDate()+o);
     end=new Date(now.getFullYear(),now.getMonth(),now.getDate()+o+1);
-    label=o===0?'hoy':start.toLocaleDateString('es-MX',{weekday:'short',day:'numeric',month:'short'});
+    label=movDiaTitulo(start);
   } else if(periodo==='semana'){
     const lunes=now.getDate()-((now.getDay()+6)%7);
     start=new Date(now.getFullYear(),now.getMonth(),lunes+o*7);
     end=new Date(start.getFullYear(),start.getMonth(),start.getDate()+7);
     const fin=new Date(end.getTime()-86400000);
-    label=start.toLocaleDateString('es-MX',{day:'numeric',month:'short'})+' – '+fin.toLocaleDateString('es-MX',{day:'numeric',month:'short'});
+    label=diaCorto(start)+' – '+diaCorto(fin);
   } else if(periodo==='ano'){
     start=new Date(now.getFullYear()+o,0,1); end=new Date(now.getFullYear()+o+1,0,1);
     label=String(now.getFullYear()+o);
@@ -20247,7 +20536,12 @@ function textoCoach(m) {
   // (revision) "un gasto fijo" solo si lo es: si lo mas grande es ajustable y el foco es otra (marcada para bajar o arriba de su promedio), se dice por que
   const top=tops[0], topFija=!!(top&&esCatFija(top.cat)), topTxt=top?top.cat+' ('+fmt(top.amt)+')':'';
   let dondeVa=null;
-  if(foco&&top&&top.cat!==foco.cat) dondeVa=topTxt+(topFija?', un gasto fijo; de lo que se puede ajustar, lo que más pesa es ':(foco.inflada?'; la que más se salió de tu promedio es ':'; de lo que marcaste que se puede bajar, lo que más pesa es '))+focoTxt;
+  // (28-nov-2026, e2e-se-ve 9) "lo que más pesa" es lo que más pesa: con lo más grande fijo, se nombra la ajustable más grande y, si el foco es
+  // otra (arriba de su promedio, o de las que se pueden bajar), se dice aparte y por qué. "marcaste" solo si la persona la marcó (las de fábrica no)
+  const pesa=libres[0], marcada=c=>!!(state.clasif.tiposCat&&Object.hasOwn(state.clasif.tiposCat,c)&&state.clasif.tiposCat[c]==='bajar');
+  const porQue=!foco||foco===pesa?'':(foco.inflada?'la que más se salió de tu promedio es ':(marcada(foco.cat)?'de lo que marcaste que se puede bajar, lo que más pesa es ':'de lo que se puede bajar, lo que más pesa es '));
+  if(foco&&top&&top.cat!==foco.cat&&topFija) dondeVa=topTxt+', un gasto fijo; de lo que se puede ajustar, lo que más pesa es '+(pesa===foco?focoTxt:pesa.cat+' ('+fmt(pesa.amt)+')'+(porQue?'; '+porQue+focoTxt:''));
+  else if(foco&&top&&top.cat!==foco.cat) dondeVa=topTxt+'; '+(foco.inflada?'la que más se salió de tu promedio es ':(marcada(foco.cat)?'de lo que marcaste que se puede bajar, lo que más pesa es ':'de lo que se puede bajar, lo que más pesa es '))+focoTxt;
   else if(foco) dondeVa=focoTxt;
   else if(top) dondeVa=topTxt+(topFija?', un gasto fijo':'');
   // (22-nov-2026, Beto: "no hay que juzgar a la gente, pero si gratificarles cuando hagan algo bueno") en un mes dificil solo hechos,
@@ -20845,7 +21139,7 @@ function renderUtilidades(start,end) {
   const filas=[];
   // (7-nov-2026, solo Fundview) sin fondo no se habla de un fondo, y la fecha va legible ("3 de noviembre"), no AAAA-MM-DD
   const hayFondoRes=!CFG.multi||fondoTotal()>0.004||((state.fondo&&state.fondo.movs)||[]).length>0;
-  const fechaRes=h=>{ if(!CFG.multi) return h; const d=parseFechaLocal(h); return isNaN(d.getTime())?h:d.toLocaleDateString('es-MX',{day:'numeric',month:'long'}); };
+  const fechaRes=h=>{ if(!CFG.multi) return h; const d=parseFechaLocal(h); return isNaN(d.getTime())?h:diaCorto(h); };
   const fila=(ico,tit,meta,val)=>filas.push(`<div class="item-row"><div><div class="item-cat">${ico} ${escapeHtml(tit)}</div><div class="item-meta">${escapeHtml(meta)}</div></div><div style="font-size:14px;font-weight:600">${escapeHtml(val)}</div></div>`);
   fila('🏦','intereses de tus cuentas',
     (listaY(CTAS_AHORRO.filter(k=>!CFG.multi||!ctaApagada(k)||(dias>0&&Math.abs(interesEnRango(k,start.getTime(),endC.getTime()))>=0.005)).map(k=>k==='cajita1'?'cajita NU':ctaReg(k).nombre+(ctaReg(k).ui&&ctaReg(k).ui.estimado?' (estimado)':'')).concat(ix.lista.map(r=>r.x.nombre)))||'tus cuentas con interés')+(hayFondoRes?' · descontando lo conciliado al fondo':'')+(avisoTasaMifel()?' · tasa de Mifel por confirmar':'')+(parcialInt?' · parcial: '+(hueco?'hay días sin historia en este periodo':hDentro?'sin historia antes del '+fechaRes(hDentro):'sin historia completa en este periodo'):''),(intereses>=0?'+':'−')+fmt(Math.abs(intereses)));
